@@ -25,9 +25,9 @@ int calc_gradient(State_t curr_state, Fmri_t curr_fmri, Param_t curr_params,
     result[0] = (1./tau_0) * (curr_state[3] - pow(curr_state[0], 1./curr_params[4]));
     
     //Q_t* = ...
-    double A = (curr_state[3]/curr_params[5]) * (1 - pow(1-curr_params[5], 1./curr_state[3]))
-    results[1] = (1./curr_params[3]) * ( A - B )
-    result[1] = 0;
+    double A = (curr_state[3]/curr_params[5]) * (1 - pow(1-curr_params[5], 1./curr_state[3]));
+    double B = curr_state[1]/pow(curr_state[0], 1.-1./curr_params[4]);
+    result[1] = (1./curr_params[3]) * ( A - B );
     return 0;
 }
 
