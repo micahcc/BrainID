@@ -71,7 +71,7 @@ int pfilter::update(U* caller, double delta_t)
 
         //draw the new X_t from N(X_{t-1}+f(X_{t-1})dt, var*delta_t)
         //or x_t,i ~ p(x_t | u_t, x_t-1,i)
-        particles[i] = caller->step(particles[i], delta_t);
+        particles[i] = caller->step(particles[i]);
         it = particles[i].Begin();
         while( it != particles[i].End() ) {
             *it = rv.variate()*sqrt(var*delta_t) + *it;

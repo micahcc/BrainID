@@ -40,15 +40,15 @@ typedef itk::Vector<double, 4> Grad_t;
 
 typedef itk::OrientedImage<double, 3> Fmri_t;
 
-//extern itk::Matrix<double, 4, NUM_WIENER> weights_g;
-
 class bold
 {
 public:
     bold();
-    int calc_gradient(State_t curr_state, Fmri_t curr_fmri, Grad_t result);
+    State_t step(State_t);
+    double error(State_t);
 
-
+private:
+    double delta_t;
 }
 #endif
 

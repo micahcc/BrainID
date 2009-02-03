@@ -5,10 +5,7 @@
 
 itk::Matrix< double, 4, 10 > weights_g;
 
-//Current state represents the vector X, gradient X*, params theta,
-//and stimuli, u, where X_t* = X_{t-1} + f(X_t, u_t, theta)*dt
-int calc_gradient(State_t curr_state, double stimuli, Param_t curr_params, 
-            Grad_t* result)
+State_t step(State_t prev)
 {
     #define epsilon  curr_params[0]
     #define tau_s    curr_params[1]
@@ -22,6 +19,7 @@ int calc_gradient(State_t curr_state, double stimuli, Param_t curr_params,
     #define q_t      curr_state[1]
     #define s_t      curr_state[2]
     #define f_t      curr_state[3]
+    State_t result;
 
     //V_t* = (1/tau_0) * ( f_t - v_t ^ (1/\alpha)) 
     result[0] = (1./tau_0) * (f_t - pow(v_t, 1./alpha));
@@ -37,6 +35,13 @@ int calc_gradient(State_t curr_state, double stimuli, Param_t curr_params,
 
     result[3] = s_t;
 
-    return 0;
+    //X_t = X_{t-1} + dx*dt
+    result = prev + result*delta_t;
+    return result;
 }
 
+double error(State_t prev)
+{
+    
+
+}
