@@ -42,7 +42,13 @@ typedef itk::OrientedImage<double, 3> Fmri_t;
 
 //extern itk::Matrix<double, 4, NUM_WIENER> weights_g;
 
-int calc_gradient(State_t curr_state, Fmri_t curr_fmri, Param_t curr_params, 
-            Grad_t result);
+class bold
+{
+public:
+    bold();
+    int calc_gradient(State_t curr_state, Fmri_t curr_fmri, Grad_t result);
+
+
+}
 #endif
 
