@@ -17,4 +17,5 @@ endif(COMMAND cmake_policy)
 
 
 ADD_EXECUTABLE(bold_test bold_test.cpp)
+ADD_EXECUTABLE(particle_test particle_test.cpp)
 TARGET_LINK_LIBRARIES(bold_test bold particle ITKCommon)
