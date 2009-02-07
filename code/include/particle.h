@@ -2,39 +2,82 @@
 #define PARTICLE_H
 
 #include <itkNormalVariateGenerator.h>
+#include <itkVector.h>
 
-template <typename State, typename U>
-class pfilter {
+static const int DEFAULT_NUM = 5000;
+
+template <unsigned int LEN>
+class PBase {
 public:
-    pfilter();
-    State sample();
-    void update();
+    virtual itk::Vector<double, LEN> step(itk::Vector<double, LEN>) = 0;
+    virtual double error(itk::Vector<double, LEN>) = 0;
+    virtual ~PBase() { } ;
+};
 
+template <typename U, unsigned int LEN>
+class ParticleF {
+public:
+    typedef itk::Vector<double, LEN> State;
+    ParticleF();
+    ParticleF(int, State);
+    State sample();
+    void update(U* caller, double delta_t);
+    void print();
 private:
     unsigned int num_particles;
     State* particles;
-    State* weights;
+    double* weights;
     State* old_particles;
     double dt;
     double observe;
     double stim;
     double var;
-    weighted_sample();
+    int weighted_sample(double);
 };
 
-template <typename State, typename U>
-pfilter::pfilter(int num_particles, State init)
+template <typename U, unsigned int LEN>
+ParticleF<U, LEN>::ParticleF()
+{
+    this->num_particles = DEFAULT_NUM;
+    this->particles = new State(num_particles);
+    this->old_particles = new State(num_particles);
+    this->weights = new double(num_particles);
+    this->var = 10;
+    
+    //assign some sort of RV into the particles based
+    //on init
+
+    typename ParticleF<U, LEN>::State::Iterator it;
+    for(int i = 0 ; i<num_particles ; i++) {
+        it = particles[i].Begin();
+        while( it != particles[i].End() ) {
+            *it = rand();
+        }
+    }
+}
+
+template <typename U, unsigned int LEN>
+ParticleF<U, LEN>::ParticleF(int num_particles, State init)
 {
     this->num_particles = num_particles;
     this->particles = new State(num_particles);
     this->old_particles = new State(num_particles);
-    this->weights = new State(num_particles);
+    this->weights = new double(num_particles);
+    
     //assign some sort of RV into the particles based
     //on init
+    
+    typename ParticleF<U, LEN>::State::Iterator it;
+    for(int i = 0 ; i<num_particles ; i++) {
+        it = particles[i].Begin();
+        while( it != particles[i].End() ) {
+            *it = rand();
+        }
+    }
 }
 
-//template <typename State, typename U>
-//pfilter::pfilter(int num_particles, State::Pointer init)
+//template <typename U, unsigned int LEN>
+//ParticleF::ParticleF(int num_particles, State::Pointer init)
 //{
 //    this->num_particles = num_particles;
 //    this->particles = new State(num_particles);
@@ -47,25 +90,31 @@ pfilter::pfilter(int num_particles, State init)
 //    //on init
 //}
 
-template <typename State, typename U>
-State pfilter::sample()
+template <typename U, unsigned int LEN>
+typename ParticleF<U, LEN>::State ParticleF<U, LEN>::sample()
 {
-    State out;
-    //sum up particles and return
-    return out;
+    return particles[(((double) rand())/(RAND_MAX+1))*num_particles];
 }
 
-template <typename State, typename U>
-int pfilter::update(U* caller, double delta_t)
+template <typename U, unsigned int LEN>
+void ParticleF<U, LEN>::print()
+{
+    for(int i=0 ; i<num_particles ; i++){
+        printf("%5.4f ", particles[i]);
+    }
+}
+
+template <typename U, unsigned int LEN>
+void ParticleF<U, LEN>::update(U* caller, double delta_t)
 {
     double norm_mean= 0;
     double norm_sig = 0;
-    Grad_t curr_grad;
 
     itk::Statistics::NormalVariateGenerator rv;
-    rv.initialize(rand());
+    rv.Initialize(rand());
 
-    State::Iterator it;
+    //State::Iterator it;
+    typename ParticleF<U, LEN>::State::Iterator it;
 
     for(int i=0 ; i<num_particles ; i++) {
 
@@ -74,7 +123,7 @@ int pfilter::update(U* caller, double delta_t)
         particles[i] = caller->step(particles[i]);
         it = particles[i].Begin();
         while( it != particles[i].End() ) {
-            *it = rv.variate()*sqrt(var*delta_t) + *it;
+            *it = rv.GetVariate()*sqrt(var*delta_t) + *it;
         }
 
         //draw weight from Normal, with mean equal to the difference
@@ -82,7 +131,7 @@ int pfilter::update(U* caller, double delta_t)
         //more generically, use the error as the mean and use
         //some sigma for the std. dev.
         weights[i] = caller->error(particles[i]);
-        weights[i] = rv.variate()*sqrt(var) + weights[i];
+        weights[i] = rv.GetVariate()*sqrt(var) + weights[i];
     }
 
     double weight_sum;
@@ -107,18 +156,24 @@ int pfilter::update(U* caller, double delta_t)
     }
 }
 
-template <typename State, typename U>
-int weighted_sample(double max)
+//returns the index of a particle based on the list of
+//weights. To accomplish this it gets a random number
+//between 0 and max. Then it adds weights in order until
+//the max is exceeded. Thus the weights are used to convert
+//a Uniformly distributed RV into a distribution as defined by the particles
+template <typename U, unsigned int LEN>
+int ParticleF<U, LEN>::weighted_sample(double max)
 {
     double ran = (((double) rand())/RAND_MAX) * max;
     double sum = 0;
-    for(int i=0 ; i<num_particles ; i++) {
+    int i;
+    for(i=0 ; i<num_particles ; i++) {
         sum += weights[i];
         if(ran < sum) {
             return i;
         }
     }
-    fprintf(stderr, "Hmm I don't think it should get here, at least it\n")
+    fprintf(stderr, "Hmm I don't think it should get here, at least it\n");
     fprintf(stderr, "should be very rare\n");
     return i;
 }

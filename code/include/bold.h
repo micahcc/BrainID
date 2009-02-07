@@ -46,9 +46,12 @@ public:
     bold();
     State_t step(State_t);
     double error(State_t);
-
 private:
+    State_t curr_state;
+    Param_t curr_params;
     double delta_t;
-}
+    double stimuli;
+};
+
 #endif
 

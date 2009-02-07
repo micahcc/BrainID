@@ -5,7 +5,13 @@
 
 itk::Matrix< double, 4, 10 > weights_g;
 
-State_t step(State_t prev)
+bold::bold()
+{
+    curr_params.Fill(0);
+    curr_state.Fill(0);
+}
+
+State_t bold::step(State_t prev)
 {
     #define epsilon  curr_params[0]
     #define tau_s    curr_params[1]
@@ -26,7 +32,7 @@ State_t step(State_t prev)
     
     //Q_t* = ...
     double A = (f_t / e_0) * (1 - pow( 1. - e_0, 1./f_t));
-                (1 - pow(1-curr_params[5], 1./curr_state[3]));
+                (1 - pow(1-curr_params[5], 1./f_t));
     double B = q_t / pow(v_t, 1.-1./alpha);
     result[1] = (1./tau_0) * ( A - B );
 
@@ -43,5 +49,5 @@ State_t step(State_t prev)
 double error(State_t prev)
 {
     
-
+    return 0.0;
 }
