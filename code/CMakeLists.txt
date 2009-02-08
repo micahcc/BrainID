@@ -12,3 +12,4 @@ INCLUDE_DIRECTORIES(${brainid_SOURCE_DIR}/code/include)
 LINK_DIRECTORIES(${brainid_SOURCE_DIR}/code)
 
 ADD_LIBRARY(bold bold.cpp)
+ADD_LIBRARY(particle particle.cpp)
