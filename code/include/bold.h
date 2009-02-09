@@ -10,19 +10,6 @@
 
 #define NUM_WIENER 10;
 
-//typedef itk::OrientedImage<double, 3> Fmri_t;
-//
-//class bold
-//{
-//public:
-//    bold();
-//    State_t step(State_t);
-//    double error(State_t);
-//
-//private:
-//    double delta_t;
-//}
-
 //This is a type for holding input from the file or whatever means
 //each time point is taken.
 struct Input_t
@@ -89,6 +76,23 @@ struct ExtraData_t
     double a1;
     double a2;
 };
+
+int read_header(FILE* file, Input_t* input);
+
+int read_time(FILE* file, Input_t* input);
+
+//step provides the pr(X_t|X_t-1)
+//state is a state variable, which is a 1 dimensional vector of constant
+//      length.
+//extras is just a data structure that was passed in
+//dist is a a set of tuples (len 2) where dist[i][0] is the mean and dist[i][1]
+//      is the variance. Obviously every member of state will have a different
+//      mean and variance. This is the output of the function
+void step(const double* state_a, void* extras, double dist[][2]);
+
+//error provides the pr(y_t | x_t-1)
+void error(const double* state_a, double dist[2], void* extras);
+
 
 #endif
 

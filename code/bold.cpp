@@ -17,13 +17,6 @@ int read_time(FILE* file, Input_t* input)
     return 0;
 }
 
-int main(int argc, char* argv[]) 
-{
-    FILE* input;
-
-    return 0;
-}
-
 //step provides the pr(X_t|X_t-1)
 //state is a state variable, which is a 1 dimensional vector of constant
 //      length.
