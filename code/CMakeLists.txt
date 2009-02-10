@@ -13,13 +13,14 @@ LINK_DIRECTORIES(${brainid_SOURCE_DIR}/code)
 
 ADD_LIBRARY(bold bold.cpp)
 ADD_LIBRARY(particle particle.cpp)
+ADD_LIBRARY(segment segment.cpp)
 
 #TARGET_LINK_LIBRARIES(bold particle ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
 
 ADD_EXECUTABLE(unbias unbias.cpp)
 ADD_EXECUTABLE(brainid brainid.cpp)
-ADD_EXECUTABLE(sumfmri sumfmri.cpp)
+ADD_EXECUTABLE(fmri_timeseries fmri_timeseries.cpp)
 
-TARGET_LINK_LIBRARIES(sumfmri ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
+TARGET_LINK_LIBRARIES(fmri_timeseries segment ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
 TARGET_LINK_LIBRARIES(unbias ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
 TARGET_LINK_LIBRARIES(brainid bold particle ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
