@@ -12,15 +12,6 @@
 //standard libraries
 #include <list>
 
-//Each SectionType struct contains an integer label and a list of SliceIterators
-//as well a pointer to the original image, just for completeness (whats 8 bytes 
-//among friends)
-typedef struct {
-    int label;
-    std::list<SliceIterator4D> list;
-    Image4DType::Pointer img;
-} SectionType ;
-
 // declare images
 typedef signed short PixelType;
 typedef itk::OrientedImage<PixelType, 3> Image3DType;
@@ -29,6 +20,15 @@ typedef itk::OrientedImage<PixelType, 4> Image4DType;
 typedef itk::ImageSliceIteratorWithIndex< Image4DType > SliceIterator4D;
 typedef itk::ImageLinearIteratorWithIndex< Image4DType > PixelIterator4D;
 typedef itk::ImageLinearIteratorWithIndex< Image3DType > PixelIterator3D;
+
+//Each SectionType struct contains an integer label and a list of SliceIterators
+//as well a pointer to the original image, just for completeness (whats 8 bytes 
+//among friends)
+typedef struct {
+    int label;
+    std::list<SliceIterator4D> list;
+    Image4DType::Pointer img;
+} SectionType ;
 
 SectionType* findLabel(std::list<SectionType*>& list, int label);
 

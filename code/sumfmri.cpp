@@ -101,7 +101,7 @@ void sort_voxels(const Image4DType::Pointer fmri_img,
     while(fmri_it != time_it) {
         while(!fmri_it.IsAtEndOfSlice()) {
             while(!fmri_it.IsAtEndOfLine()) {
-                checkAddPixel(fmri_img, fmri_it, active_voxels, labelmap_img);
+                checkAddPixel(fmri_img, fmri_it, voxels, label_img);
                 ++fmri_it;
             }
             fmri_it.NextLine();
@@ -112,11 +112,10 @@ void sort_voxels(const Image4DType::Pointer fmri_img,
 
 void free_voxels(std::list< SectionType* >& voxels)
 {
-    SectionType* section;
     do {
-        delete active_voxels.front();
-        active_voxels.pop_front();
-    } while (!active_voxels.empty());
+        delete voxels.front();
+        voxels.pop_front();
+    } while (!voxels.empty());
 }
 
 //Reads a dicom directory then returns a pointer to the image

@@ -18,4 +18,13 @@ endif(COMMAND cmake_policy)
 
 ADD_EXECUTABLE(bold_test bold_test.cpp)
 ADD_EXECUTABLE(particle_test particle_test.cpp)
+
+ADD_EXECUTABLE(sumfmri_test_alltogether sumfmri_testalltogether.cpp)
+ADD_EXECUTABLE(sumfmri_test_sections sumfmri_testsections.cpp)
+ADD_EXECUTABLE(sumfmri_test_times sumfmri_testtimes.cpp)
+
+
 TARGET_LINK_LIBRARIES(bold_test bold particle ITKCommon)
+TARGET_LINK_LIBRARIES(sumfmri_test_alltogether ITKCommon sumfmri)
+TARGET_LINK_LIBRARIES(sumfmri_test_sections ITKCommon sumfmri)
+TARGET_LINK_LIBRARIES(sumfmri_test_times ITKCommon sumfmri)
