@@ -1,5 +1,7 @@
 #include "segment.h"
 
+#include <itkImageFileReader.h>
+
 //The labelmap should already have been masked through a maxprob image for
 //graymatter
 int main( int argc, char **argv ) 
@@ -19,11 +21,9 @@ int main( int argc, char **argv )
     Image3DType::Pointer labelmap_img = labelmap_read->GetOutput();
     labelmap_img->Update();
 
-    std::list< SectionType* > active_voxels;
+    std::list< SectionType > active_voxels;
 
-    sort_voxels(fmri_img, labelmap_img, active_voxels);
-   
-
+    segment(fmri_img, labelmap_img, active_voxels);
 
     return 0;
 }

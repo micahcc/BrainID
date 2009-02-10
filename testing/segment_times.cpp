@@ -1,40 +1,21 @@
 //image readers
-#include "itkOrientedImage.h"
-#include "itkImageFileReader.h"
+#include <itkOrientedImage.h>
+#include <itkImageFileReader.h>
 
 //test
-#include "itkImageFileWriter.h"
-#include "itkImageConstIteratorWithIndex.h"
+#include <itkImageFileWriter.h>
+#include <itkImageConstIteratorWithIndex.h>
 
 //iterators
-#include "itkImageLinearConstIteratorWithIndex.h"
-#include "itkImageLinearIteratorWithIndex.h"
-#include "itkImageSliceIteratorWithIndex.h"
+#include <itkImageLinearIteratorWithIndex.h>
+#include <itkImageSliceIteratorWithIndex.h>
 
 //standard libraries
-#include <ctime>
 #include <cstdio>
 #include <list>
 #include <sstream>
 
-//reading DICOM
-#include "itkGDCMImageIO.h"
-#include "itkGDCMSeriesFileNames.h"
-#include "itkImageSeriesReader.h"
-#include "itkMetaDataDictionary.h"
-#include "itkNaryElevateImageFilter.h"
-
-#include "sumfmri.h"
-
-// declare images
-//typedef signed short PixelType;
-//typedef itk::OrientedImage<PixelType, 3> Image3DType;
-//typedef itk::OrientedImage<PixelType, 4> Image4DType;
-//
-//typedef itk::ImageSliceIteratorWithIndex< Image4DType > SliceIterator4D;
-//typedef itk::ImageLinearIteratorWithIndex< Image4DType > PixelIterator4D;
-//typedef itk::ImageLinearIteratorWithIndex< Image3DType > PixelIterator3D;
-
+#include "segment.h"
 
 ////////////////////////////////////////////////////
 //Testing by writing out each timestep as a 3D image
@@ -47,17 +28,6 @@ int main(int argc, char** argv)
     }
     
     Image4DType::Pointer fmri_img = read_dicom(argv[1]);
-
-    //label index
-    itk::ImageFileReader<Image3DType>::Pointer labelmap_read = 
-                itk::ImageFileReader<Image3DType>::New();
-    labelmap_read->SetFileName( argv[2] );
-    Image3DType::Pointer labelmap_img = labelmap_read->GetOutput();
-    labelmap_img->Update();
-
-    std::list< SectionType* > active_voxels;
-
-    sort_voxels(fmri_img, labelmap_img, active_voxels);
 
     //perform test
     fprintf(stderr, "Showing every time in fmri image\n");

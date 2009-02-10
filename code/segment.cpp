@@ -7,14 +7,26 @@
 #include <list>
 #include <sstream>
 
-//reading DICOM
-#include "itkGDCMImageIO.h"
-#include "itkGDCMSeriesFileNames.h"
-#include "itkImageSeriesReader.h"
-#include "itkMetaDataDictionary.h"
-#include "itkNaryElevateImageFilter.h"
+#include <itkGDCMImageIO.h>
+#include <itkGDCMSeriesFileNames.h>
+#include <itkImageSeriesReader.h>
+#include <itkMetaDataDictionary.h>
+#include <itkNaryElevateImageFilter.h>
 
 #include "segment.h"
+
+bool compare_lt(SectionType first, SectionType second)
+{
+    if(first.label < second.label) 
+        return true;
+    if(first.label > second.label) 
+        return false;
+    for(int i = 3 ; i >= 0 ; i--) {
+        if(first.point.GetIndex()[i] < second.point.GetIndex()[i]) return true;
+        if(first.point.GetIndex()[i] > second.point.GetIndex()[i]) return false;
+    }
+    return false;
+}
 
 //sort_voxels fills the list given with new SectionType structs, each of 
 //which represents a label from the labelmap image. It then finds each
@@ -72,14 +84,14 @@ void segment(const Image4DType::Pointer fmri_img,
                     section.label = labelmap_it.Get();
                     section.point = fmri_it;
                     section.point.SetDirection(3); //step forward in time
-                    section->list.push_front(section);
+                    voxels.push_front(section);
                 }
             }
             ++fmri_it;
         }
         fmri_it.NextLine();
     }
-}
+};
 
 //Reads a dicom directory then returns a pointer to the image
 //does some of this memory need to be freed??
@@ -148,7 +160,7 @@ Image4DType::Pointer read_dicom(std::string directory)
     Image4DType::Pointer fmri_img = elevateFilter->GetOutput();
     fmri_img->Update();
     return fmri_img;
-}
+};
 
 //example main:
 //The labelmap should already have been masked through a maxprob image for

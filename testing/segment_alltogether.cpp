@@ -17,25 +17,11 @@
 #include <list>
 #include <sstream>
 
-//reading DICOM
-#include "itkGDCMImageIO.h"
-#include "itkGDCMSeriesFileNames.h"
-#include "itkImageSeriesReader.h"
-#include "itkMetaDataDictionary.h"
-#include "itkNaryElevateImageFilter.h"
-
-#include "sumfmri.h"
-
-typedef itk::OrientedImage<PixelType, 3> Image3DType;
-typedef itk::OrientedImage<PixelType, 4> Image4DType;
-
-typedef itk::ImageSliceIteratorWithIndex< Image4DType > SliceIterator4D;
-typedef itk::ImageLinearIteratorWithIndex< Image4DType > PixelIterator4D;
-typedef itk::ImageLinearIteratorWithIndex< Image3DType > PixelIterator3D;
+#include "segment.h"
 
 ////////////////////////////////////////////////////
 //Testing by writing out everything summed together
-void main(int argc, char** argv)
+int main(int argc, char** argv)
 {       
     // check arguments
     if(argc != 4) {
@@ -52,8 +38,8 @@ void main(int argc, char** argv)
     Image3DType::Pointer labelmap_img = labelmap_read->GetOutput();
     labelmap_img->Update();
 
-    std::list< SectionType* > active_voxels;
-    sort_voxels(fmri_img, labelmap_img, active_voxels);
+    std::list< SectionType > active_voxels;
+    segment(fmri_img, labelmap_img, active_voxels);
 
     //test
     fprintf(stderr, "showing all active pixels\n");
@@ -87,8 +73,7 @@ void main(int argc, char** argv)
     out_it.SetFirstDirection(0);
     out_it.SetSecondDirection(1);
 
-    std::list< SectionType* >::iterator section_it = active_voxels.begin();
-    std::list<SliceIterator4D>::iterator voxel_it;
+    std::list< SectionType >::iterator list_it = active_voxels.begin();
     out_it.GoToBegin();
 
     //Zero out the output image
@@ -105,25 +90,17 @@ void main(int argc, char** argv)
     }
 
     //copy all the active voxels to the output image.
-    while(section_it != active_voxels.end()) {
-        voxel_it = (*section_it)->list.begin();
-        fprintf(stdout, "Label: %u Number: %u\n", (*section_it)->label, 
-                (*section_it)->list.size());
-        while(voxel_it != (*section_it)->list.end()) {
-            out_index[0] = voxel_it->GetIndex()[0];
-            out_index[1] = voxel_it->GetIndex()[1];
-            out_index[2] = voxel_it->GetIndex()[2];
-//            fprintf(stderr, "%li %li %li\n", out_index[0], out_index[1], out_index[2]);
-            out_it.SetIndex(out_index);
-            out_it.Value() = voxel_it->Get();
-            voxel_it++;
-        }
-
-
-        section_it++;
+    while(list_it != active_voxels.end()) {
+        out_index[0] = list_it->point.GetIndex()[0];
+        out_index[1] = list_it->point.GetIndex()[1];
+        out_index[2] = list_it->point.GetIndex()[2];
+//        fprintf(stderr, "%li %li %li\n", out_index[0], out_index[1], out_index[2]);
+        out_it.SetIndex(out_index);
+        out_it.Value() = list_it->point.Get();
+        list_it++;
     }
 
-    writer->SetFileName(filename);  
+    writer->SetFileName(argv[3]);  
     writer->SetInput(outputImage);
     writer->Update();
 }
