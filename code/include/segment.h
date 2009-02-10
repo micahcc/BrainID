@@ -26,11 +26,10 @@ typedef itk::ImageLinearIteratorWithIndex< Image3DType > PixelIterator3D;
 //among friends)
 typedef struct {
     int label;
-    std::list<SliceIterator4D> list;
-    Image4DType::Pointer img;
+    SliceIterator4D point;
 } SectionType ;
 
-SectionType* findLabel(std::list<SectionType*>& list, int label);
+SectionType findLabel(std::list<SectionType>& list, int label);
 
 //sort_voxels fills the list given with new SectionType structs, each of 
 //which represents a label from the labelmap image. It then finds each
@@ -38,8 +37,8 @@ SectionType* findLabel(std::list<SectionType*>& list, int label);
 //with iterators for the member voxels.
 void sort_voxels(const Image4DType::Pointer fmri_img, 
             const Image3DType::Pointer label_img,
-            std::list< SectionType* >& voxels);
+            std::list<SectionType>& voxels);
 //should be called when you are done using voxels_list
-void free_voxels(std::list< SectionType* >& voxels_list);
+void free_voxels(std::list<SectionType>& voxels_list);
 
 Image4DType::Pointer read_dicom(std::string directory);

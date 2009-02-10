@@ -14,108 +14,71 @@
 #include "itkMetaDataDictionary.h"
 #include "itkNaryElevateImageFilter.h"
 
-#include "sumfmri.h"
-
-//Just returns the pointer stored in the passed list with the 
-//matching label
-SectionType* findLabel(std::list<SectionType*>& list, int label) 
-{
-#ifdef DEBUG
-    fprintf(stderr, "searching for %i\n", label);
-#endif //DEBUG
-    std::list<SectionType*>::iterator it = list.begin();
-    while(it != list.end() ) {
-        if((*it)->label == label) 
-            return *it;
-        it++;
-    }
-    return NULL;
-}
-
-//checkAddPixel checks in the
-//get the location of input_it
-//set that location in the reference images
-//check to see if the the probability is above a threshold and
-//if it is, based on the region in labelmap, add the list
-bool checkAddPixel(const Image4DType::Pointer fmri_img, 
-            SliceIterator4D fmri_it, std::list< SectionType* >& active_voxels,
-            const Image3DType::Pointer labelmap_img) 
-{
-    PixelIterator3D labelmap_it( labelmap_img, labelmap_img->GetRequestedRegion() );
-    
-    Image4DType::PointType fmri_phys;
-    Image3DType::PointType phys_3D;
-
-    Image3DType::IndexType labelmap_index;
-
-    fmri_img->TransformIndexToPhysicalPoint( fmri_it.GetIndex(), fmri_phys);
-    phys_3D[0] = fmri_phys[0];
-    phys_3D[1] = fmri_phys[1];
-    phys_3D[2] = fmri_phys[2];
-
-#ifdef DEBUG
-    printf("Pixel at: %f %f %f", phys_3D[0], phys_3D[1], phys_3D[2]);
-#endif //DEBUG
-    if(labelmap_img->TransformPhysicalPointToIndex(phys_3D, labelmap_index)) {
-        labelmap_it.SetIndex(labelmap_index);
-        if( labelmap_it.Get() == 0) return false;
-#ifdef DEBUG
-        fprintf(stderr, "%li %li %li -> %li %li %li : %li\n", fmri_it.GetIndex()[0],
-                    fmri_it.GetIndex()[1], fmri_it.GetIndex()[2], labelmap_index[0],
-                    labelmap_index[1], labelmap_index[2], labelmap_it.Get());
-#endif //DEBUG
-
-        SectionType* section;
-        if(!( section = findLabel(active_voxels, labelmap_it.Get()) )) {
-            fprintf(stderr, "NOT FOUND, appending\n");
-            //append to list of active pixels
-            active_voxels.push_front(new SectionType);
-            section = active_voxels.front();
-            section->label = labelmap_it.Get();
-        }
-        //append to the returned labeltype
-        section->list.push_front(fmri_it);
-    }
-    return true;
-}
+#include "segment.h"
 
 //sort_voxels fills the list given with new SectionType structs, each of 
 //which represents a label from the labelmap image. It then finds each
 //member voxel of each label and fills the list in the SectionType
 //with iterators for the member voxels.
-void sort_voxels(const Image4DType::Pointer fmri_img, 
+void segment(const Image4DType::Pointer fmri_img, 
             const Image3DType::Pointer label_img,
-            std::list< SectionType* >& voxels)
+            std::list< SectionType >& voxels)
 {
-    SliceIterator4D fmri_it( fmri_img, fmri_img->GetRequestedRegion() );
+    SectionType section; //will hold the label and iterator
+    PixelIterator3D labelmap_it( label_img, label_img->GetRequestedRegion() );
+    Image4DType::PointType phys_fmri; //stores a 4D point
+    Image3DType::PointType phys_3D;   //stores a 3D point
+    Image3DType::IndexType labelmap_index; //the index matching the fmri physical index
+    PixelIterator4D fmri_it( fmri_img, fmri_img->GetRequestedRegion() );
     PixelIterator4D time_it( fmri_img, fmri_img->GetRequestedRegion() );
   
-    fmri_it.SetFirstDirection(0);
-    fmri_it.SetSecondDirection(1);
+    //move in the slowest direction, and start at the beginning
+    fmri_it.SetDirection(0);
     fmri_it.SetIndex(fmri_img->GetRequestedRegion().GetIndex());
-    
+   
+    //timeit skips the entire 3D image, pointing at the first
+    //voxel in the 3D image at for every time point, thus by
+    //iterating you are pointing at the first point in the second
+    //time step. The place we want to stop at
     time_it.SetDirection(3);
     time_it.SetIndex(fmri_img->GetRequestedRegion().GetIndex());
     ++time_it;
 
-    while(fmri_it != time_it) {
-        while(!fmri_it.IsAtEndOfSlice()) {
-            while(!fmri_it.IsAtEndOfLine()) {
-                checkAddPixel(fmri_img, fmri_it, voxels, label_img);
-                ++fmri_it;
-            }
-            fmri_it.NextLine();
-        }
-        fmri_it.NextSlice();
-    }
-}
 
-void free_voxels(std::list< SectionType* >& voxels)
-{
-    do {
-        delete voxels.front();
-        voxels.pop_front();
-    } while (!voxels.empty());
+    //only iterate through the first time
+    while(fmri_it != time_it) {
+        while(!fmri_it.IsAtEndOfLine()) {
+            //get the 4D point in the fmri image and then cut it to the first 3
+            //Dimensions
+            fmri_img->TransformIndexToPhysicalPoint( fmri_it.GetIndex(), phys_fmri);
+            phys_3D[0] = phys_fmri[0];
+            phys_3D[1] = phys_fmri[1];
+            phys_3D[2] = phys_fmri[2];
+
+#ifdef DEBUG
+            printf("Pixel at: %f %f %f", phys_3D[0], phys_3D[1], phys_3D[2]);
+#endif //DEBUG
+            //check to see if that phsyical point in the fmri image is in the
+            //label image
+            if(label_img->TransformPhysicalPointToIndex(phys_3D, labelmap_index)) {
+#ifdef DEBUG
+                fprintf(stderr, "%li %li %li -> %li %li %li : %li\n", fmri_it.GetIndex()[0],
+                        fmri_it.GetIndex()[1], fmri_it.GetIndex()[2], labelmap_index[0],
+                        labelmap_index[1], labelmap_index[2], labelmap_it.Get());
+#endif //DEBUG
+
+                labelmap_it.SetIndex(labelmap_index);
+                if( labelmap_it.Get() != 0) {
+                    section.label = labelmap_it.Get();
+                    section.point = fmri_it;
+                    section.point.SetDirection(3); //step forward in time
+                    section->list.push_front(section);
+                }
+            }
+            ++fmri_it;
+        }
+        fmri_it.NextLine();
+    }
 }
 
 //Reads a dicom directory then returns a pointer to the image
