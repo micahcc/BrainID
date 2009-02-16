@@ -11,5 +11,8 @@ ELSE(ITK_FOUND)
   MESSAGE(FATAL_ERROR "Cannot build without ITK. Please set ITK_DIR.")
 ENDIF(ITK_FOUND)
 
+find_path(SMCTC_INCLUDE history.hh moveset.hh  particle.hh rng.hh smc-exception.hh smctc.hh)
+find_library(SMCTC_LIBRARY libsmctc.a)
+
 SUBDIRS(code)
 SUBDIRS(testing)
