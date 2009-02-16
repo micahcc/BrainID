@@ -36,7 +36,7 @@ struct SectionType{
 //which represents a label from the labelmap image. It then finds each
 //member voxel of each label and fills the list in the SectionType
 //with iterators for the member voxels.
-void segment(const Image4DType::Pointer fmri_img, 
+int segment(const Image4DType::Pointer fmri_img, 
             const Image3DType::Pointer label_img,
             std::list<SectionType>& voxels);
 //should be called when you are done using voxels_list
