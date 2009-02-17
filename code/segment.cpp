@@ -32,7 +32,7 @@ bool compare_lt(SectionType first, SectionType second)
 //which represents a label from the labelmap image. It then finds each
 //member voxel of each label and fills the list in the SectionType
 //with iterators for the member voxels.
-void segment(const Image4DType::Pointer fmri_img, 
+int segment(const Image4DType::Pointer fmri_img, 
             const Image3DType::Pointer label_img,
             std::list< SectionType >& voxels)
 {
@@ -91,6 +91,22 @@ void segment(const Image4DType::Pointer fmri_img,
         }
         fmri_it.NextLine();
     }
+
+    fprintf(stderr, "Finished loading input, sorting %lu nodes\n", voxels.size());
+    voxels.sort(compare_lt);
+    std::list<SectionType>::iterator it = voxels.begin();
+    int prev_label = 0;
+    int label_count = 0;
+    while(it != voxels.end()) {
+//        fprintf(stderr, "label: %d, prev_label: %i\n", it->label, prev_label);
+        if(it->label != prev_label) {
+            prev_label = it->label;
+            label_count++;
+            fprintf(stderr, "CHANGE %d\n", prev_label);
+        }
+        it++;
+    }
+    return label_count;
 };
 
 //Reads a dicom directory then returns a pointer to the image
