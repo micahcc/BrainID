@@ -90,14 +90,12 @@ int main( int argc, char **argv )
 //    }
 
     fprintf(stderr, "Summing GM voxels\n");
-    list_it = active_voxels.begin();
     out_it.GoToBegin();
     int prev_label = -1;
     double sum;
     int count = 0;
     while(!out_it.IsAtEnd()) {
-        list_it = point;
-
+        list_it = active_voxels.begin();
         while(!out_it.IsAtEndOfLine()) {
             prev_label = list_it->label;
             sum = 0;
@@ -110,7 +108,7 @@ int main( int argc, char **argv )
             fprintf(stderr, "Finished summing section: %i\n", prev_label);
             fprintf(stderr, "Placing %f at %lu, %lu\n", out_it.Get(), 
                     out_it.GetIndex()[0], out_it.GetIndex()[1]);
-            out_it.Value = (sum/count);
+            out_it.Value() = (sum/count);
             ++out_it;
         }
         out_it.NextLine();
