@@ -2,7 +2,6 @@
 #include <itkImageFileWriter.h>
 #include <itkImageFileReader.h>
 #include <itkVector.h>
-#include "smctc.hh"
 #include "bold.h"
 
 #include <cstdio> 
@@ -33,7 +32,7 @@ int main(int argc, char** argv)
 
     //Initialise and run the sampler
     smc::sampler<State_t> Sampler(lNumber, SMC_HISTORY_NONE);
-    smc::moveset<State_t> Moveset(fInitialise, fMove, NULL);
+    smc::moveset<State_t> Moveset(fInitialize, fMove, NULL);
 
     Sampler.SetResampleParams(SMC_RESAMPLE_RESIDUAL, 0.5);
     Sampler.SetMoveSet(Moveset);
@@ -56,52 +55,3 @@ int main(int argc, char** argv)
       exit(e.lCode);
     }
 }
-
-long load_data(char const * szName, cv_obs** yp)
-{
-  FILE * fObs = fopen(szName,"rt");
-  if (!fObs)
-    throw SMC_EXCEPTION(SMCX_FILE_NOT_FOUND, "Error: pf assumes that the current directory contains an appropriate data file called data.csv\nThe first line should contain a constant indicating the number of data lines it contains.\nThe remaining lines should contain comma-separated pairs of x,y observations.");
-  char* szBuffer = new char[1024];
-  fgets(szBuffer, 1024, fObs);
-  long lIterates = strtol(szBuffer, NULL, 10);
-
-  *yp = new cv_obs[lIterates];
-  
-  for(long i = 0; i < lIterates; ++i)
-    {
-      fgets(szBuffer, 1024, fObs);
-      (*yp)[i].x_pos = strtod(strtok(szBuffer, ",\r\n "), NULL);
-      (*yp)[i].y_pos = strtod(strtok(NULL, ",\r\n "), NULL);
-    }
-  fclose(fObs);
-
-  delete [] szBuffer;
-
-  return lIterates;
-}
-
-double integrand_mean_x(const cv_state& s, void *)
-{
-  return s.x_pos;
-}
-
-double integrand_var_x(const cv_state& s, void* vmx)
-{
-  double* dmx = (double*)vmx;
-  double d = (s.x_pos - (*dmx));
-  return d*d;
-}
-
-double integrand_mean_y(const cv_state& s, void *)
-{
-  return s.y_pos;
-}
-
-double integrand_var_y(const cv_state& s, void* vmy)
-{
-  double* dmy = (double*)vmy;
-  double d = (s.y_pos - (*dmy));
-  return d*d;
-}
-

@@ -7,6 +7,7 @@
 #include <itkOrientedImage.h>
 
 #include <cmath>
+#include "smctc.hh"
 
 #define NUM_WIENER 10;
 
@@ -94,6 +95,7 @@ void step(const double* state_a, void* extras, double dist[][2]);
 void error(const double* state_a, double dist[2], void* extras);
 
 smc::particle<State_t> fInitialize(smc::rng *pRng);
+void fMove(long lTime, smc::particle<State_t> & pFrom, smc::rng *pRng);
 
 #endif
 
