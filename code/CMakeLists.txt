@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 2.6)
 #  MESSAGE(FATAL_ERROR "Cannot build without ITK. Please set ITK_DIR.")
 #ENDIF(ITK_FOUND)
 
-INCLUDE_DIRECTORIES(${brainid_SOURCE_DIR}/code/include ${SMCTC_IN})
+INCLUDE_DIRECTORIES(${brainid_SOURCE_DIR}/code/include ${SMCTC_INCLUDE})
 LINK_DIRECTORIES(${brainid_SOURCE_DIR}/code)
 
 ADD_LIBRARY(bold bold.cpp)

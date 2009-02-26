@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 2.6)
 #  MESSAGE(FATAL_ERROR "Cannot build without ITK. Please set ITK_DIR.")
 #ENDIF(ITK_FOUND)
 
-include_directories(${brainid_SOURCE_DIR}/code/include)
+include_directories(${brainid_SOURCE_DIR}/code/include ${SMCTC_INCLUDE})
 link_directories(${brainid_SOURCE_DIR}/code)
 
 if(COMMAND cmake_policy)
@@ -17,13 +17,11 @@ endif(COMMAND cmake_policy)
 
 
 ADD_EXECUTABLE(bold_test bold_test.cpp)
-ADD_EXECUTABLE(particle_test particle_test.cpp)
 
 ADD_EXECUTABLE(segment_alltogether segment_alltogether.cpp)
 ADD_EXECUTABLE(segment_sections segment_sections.cpp)
 ADD_EXECUTABLE(segment_times segment_times.cpp)
 
-TARGET_LINK_LIBRARIES(particle_test particle ITKCommon)
 TARGET_LINK_LIBRARIES(bold_test bold particle ITKCommon)
 
 TARGET_LINK_LIBRARIES(segment_alltogether ITKCommon segment ITKIO)

@@ -93,6 +93,7 @@ void step(const double* state_a, void* extras, double dist[][2]);
 //error provides the pr(y_t | x_t-1)
 void error(const double* state_a, double dist[2], void* extras);
 
+smc::particle<State_t> fInitialize(smc::rng *pRng);
 
 #endif
 

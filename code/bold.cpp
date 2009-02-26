@@ -71,3 +71,8 @@ void error(const double* state_a, double dist[2], void* extras)
     dist[1] = extradata->var_e;
 }
 
+smc::particle<State_t> fInitialize(smc::rng *pRng)
+{
+    
+
+}

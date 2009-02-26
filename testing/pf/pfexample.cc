@@ -1,31 +1,28 @@
-#include <itkVector.h>
 #include "smctc.hh"
-
+#include "pffuncs.hh"
 #include <cstdio> 
 #include <cstdlib>
 #include <cstring>
 
 using namespace std;
 
+///The observations
+cv_obs * y;
+long load_data(char const * szName, cv_obs** y);
+
+double integrand_mean_x(const cv_state&, void*);
+double integrand_mean_y(const cv_state&, void*);
+double integrand_var_x(const cv_state&, void*);
+double integrand_var_y(const cv_state&, void*);
+
 int main(int argc, char** argv)
 {
-    
-    if(argc != 3) {
-        printf("Usage: %s <inputname> <outputname>", argv[0])
-    }
-    
-    long lNumber = 1000;
-    long lIterates;
+  long lNumber = 1000;
+  long lIterates;
 
+  try {
     //Load observations
-    typedef    float ImagePixelType;
-    typedef itk::Image< ImagePixelType,  2 > ImageType;
-    typedef itk::ImageFileReader< ImageType >  ImageReaderType;
-    typedef itk::ImageFileWriter< ImageType >  WriterType;
-    
-    ImageReaderType::Pointer reader = ImageReaderType::New();
-    reader->SetFileName( argv[1] );
-    reader->Update();
+    lIterates = load_data("data.csv", &y);
 
     //Initialise and run the sampler
     smc::sampler<cv_state> Sampler(lNumber, SMC_HISTORY_NONE);  
@@ -45,6 +42,8 @@ int main(int argc, char** argv)
       yv = Sampler.Integrate(integrand_var_y, (void*)&ym);
       
       cout << xm << "," << ym << "," << xv << "," << yv << endl;
+    }
+  }
 
   catch(smc::exception  e)
     {
