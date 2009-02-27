@@ -25,7 +25,7 @@ ADD_EXECUTABLE(segment_sections segment_sections.cpp)
 ADD_EXECUTABLE(segment_times segment_times.cpp)
 
 TARGET_LINK_LIBRARIES(bold_test bold particle ITKCommon)
-TARGET_LINK_LIBRARIES(particle_test mpi boost_mpi-mt)
+TARGET_LINK_LIBRARIES(particle_test mpi boost_mpi-mt ITKIO ITKCommon)
 
 TARGET_LINK_LIBRARIES(segment_alltogether ITKCommon segment ITKIO)
 TARGET_LINK_LIBRARIES(segment_sections ITKCommon segment ITKIO)
