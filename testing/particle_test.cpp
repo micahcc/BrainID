@@ -35,7 +35,7 @@ typedef itk::ImageFileWriter< ImageType >  WriterType;
 //2 - s_t
 //3 - f_t
 
-class BoldModel : ParticleFilterModel<double>
+class BoldModel : public ParticleFilterModel<double>
 {
 public:
   ~BoldModel();
@@ -53,6 +53,8 @@ public:
   aux::vector measure(const aux::vector& s);
 
   double weight(const aux::vector& s, const aux::vector& y);
+
+  aux::GaussianPdf suggestPrior();
 
 private:
   double V_0;
@@ -140,6 +142,21 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
     return rng.densityAt(location);
 }
 
+aux::GaussianPdf BoldModel::suggestPrior()
+{
+    aux::vector mu(SYSTEM_SIZE);
+    aux::symmetric_matrix sigma(SYSTEM_SIZE);
+
+    mu.clear();
+    sigma.clear();
+    sigma(0,0) = 1.0;
+    sigma(1,1) = 1.0;
+    sigma(2,2) = 1.0;
+    sigma(3,3) = 1.0;
+
+    return aux::GaussianPdf(mu, sigma);
+}
+
 int main(int argc, char* argv[])
 {
     if(argc != 3) {
@@ -152,8 +169,10 @@ int main(int argc, char* argv[])
     reader->Update();
 
     /* Create a model */
-    BoldModel model(); 
+    BoldModel model; 
+    aux::GaussianPdf prior = model.suggestPrior();
+    aux::DiracMixturePdf x0(prior, NUM_PARTICLES);
 
     /* Create the filter */
-
+    ParticleFilter<double> filter(&model, x0);
 }
