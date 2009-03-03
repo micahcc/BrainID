@@ -11,6 +11,7 @@ typedef itk::OrientedImage<double, 2> Image2DType;
 
 //The labelmap should already have been masked through a maxprob image for
 //graymatter
+//TODO: Make the first element in each time series the section label
 int main( int argc, char **argv ) 
 {
     // check arguments
@@ -104,6 +105,7 @@ int main( int argc, char **argv )
                 sum += list_it->point.Get();
                 ++(list_it->point);
                 count++;
+                ++list_it;
             }
             fprintf(stderr, "Finished summing section: %i\n", prev_label);
             fprintf(stderr, "Placing %f at %lu, %lu\n", out_it.Get(), 
