@@ -4,8 +4,10 @@
 #include <itkImageLinearIteratorWithIndex.h>
 
 #include <indii/ml/filter/ParticleFilter.hpp>
+//#include "ParticleFilter.hpp"
 #include <indii/ml/filter/ParticleFilterModel.hpp>
 #include <indii/ml/filter/StratifiedParticleResampler.hpp>
+//#include "StratifiedParticleResampler.hpp"
 #include <indii/ml/aux/GaussianPdf.hpp>
 #include <indii/ml/aux/vector.hpp>
 #include <indii/ml/aux/matrix.hpp>
@@ -34,6 +36,32 @@ typedef itk::ImageFileWriter< ImageType >  WriterType;
 
 void outputVector(ostream& out, aux::vector vec);
 
+//class ParticleFilterMod : public ParticleFilter<double>
+//{
+//public:
+//    void print_particles() {
+//        for (unsigned int i = 0; i < this->p_xtn_ytn.getSize(); i++) {
+//            outputVector(std::cerr, this->p_xtn_ytn.get(i));
+//        }
+//    }
+//
+//    ParticleFilterMod(ParticleFilterModel<double>* model,
+//            indii::ml::aux::DiracMixturePdf& p_x0);
+//
+//    virtual void filter(const double tnp1, const indii::ml::aux::vector& ytnp1);
+//};
+//
+//void ParticleFilterMod::filter(const double tnp1, const aux::vector& ytnp1) {
+//    
+//};
+//
+//ParticleFilterMod::ParticleFilterMod(ParticleFilterModel<double>* model,
+//            indii::ml::aux::DiracMixturePdf& p_x0) : 
+//            ParticleFilter<double>(model, p_x0) {
+//
+//};
+
+
 //States:
 //0 - v_t
 //1 - q_t
@@ -60,6 +88,7 @@ public:
   double weight(const aux::vector& s, const aux::vector& y);
 
   aux::GaussianPdf suggestPrior();
+  aux::GaussianPdf suggestPrior(const aux::vector& init);
 
 private:
   double V_0;
@@ -85,7 +114,8 @@ BoldModel::BoldModel()
   E_0 = .635;
   V_0 = 1.49e-2;
   small_g = .95e-5;
-  var_e = 3.92e-6;
+//  var_e = 3.92e-6;
+  var_e = 3.92e-2;
 }
 
 BoldModel::~BoldModel()
@@ -103,6 +133,19 @@ aux::vector BoldModel::transition(const aux::vector& s,
 aux::vector BoldModel::transition(const aux::vector& s,
         const double t, const double delta, const aux::vector& u)
 {
+    double v_t = s(0);
+    static aux::symmetric_matrix cov(1);
+    cov(0,0) = .001;
+    static aux::GaussianPdf rng(aux::zero_vector(1), cov);
+    
+    //This is a bit of a kludge, but it is unavoidable right now
+    if(s(0) < 0) {
+        fprintf(stderr, "Warning, had to move volume to");
+        fprintf(stderr, "zero because it was negative\n");
+        v_t = 0;
+    }
+
+
     //TODO, potentially add some randomness here.
     //std::cerr << "Printing input state" << endl;
     //outputVector(std::cerr, s);
@@ -110,14 +153,13 @@ aux::vector BoldModel::transition(const aux::vector& s,
 
     aux::vector w(SYSTEM_SIZE);
     //V_t* = (1/tau_0) * ( f_t - v_t ^ (1/\alpha)) 
-    //TODO: THIS IS WRONG SHOULD NOT JUST TO ABS OF S(0)
-    double dot = (1./tau_0) * (s(3) - pow(abs(s(0)), 1./alpha));
-    w(0) = s(0) + dot*delta;
+    double dot = (1./tau_0) * (s(3) - pow(v_t, 1./alpha)) + (rng.sample())[0];
+    w(0) = v_t + dot*delta;
+    if(w(0) < 0) w(0) = 0;
     
     //Q_t* = ...
     double A = (s(3) / E_0) * (1 - pow( 1. - E_0, 1./s(3)));
-    //TODO: THIS IS WRONG SHOULD NOT JUST TO ABS OF S(0)
-    double B = s(1) / pow(abs(s(0)), 1.-1./alpha);
+    double B = s(1) / pow(v_t, 1.-1./alpha);
     dot = (1./tau_0) * ( A - B );
     w(1) = s(1) + dot*delta;
 
@@ -130,8 +172,8 @@ aux::vector BoldModel::transition(const aux::vector& s,
     w(3) = s(3) + dot*delta;
 
     //std::cerr  <<"Printing output state" << endl;
-    //outputVector(std::cerr, w);
-    //std::cerr << endl;
+    outputVector(std::cerr, w);
+    std::cerr << endl;
     return w;
 }
 
@@ -147,28 +189,43 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
     //these are really constant throughout the execution
     //of the program, so no need to calculate over and over
     static aux::symmetric_matrix cov(1);
-    cov(0,0) = var_e;
+    cov(0,0) = 1;
     static aux::GaussianPdf rng(aux::zero_vector(1), cov);
     
     aux::vector location(1);
-    location(0) = y(0) - measure(s)(0);
-    
-    return rng.densityAt(location);
+    location(0) = 0;
+    location(0) = y(0);
+    fprintf(stderr, "Actual: %f\n", location(0));
+    fprintf(stderr, "Measure: %f\n", (measure(s))(0));
+    fprintf(stderr, "Particle:\n");
+    outputVector(std::cerr , s);
+    fprintf(stderr, ":\n");
+    location(0) -= (measure(s))(0);
+    location(0) /= var_e;
+    fprintf(stderr, "Location calculated: %f\n", location(0));
+    double out = rng.densityAt(location);
+    fprintf(stderr, "Weight calculated: %e\n", out);
+    return out;
 }
 
 aux::GaussianPdf BoldModel::suggestPrior()
 {
     aux::vector mu(SYSTEM_SIZE);
+    mu.clear();
+    return suggestPrior(mu);
+}
+
+aux::GaussianPdf BoldModel::suggestPrior(const aux::vector& init)
+{
     aux::symmetric_matrix sigma(SYSTEM_SIZE);
 
-    mu.clear();
     sigma.clear();
-    sigma(0,0) = 1.0;
-    sigma(1,1) = 1.0;
-    sigma(2,2) = 1.0;
-    sigma(3,3) = 1.0;
+    sigma(0,0) = 10.0;
+    sigma(1,1) = 10.0;
+    sigma(2,2) = 10.0;
+    sigma(3,3) = 10.0;
 
-    return aux::GaussianPdf(mu, sigma);
+    return aux::GaussianPdf(init, sigma);
 }
 
 int main(int argc, char* argv[])
@@ -178,8 +235,18 @@ int main(int argc, char* argv[])
     const unsigned int rank = world.rank();
     const unsigned int size = world.size();
     
+//    aux::vector location(1);
+//    aux::symmetric_matrix cov(1);
+//    cov(0,0) = 1;
+//    aux::GaussianPdf rng(aux::zero_vector(1), cov);
+//    for(int i=0 ; i<10 ; i++) {
+//        location(0) = i/10.;
+//        fprintf(stderr, "Density at %f: %f\n", location(0), rng.densityAt(location));
+//    }
+    
     if(argc != 2) {
-        printf("Usage: %s <inputname>", argv[0]);
+        printf("Usage: %s <inputname>\n", argv[0]);
+        return -1;
     }
     
     /* Open up the input */
@@ -192,7 +259,7 @@ int main(int argc, char* argv[])
         iter(reader->GetOutput(), reader->GetOutput()->GetRequestedRegion());
     iter.SetDirection(1);
     ImageType::IndexType index;
-    index[0] = 0;
+    index[0] = 1; //skip section label
     index[1] = 5;
     iter.SetIndex(index);
 
@@ -230,7 +297,7 @@ int main(int argc, char* argv[])
     fpred << "# name: measured" << endl;
     fpred << "# type: matrix" << endl;
     fpred << "# rows: " << reader->GetOutput()->GetRequestedRegion().GetSize()[1] << endl;
-    fpred << "# columns: 5" << endl;
+    fpred << "# columns: 11" << endl;
     
     fpred << t << ' ';
     outputVector(fpred, mu);
@@ -242,15 +309,19 @@ int main(int argc, char* argv[])
 //TODO, get distribution creation working
 //TODO, stop using ABS for s(0)
     while(!iter.IsAtEndOfLine()) {
+        fprintf(stderr, "Size0: %u\n", pred.getSize());
         meas(0) = iter.Get();
         ++iter;
     
         std::cerr << "Time " << t << endl;
         filter.filter(t, meas);
-//        filter.resample(&resampler);
+
+        fprintf(stderr, "Size1: %u\n", pred.getSize());
+        filter.resample(&resampler);
         pred = filter.getFilteredState();
-//        mu = pred.getDistributedExpectation();
-        sample_state = pred.sample();
+        fprintf(stderr, "Size2: %u\n", pred.getSize());
+        mu = pred.getDistributedExpectation();
+//        sample_state = pred.sample();
 
         /* output measurement */
         fmeas << t << ' ';
@@ -259,8 +330,9 @@ int main(int argc, char* argv[])
 
         /* output filtered state */
         fpred << t << ' ';
-//        outputVector(fpred, mu);
-        outputVector(fpred, sample_state);
+        outputVector(fpred, mu);
+//        fpred << ' ';
+//        outputVector(fpred, sample_state);
         fpred << endl;
         t += .5;
     }

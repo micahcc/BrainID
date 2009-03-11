@@ -19,6 +19,7 @@ ADD_LIBRARY(segment segment.cpp)
 
 ADD_EXECUTABLE(unbias unbias.cpp)
 ADD_EXECUTABLE(brainid brainid.cpp)
+#ADD_EXECUTABLE(brainid brainid.cpp StratifiedParticleResampler.cpp)
 ADD_EXECUTABLE(fmri_timeseries fmri_timeseries.cpp)
 
 TARGET_LINK_LIBRARIES(fmri_timeseries segment ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
