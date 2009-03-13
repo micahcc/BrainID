@@ -13,6 +13,7 @@ ENDIF(ITK_FOUND)
 
 # Find dysii
 find_path(DYSII_INCLUDE indii/ml/filter/ParticleFilter.hpp)
+FIND_LIBRARY(DYSII_LIB NAMES dysii PATH /usr/lib) 
 #find_path(MPI_INCLUDE mpi.hpp)
 
 SUBDIRS(code)

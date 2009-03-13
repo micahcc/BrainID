@@ -1,4 +1,17 @@
 scons (to compile dysii)
 boost with mpi support
+lapack
 gsl
+ITK
+
+#need boost numeric bindings
+git clone http://git.tiker.net/trees/boost-numeric-bindings.git
+./configure
+make
+
 http://superb-west.dl.sourceforge.net/sourceforge/dysii/dysii-1.4.0.tar.gz
+need to change the env variable in SConstruct from 
+env = Environment(ENV = os.environ)
+to
+env = Environment(ENV = os.environ, CPPPATH="/home/micahc/research/brainid-lib/boost-numeric-bindings")
+(or wherever boost-numeric-bindings was downloaded to)
