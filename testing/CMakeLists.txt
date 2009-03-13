@@ -8,8 +8,7 @@ cmake_minimum_required(VERSION 2.6)
 #  MESSAGE(FATAL_ERROR "Cannot build without ITK. Please set ITK_DIR.")
 #ENDIF(ITK_FOUND)
 
-include_directories(${brainid_SOURCE_DIR}/code/include ${DYSII_INCLUDE}
-    MPI_INCLUDE)
+include_directories(${brainid_SOURCE_DIR}/code/include ${DYSII_INCLUDE})
 link_directories(${brainid_SOURCE_DIR}/code)
 
 if(COMMAND cmake_policy)

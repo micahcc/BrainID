@@ -1,0 +1,4 @@
+scons (to compile dysii)
+boost with mpi support
+gsl
+http://superb-west.dl.sourceforge.net/sourceforge/dysii/dysii-1.4.0.tar.gz
