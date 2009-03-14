@@ -11,9 +11,8 @@ cmake_minimum_required(VERSION 2.6)
 INCLUDE_DIRECTORIES(${brainid_SOURCE_DIR}/code/include ${DYSII_INCLUDE})
 LINK_DIRECTORIES(${brainid_SOURCE_DIR}/code ${DYSII_LIB})
 
-ADD_LIBRARY(bold bold.cpp)
-ADD_LIBRARY(particle particle.cpp)
 ADD_LIBRARY(segment segment.cpp)
+ADD_LIBRARY(BoldModel BoldModel.cpp)
 
 #TARGET_LINK_LIBRARIES(bold particle ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
 
@@ -24,5 +23,5 @@ ADD_EXECUTABLE(fmri_timeseries fmri_timeseries.cpp)
 
 TARGET_LINK_LIBRARIES(fmri_timeseries segment ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
 TARGET_LINK_LIBRARIES(unbias ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
-TARGET_LINK_LIBRARIES(brainid bold particle ITKAlgorithms ITKBasicFilters
+TARGET_LINK_LIBRARIES(brainid BoldModel ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO mpi boost_mpi-mt gsl lapack dysii)

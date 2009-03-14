@@ -15,15 +15,12 @@ if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
 endif(COMMAND cmake_policy)
 
-
-ADD_EXECUTABLE(bold_test bold_test.cpp)
 add_executable(particle_test particle_test.cpp)
 
 ADD_EXECUTABLE(segment_alltogether segment_alltogether.cpp)
 ADD_EXECUTABLE(segment_sections segment_sections.cpp)
 ADD_EXECUTABLE(segment_times segment_times.cpp)
 
-TARGET_LINK_LIBRARIES(bold_test bold particle ITKCommon)
 TARGET_LINK_LIBRARIES(particle_test mpi boost_mpi-mt ITKIO ITKCommon dysii gsl
     lapack)
 
