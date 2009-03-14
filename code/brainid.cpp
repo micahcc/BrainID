@@ -1,3 +1,8 @@
+//This code is inspired by/based on Johnston et. al:
+//Nonlinear estimation of the Bold Signal
+//NeuroImage 40 (2008) p. 504-514
+//by Leigh A. Johnston, Eugene Duff, Iven Mareels, and Gary F. Egan
+
 #include <itkOrientedImage.h>
 #include <itkImageFileWriter.h>
 #include <itkImageFileReader.h>
@@ -13,16 +18,6 @@
 #include <indii/ml/aux/matrix.hpp>
 
 #include <iostream>
-
-#define SYSTEM_SIZE 13
-#define MEAS_SIZE 1
-#define INPUT_SIZE 1
-#define ACTUAL_SIZE 1
-#define STEPS 250
-#define NUM_PARTICLES 1000
-
-#define A1 3.4
-#define A2 1.0
 
 using namespace std;
 using namespace indii::ml::filter;
@@ -102,26 +97,52 @@ public:
     aux::GaussianPdf suggestPrior(const aux::vector& init);
 
 private:
-    enum Theta { V_0, a_1, a_2, tau_0, tau_s, tau_f, alpha, E_0, epsilon };
+    static const int THETA_SIZE = 7;
+    static const int STATE_SIZE = 4;
+    static const int SIMUL_STATES = 1;
+    static const int SYSTEM_SIZE = 11;
+
+    static const int MEAS_SIZE = 1;
+    static const int INPUT_SIZE = 1;
+//    static const int ACTUAL_SIZE = 1;
+    static const int STEPS = 250;
+    static const int NUM_PARTICLES = 1000;
+    
+    static const double A1 = 3.4;
+    static const double A2 = 1.0;
+
+    vector theta_sigmas;
+
+    inline int statedex(int name, int index){
+        return THETA_SIZE + index*STATE_SIZE + name;
+    };
+
+    enum Theta { tau_s, tau_f, epsilon, tau_0, alpha, E_0, V_0};
     enum StateVar { v_t, q_t, s_t, f_t };
-    //  double V_0;
-    //  double a_1;
-    //  double a_2;
-    //  double tau_0;
-    //  double tau_s;
-    //  double tau_f;
-    //  double alpha;
-    //  double E_0;
-    //  double epsilon;
     double var_e;
+    double sigma_e;
     double small_g;
 };
 
-BoldModel::BoldModel()
+BoldModel::BoldModel() : theta_sigmas(THETA_SIZE)
 {
+    if(THETA_SIZE + STATE_SIZE*SIMUL_STASTES != SYSTEM_SIZE) {
+        std::cerr << "Incorrect system size" << std::endl;
+        exit(-1);
+    }
+
+    theta_sigmas(tau_s) = 1.07/4;
+    theta_sigmas(tau_f) = 1.51/4;
+    theta_sigmas(epsilon) = .014/4;
+    theta_sigmas(tau_0) = 1.5/4;
+    theta_sigmas(alpha) = .004/4;
+    theta_sigmas(E_0) = .072/4;
+    theta_sigmas(V_0) = .006/4;
+
     small_g = .95e-5;
     //  var_e = 3.92e-6;
     var_e = 3.92e-3;
+    sigma_e = sqrt(var_e);
 }
 
 BoldModel::~BoldModel()
@@ -129,6 +150,9 @@ BoldModel::~BoldModel()
 
 }
 
+//TODO, I would like to modify these functions so that the vector s
+//will just be modified in place, which would reduce the amount of copying
+//necessary
 aux::vector BoldModel::transition(const aux::vector& s,
         const double t, const double delta)
 {
@@ -139,43 +163,53 @@ aux::vector BoldModel::transition(const aux::vector& s,
 aux::vector BoldModel::transition(const aux::vector& s,
         const double t, const double delta, const aux::vector& u)
 {
-    double v_t = s(0);
+    aux::vector w(SYSTEM_SIZE);
     static aux::symmetric_matrix cov(1);
     cov(0,0) = .001;
     static aux::GaussianPdf rng(aux::zero_vector(1), cov);
-    
-    //This is a bit of a kludge, but it is unavoidable right now
-    if(s(0) < 0) {
-        fprintf(stderr, "Warning, had to move volume to");
-        fprintf(stderr, "zero because it was negative\n");
-        v_t = 0;
-    }
+ 
+    //transition the parameters
+    //the GaussianPdf class is a little shady for non univariate, zero-mean
+    //cases, so we will just sample from the N(0,1) case and then convert
+    //the variables to a correct variance by multiplying by the std-dev
+    //The std-deviations are 1/2 the stated std-deviations listed in 
+    //Johnston et al.
+    w(tau_s)   = s(tau_s)   + rng.sample()[0] * theta_sigmas(tau_s); 
+    w(tau_f)   = s(tau_f)   + rng.sample()[0] * theta_sigmas(tau_f); 
+    w(epsilon) = s(epsilon) + rng.sample()[0] * theta_sigmas(epsilon); 
+    w(tau_0)   = s(tau_0)   + rng.sample()[0] * theta_sigmas(tau_0); 
+    w(alpha)   = s(alpha)   + rng.sample()[0] * theta_sigmas(alpha); 
+    w(E_0)     = s(E_0)     + rng.sample()[0] * theta_sigmas(E_0); 
+    w(V_0)     = s(V_0)     + rng.sample()[0] * theta_sigmas(V_0); 
 
-
+    //transition the actual state variables
     //TODO, potentially add some randomness here.
-    //std::cerr << "Printing input state" << endl;
-    //outputVector(std::cerr, s);
-    //std::cerr << endl;
+    for(int i=0 ; i<SYSTEM_SIZE ; i++) {
+        //This is a bit of a kludge, but it is unavoidable right now
+        if(s(statedex(v_t, i)) < 0) {
+            fprintf(stderr, "Warning, had to move volume to");
+            fprintf(stderr, "zero because it was negative\n");
+            
+        }
+        //V_t* = (1/tau_0) * ( f_t - v_t ^ (1/\alpha)) 
+        double dot = (1./tau_0) * (s(3) - pow(v_t, 1./alpha)) + (rng.sample())[0];
+        w(0) = v_t + dot*delta;
+        if(w(0) < 0) w(0) = 0;
 
-    aux::vector w(SYSTEM_SIZE);
-    //V_t* = (1/tau_0) * ( f_t - v_t ^ (1/\alpha)) 
-    double dot = (1./tau_0) * (s(3) - pow(v_t, 1./alpha)) + (rng.sample())[0];
-    w(0) = v_t + dot*delta;
-    if(w(0) < 0) w(0) = 0;
-    
-    //Q_t* = ...
-    double A = (s(3) / E_0) * (1 - pow( 1. - E_0, 1./s(3)));
-    double B = s(1) / pow(v_t, 1.-1./alpha);
-    dot = (1./tau_0) * ( A - B );
-    w(1) = s(1) + dot*delta;
+        //Q_t* = ...
+        double A = (s(3) / E_0) * (1 - pow( 1. - E_0, 1./s(3)));
+        double B = s(1) / pow(v_t, 1.-1./alpha);
+        dot = (1./tau_0) * ( A - B );
+        w(1) = s(1) + dot*delta;
 
-    //S_t* = \epsilon*u_t - 1/\tau_s * s_t - 1/\tau_f * (f_t - 1)
-    dot = u(0)*epsilon - s(2)/tau_s - (s(3) - 1.) / tau_f;
-    w(2) = s(2) + dot*delta;
+        //S_t* = \epsilon*u_t - 1/\tau_s * s_t - 1/\tau_f * (f_t - 1)
+        dot = u(0)*epsilon - s(2)/tau_s - (s(3) - 1.) / tau_f;
+        w(2) = s(2) + dot*delta;
 
-    //f_t* = s_t;
-    dot = s(2);
-    w(3) = s(3) + dot*delta;
+        //f_t* = s_t;
+        dot = s(2);
+        w(3) = s(3) + dot*delta;
+    }
 
     //std::cerr  <<"Printing output state" << endl;
     outputVector(std::cerr, w);
@@ -207,7 +241,7 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
     outputVector(std::cerr , s);
     fprintf(stderr, ":\n");
     location(0) -= (measure(s))(0);
-    location(0) /= var_e;
+    location(0) /= sigma_e;
     fprintf(stderr, "Location calculated: %f\n", location(0));
     double out = rng.densityAt(location);
     fprintf(stderr, "Weight calculated: %e\n", out);
