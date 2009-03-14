@@ -14,7 +14,7 @@
 
 #include <iostream>
 
-#define SYSTEM_SIZE 4
+#define SYSTEM_SIZE 13
 #define MEAS_SIZE 1
 #define INPUT_SIZE 1
 #define ACTUAL_SIZE 1
@@ -62,60 +62,66 @@ void outputVector(ostream& out, aux::vector vec);
 //};
 
 
-//States:
-//0 - v_t
-//1 - q_t
-//2 - s_t
-//3 - f_t
+//State Consists of Two or More Sections:
+//Theta
+//0 - V_0
+//1 - a_1
+//2 - a_2
+//3 - tau_0
+//4 - tau_s
+//5 - tau_f
+//6 - alpha
+//7 - E_0
+//8 - epsilon
+//Actual States
+//9+4*i+0 - v_t
+//9+4*i+1 - q_t
+//9+4*i+2 - s_t
+//9+4*i+3 - f_t
 
 class BoldModel : public ParticleFilterModel<double>
 {
 public:
-  ~BoldModel();
-  BoldModel();
-  
-  unsigned int getStateSize() { return 4; };
-  unsigned int getStimSize() { return 1; };
-  unsigned int getMeasurementSize() { return MEAS_SIZE; };
+    ~BoldModel();
+    BoldModel();
 
-  aux::vector transition(const aux::vector& s,
-      const double t, const double delta);
-  aux::vector transition(const aux::vector& s,
-      const double t, const double delta, const aux::vector& u);
+    unsigned int getStateSize() { return 4; };
+    unsigned int getStimSize() { return 1; };
+    unsigned int getMeasurementSize() { return MEAS_SIZE; };
 
-  aux::vector measure(const aux::vector& s);
+    aux::vector transition(const aux::vector& s,
+            const double t, const double delta);
+    aux::vector transition(const aux::vector& s,
+            const double t, const double delta, const aux::vector& u);
 
-  double weight(const aux::vector& s, const aux::vector& y);
+    aux::vector measure(const aux::vector& s);
 
-  aux::GaussianPdf suggestPrior();
-  aux::GaussianPdf suggestPrior(const aux::vector& init);
+    double weight(const aux::vector& s, const aux::vector& y);
+
+    aux::GaussianPdf suggestPrior();
+    aux::GaussianPdf suggestPrior(const aux::vector& init);
 
 private:
-  double V_0;
-  double a_1;
-  double a_2;
-  double tau_0;
-  double tau_s;
-  double tau_f;
-  double alpha;
-  double E_0;
-  double epsilon;
-  double var_e;
-  double small_g;
+    enum Theta { V_0, a_1, a_2, tau_0, tau_s, tau_f, alpha, E_0, epsilon };
+    enum StateVar { v_t, q_t, s_t, f_t };
+    //  double V_0;
+    //  double a_1;
+    //  double a_2;
+    //  double tau_0;
+    //  double tau_s;
+    //  double tau_f;
+    //  double alpha;
+    //  double E_0;
+    //  double epsilon;
+    double var_e;
+    double small_g;
 };
 
 BoldModel::BoldModel()
 {
-  tau_s = 4.98;
-  tau_f = 8.31;
-  epsilon = 0.069;
-  tau_0 = 8.38;
-  alpha = .189;
-  E_0 = .635;
-  V_0 = 1.49e-2;
-  small_g = .95e-5;
-//  var_e = 3.92e-6;
-  var_e = 3.92e-2;
+    small_g = .95e-5;
+    //  var_e = 3.92e-6;
+    var_e = 3.92e-3;
 }
 
 BoldModel::~BoldModel()
@@ -217,13 +223,20 @@ aux::GaussianPdf BoldModel::suggestPrior()
 
 aux::GaussianPdf BoldModel::suggestPrior(const aux::vector& init)
 {
+    tau_s = 4.98;
+    tau_f = 8.31;
+    epsilon = 0.069;
+    tau_0 = 8.38;
+    alpha = .189;
+    E_0 = .635;
+    V_0 = 1.49e-2;
     aux::symmetric_matrix sigma(SYSTEM_SIZE);
 
     sigma.clear();
-    sigma(0,0) = 10.0;
-    sigma(1,1) = 10.0;
-    sigma(2,2) = 10.0;
-    sigma(3,3) = 10.0;
+    sigma(0,0) = 1.0;
+    sigma(1,1) = 1.0;
+    sigma(2,2) = 1.0;
+    sigma(3,3) = 1.0;
 
     return aux::GaussianPdf(init, sigma);
 }
@@ -272,7 +285,8 @@ int main(int argc, char* argv[])
     ParticleFilter<double> filter(&model, x0);
   
     /* create resamplers */
-    StratifiedParticleResampler resampler(NUM_PARTICLES);
+    ParticleResampler resampler(NUM_PARTICLES);
+//    RegularizedParticleResampler resampler_reg(NUM_PARTICLES);
   
     /* estimate and output results */
     aux::vector meas(MEAS_SIZE);
