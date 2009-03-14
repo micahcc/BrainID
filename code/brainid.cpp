@@ -23,6 +23,8 @@ using namespace std;
 using namespace indii::ml::filter;
 
 namespace aux = indii::ml::aux;
+    
+const int NUM_PARTICLES = 1000;
 
 typedef float ImagePixelType;
 typedef itk::Image< ImagePixelType,  2 > ImageType;
@@ -94,9 +96,8 @@ public:
     double weight(const aux::vector& s, const aux::vector& y);
 
     aux::GaussianPdf suggestPrior();
-    aux::GaussianPdf suggestPrior(const aux::vector& init);
-
-private:
+    
+    //Constants
     static const int THETA_SIZE = 7;
     static const int STATE_SIZE = 4;
     static const int SIMUL_STATES = 1;
@@ -104,21 +105,20 @@ private:
 
     static const int MEAS_SIZE = 1;
     static const int INPUT_SIZE = 1;
-//    static const int ACTUAL_SIZE = 1;
     static const int STEPS = 250;
-    static const int NUM_PARTICLES = 1000;
     
-    static const double A1 = 3.4;
-    static const double A2 = 1.0;
+private:
+    aux::vector theta_sigmas;
 
-    vector theta_sigmas;
-
-    inline int statedex(int name, int index){
+    inline int indexof(int name, int index){
         return THETA_SIZE + index*STATE_SIZE + name;
     };
 
-    enum Theta { tau_s, tau_f, epsilon, tau_0, alpha, E_0, V_0};
-    enum StateVar { v_t, q_t, s_t, f_t };
+    //Internal Constants
+    static const double A1 = 3.4;
+    static const double A2 = 1.0;
+    enum Theta { TAU_S, TAU_F, EPSILON, TAU_0, ALPHA, E_0, V_0};
+    enum StateVar { V_T, Q_T, S_T, F_T };
     double var_e;
     double sigma_e;
     double small_g;
@@ -126,16 +126,16 @@ private:
 
 BoldModel::BoldModel() : theta_sigmas(THETA_SIZE)
 {
-    if(THETA_SIZE + STATE_SIZE*SIMUL_STASTES != SYSTEM_SIZE) {
+    if(THETA_SIZE + STATE_SIZE*SIMUL_STATES != SYSTEM_SIZE) {
         std::cerr << "Incorrect system size" << std::endl;
         exit(-1);
     }
 
-    theta_sigmas(tau_s) = 1.07/4;
-    theta_sigmas(tau_f) = 1.51/4;
-    theta_sigmas(epsilon) = .014/4;
-    theta_sigmas(tau_0) = 1.5/4;
-    theta_sigmas(alpha) = .004/4;
+    theta_sigmas(TAU_S) = 1.07/4;
+    theta_sigmas(TAU_F) = 1.51/4;
+    theta_sigmas(EPSILON) = .014/4;
+    theta_sigmas(TAU_0) = 1.5/4;
+    theta_sigmas(ALPHA) = .004/4;
     theta_sigmas(E_0) = .072/4;
     theta_sigmas(V_0) = .006/4;
 
@@ -160,13 +160,14 @@ aux::vector BoldModel::transition(const aux::vector& s,
     return transition(s, t, delta, u);
 }
 
-aux::vector BoldModel::transition(const aux::vector& s,
-        const double t, const double delta, const aux::vector& u)
+aux::vector BoldModel::transition(const aux::vector& dustin,
+        const double time, const double delta_t, const aux::vector& u_t)
 {
-    aux::vector w(SYSTEM_SIZE);
+    aux::vector dustout(SYSTEM_SIZE);
     static aux::symmetric_matrix cov(1);
     cov(0,0) = .001;
     static aux::GaussianPdf rng(aux::zero_vector(1), cov);
+    double v_t;
  
     //transition the parameters
     //the GaussianPdf class is a little shady for non univariate, zero-mean
@@ -174,47 +175,56 @@ aux::vector BoldModel::transition(const aux::vector& s,
     //the variables to a correct variance by multiplying by the std-dev
     //The std-deviations are 1/2 the stated std-deviations listed in 
     //Johnston et al.
-    w(tau_s)   = s(tau_s)   + rng.sample()[0] * theta_sigmas(tau_s); 
-    w(tau_f)   = s(tau_f)   + rng.sample()[0] * theta_sigmas(tau_f); 
-    w(epsilon) = s(epsilon) + rng.sample()[0] * theta_sigmas(epsilon); 
-    w(tau_0)   = s(tau_0)   + rng.sample()[0] * theta_sigmas(tau_0); 
-    w(alpha)   = s(alpha)   + rng.sample()[0] * theta_sigmas(alpha); 
-    w(E_0)     = s(E_0)     + rng.sample()[0] * theta_sigmas(E_0); 
-    w(V_0)     = s(V_0)     + rng.sample()[0] * theta_sigmas(V_0); 
+    dustout(TAU_S)   = dustin(TAU_S)   + rng.sample()[0] * theta_sigmas(TAU_S);
+    dustout(TAU_F)   = dustin(TAU_F)   + rng.sample()[0] * theta_sigmas(TAU_F);
+    dustout(EPSILON) = dustin(EPSILON) + rng.sample()[0] * theta_sigmas(EPSILON);
+    dustout(TAU_0)   = dustin(TAU_0)   + rng.sample()[0] * theta_sigmas(TAU_0);
+    dustout(ALPHA)   = dustin(ALPHA)   + rng.sample()[0] * theta_sigmas(ALPHA);
+    dustout(E_0)     = dustin(E_0)     + rng.sample()[0] * theta_sigmas(E_0);
+    dustout(V_0)     = dustin(V_0)     + rng.sample()[0] * theta_sigmas(V_0);
 
     //transition the actual state variables
     //TODO, potentially add some randomness here.
-    for(int i=0 ; i<SYSTEM_SIZE ; i++) {
+    for(int ii=0 ; ii<SYSTEM_SIZE ; ii++) {
         //This is a bit of a kludge, but it is unavoidable right now
-        if(s(statedex(v_t, i)) < 0) {
+        //once this function returns void and dustin isn't const this
+        //won't be as necessary, or this could be done when the prior
+        //is generated
+        v_t = dustin[indexof(V_T,ii)];
+        if(v_t < 0) {
             fprintf(stderr, "Warning, had to move volume to");
             fprintf(stderr, "zero because it was negative\n");
-            
+            v_t = 0;
         }
         //V_t* = (1/tau_0) * ( f_t - v_t ^ (1/\alpha)) 
-        double dot = (1./tau_0) * (s(3) - pow(v_t, 1./alpha)) + (rng.sample())[0];
-        w(0) = v_t + dot*delta;
-        if(w(0) < 0) w(0) = 0;
+        double dot = (dustin[indexof(F_T,ii)] - pow(v_t, 1./dustin[ALPHA])) / 
+                    dustin[TAU_0] + (rng.sample())[0];
+        dustout[indexof(V_T,ii)] = v_t + dot*delta_t;
+        if(dustout[indexof(V_T,ii)] < 0)
+            dustout[indexof(V_T,ii)] = 0;
 
-        //Q_t* = ...
-        double A = (s(3) / E_0) * (1 - pow( 1. - E_0, 1./s(3)));
-        double B = s(1) / pow(v_t, 1.-1./alpha);
-        dot = (1./tau_0) * ( A - B );
-        w(1) = s(1) + dot*delta;
+        //Q_t* = \frac{1}{tau_0} * (\frac{f_t}{E_0} * (1- (1-E_0)^{1/f_t}) - 
+        //              \frac{q_t}{v_t^{1-1/\alpha})
+        double tmpA = (dustin[indexof(F_T,ii)] / dustin[E_0]) * 
+                    (1 - pow( 1. - dustin[E_0], 1./dustin[indexof(F_T,ii)]));
+        double tmpB = dustin[indexof(Q_T,ii)] / pow(v_t, 1.-1./dustin[ALPHA]);
+        dot =  ( tmpA - tmpB )/dustin[TAU_0];
+        dustout[indexof(Q_T,ii)] = dustin[indexof(Q_T,ii)] + dot*delta_t;
 
         //S_t* = \epsilon*u_t - 1/\tau_s * s_t - 1/\tau_f * (f_t - 1)
-        dot = u(0)*epsilon - s(2)/tau_s - (s(3) - 1.) / tau_f;
-        w(2) = s(2) + dot*delta;
+        dot = u_t[0]*dustin[EPSILON]- dustin[indexof(S_T,ii)]/dustin[TAU_S] - 
+                    (dustin[indexof(F_T,ii)] - 1.) / dustin[TAU_F];
+        dustout[indexof(S_T,ii)] = dustin[indexof(S_T,ii)] + dot*delta_t;
 
         //f_t* = s_t;
-        dot = s(2);
-        w(3) = s(3) + dot*delta;
+        dot = dustin[indexof(S_T,ii)];
+        dustout[indexof(F_T,ii)] = dustin[indexof(F_T,ii)] + dot*delta_t;
     }
 
     //std::cerr  <<"Printing output state" << endl;
-    outputVector(std::cerr, w);
-    std::cerr << endl;
-    return w;
+//    outputVector(std::cerr, w);
+//    std::cerr << endl;
+    return dustout;
 }
 
 aux::vector BoldModel::measure(const aux::vector& s)
@@ -248,31 +258,38 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
     return out;
 }
 
+//TODO make some of these non-gaussian
 aux::GaussianPdf BoldModel::suggestPrior()
 {
+    //set the averages of the variables
     aux::vector mu(SYSTEM_SIZE);
-    mu.clear();
-    return suggestPrior(mu);
-}
+    mu[TAU_S] = 4.98;
+    mu[TAU_F] = 8.31;
+    mu[EPSILON] = 0.069;
+    mu[TAU_0] = 8.38;
+    mu[ALPHA] = .189;
+    mu[E_0] = .635;
+    mu[V_0] = 1.49e-2;
+    for(int ii = THETA_SIZE ; ii < STATE_SIZE; ii++) {
+        mu[ii] = 1;
+    }
 
-aux::GaussianPdf BoldModel::suggestPrior(const aux::vector& init)
-{
-    tau_s = 4.98;
-    tau_f = 8.31;
-    epsilon = 0.069;
-    tau_0 = 8.38;
-    alpha = .189;
-    E_0 = .635;
-    V_0 = 1.49e-2;
+    //set the variances, assume independence between the variables
     aux::symmetric_matrix sigma(SYSTEM_SIZE);
-
     sigma.clear();
-    sigma(0,0) = 1.0;
-    sigma(1,1) = 1.0;
-    sigma(2,2) = 1.0;
-    sigma(3,3) = 1.0;
+    sigma(TAU_S, TAU_S) = 1.07;
+    sigma(TAU_F, TAU_F) = 1.51;
+    sigma(EPSILON, EPSILON) = .014;
+    sigma(TAU_0, TAU_0) = 1.50;
+    sigma(ALPHA, ALPHA) = .004;
+    sigma(E_0, E_0) = .072;
+    sigma(V_0, V_0) = .006;
 
-    return aux::GaussianPdf(init, sigma);
+    for(int ii = THETA_SIZE ; ii < STATE_SIZE; ii++) {
+        sigma(ii,ii) = .75;
+    }
+
+    return aux::GaussianPdf(mu, sigma);
 }
 
 int main(int argc, char* argv[])
@@ -281,15 +298,6 @@ int main(int argc, char* argv[])
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
     const unsigned int size = world.size();
-    
-//    aux::vector location(1);
-//    aux::symmetric_matrix cov(1);
-//    cov(0,0) = 1;
-//    aux::GaussianPdf rng(aux::zero_vector(1), cov);
-//    for(int i=0 ; i<10 ; i++) {
-//        location(0) = i/10.;
-//        fprintf(stderr, "Density at %f: %f\n", location(0), rng.densityAt(location));
-//    }
     
     if(argc != 2) {
         printf("Usage: %s <inputname>\n", argv[0]);
@@ -319,13 +327,13 @@ int main(int argc, char* argv[])
     ParticleFilter<double> filter(&model, x0);
   
     /* create resamplers */
-    ParticleResampler resampler(NUM_PARTICLES);
+    StratifiedParticleResampler resampler(NUM_PARTICLES);
 //    RegularizedParticleResampler resampler_reg(NUM_PARTICLES);
   
     /* estimate and output results */
-    aux::vector meas(MEAS_SIZE);
-    aux::DiracMixturePdf pred(SYSTEM_SIZE);
-    aux::vector mu(SYSTEM_SIZE);
+    aux::vector meas(BoldModel::MEAS_SIZE);
+    aux::DiracMixturePdf pred(BoldModel::SYSTEM_SIZE);
+    aux::vector mu(BoldModel::SYSTEM_SIZE);
 
     pred = filter.getFilteredState();
     mu = pred.getDistributedExpectation();
@@ -351,7 +359,7 @@ int main(int argc, char* argv[])
     outputVector(fpred, mu);
     fpred << endl;
 
-    aux::vector sample_state(SYSTEM_SIZE);
+    aux::vector sample_state(BoldModel::SYSTEM_SIZE);
 
 //TODO, get resample working
 //TODO, get distribution creation working
