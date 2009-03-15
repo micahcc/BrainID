@@ -1,1 +1,11 @@
-Need to fix some stuff (vague).
+Todo List:
+-Modify weights so that measurements of NaN and inf will return 0 weights
+-Change SuggestPrior to return a Non-Guassian distribution that doesn't allow for negative
+parameters.
+-Add randomness (perhaps gaussian noise) to state update. Not sure if the noise should be in
+the actual states or the ds/dt, although I think ds/dt would make more sense, so that longer
+time intervals result in more randomness.
+-Modify transition functions to change state in place, to reduce overhead of returning by
+copy. The may only result in a minor performance boost, and would require a rewrite of 
+particle filter code. It would also have to be written in such a way that the old particles
+could be preserved in cases where we ant to see the time series of the particles
