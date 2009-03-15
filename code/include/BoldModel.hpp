@@ -33,8 +33,8 @@ public:
     ~BoldModel();
     BoldModel();
 
-    unsigned int getStateSize() { return 4; };
-    unsigned int getStimSize() { return 1; };
+    unsigned int getStateSize() { return SYSTEM_SIZE; };
+    unsigned int getStimSize() { return INPUT_SIZE; };
     unsigned int getMeasurementSize() { return MEAS_SIZE; };
 
     aux::vector transition(const aux::vector& s,

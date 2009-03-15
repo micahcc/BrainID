@@ -108,7 +108,9 @@ aux::vector BoldModel::transition(const aux::vector& dustin,
 aux::vector BoldModel::measure(const aux::vector& s)
 {
     aux::vector y(MEAS_SIZE);
-    y(0) = V_0 * ( A1 * ( 1 - s(1)) - A2 * (1 - s(0)));
+    for(int i = 0 ; i < MEAS_SIZE ; i++) {
+        y[i] = s[V_0] * ( A1 * ( 1 - s[indexof(Q_T,i)]) - A2 * (1 - s[indexof(V_T,i)]));
+    }
     return y;
 }
 
@@ -118,19 +120,20 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
     //of the program, so no need to calculate over and over
     static aux::symmetric_matrix cov(1);
     cov(0,0) = 1;
-    static aux::GaussianPdf rng(aux::zero_vector(1), cov);
+    static aux::GaussianPdf rng(aux::zero_vector(MEAS_SIZE), cov);
     
-    aux::vector location(1);
-    location(0) = 0;
-    location(0) = y(0);
-    fprintf(stderr, "Actual: %f\n", location(0));
-    fprintf(stderr, "Measure: %f\n", (measure(s))(0));
+    aux::vector location(MEAS_SIZE);
+    fprintf(stderr, "Actual:\n");
+    outputVector(std::cerr, y);
+    fprintf(stderr, "Measure: \n");
+    outputVector(std::cerr, measure(s));
     fprintf(stderr, "Particle:\n");
     outputVector(std::cerr , s);
     fprintf(stderr, ":\n");
-    location(0) -= (measure(s))(0);
-    location(0) /= sigma_e;
-    fprintf(stderr, "Location calculated: %f\n", location(0));
+    
+    location = (y-measure(s))/sigma_e;
+    fprintf(stderr, "Location calculated:\n");
+    outputVector(std::cerr , location);
     double out = rng.densityAt(location);
     fprintf(stderr, "Weight calculated: %e\n", out);
     return out;
