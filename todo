@@ -1,4 +1,6 @@
 Todo List:
+-convert Dysii to cmake.
+-Normalize timeseries based on the total average, not just for each section.
 -Perform tests to compare estimation of parameters using the average from a section
 as compared to estimation of parameters for all the voxels in the section, with each
 voxel as a state.

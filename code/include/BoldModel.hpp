@@ -5,6 +5,7 @@
 #include <indii/ml/filter/ParticleFilterModel.hpp>
 #include <indii/ml/aux/GaussianPdf.hpp>
 #include <iostream>
+#include <iomanip>
 
 //State Consists of Two or More Sections:
 //Theta
@@ -26,6 +27,7 @@
 namespace aux = indii::ml::aux;
 
 void outputVector(std::ostream& out, aux::vector vec);
+void outputMatrix(std::ostream& out, aux::matrix mat);
 
 class BoldModel : public indii::ml::filter::ParticleFilterModel<double>
 {

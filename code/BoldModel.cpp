@@ -9,13 +9,13 @@ BoldModel::BoldModel() : theta_sigmas(THETA_SIZE)
         exit(-1);
     }
 
-    theta_sigmas(TAU_S) = 1.07/4;
-    theta_sigmas(TAU_F) = 1.51/4;
-    theta_sigmas(EPSILON) = .014/4;
-    theta_sigmas(TAU_0) = 1.5/4;
-    theta_sigmas(ALPHA) = .004/4;
-    theta_sigmas(E_0) = .072/4;
-    theta_sigmas(V_0) = .006/4;
+    theta_sigmas(TAU_S) = 1.07/8;
+    theta_sigmas(TAU_F) = 1.51/8;
+    theta_sigmas(EPSILON) = .014/8;
+    theta_sigmas(TAU_0) = 1.5/8;
+    theta_sigmas(ALPHA) = .004/8;
+    theta_sigmas(E_0) = .072/8;
+    theta_sigmas(V_0) = .006/8;
 
     small_g = .95e-5;
     //  var_e = 3.92e-6;
@@ -30,7 +30,8 @@ BoldModel::~BoldModel()
 
 //TODO, I would like to modify these functions so that the vector s
 //will just be modified in place, which would reduce the amount of copying
-//necessary
+//necessary. This might not work though, because Particle Filter likes to
+//keep all the particles around for history.
 aux::vector BoldModel::transition(const aux::vector& s,
         const double t, const double delta)
 {
@@ -43,9 +44,9 @@ aux::vector BoldModel::transition(const aux::vector& dustin,
 {
     aux::vector dustout(SYSTEM_SIZE);
     static aux::symmetric_matrix cov(1);
-    cov(0,0) = .001;
+    cov(0,0) = 1;
     static aux::GaussianPdf rng(aux::zero_vector(1), cov);
-    double v_t;
+//    double v_t;
  
     //transition the parameters
     //the GaussianPdf class is a little shady for non univariate, zero-mean
@@ -63,29 +64,32 @@ aux::vector BoldModel::transition(const aux::vector& dustin,
 
     //transition the actual state variables
     //TODO, potentially add some randomness here.
-    for(int ii=0 ; ii<SYSTEM_SIZE ; ii++) {
+    for(int ii=0 ; ii<SIMUL_STATES ; ii++) {
         //This is a bit of a kludge, but it is unavoidable right now
         //once this function returns void and dustin isn't const this
         //won't be as necessary, or this could be done when the prior
-        //is generated
-        v_t = dustin[indexof(V_T,ii)];
-        if(v_t < 0) {
-            fprintf(stderr, "Warning, had to move volume to");
-            fprintf(stderr, "zero because it was negative\n");
-            v_t = 0;
-        }
+        //is generated. 
+        //Note: Removed code because weight SHOULD filter out NAN particles
+//        v_t = dustin[indexof(V_T,ii)];
+//        if(v_t < 0) {
+//            fprintf(stderr, "Warning, had to move volume to");
+//            fprintf(stderr, "zero because it was negative\n");
+//            v_t = 0;
+//        }
         //V_t* = (1/tau_0) * ( f_t - v_t ^ (1/\alpha)) 
-        double dot = (dustin[indexof(F_T,ii)] - pow(v_t, 1./dustin[ALPHA])) / 
-                    dustin[TAU_0] + (rng.sample())[0];
-        dustout[indexof(V_T,ii)] = v_t + dot*delta_t;
-        if(dustout[indexof(V_T,ii)] < 0)
-            dustout[indexof(V_T,ii)] = 0;
+        double dot = (  ( dustin[indexof(F_T,ii)] - 
+                    pow(dustin[indexof(V_T,ii)], 1./dustin[ALPHA]) ) / 
+                    dustin[TAU_0]  )  + (rng.sample())[0];
+        dustout[indexof(V_T,ii)] = dustin[indexof(V_T,ii)] + dot*delta_t;
+//        if(dustout[indexof(V_T,ii)] < 0)
+//            dustout[indexof(V_T,ii)] = 0;
 
         //Q_t* = \frac{1}{tau_0} * (\frac{f_t}{E_0} * (1- (1-E_0)^{1/f_t}) - 
         //              \frac{q_t}{v_t^{1-1/\alpha})
         double tmpA = (dustin[indexof(F_T,ii)] / dustin[E_0]) * 
                     (1 - pow( 1. - dustin[E_0], 1./dustin[indexof(F_T,ii)]));
-        double tmpB = dustin[indexof(Q_T,ii)] / pow(v_t, 1.-1./dustin[ALPHA]);
+        double tmpB = dustin[indexof(Q_T,ii)] / 
+                    pow(dustin[indexof(V_T,ii)], 1.-1./dustin[ALPHA]);
         dot =  ( tmpA - tmpB )/dustin[TAU_0];
         dustout[indexof(Q_T,ii)] = dustin[indexof(Q_T,ii)] + dot*delta_t;
 
@@ -123,20 +127,21 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
     static aux::GaussianPdf rng(aux::zero_vector(MEAS_SIZE), cov);
     
     aux::vector location(MEAS_SIZE);
-    fprintf(stderr, "Actual:\n");
-    outputVector(std::cerr, y);
-    fprintf(stderr, "Measure: \n");
-    outputVector(std::cerr, measure(s));
-    fprintf(stderr, "Particle:\n");
-    outputVector(std::cerr , s);
-    fprintf(stderr, ":\n");
+//    fprintf(stderr, "Actual:\n");
+//    outputVector(std::cerr, y);
+//    fprintf(stderr, "Measure: \n");
+//    outputVector(std::cerr, measure(s));
+//    fprintf(stderr, "\nParticle:\n");
+//    outputVector(std::cerr , s);
+//    fprintf(stderr, "\n");
     
     location = (y-measure(s))/sigma_e;
-    fprintf(stderr, "Location calculated:\n");
-    outputVector(std::cerr , location);
-    double out = rng.densityAt(location);
-    fprintf(stderr, "Weight calculated: %e\n", out);
-    return out;
+//    fprintf(stderr, "Location calculated:\n");
+//    outputVector(std::cerr , location);
+//    fprintf(stderr, "\n");
+    return rng.densityAt(location);
+//    fprintf(stderr, "Weight calculated: %e\n", out);
+//    return out;
 }
 
 //TODO make some of these non-gaussian
@@ -151,7 +156,7 @@ aux::GaussianPdf BoldModel::suggestPrior()
     mu[ALPHA] = .189;
     mu[E_0] = .635;
     mu[V_0] = 1.49e-2;
-    for(int ii = THETA_SIZE ; ii < STATE_SIZE; ii++) {
+    for(int ii = THETA_SIZE ; ii < SYSTEM_SIZE; ii++) {
         mu[ii] = 1;
     }
 
@@ -166,7 +171,15 @@ aux::GaussianPdf BoldModel::suggestPrior()
     sigma(E_0, E_0) = .072;
     sigma(V_0, V_0) = .006;
 
-    for(int ii = THETA_SIZE ; ii < STATE_SIZE; ii++) {
+    std::cerr << "Mu:" << std::endl;
+    outputVector(std::cerr, mu);
+    std::cerr << std::endl;
+    
+    std::cerr << "sigma:" << std::endl;
+    outputMatrix(std::cerr, sigma);
+    std::cerr << std::endl;
+
+    for(int ii = THETA_SIZE ; ii < SYSTEM_SIZE; ii++) {
         sigma(ii,ii) = .75;
     }
 
@@ -187,3 +200,14 @@ void outputVector(std::ostream& out, aux::vector vec) {
   }
 }
 
+void outputMatrix(std::ostream& out, aux::matrix mat) {
+  unsigned int i, j;
+  for (j = 0; j < mat.size2(); j++) {
+    for (i = 0; i < mat.size1(); i++) {
+      out << mat(i,j);
+      if (i != mat.size1() - 1 || j != mat.size2() - 1) {
+	out << '\t';
+      }
+    }
+  }
+}
