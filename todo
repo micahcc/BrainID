@@ -1,4 +1,7 @@
 Todo List:
+-Perform tests to compare estimation of parameters using the average from a section
+as compared to estimation of parameters for all the voxels in the section, with each
+voxel as a state.
 -Modify weights so that measurements of NaN and inf will return 0 weights
 -Change SuggestPrior to return a Non-Guassian distribution that doesn't allow for negative
 parameters.
