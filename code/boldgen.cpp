@@ -21,13 +21,28 @@ struct parameters
     double v_0;
 }
 
+double input(double t, void* params)
+{
+    if(t < 20) {
+        return 0.0;
+    } else if(t < 30) {
+        return 3.0;
+    } else {
+        return 0.0;
+    }
+}
+
 int func (double t, const double y[], double f[], void *params)
 {
     parameters* theta = (parameters*)params;
-    f[0] = y[1];
-    f[1] = -y[0] - mu*y[1];
-    f[2] = -y[0] - mu*y[1];
-    f[3] = -y[0] - mu*y[1];
+
+    //V_t* = (1/tau_0) * ( f_t - v_t ^ (1/\alpha)) 
+    f[0] = (y[3] - pow(y[0], 1./theta->alpha))/theta->tau_0;
+    f[1] = (1./theta->tau_0)*(y[4]/theta->e_0*(1.-pow(1.-theta->e_0, 1./y[3])) -
+                y[1]/pow(y[0], 1-1./theta->alpha));
+    f[2] = theta->epsilon*input(t, params) - y[2]/theta->tau_s - 
+                (y[3]-1)/theta->tau_f;
+    f[3] = y[2];
     return GSL_SUCCESS;
 }
 
@@ -35,10 +50,27 @@ int jac (double t, const double y[], double *dfdy, double dfdt[], void *params)
 {
     parameters* theta = (parameters *)params;
     gsl_matrix_view dfdy_mat 
-        = gsl_matrix_view_array (dfdy, 2, 2);
+        = gsl_matrix_view_array (dfdy, 4, 4);
     gsl_matrix * m = &dfdy_mat.matrix; 
-    gsl_matrix_set (m, 0, 0, 0.0);
     gsl_matrix_set (m, 0, 1, 1.0);
+    gsl_matrix_set (m, 0, 2, 1.0);
+    gsl_matrix_set (m, 0, 3, 1.0);
+    
+    gsl_matrix_set (m, 1, 0, 0.0);
+    gsl_matrix_set (m, 1, 1, 1.0);
+    gsl_matrix_set (m, 1, 2, 1.0);
+    gsl_matrix_set (m, 1, 3, 1.0);
+    
+    gsl_matrix_set (m, 2, 0, 0.0);
+    gsl_matrix_set (m, 2, 1, 1.0);
+    gsl_matrix_set (m, 2, 2, 1.0);
+    gsl_matrix_set (m, 2, 3, 1.0);
+    
+    gsl_matrix_set (m, 3, 0, 0.0);
+    gsl_matrix_set (m, 3, 1, 1.0);
+    gsl_matrix_set (m, 3, 2, 1.0);
+    gsl_matrix_set (m, 3, 3, 1.0);
+
     gsl_matrix_set (m, 1, 0, -2.0*mu*y[0]*y[1] - 1.0);
     gsl_matrix_set (m, 1, 1, -mu*(y[0]*y[0] - 1.0));
     dfdt[0] = 0.0;
