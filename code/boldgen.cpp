@@ -10,6 +10,8 @@
 #define SECTION_SIZE 1
 #define TIME_SIZE 100
 
+#define PI 3.141592653589793
+
 struct parameters
 {
     double tau_s;
@@ -21,15 +23,18 @@ struct parameters
     double v_0;
 }
 
+//activation:
+//atan((t-20)*5)/pi-atan((t-30)*5)/pi
 double input(double t, void* params)
 {
-    if(t < 20) {
-        return 0.0;
-    } else if(t < 30) {
-        return 3.0;
-    } else {
-        return 0.0;
-    }
+    return atan((t-20)*5)/PI-atan((t-30)*5)/PI;
+}
+
+//activation derivative:
+//atan(x) -> 1/(1+x^2)
+double input_der(double t, void* params) 
+{
+    return 1./(1.+pow((t-20)*5,2))/PI - 1./(1.+pow((t-30)*5,2))/PI;
 }
 
 int func (double t, const double y[], double f[], void *params)
@@ -52,29 +57,33 @@ int jac (double t, const double y[], double *dfdy, double dfdt[], void *params)
     gsl_matrix_view dfdy_mat 
         = gsl_matrix_view_array (dfdy, 4, 4);
     gsl_matrix * m = &dfdy_mat.matrix; 
-    gsl_matrix_set (m, 0, 1, 1.0);
-    gsl_matrix_set (m, 0, 2, 1.0);
-    gsl_matrix_set (m, 0, 3, 1.0);
+    gsl_matrix_set (m, 0, 0, -pow(y[0], 1./theta->alpha - 1.) / 
+                (theta->tau_0*theta->alpha));
+    gsl_matrix_set (m, 0, 1, 0.0);
+    gsl_matrix_set (m, 0, 2, 0.0);
+    gsl_matrix_set (m, 0, 3, 1.0/theta->tau_0);
     
-    gsl_matrix_set (m, 1, 0, 0.0);
-    gsl_matrix_set (m, 1, 1, 1.0);
-    gsl_matrix_set (m, 1, 2, 1.0);
-    gsl_matrix_set (m, 1, 3, 1.0);
+    gsl_matrix_set (m, 1, 0, ((1./theta->alpha - 1.0)/theta->tau_0) * y[1] *
+                pow(y[0], 1./theta->alpha-2));
+    gsl_matrix_set (m, 1, 1, -pow(y[0], 1./theta->alpha - 1.));
+    gsl_matrix_set (m, 1, 2, 0.0);
+    gsl_matrix_set (m, 1, 3, (1.+pow(1-theta->e_0, 1./y[3])*(y[3]*log(y[3])-1.0)) /
+                (theta->tau_0*theta->e_0));
     
     gsl_matrix_set (m, 2, 0, 0.0);
-    gsl_matrix_set (m, 2, 1, 1.0);
-    gsl_matrix_set (m, 2, 2, 1.0);
-    gsl_matrix_set (m, 2, 3, 1.0);
+    gsl_matrix_set (m, 2, 1, 0.0);
+    gsl_matrix_set (m, 2, 2, -y[2]/theta->tau_s);
+    gsl_matrix_set (m, 2, 3, -1./theta->tau_f);
     
     gsl_matrix_set (m, 3, 0, 0.0);
-    gsl_matrix_set (m, 3, 1, 1.0);
+    gsl_matrix_set (m, 3, 1, 0.0);
     gsl_matrix_set (m, 3, 2, 1.0);
-    gsl_matrix_set (m, 3, 3, 1.0);
+    gsl_matrix_set (m, 3, 3, 0.0);
 
-    gsl_matrix_set (m, 1, 0, -2.0*mu*y[0]*y[1] - 1.0);
-    gsl_matrix_set (m, 1, 1, -mu*(y[0]*y[0] - 1.0));
     dfdt[0] = 0.0;
     dfdt[1] = 0.0;
+    dfdt[2] = 0.0;
+    dfdt[3] = 0.0;
     return GSL_SUCCESS;
 }
 
