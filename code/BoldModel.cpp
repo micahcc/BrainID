@@ -9,13 +9,13 @@ BoldModel::BoldModel() : theta_sigmas(THETA_SIZE)
         exit(-1);
     }
 
-    theta_sigmas(TAU_S) = 1.07/8;
-    theta_sigmas(TAU_F) = 1.51/8;
-    theta_sigmas(EPSILON) = .014/8;
-    theta_sigmas(TAU_0) = 1.5/8;
-    theta_sigmas(ALPHA) = .004/8;
-    theta_sigmas(E_0) = .072/8;
-    theta_sigmas(V_0) = .006/8;
+    theta_sigmas(TAU_S) = 1.07/20;
+    theta_sigmas(TAU_F) = 1.51/20;
+    theta_sigmas(EPSILON) = .014/20;
+    theta_sigmas(TAU_0) = 1.5/20;
+    theta_sigmas(ALPHA) = .004/20;
+    theta_sigmas(E_0) = .072/20;
+    theta_sigmas(V_0) = .006/20;
 
     small_g = .95e-5;
     //  var_e = 3.92e-6;
@@ -54,13 +54,13 @@ aux::vector BoldModel::transition(const aux::vector& dustin,
     //the variables to a correct variance by multiplying by the std-dev
     //The std-deviations are 1/2 the stated std-deviations listed in 
     //Johnston et al.
-    dustout(TAU_S)   = dustin(TAU_S)   + rng.sample()[0] * theta_sigmas(TAU_S);
-    dustout(TAU_F)   = dustin(TAU_F)   + rng.sample()[0] * theta_sigmas(TAU_F);
-    dustout(EPSILON) = dustin(EPSILON) + rng.sample()[0] * theta_sigmas(EPSILON);
-    dustout(TAU_0)   = dustin(TAU_0)   + rng.sample()[0] * theta_sigmas(TAU_0);
-    dustout(ALPHA)   = dustin(ALPHA)   + rng.sample()[0] * theta_sigmas(ALPHA);
-    dustout(E_0)     = dustin(E_0)     + rng.sample()[0] * theta_sigmas(E_0);
-    dustout(V_0)     = dustin(V_0)     + rng.sample()[0] * theta_sigmas(V_0);
+    dustout(TAU_S)   = dustin(TAU_S)  ; //+ rng.sample()[0] * theta_sigmas(TAU_S);
+    dustout(TAU_F)   = dustin(TAU_F)  ; //+ rng.sample()[0] * theta_sigmas(TAU_F);
+    dustout(EPSILON) = dustin(EPSILON); //+ rng.sample()[0] * theta_sigmas(EPSILON);
+    dustout(TAU_0)   = dustin(TAU_0)  ; //+ rng.sample()[0] * theta_sigmas(TAU_0);
+    dustout(ALPHA)   = dustin(ALPHA)  ; //+ rng.sample()[0] * theta_sigmas(ALPHA);
+    dustout(E_0)     = dustin(E_0)    ; //+ rng.sample()[0] * theta_sigmas(E_0);
+    dustout(V_0)     = dustin(V_0)    ; //+ rng.sample()[0] * theta_sigmas(V_0);
 
     //transition the actual state variables
     //TODO, potentially add some randomness here.
@@ -139,9 +139,9 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
 //    fprintf(stderr, "Location calculated:\n");
 //    outputVector(std::cerr , location);
 //    fprintf(stderr, "\n");
-    return rng.densityAt(location);
-//    fprintf(stderr, "Weight calculated: %e\n", out);
+//    fprintf(stderr, "Weight calculated: %e\n", rng.densityAt(location));
 //    return out;
+    return rng.densityAt(location);
 }
 
 //TODO make some of these non-gaussian

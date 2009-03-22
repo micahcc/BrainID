@@ -12,6 +12,11 @@
 #include <indii/ml/filter/StratifiedParticleResampler.hpp>
 #include <indii/ml/aux/GaussianPdf.hpp>
 #include <indii/ml/aux/vector.hpp>
+
+#include <indii/ml/aux/Almost2Norm.hpp>
+#include <indii/ml/aux/AlmostGaussianKernel.hpp>
+#include <indii/ml/filter/RegularisedParticleResampler.hpp>
+
 #include "BoldModel.hpp"
 
 #include <vector>
@@ -23,6 +28,9 @@ using namespace std;
 namespace aux = indii::ml::aux;
     
 const int NUM_PARTICLES = 10000;
+const int RESAMPNESS = NUM_PARTICLES*.8;
+const double SAMPLERATE = 2;
+const int DIVIDER = 8;
 
 typedef float ImagePixelType;
 typedef itk::Image< ImagePixelType,  2 > ImageType;
@@ -63,38 +71,6 @@ int main(int argc, char* argv[])
     const unsigned int rank = world.rank();
     const unsigned int size = world.size();
 
-//    aux::symmetric_matrix cov(1);
-//    cov(0,0) = 10;
-//    aux::GaussianPdf rng1(aux::zero_vector(1), cov);
-//    
-//    for(int i = 0 ; i<1000 ; i++) {
-//        fprintf(stderr, "%8.8f\n", rng1.sample()[0]);
-//    }
-//
-//    cov(0,0) = .001;
-//    aux::GaussianPdf rng2(aux::zero_vector(1), cov);
-//
-//    aux::vector location(1);
-//    location[0] = NAN/.001;
-//    printf("density at NaN/.001: %e\n", rng1.densityAt(location));
-//    location[0] = INFINITY/.001;
-//    printf("density at inf/.001: %e\n", rng1.densityAt(location));
-//    
-//    location(0) = 1;
-//    printf("density at 1: %e\n", rng1.densityAt(location));
-//    location(0) = 10;
-//    printf("density at 10: %e\n", rng1.densityAt(location));
-//    location(0) = 100;
-//    printf("density at 100: %e\n", rng1.densityAt(location));
-//
-//    for(int i = 0 ; i<1000 ; i++) {
-//        fprintf(stderr, "%8.8f\n", rng2.sample()[0]);
-//    }
-//
-//    fflush(stderr);
-//
-//    return 0;
-
     if(argc != 2) {
         fprintf(stderr, "Usage: %s <inputname>\n", argv[0]);
         return -1;
@@ -106,12 +82,12 @@ int main(int argc, char* argv[])
     reader->Update();
 
     /* Create the iterator, to move forward in time for a particlular section */
-    itk::ImageLinearIteratorWithIndex<ImageType> 
-        iter(reader->GetOutput(), reader->GetOutput()->GetRequestedRegion());
+    itk::ImageLinearIteratorWithIndex<ImageType> iter(reader->GetOutput(), 
+                reader->GetOutput()->GetRequestedRegion());
     iter.SetDirection(1);
     ImageType::IndexType index;
-    index[0] = 1; //skip section label
-    index[1] = 5;
+    index[1] = 1; //skip section label
+    index[0] = 5; //just kind of picking a section
     iter.SetIndex(index);
 
     /* Create a model */
@@ -126,8 +102,14 @@ int main(int argc, char* argv[])
     indii::ml::filter::ParticleFilter<double> filter(&model, x0);
   
     /* create resamplers */
+    /* Normal resampler, used to eliminate particles */
     indii::ml::filter::StratifiedParticleResampler resampler(NUM_PARTICLES);
-//    RegularizedParticleResampler resampler_reg(NUM_PARTICLES);
+
+    /* Regularized Resample */
+    aux::Almost2Norm norm;
+    aux::AlmostGaussianKernel kernel(BoldModel::SYSTEM_SIZE, 1);
+    indii::ml::filter::RegularisedParticleResampler< aux::Almost2Norm, 
+                aux::AlmostGaussianKernel > resampler_reg(norm, kernel);
   
     /* estimate and output results */
     aux::vector meas(BoldModel::MEAS_SIZE);
@@ -137,27 +119,23 @@ int main(int argc, char* argv[])
     pred = filter.getFilteredState();
     mu = pred.getDistributedExpectation();
   
-    std::ofstream fmeas("ParticleFilterHarness_meas.out");
-    std::ofstream fpred("ParticleFilterHarness_filter.out");
+    std::ofstream fmeas("meas.out");
+    std::ofstream fpred("pred.out");
     
-    double t = 2;
+    double t = 0;
     
     fmeas << "# Created by brainid" << endl;
-    fmeas << "# name: measured" << endl;
+    fmeas << "# name: bold" << endl;
     fmeas << "# type: matrix" << endl;
     fmeas << "# rows: " << reader->GetOutput()->GetRequestedRegion().GetSize()[1] - 1<< endl;
-    fmeas << "# columns: 2" << endl;
+    fmeas << "# columns: 3" << endl;
 
     fpred << "# Created by brainid" << endl;
-    fpred << "# name: measured" << endl;
+    fpred << "# name: calc " << endl;
     fpred << "# type: matrix" << endl;
     fpred << "# rows: " << reader->GetOutput()->GetRequestedRegion().GetSize()[1] -1 << endl;
     fpred << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
     
-    fpred << t << ' ';
-    outputVector(fpred, mu);
-    fpred << endl;
-
     aux::vector sample_state(BoldModel::SYSTEM_SIZE);
 
 //TODO, get resample working
@@ -174,17 +152,26 @@ int main(int argc, char* argv[])
 //    }
 //    fflush(stderr);
 //    return -1;
-//    filter.resample(&resampler);
+    
     while(!iter.IsAtEndOfLine()) {
         fprintf(stderr, "Size0: %u\n", pred.getSize());
         meas(0) = iter.Get();
         ++iter;
-    
-        std::cerr << "Time " << t << endl;
-        filter.filter(t, meas);
-
+   
+        std::cerr << "t=" << t << " | iter pos: " << iter.GetIndex()[1] << endl;
+        for(int i=0 ; i<DIVIDER ; i++) {
+            t += SAMPLERATE/DIVIDER + .0001;//ensure error is +
+            filter.filter(t, meas);
+        }
+        t = (double)((int)t); //round down to remove error
+        
         fprintf(stderr, "Size1: %u\n", pred.getSize());
-        filter.resample(&resampler);
+        if(filter.GetFilteredState().calculateDistributedEss() < RESAMPNESS) {
+            filter.resample(&resampler);
+            filter.resample(&resampler_reg);
+        }
+       
+        //filter.resample(&resampler_reg);
         pred = filter.getFilteredState();
         fprintf(stderr, "Size2: %u\n", pred.getSize());
         mu = pred.getDistributedExpectation();
@@ -192,16 +179,16 @@ int main(int argc, char* argv[])
         /* output measurement */
         fmeas << t << ' ';
         outputVector(fmeas, meas);
-        fmeas << endl;
+        fmeas << model.measure(mu)(0) << endl;
 
         /* output filtered state */
         fpred << t << ' ';
         outputVector(fpred, mu);
-        fpred << ' ';
-        outputVector(fpred, sample_state);
+//        fpred << ' ';
+//        outputVector(fpred, sample_state);
         fpred << endl;
-        t += 2;
     }
+    printf("Index at end: %ld %ld \n", iter.GetIndex()[0], iter.GetIndex()[1]);
 
     fmeas.close();
     fpred.close();
