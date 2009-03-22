@@ -3,7 +3,8 @@
 
 #include <indii/ml/aux/vector.hpp>
 #include <indii/ml/filter/ParticleFilterModel.hpp>
-#include <indii/ml/aux/GaussianPdf.hpp>
+#include <indii/ml/aux/DiracMixturePdf.hpp>
+#include <gsl/gsl_randist.h>
 #include <iostream>
 #include <iomanip>
 
@@ -48,7 +49,7 @@ public:
 
     double weight(const aux::vector& s, const aux::vector& y);
 
-    aux::GaussianPdf suggestPrior();
+    void generatePrior(aux::DiracMixturePdf&, int);
     
     //Constants
     static const int THETA_SIZE = 7;
@@ -66,6 +67,8 @@ private:
     inline int indexof(int name, int index){
         return THETA_SIZE + index*STATE_SIZE + name;
     };
+
+    void generate_component(gsl_rng* rng, aux::vector& fillme);
 
     //Internal Constants
     static const double A1 = 3.4;

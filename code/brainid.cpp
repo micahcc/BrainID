@@ -28,7 +28,7 @@ using namespace std;
 namespace aux = indii::ml::aux;
     
 const int NUM_PARTICLES = 10000;
-const int RESAMPNESS = NUM_PARTICLES*.8;
+const int RESAMPNESS = 300;
 const double SAMPLERATE = 2;
 const int DIVIDER = 8;
 
@@ -92,11 +92,8 @@ int main(int argc, char* argv[])
 
     /* Create a model */
     BoldModel model; 
-    aux::GaussianPdf prior = model.suggestPrior();
-    prior.sample();
-    prior.sample();
-    prior.sample();
-    aux::DiracMixturePdf x0(prior, NUM_PARTICLES);
+    aux::DiracMixturePdf x0(NUM_PARTICLES);
+    model.generatePrior(x0, NUM_PARTICLES);
 
     /* Create the filter */
     indii::ml::filter::ParticleFilter<double> filter(&model, x0);
@@ -104,6 +101,9 @@ int main(int argc, char* argv[])
     /* create resamplers */
     /* Normal resampler, used to eliminate particles */
     indii::ml::filter::StratifiedParticleResampler resampler(NUM_PARTICLES);
+
+    /* AdditiveNoise */
+    indii::ml::filter::AdditiveNoiseParticleResampler< aux::GaussianPdf > resampler_reg();
 
     /* Regularized Resample */
     aux::Almost2Norm norm;
@@ -154,7 +154,6 @@ int main(int argc, char* argv[])
 //    return -1;
     
     while(!iter.IsAtEndOfLine()) {
-        fprintf(stderr, "Size0: %u\n", pred.getSize());
         meas(0) = iter.Get();
         ++iter;
    
@@ -165,15 +164,15 @@ int main(int argc, char* argv[])
         }
         t = (double)((int)t); //round down to remove error
         
-        fprintf(stderr, "Size1: %u\n", pred.getSize());
-        if(filter.GetFilteredState().calculateDistributedEss() < RESAMPNESS) {
+        cerr << "ESS: " << filter.getFilteredState().calculateDistributedEss() << endl;
+        if(filter.getFilteredState().calculateDistributedEss() < RESAMPNESS) {
+            cerr << "Resampling" << endl;
             filter.resample(&resampler);
             filter.resample(&resampler_reg);
         }
        
         //filter.resample(&resampler_reg);
         pred = filter.getFilteredState();
-        fprintf(stderr, "Size2: %u\n", pred.getSize());
         mu = pred.getDistributedExpectation();
 
         /* output measurement */

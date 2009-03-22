@@ -1,6 +1,8 @@
 #include "BoldModel.hpp"
 
 #include <indii/ml/aux/matrix.hpp>
+#include <indii/ml/aux/GaussianPdf.hpp>
+#include <indii/ml/aux/DiracPdf.hpp>
 
 BoldModel::BoldModel() : theta_sigmas(THETA_SIZE)
 {
@@ -144,46 +146,90 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
     return rng.densityAt(location);
 }
 
-//TODO make some of these non-gaussian
-aux::GaussianPdf BoldModel::suggestPrior()
+void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme) 
 {
     //set the averages of the variables
-    aux::vector mu(SYSTEM_SIZE);
-    mu[TAU_S] = 4.98;
-    mu[TAU_F] = 8.31;
-    mu[EPSILON] = 0.069;
-    mu[TAU_0] = 8.38;
-    mu[ALPHA] = .189;
-    mu[E_0] = .635;
-    mu[V_0] = 1.49e-2;
-    for(int ii = THETA_SIZE ; ii < SYSTEM_SIZE; ii++) {
-        mu[ii] = 1;
-    }
+    const double mu_TAU_S = 4.98;
+    const double mu_TAU_F = 8.31;
+    const double mu_EPSILON = 0.069;
+    const double mu_TAU_0 = 8.38;
+    const double mu_ALPHA = .189;
+    const double mu_E_0 = .635;
+    const double mu_V_0 = 1.49e-2;
+    
+    const double mu_V_T = 1;
+    const double mu_Q_T = 1;
+    const double mu_S_T = .25;
+    const double mu_F_T = 1;
+
+    //set the variances for all the variables
+    const double var_TAU_S = 1.07*1.07;
+    const double var_TAU_F = 8.31*8.31;
+    const double var_EPSILON = 0.069*.069;
+    const double var_TAU_0 = 8.38*8.38;
+    const double var_ALPHA = .189*.189;
+    const double var_E_0 = .635*.635;
+    const double var_V_0 = 1.49e-2*1.49e-2;
+    
+    const double var_V_T = 2;
+    const double var_Q_T = 2;
+    const double var_S_T = 1;
+    const double var_F_T = 2;
+    
+    //set the theta of the variables
+    const double theta_TAU_S   = var_TAU_S/mu_TAU_S;
+    const double theta_TAU_F   = var_TAU_F/mu_TAU_F;
+    const double theta_EPSILON = var_EPSILON/mu_EPSILON;
+    const double theta_TAU_0   = var_TAU_0/mu_TAU_0;
+    const double theta_ALPHA   = var_ALPHA/mu_ALPHA;
+    const double theta_E_0     = var_E_0/mu_E_0;
+    const double theta_V_0     = var_V_0/mu_V_0;
+    
+    const double theta_V_T = var_V_T/mu_V_T;
+    const double theta_Q_T = var_Q_T/mu_Q_T;
+    const double theta_S_T = var_S_T/mu_S_T;
+    const double theta_F_T = var_F_T/mu_F_T;
+
+    //set the k of the variables
+    const double k_TAU_S   = mu_TAU_S/theta_TAU_S;
+    const double k_TAU_F   = mu_TAU_F/theta_TAU_F;
+    const double k_EPSILON = mu_EPSILON/theta_EPSILON;
+    const double k_TAU_0   = mu_TAU_0/theta_TAU_0;
+    const double k_ALPHA   = mu_ALPHA/theta_ALPHA;
+    const double k_E_0     = mu_E_0/theta_E_0;
+    const double k_V_0     = mu_V_0/theta_V_0;
+    
+    const double k_V_T = mu_V_T/theta_V_T;
+    const double k_Q_T = mu_Q_T/theta_Q_T;
+    const double k_S_T = mu_S_T/theta_S_T;
+    const double k_F_T = mu_F_T/theta_F_T;
 
     //set the variances, assume independence between the variables
-    aux::symmetric_matrix sigma(SYSTEM_SIZE);
-    sigma.clear();
-    sigma(TAU_S, TAU_S) = 1.07;
-    sigma(TAU_F, TAU_F) = 1.51;
-    sigma(EPSILON, EPSILON) = .014;
-    sigma(TAU_0, TAU_0) = 1.50;
-    sigma(ALPHA, ALPHA) = .004;
-    sigma(E_0, E_0) = .072;
-    sigma(V_0, V_0) = .006;
 
-    std::cerr << "Mu:" << std::endl;
-    outputVector(std::cerr, mu);
-    std::cerr << std::endl;
-    
-    std::cerr << "sigma:" << std::endl;
-    outputMatrix(std::cerr, sigma);
-    std::cerr << std::endl;
-
-    for(int ii = THETA_SIZE ; ii < SYSTEM_SIZE; ii++) {
-        sigma(ii,ii) = .75;
+    fillme[TAU_S]   = gsl_ran_gamma(rng, k_TAU_S,   theta_TAU_S);
+    fillme[TAU_F]   = gsl_ran_gamma(rng, k_TAU_F,   theta_TAU_F);
+    fillme[EPSILON] = gsl_ran_gamma(rng, k_EPSILON, theta_EPSILON);
+    fillme[TAU_0]   = gsl_ran_gamma(rng, k_TAU_0,   theta_TAU_0);
+    fillme[ALPHA]   = gsl_ran_gamma(rng, k_ALPHA,   theta_ALPHA);
+    fillme[E_0]     = gsl_ran_gamma(rng, k_E_0,     theta_E_0);
+    fillme[V_0]     = gsl_ran_gamma(rng, k_V_0,     theta_V_0);
+    for(int i = 0 ; i< SIMUL_STATES ; i++) {
+        fillme[indexof(V_T, i)] = gsl_ran_gamma(rng, k_V_T, theta_V_T);
+        fillme[indexof(Q_T, i)] = gsl_ran_gamma(rng, k_Q_T, theta_Q_T);
+        fillme[indexof(S_T, i)] = gsl_ran_gamma(rng, k_S_T, theta_S_T);
+        fillme[indexof(F_T, i)] = gsl_ran_gamma(rng, k_F_T, theta_F_T);
     }
+}
 
-    return aux::GaussianPdf(mu, sigma);
+//TODO make some of these non-gaussian
+void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
+{
+    gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);
+    aux::vector comp(SYSTEM_SIZE);
+    for(int i = 0 ; i < samples; i ++) {
+        generate_component(rng, comp);
+        x0.addComponent(aux::DiracPdf(comp), 1.0);
+    }
 }
 
 
