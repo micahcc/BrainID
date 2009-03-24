@@ -118,6 +118,7 @@ int main(int argc, char* argv[])
   
     std::ofstream fmeas("meas.out");
     std::ofstream fpred("pred.out");
+    std::ofstream fpart("particles.out");
     
     double t = 0;
     
@@ -132,6 +133,8 @@ int main(int argc, char* argv[])
     fpred << "# type: matrix" << endl;
     fpred << "# rows: " << reader->GetOutput()->GetRequestedRegion().GetSize()[1] -1 << endl;
     fpred << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
+    
+    fpart << "# Created by brainid" << endl;
     
     aux::vector sample_state(BoldModel::SYSTEM_SIZE);
 
@@ -149,9 +152,20 @@ int main(int argc, char* argv[])
 //    }
 //    fflush(stderr);
 //    return -1;
-    t = -SAMPLERATE/DIVIDER;
+    bool dirty = false;
+    std::vector<aux::DiracPdf> particles;
     while(!iter.IsAtEndOfLine()) {
-        t += SAMPLERATE/DIVIDER; 
+        fpart << "# name: partilces" << t << endl;
+        fpart << "# type: matrix" << endl;
+        fpart << "# rows: " << NUM_PARTICLES << endl;
+        fpart << "# columns: " << BoldModel::SYSTEM_SIZE << endl;
+        particles = filter.getFilteredState().getAll();
+        for(int i=0 ; i<particles.size(); i++) {
+            outputVector(fpart, particles[i].getExpectation());
+            fpart << endl;
+        }
+        fpart << endl;
+
         if(fmod(t, DIVIDER) < 0.01) { 
             ++iter;//intentionally skips first measurement
             meas(0) = iter.Get();
@@ -161,15 +175,14 @@ int main(int argc, char* argv[])
         }
         
         double ess = filter.getFilteredState().calculateDistributedEss();
-        cerr << "ESS: " << ess << endl;
-        if(ess < RESAMPNESS || isnan(ess)) {
+        cerr << "t= " << t << " ESS: " << ess << endl;
+        if(ess < RESAMPNESS || isnan(ess) || dirty) {
             cerr << "Resampling" << endl;
             filter.resample(&resampler);
             outputVector(cerr, filter.getFilteredState().getDistributedExpectation());
             cerr << endl;
-            filter.resample(&resampler_reg);
-            outputVector(cerr, filter.getFilteredState().getDistributedExpectation());
-            cerr << endl;
+//            filter.resample(&resampler_reg);
+            dirty = false;
         }
        
         //filter.resample(&resampler_reg);
@@ -187,6 +200,7 @@ int main(int argc, char* argv[])
 //        fpred << ' ';
 //        outputVector(fpred, sample_state);
         fpred << endl;
+        t += SAMPLERATE/DIVIDER; 
     }
     printf("Index at end: %ld %ld \n", iter.GetIndex()[0], iter.GetIndex()[1]);
 
