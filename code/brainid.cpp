@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
   
     std::ofstream fmeas("meas.out");
     std::ofstream fpred("pred.out");
-    std::ofstream fpart("particles.out");
+//    std::ofstream fpart("particles.out");
     
     double t = 0;
     
@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
     fpred << "# rows: " << reader->GetOutput()->GetRequestedRegion().GetSize()[1] -1 << endl;
     fpred << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
     
-    fpart << "# Created by brainid" << endl;
+//    fpart << "# Created by brainid" << endl;
     
     aux::vector sample_state(BoldModel::SYSTEM_SIZE);
 
@@ -155,41 +155,37 @@ int main(int argc, char* argv[])
     bool dirty = false;
     std::vector<aux::DiracPdf> particles;
     while(!iter.IsAtEndOfLine()) {
-        fpart << "# name: partilces" << t << endl;
-        fpart << "# type: matrix" << endl;
-        fpart << "# rows: " << NUM_PARTICLES << endl;
-        fpart << "# columns: " << BoldModel::SYSTEM_SIZE << endl;
-        particles = filter.getFilteredState().getAll();
-        for(int i=0 ; i<particles.size(); i++) {
-            outputVector(fpart, particles[i].getExpectation());
-            fpart << endl;
-        }
-        fpart << endl;
+//        fpart << "# name: partilces" << t << endl;
+//        fpart << "# type: matrix" << endl;
+//        fpart << "# rows: " << NUM_PARTICLES << endl;
+//        fpart << "# columns: " << BoldModel::SYSTEM_SIZE << endl;
+//        particles = filter.getFilteredState().getAll();
+//        for(int i=0 ; i<particles.size(); i++) {
+//            outputVector(fpart, particles[i].getExpectation());
+//            fpart << endl;
+//        }
+//        fpart << endl;
 
-        if(fmod(t, DIVIDER) < 0.01) { 
+        if(fmod(t, SAMPLERATE) < 0.01) { 
             ++iter;//intentionally skips first measurement
             meas(0) = iter.Get();
             filter.filter(t,meas);
+            pred = filter.getFilteredState();
+            double ess = pred.calculateDistributedEss();
+            cerr << "t= " << t << " ESS: " << ess << endl;
+            outputVector(cerr, pred.getDistributedExpectation());
+            cerr << endl;
+            if(ess < RESAMPNESS || isnan(ess) || dirty) {
+                cerr << "Resampling" << endl;
+                filter.resample(&resampler);
+                // filter.resample(&resampler_reg);
+                dirty = false;
+            }
         } else {
             filter.filter(t);
         }
-        
-        cerr << "numparticles: " << filter.getFilteredState().getAll().size() << endl;
-        
-        double ess = filter.getFilteredState().calculateDistributedEss();
-        cerr << "t= " << t << " ESS: " << ess << endl;
-        if(ess < RESAMPNESS || isnan(ess) || dirty) {
-            cerr << "Resampling" << endl;
-            filter.resample(&resampler);
-            outputVector(cerr, filter.getFilteredState().getDistributedExpectation());
-            cerr << endl;
-//            filter.resample(&resampler_reg);
-            dirty = false;
-        }
        
-        //filter.resample(&resampler_reg);
-        pred = filter.getFilteredState();
-        mu = pred.getDistributedExpectation();
+        mu = filter.getFilteredState().getDistributedExpectation();
 
         /* output measurement */
         fmeas << t << ' ';
