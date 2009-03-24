@@ -64,6 +64,9 @@ aux::vector BoldModel::transition(const aux::vector& dustin,
     dustout(E_0)     = dustin(E_0)    ; //+ rng.sample()[0] * theta_sigmas(E_0);
     dustout(V_0)     = dustin(V_0)    ; //+ rng.sample()[0] * theta_sigmas(V_0);
 
+//    std::cerr  <<"Printing input state" << std::endl;
+//    outputVector(std::cerr, dustin);
+//    std::cerr << std::endl;
     //transition the actual state variables
     //TODO, potentially add some randomness here.
     for(int ii=0 ; ii<SIMUL_STATES ; ii++) {
@@ -83,8 +86,12 @@ aux::vector BoldModel::transition(const aux::vector& dustin,
                     pow(dustin[indexof(V_T,ii)], 1./dustin[ALPHA]) ) / 
                     dustin[TAU_0]  )  + (rng.sample())[0];
         dustout[indexof(V_T,ii)] = dustin[indexof(V_T,ii)] + dot*delta_t;
-//        if(dustout[indexof(V_T,ii)] < 0)
-//            dustout[indexof(V_T,ii)] = 0;
+
+        //this is rather important. It truncates v_t to be positive. While
+        //this is something like a kludge it doesn't make sense to have negative
+        //volume anyway, and having a negative volume is the result of too large steps
+        if(dustout[indexof(V_T,ii)] < 0 || isnan(dustout[indexof(V_T,ii)]))
+            dustout[indexof(V_T,ii)] = 0;
 
         //Q_t* = \frac{1}{tau_0} * (\frac{f_t}{E_0} * (1- (1-E_0)^{1/f_t}) - 
         //              \frac{q_t}{v_t^{1-1/\alpha})
@@ -105,9 +112,9 @@ aux::vector BoldModel::transition(const aux::vector& dustin,
         dustout[indexof(F_T,ii)] = dustin[indexof(F_T,ii)] + dot*delta_t;
     }
 
-    //std::cerr  <<"Printing output state" << endl;
-//    outputVector(std::cerr, w);
-//    std::cerr << endl;
+//    std::cerr  <<"Printing Output state" << std::endl;
+//    outputVector(std::cerr, dustin);
+//    std::cerr << std::endl;
     return dustout;
 }
 
@@ -228,7 +235,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
     aux::vector comp(SYSTEM_SIZE);
     for(int i = 0 ; i < samples; i ++) {
         generate_component(rng, comp);
-        x0.addComponent(aux::DiracPdf(comp), 1.0);
+        x0.add(comp, 1.0/samples);
     }
 }
 

@@ -30,7 +30,7 @@ namespace aux = indii::ml::aux;
 const int NUM_PARTICLES = 10000;
 const int RESAMPNESS = 300;
 const double SAMPLERATE = 2;
-const int DIVIDER = 8;
+const int DIVIDER = 8;//divider must be a power of 2 (2, 4, 8, 16, 32....)
 
 typedef float ImagePixelType;
 typedef itk::Image< ImagePixelType,  2 > ImageType;
@@ -86,13 +86,13 @@ int main(int argc, char* argv[])
                 reader->GetOutput()->GetRequestedRegion());
     iter.SetDirection(1);
     ImageType::IndexType index;
-    index[1] = 1; //skip section label
+    index[1] = 0; //skip section label later by allowing iter++ on first pass
     index[0] = 5; //just kind of picking a section
     iter.SetIndex(index);
 
     /* Create a model */
     BoldModel model; 
-    aux::DiracMixturePdf x0(NUM_PARTICLES);
+    aux::DiracMixturePdf x0(BoldModel::SYSTEM_SIZE);
     model.generatePrior(x0, NUM_PARTICLES);
 
     /* Create the filter */
@@ -101,9 +101,6 @@ int main(int argc, char* argv[])
     /* create resamplers */
     /* Normal resampler, used to eliminate particles */
     indii::ml::filter::StratifiedParticleResampler resampler(NUM_PARTICLES);
-
-    /* AdditiveNoise */
-    indii::ml::filter::AdditiveNoiseParticleResampler< aux::GaussianPdf > resampler_reg();
 
     /* Regularized Resample */
     aux::Almost2Norm norm;
@@ -152,23 +149,27 @@ int main(int argc, char* argv[])
 //    }
 //    fflush(stderr);
 //    return -1;
-    
+    t = -SAMPLERATE/DIVIDER;
     while(!iter.IsAtEndOfLine()) {
-        meas(0) = iter.Get();
-        ++iter;
-   
-        std::cerr << "t=" << t << " | iter pos: " << iter.GetIndex()[1] << endl;
-        for(int i=0 ; i<DIVIDER ; i++) {
-            t += SAMPLERATE/DIVIDER + .0001;//ensure error is +
-            filter.filter(t, meas);
+        t += SAMPLERATE/DIVIDER; 
+        if(fmod(t, DIVIDER) < 0.01) { 
+            ++iter;//intentionally skips first measurement
+            meas(0) = iter.Get();
+            filter.filter(t,meas);
+        } else {
+            filter.filter(t);
         }
-        t = (double)((int)t); //round down to remove error
         
-        cerr << "ESS: " << filter.getFilteredState().calculateDistributedEss() << endl;
-        if(filter.getFilteredState().calculateDistributedEss() < RESAMPNESS) {
+        double ess = filter.getFilteredState().calculateDistributedEss();
+        cerr << "ESS: " << ess << endl;
+        if(ess < RESAMPNESS || isnan(ess)) {
             cerr << "Resampling" << endl;
             filter.resample(&resampler);
+            outputVector(cerr, filter.getFilteredState().getDistributedExpectation());
+            cerr << endl;
             filter.resample(&resampler_reg);
+            outputVector(cerr, filter.getFilteredState().getDistributedExpectation());
+            cerr << endl;
         }
        
         //filter.resample(&resampler_reg);
@@ -178,7 +179,7 @@ int main(int argc, char* argv[])
         /* output measurement */
         fmeas << t << ' ';
         outputVector(fmeas, meas);
-        fmeas << model.measure(mu)(0) << endl;
+        fmeas << " " << model.measure(mu)(0) << endl;
 
         /* output filtered state */
         fpred << t << ' ';
