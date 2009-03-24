@@ -1,0 +1,7 @@
+load('meas.out')
+load('pred.out')
+figure(1)
+subplot(2,1,1), plot(calc(:,1), calc(:,2:12))
+%legend('TAU_S', 'TAU_F', 'EPSILON', 'TAU_0', 'ALPHA', 'E_0', 'V_0', 'Volume', 'DeoxyHG', 'S_t', 'Flow')
+subplot(2,1,2), plot(bold(:,1), bold(:,2:3))
+%legend('Actual', 'Calculated')
