@@ -174,6 +174,8 @@ int main(int argc, char* argv[])
             filter.filter(t);
         }
         
+        cerr << "numparticles: " << filter.getFilteredState().getAll().size() << endl;
+        
         double ess = filter.getFilteredState().calculateDistributedEss();
         cerr << "t= " << t << " ESS: " << ess << endl;
         if(ess < RESAMPNESS || isnan(ess) || dirty) {
