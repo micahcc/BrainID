@@ -4,6 +4,8 @@
 #include <indii/ml/aux/GaussianPdf.hpp>
 #include <indii/ml/aux/DiracPdf.hpp>
 
+#include <cmath>
+
 BoldModel::BoldModel() : theta_sigmas(THETA_SIZE)
 {
     if(THETA_SIZE + STATE_SIZE*SIMUL_STATES != SYSTEM_SIZE) {
@@ -85,13 +87,15 @@ aux::vector BoldModel::transition(const aux::vector& dustin,
         double dot = (  ( dustin[indexof(F_T,ii)] - 
                     pow(dustin[indexof(V_T,ii)], 1./dustin[ALPHA]) ) / 
                     dustin[TAU_0]  )  + (rng.sample())[0];
+        if(isnan(dot) || isinf(dot))
+            dot = 0;
         dustout[indexof(V_T,ii)] = dustin[indexof(V_T,ii)] + dot*delta_t;
 
         //this is rather important. It truncates v_t to be positive. While
         //this is something like a kludge it doesn't make sense to have negative
         //volume anyway, and having a negative volume is the result of too large steps
-        if(dustout[indexof(V_T,ii)] < 0 || isnan(dustout[indexof(V_T,ii)]))
-            dustout[indexof(V_T,ii)] = 0;
+        //if(dustout[indexof(V_T,ii)] < 0 || isnan(dustout[indexof(V_T,ii)]))
+        //    dustout[indexof(V_T,ii)] = 0;
 
         //Q_t* = \frac{1}{tau_0} * (\frac{f_t}{E_0} * (1- (1-E_0)^{1/f_t}) - 
         //              \frac{q_t}{v_t^{1-1/\alpha})
@@ -100,21 +104,27 @@ aux::vector BoldModel::transition(const aux::vector& dustin,
         double tmpB = dustin[indexof(Q_T,ii)] / 
                     pow(dustin[indexof(V_T,ii)], 1.-1./dustin[ALPHA]);
         dot =  ( tmpA - tmpB )/dustin[TAU_0];
+        if(isnan(dot) || isinf(dot))
+            dot = 0;
         dustout[indexof(Q_T,ii)] = dustin[indexof(Q_T,ii)] + dot*delta_t;
 
         //S_t* = \epsilon*u_t - 1/\tau_s * s_t - 1/\tau_f * (f_t - 1)
         dot = u_t[0]*dustin[EPSILON]- dustin[indexof(S_T,ii)]/dustin[TAU_S] - 
                     (dustin[indexof(F_T,ii)] - 1.) / dustin[TAU_F];
+        if(isnan(dot) || isinf(dot))
+            dot = 0;
         dustout[indexof(S_T,ii)] = dustin[indexof(S_T,ii)] + dot*delta_t;
 
         //f_t* = s_t;
         dot = dustin[indexof(S_T,ii)];
+        if(isnan(dot) || isinf(dot))
+            dot = 0;
         dustout[indexof(F_T,ii)] = dustin[indexof(F_T,ii)] + dot*delta_t;
     }
 
-//    std::cerr  <<"Printing Output state" << std::endl;
-//    outputVector(std::cerr, dustin);
-//    std::cerr << std::endl;
+    std::cerr  <<"Printing Output state" << std::endl;
+    outputVector(std::cerr, dustout);
+    std::cerr << std::endl;
     return dustout;
 }
 
@@ -259,8 +269,9 @@ void outputMatrix(std::ostream& out, aux::matrix mat) {
     for (i = 0; i < mat.size1(); i++) {
       out << mat(i,j);
       if (i != mat.size1() - 1 || j != mat.size2() - 1) {
-	out << '\t';
+	out << ' ';
       }
     }
+    out << std::endl;
   }
 }

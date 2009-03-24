@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
   
     std::ofstream fmeas("meas.out");
     std::ofstream fpred("pred.out");
-//    std::ofstream fpart("particles.out");
+    std::ofstream fpart("particles.out");
     
     double t = 0;
     
@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
     fpred << "# rows: " << reader->GetOutput()->GetRequestedRegion().GetSize()[1] -1 << endl;
     fpred << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
     
-//    fpart << "# Created by brainid" << endl;
+    fpart << "# Created by brainid" << endl;
     
     aux::vector sample_state(BoldModel::SYSTEM_SIZE);
 
@@ -154,6 +154,11 @@ int main(int argc, char* argv[])
 //    return -1;
     bool dirty = false;
     std::vector<aux::DiracPdf> particles;
+    pred = filter.getFilteredState();
+    outputMatrix(cerr, pred.getCovariance());
+    cerr << endl;
+    outputVector(cerr, pred.getDistributedExpectation());
+    cerr << endl;
     while(!iter.IsAtEndOfLine()) {
 //        fpart << "# name: partilces" << t << endl;
 //        fpart << "# type: matrix" << endl;
@@ -170,15 +175,27 @@ int main(int argc, char* argv[])
             ++iter;//intentionally skips first measurement
             meas(0) = iter.Get();
             filter.filter(t,meas);
+            fpart << "# name: partilces" << t << endl;
+            fpart << "# type: matrix" << endl;
+            fpart << "# rows: " << NUM_PARTICLES << endl;
+            fpart << "# columns: " << BoldModel::SYSTEM_SIZE << endl;
+            particles = filter.getFilteredState().getAll();
+            for(int i=0 ; i<particles.size(); i++) {
+                outputVector(fpart, particles[i].getExpectation());
+                fpart << endl;
+            }
+            fpart << endl;
             pred = filter.getFilteredState();
             double ess = pred.calculateDistributedEss();
+            outputMatrix(cerr, pred.getCovariance());
+            cerr << endl;
             cerr << "t= " << t << " ESS: " << ess << endl;
             outputVector(cerr, pred.getDistributedExpectation());
             cerr << endl;
             if(ess < RESAMPNESS || isnan(ess) || dirty) {
                 cerr << "Resampling" << endl;
                 filter.resample(&resampler);
-                // filter.resample(&resampler_reg);
+                filter.resample(&resampler_reg);
                 dirty = false;
             }
         } else {
