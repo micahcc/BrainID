@@ -1,95 +1,22 @@
 #include "itkOrientedImage.h"
 #include "itkImageFileWriter.h"
 #include "itkImageLinearIteratorWithIndex.h"
+#include "BoldModel.hpp"
+
+#include <indii/ml/aux/vector.hpp>
 
 #include <stdio.h>
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_odeiv.h>
+#include <stdlib.h>
 
-#define SECTION_SIZE 1
-#define TIME_SIZE 100
+typedef itk::OrientedImage<double, 2> Image2DType;
 
-#define PI 3.141592653589793
-
-struct parameters
+int main (int argc, char** argv)
 {
-    double tau_s;
-    double tau_f;
-    double epsilon;
-    double tau_0;
-    double alpha;
-    double e_0;
-    double v_0;
-}
+    if(argc != 5) {
+        printf("Usage, %s <output> <out_timestep> <sim_timestep> <stoptime> <numseries>", argv[0]);
+        return -1;
+    }
 
-//activation:
-//atan((t-20)*5)/pi-atan((t-30)*5)/pi
-double input(double t, void* params)
-{
-    return atan((t-20)*5)/PI-atan((t-30)*5)/PI;
-}
-
-//activation derivative:
-//atan(x) -> 1/(1+x^2)
-double input_der(double t, void* params) 
-{
-    return 1./(1.+pow((t-20)*5,2))/PI - 1./(1.+pow((t-30)*5,2))/PI;
-}
-
-int func (double t, const double y[], double f[], void *params)
-{
-    parameters* theta = (parameters*)params;
-
-    //V_t* = (1/tau_0) * ( f_t - v_t ^ (1/\alpha)) 
-    f[0] = (y[3] - pow(y[0], 1./theta->alpha))/theta->tau_0;
-    f[1] = (1./theta->tau_0)*(y[4]/theta->e_0*(1.-pow(1.-theta->e_0, 1./y[3])) -
-                y[1]/pow(y[0], 1-1./theta->alpha));
-    f[2] = theta->epsilon*input(t, params) - y[2]/theta->tau_s - 
-                (y[3]-1)/theta->tau_f;
-    f[3] = y[2];
-    return GSL_SUCCESS;
-}
-
-int jac (double t, const double y[], double *dfdy, double dfdt[], void *params)
-{
-    parameters* theta = (parameters *)params;
-    gsl_matrix_view dfdy_mat 
-        = gsl_matrix_view_array (dfdy, 4, 4);
-    gsl_matrix * m = &dfdy_mat.matrix; 
-    gsl_matrix_set (m, 0, 0, -pow(y[0], 1./theta->alpha - 1.) / 
-                (theta->tau_0*theta->alpha));
-    gsl_matrix_set (m, 0, 1, 0.0);
-    gsl_matrix_set (m, 0, 2, 0.0);
-    gsl_matrix_set (m, 0, 3, 1.0/theta->tau_0);
-    
-    gsl_matrix_set (m, 1, 0, ((1./theta->alpha - 1.0)/theta->tau_0) * y[1] *
-                pow(y[0], 1./theta->alpha-2));
-    gsl_matrix_set (m, 1, 1, -pow(y[0], 1./theta->alpha - 1.));
-    gsl_matrix_set (m, 1, 2, 0.0);
-    gsl_matrix_set (m, 1, 3, (1.+pow(1-theta->e_0, 1./y[3])*(y[3]*log(y[3])-1.0)) /
-                (theta->tau_0*theta->e_0));
-    
-    gsl_matrix_set (m, 2, 0, 0.0);
-    gsl_matrix_set (m, 2, 1, 0.0);
-    gsl_matrix_set (m, 2, 2, -y[2]/theta->tau_s);
-    gsl_matrix_set (m, 2, 3, -1./theta->tau_f);
-    
-    gsl_matrix_set (m, 3, 0, 0.0);
-    gsl_matrix_set (m, 3, 1, 0.0);
-    gsl_matrix_set (m, 3, 2, 1.0);
-    gsl_matrix_set (m, 3, 3, 0.0);
-
-    dfdt[0] = 0.0;
-    dfdt[1] = 0.0;
-    dfdt[2] = 0.0;
-    dfdt[3] = 0.0;
-    return GSL_SUCCESS;
-}
-
-   
-int main (void)
-{
     //create a 2D output image of appropriate size.
     itk::ImageFileWriter< Image2DType >::Pointer writer = 
         itk::ImageFileWriter< Image2DType >::New();
@@ -98,9 +25,14 @@ int main (void)
     Image2DType::RegionType out_region;
     Image2DType::IndexType out_index;
     Image2DType::SizeType out_size;
+
+    double stoptime = atof(argv[4]);
+    double outstep= atof(argv[2]);
+    double simstep = atof(argv[3]);
+    int series = atoi(argv[5]);
     
-    out_size[0] = SECTION_SIZE;
-    out_size[1] = TIME_SIZE + 1;
+    out_size[0] = series;
+    out_size[1] = (int)(stoptime/outstep)+1+1; //|T|T|T| + one for the series number
     
     out_index[0] = 0;
     out_index[1] = 0;
@@ -116,45 +48,52 @@ int main (void)
                 out_it(outputImage, outputImage->GetRequestedRegion());
     out_it.SetDirection(0);
 
-    const gsl_odeiv_step_type * T 
-        = gsl_odeiv_step_rk8pd;
+    int count = 0;
+    while(!out_it.IsAtEndOfLine()) {
+        out_it.Value() = count++;
+        ++out_it;
+    }
+    out_it.NextLine();
 
-    gsl_odeiv_step * s 
-        = gsl_odeiv_step_alloc (T, 2);
-    gsl_odeiv_control * c 
-        = gsl_odeiv_control_y_new (1e-6, 0.0);
-    gsl_odeiv_evolve * e 
-        = gsl_odeiv_evolve_alloc (2);
+    BoldModel model;
 
-    struct parameters theta;
-    theta.tau_s;
-    theta.tau_f;
-    theta.epsilon;
-    theta.tau_0;
-    theta.alpha;
-    theta.e_0;
-    theta.v_0;
-    gsl_odeiv_system sys = {func, jac, 4, &theta};
-
-    double t = 0.0, t1 = 100.0;
-    double h = 1e-6;
-    double y[2] = { 1.0, 0.0 };
-
-    while (t < t1)
-    {
-        int st
-            break;
-
-        printf ("%.5e %.5e %.5e\n", t, y[0], y[1]);
+    aux::vector systems[series];
+    aux::DiracMixturePdf x0(BoldModel::SYSTEM_SIZE);
+    model.generatePrior(x0, 10000);
+    
+    for(int i=0 ; i<series ; i++) {
+        systems[i] = x0.sample();
+        std::cout << i << "\t";
+        outputVector(std::cout, systems[i]);
+        std::cout << std::endl;
     }
 
+    double sample = 0;
+    double t = 0;
+    aux::zero_vector input(1);
+    while (t < stoptime) {
+        //for now
+        if(t > sample) {
+            sample += outstep;
+            int i;
+            for(i = 0 ; i<series && !out_it.IsAtEndOfLine() ; i++) {
+                out_it.Value() = model.measure(systems[i])[0];
+                ++out_it;
+            }
+            assert(out_it.IsAtEndOfLine() && i == series);
+            out_it.NextLine();
+        }
+        
+        //for next time
+        t += simstep;
+        for(int i = 0 ; i < series ; i++) {
+            systems[i] = model.transition(systems[i], t, simstep, input);
+        }
+    }
 
-
-    gsl_odeiv_evolve_free (e);
-    gsl_odeiv_control_free (c);
-    gsl_odeiv_step_free (s);
-
-
+    writer->SetFileName(argv[1]);  
+    writer->SetInput(outputImage);
+    writer->Update();
     return 0;
 }
 
