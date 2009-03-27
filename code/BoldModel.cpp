@@ -5,6 +5,7 @@
 #include <indii/ml/aux/DiracPdf.hpp>
 
 #include <cmath>
+#include <iomanip>
 
 BoldModel::BoldModel() : theta_sigmas(THETA_SIZE)
 {
@@ -122,9 +123,9 @@ aux::vector BoldModel::transition(const aux::vector& dustin,
         dustout[indexof(F_T,ii)] = dustin[indexof(F_T,ii)] + dot*delta_t;
     }
 
-    std::cerr  <<"Printing Output state" << std::endl;
-    outputVector(std::cerr, dustout);
-    std::cerr << std::endl;
+//    std::cerr  <<"Printing Output state" << std::endl;
+//    outputVector(std::cerr, dustout);
+//    std::cerr << std::endl;
     return dustout;
 }
 
@@ -181,12 +182,12 @@ void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme)
 
     //set the variances for all the variables
     const double var_TAU_S = 1.07*1.07;
-    const double var_TAU_F = 8.31*8.31;
-    const double var_EPSILON = 0.069*.069;
-    const double var_TAU_0 = 8.38*8.38;
-    const double var_ALPHA = .189*.189;
-    const double var_E_0 = .635*.635;
-    const double var_V_0 = 1.49e-2*1.49e-2;
+    const double var_TAU_F = 1.51*1.51;
+    const double var_EPSILON = 0.014*.014;
+    const double var_TAU_0 = 1.5*1.5;
+    const double var_ALPHA = .004*.004;
+    const double var_E_0 = .072*.072;
+    const double var_V_0 = .6e-2*.6e-2;
     
     const double var_V_T = 2;
     const double var_Q_T = 2;
@@ -221,7 +222,7 @@ void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme)
     const double k_S_T = mu_S_T/theta_S_T;
     const double k_F_T = mu_F_T/theta_F_T;
 
-    //set the variances, assume independence between the variables
+    //draw from the gama, assume independence between the variables
 
     fillme[TAU_S]   = gsl_ran_gamma(rng, k_TAU_S,   theta_TAU_S);
     fillme[TAU_F]   = gsl_ran_gamma(rng, k_TAU_F,   theta_TAU_F);
@@ -245,7 +246,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
     aux::vector comp(SYSTEM_SIZE);
     for(int i = 0 ; i < samples; i ++) {
         generate_component(rng, comp);
-        x0.add(comp, 1.0/samples);
+        x0.add(comp, 1.0);
     }
 }
 
@@ -267,10 +268,7 @@ void outputMatrix(std::ostream& out, aux::matrix mat) {
   unsigned int i, j;
   for (j = 0; j < mat.size2(); j++) {
     for (i = 0; i < mat.size1(); i++) {
-      out << mat(i,j);
-      if (i != mat.size1() - 1 || j != mat.size2() - 1) {
-	out << ' ';
-      }
+      out << std::setw(15) << mat(i,j);
     }
     out << std::endl;
   }

@@ -17,6 +17,8 @@
 #include <indii/ml/aux/AlmostGaussianKernel.hpp>
 #include <indii/ml/filter/RegularisedParticleResampler.hpp>
 
+#include "boost/numeric/bindings/lapack/lapack.hpp"
+
 #include "BoldModel.hpp"
 
 #include <vector>
@@ -62,7 +64,18 @@ typedef itk::ImageFileWriter< ImageType >  WriterType;
 //
 //};
 
-
+void fix(aux::symmetric_matrix& mat) 
+{
+    cerr << "Fixing matrix " << endl;
+    outputMatrix(cerr, mat);
+    unsigned int i, j;
+    for (j = 0; j < mat.size2(); j++) {
+        for (i = 0; i < mat.size1(); i++) {
+            mat(i, j) = mat(i,j) < 0 ? -mat(i,j) : mat(i,j);
+        }
+    }
+    outputMatrix(cerr, mat);
+}
 
 int main(int argc, char* argv[])
 {
@@ -141,24 +154,8 @@ int main(int argc, char* argv[])
 //TODO, get resample working
 //TODO, get distribution creation working
 //TODO, stop using ABS for s(0)
-//    aux::vector expectation;
-//    pred = filter.getFilteredState();
-//    std::vector<aux::DiracPdf> mixdata = pred.getAll();
-//    fprintf(stderr, "# number returned: %u\n", mixdata.size());
-//    for(int i = 0 ; i<1000 ; i++) {
-//        expectation = mixdata[i].getExpectation();
-//        outputVector(std::cerr, expectation);
-//        fprintf(stderr, "\n");
-//    }
-//    fflush(stderr);
-//    return -1;
     bool dirty = false;
-    std::vector<aux::DiracPdf> particles;
-    pred = filter.getFilteredState();
-    outputMatrix(cerr, pred.getCovariance());
-    cerr << endl;
-    outputVector(cerr, pred.getDistributedExpectation());
-    cerr << endl;
+//    std::vector<aux::DiracPdf> particles;
     while(!iter.IsAtEndOfLine()) {
 //        fpart << "# name: partilces" << t << endl;
 //        fpart << "# type: matrix" << endl;
@@ -170,31 +167,19 @@ int main(int argc, char* argv[])
 //            fpart << endl;
 //        }
 //        fpart << endl;
-
+        int err;
         if(fmod(t, SAMPLERATE) < 0.01) { 
             ++iter;//intentionally skips first measurement
             meas(0) = iter.Get();
             filter.filter(t,meas);
-            fpart << "# name: partilces" << t << endl;
-            fpart << "# type: matrix" << endl;
-            fpart << "# rows: " << NUM_PARTICLES << endl;
-            fpart << "# columns: " << BoldModel::SYSTEM_SIZE << endl;
-            particles = filter.getFilteredState().getAll();
-            for(int i=0 ; i<particles.size(); i++) {
-                outputVector(fpart, particles[i].getExpectation());
-                fpart << endl;
-            }
-            fpart << endl;
-            pred = filter.getFilteredState();
             double ess = pred.calculateDistributedEss();
-            outputMatrix(cerr, pred.getCovariance());
-            cerr << endl;
             cerr << "t= " << t << " ESS: " << ess << endl;
-            outputVector(cerr, pred.getDistributedExpectation());
-            cerr << endl;
             if(ess < RESAMPNESS || isnan(ess) || dirty) {
                 cerr << "Resampling" << endl;
-                filter.resample(&resampler);
+                symmetric_matrix sigma(filter.getFilteredState().getCovariance());
+                err = boost::numeric::bindings::lapack::pptrf(sigma);
+                assert(err == 0);
+//                filter.resample(&resampler);
                 filter.resample(&resampler_reg);
                 dirty = false;
             }
