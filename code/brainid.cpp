@@ -39,6 +39,37 @@ typedef itk::Image< ImagePixelType,  2 > ImageType;
 typedef itk::ImageFileReader< ImageType >  ImageReaderType;
 typedef itk::ImageFileWriter< ImageType >  WriterType;
 
+class ResamplerMod : public indii::ml::filter::RegularisedParticleResampler< 
+            aux::Almost2Norm, aux::AlmostGaussianKernel >
+{
+    ResamplerMod(const aux::Almost2Norm& norm, const aux::AlmostGaussianKernel& kernel) : 
+                indii::ml::filter::RegularisedParticleResampler< aux::Almost2Norm,
+                aux::AlmostGaussianKernel >(norm, kernel) 
+    { };
+
+    aux::DiracMixturePdf resample(aux::DiracMixturePdf& p)
+    {
+        namespace lapack = boost::numeric::bindings::lapack;
+        unsigned int i;
+        aux::DiracMixturePdf r(p.getDimensions());
+        aux::vector x(p.getDimensions());
+
+        /* standardise particles */
+        aux::symmetric_matrix sd(p.getDistributedCovariance());
+        aux::symmetric_matrix diag(sd);
+        //int err = lapack::syev<symmetric_matrix, matrix>('V', 'U', sd, diag);
+        int err = lapack::syev('V', 'U', sd, diag);
+        /* rebuild distribution with kernel noise */
+//        for (i = 0; i < p.getSize(); i++) {
+//            noalias(x) = p.get(i) + prod(sd, K.sample() * N.sample(
+//                        p.getDimensions()));
+//            r.add(x, p.getWeight(i));
+//        }
+
+        return r;
+    };
+};
+
 //class ParticleFilterMod : public ParticleFilter<double>
 //{
 //public:
