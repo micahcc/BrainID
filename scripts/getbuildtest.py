@@ -55,78 +55,100 @@ if platform == 'Darwin':
 
 
 # make directories if they do not exist
-try:
-	os.makedirs(options.depdir)
-except os.error:
-	print "Directory " + options.depdir + " exists. Halting."
-	sys.exit()
+#try:
+#	os.makedirs(options.depdir)
+#except os.error:
+#	print "Directory " + options.depdir + " exists. Halting."
+#	sys.exit()
 
 
 ##########################
 # CMake
 ##########################
-print "Downloading CMake"
-cmake_archive_file = split(CMAKEURL)[1]
-cmake_archive_path = join(options.depdir, cmake_archive_file)
-cmake_src_dir = join("..", (splitext(splitext(cmake_archive_file)[0])[0]))
-cmake_build_dir = join(options.depdir, "cmake-build")
-urlretrieve(CMAKEURL, cmake_archive_path, progress)
-tarobj = tarfile.open(cmake_archive_path, 'r:gz')
-tarobj.extractall(options.depdir)
-print "Building CMake"
-os.makedirs(cmake_build_dir)
-os.chdir(cmake_build_dir)
-if os.system("cmake %s" % cmake_src_dir) != 0:
-	print "cmake configuration in %s failed" % cmake_build_dir
-	sys.exit()
-if os.system("make -j%i" % ncpus()) != 0:
-	print "build in %s failed" % cmake_build_dir
-	sys.exit()
-os.chdir(topdir)
-print "Build of CMake Completed"
+#print "Downloading CMake"
+#cmake_archive_file = split(CMAKEURL)[1]
+#cmake_archive_path = join(options.depdir, cmake_archive_file)
+#cmake_src_dir = join("..", (splitext(splitext(cmake_archive_file)[0])[0]))
+#cmake_build_dir = join(options.depdir, "cmake-build")
+#urlretrieve(CMAKEURL, cmake_archive_path, progress)
+#tarobj = tarfile.open(cmake_archive_path, 'r:gz')
+#tarobj.extractall(options.depdir)
+#print "Building CMake"
+#os.makedirs(cmake_build_dir)
+#os.chdir(cmake_build_dir)
+#if os.system("cmake %s" % cmake_src_dir) != 0:
+#	print "cmake configuration in %s failed" % cmake_build_dir
+#	sys.exit()
+#if os.system("make -j%i" % ncpus()) != 0:
+#	print "build in %s failed" % cmake_build_dir
+#	sys.exit()
+#os.chdir(topdir)
+#print "Build of CMake Completed"
 
 ###########################
 # gsl
 ###########################
-print "Downloading gsl"
-gsl_archive_file = split(GSLURL)[1]
-gsl_archive_path = join(options.depdir, gsl_archive_file)
-gsl_src_dir = join("..", (splitext(splitext(gsl_archive_file)[0])[0]))
-gsl_build_dir = join(options.depdir, "gsl-build")
-urlretrieve(GSLURL, gsl_archive_path, progress)
-tarobj = tarfile.open(gsl_archive_path, 'r:gz')
-tarobj.extractall(options.depdir)
-print "Building gsl"
-os.makedirs(gsl_build_dir)
-os.chdir(gsl_build_dir)
-if os.system("cmake %s" % gsl_src_dir) != 0:
-	print "gsl configuration in %s failed" % gsl_build_dir
-	sys.exit()
-if os.system("make -j%i" % ncpus()) != 0:
-	print "build in %s failed" % gsl_build_dir
-	sys.exit()
-os.chdir(topdir)
-print "Build of gsl Completed"
+#print "Downloading gsl"
+#gsl_archive_file = split(GSLURL)[1]
+#gsl_archive_path = join(options.depdir, gsl_archive_file)
+#gsl_src_dir = join(options.depdir, (splitext(splitext(gsl_archive_file)[0])[0]))
+#gsl_lib_dir = join(options.depdir, "gsl-lib")
+#urlretrieve(GSLURL, gsl_archive_path, progress)
+#tarobj = tarfile.open(gsl_archive_path, 'r:gz')
+#tarobj.extractall(options.depdir)
+#print "Building gsl"
+#os.chdir(gsl_src_dir)
+#if os.system("./configure --prefix=%s" % join(topdir,gsl_lib_dir)) != 0:
+#    print "gsl configuration failed"
+#    sys.exit()
+#if os.system("make -j%i" % ncpus()) != 0:
+#    print "build in %s failed" % gsl_src_dir
+#    sys.exit()
+#if os.system("make install") != 0:
+#    print "make install in %s failed" % gsl_src_dir
+#    sys.exit()
+#os.chdir(topdir)
+#print "Build of gsl Completed"
 
 ############################
 # Boost 
 ############################
 #build serialization
-
+#print "Downloading Boost"
+#boost_archive_file = split(BOOSTURL)[1]
+#boost_archive_file = boost_archive_file.partition("?")[0];
+#boost_archive_path = join(options.depdir, boost_archive_file)
+#boost_src_dir = join(options.depdir , (splitext(splitext(boost_archive_file)[0])[0]))
+#boost_lib_dir = join(options.depdir, "boost-lib")
+#urlretrieve(BOOSTURL, boost_archive_path, progress)
+#tarobj = tarfile.open(boost_archive_path, 'r:gz')
+#tarobj.extractall(options.depdir)
+#print "Building Boost Serialization Library"
+#os.chdir(boost_src_dir)
+#if os.system("./configure --with-libraries=serialization --prefix=%s" % join(topdir,boost_lib_dir)) != 0:
+#    print "boost configuration failed"
+#    sys.exit()
+#if os.system("make -j%i" % ncpus()) != 0:
+#    print "build in %s failed" % boost_src_dir
+#    sys.exit()
+#if os.system("make install") != 0:
+#    print "make install in %s failed" % boost_src_dir
+#    sys.exit()
+#os.chdir(topdir)
 
 ############################
 # Boost Numeric Bindings
 ############################
 print "Boost Numeric Bindings"
-boost-numeric-bindings_archive_file = split(BINDINGSURL)[1]
-boost-numeric-bindings_archive_path = join(options.depdir, boost-numeric-bindings_archive_file)
-boost-numeric-bindings_src_dir = join("..", (splitext(splitext(boost-numeric-bindings_archive_file)[0])[0]))
-boost-numeric-bindings_build_dir = join(options.depdir, "boost-numeric-bindings-build")
-urlretrieve(BINDINGSURL, boost-numeric-bindings_archive_path, progress)
-tarobj = tarfile.open(boost-numeric-bindings_archive_path, 'r:gz')
+boost_numeric_bindings_archive_file = split(BINDINGSGIT)[1]
+boost_numeric_bindings_archive_path = join(options.depdir, boost_numeric_bindings_archive_file)
+boost_numeric_bindings_src_dir = join("..", (splitext(splitext(boost_numeric_bindings_archive_file)[0])[0]))
+boost_numeric_bindings_build_dir = join(options.depdir, "boost_numeric_bindings-build")
+urlretrieve(BINDINGSGITL, boost_numeric_bindings_archive_path, progress)
+tarobj = tarfile.open(boost_numeric_bindings_archive_path, 'r:gz')
 tarobj.extractall(options.depdir)
 os.chdir(topdir)
-print "Build of boost-numeric-bindings Completed"
+print "Build of boost_numeric_bindings Completed"
 
 ###########################
 # dysii
