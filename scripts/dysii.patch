@@ -1,0 +1,28 @@
+diff -crBN dysii-1.4.0/CMakeLists.txt dysii-1.4.0-base/CMakeLists.txt
+*** dysii-1.4.0/CMakeLists.txt	Mon Mar 30 18:41:04 2009
+--- dysii-1.4.0-base/CMakeLists.txt	Wed Dec 31 19:00:00 1969
+***************
+*** 1,22 ****
+- cmake_minimum_required(VERSION 2.6)
+- SET(CMAKE_VERBOSE_MAKEFILE)
+- INCLUDE (CheckIncludeFiles)
+- 
+- CHECK_INCLUDE_FILES (math.h HAVE_MATH_H)
+- CHECK_INCLUDE_FILES (mpi.h HAVE_MPI_H)
+- 
+- IF(NOT HAVE_MATH_H)
+-     MESSAGE("You need to have math.h")
+- ENDIF()
+- 
+- IF(NOT HAVE_MPI_H)
+-     MESSAGE("You need to have some version of mpi installed")
+- ENDIF()
+- 
+- PROJECT(dysii)
+- 
+- find_path(GSL include/gsl lib/libgsl.a)
+- 
+- SUBDIRS(src)
+- SUBDIRS(tests)
+- 
+--- 0 ----
