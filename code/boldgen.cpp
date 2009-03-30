@@ -12,8 +12,22 @@ typedef itk::OrientedImage<double, 2> Image2DType;
 
 int main (int argc, char** argv)
 {
-    if(argc != 5) {
-        printf("Usage, %s <output> <out_timestep> <sim_timestep> <stoptime> <numseries>", argv[0]);
+    if(argc != 7) {
+        printf("Usage, %s <output> <out_timestep> <sim_timestep> <stoptime> ", argv[0]);
+        printf("<numseries> <matlab_prefix>\n");
+        printf("output is the image file that will contain the bold response data");
+        printf("   time being the second direction\n");
+        printf("out_timestep is the sample spacing (ex 2 seconds)\n");
+        printf("sim_timestep is how often to sample for simulation, the smaller the better\n");
+        printf("   (ex .001)\n");
+        printf("stoptime what simulation time you want to stop (ex. 300.1 (seconds))\n");
+        printf("numseries is the number of sections to simulate (ex. 5 )\n");
+        printf("matlab_prefix is the prefix for the matlab files that will be generated:\n");
+        printf("   <prefix>_state.out will contain a matrix of 7 + 4*<sections> by\n");
+        printf("        <stoptime/out_timestep> with all the timeseries of state data in it\n");
+        printf("   <prefix>_meas.out will contain a matrix of <sections> by\n");
+        printf("        <stoptime/out_timestep> the bold responses in each section\n");
+
         return -1;
     }
 

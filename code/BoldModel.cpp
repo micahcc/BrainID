@@ -256,11 +256,8 @@ void outputVector(std::ostream& out, aux::vector vec) {
   iter = vec.begin();
   end = vec.end();
   while (iter != end) {
-    out << *iter;
+    out << std::setw(15) << *iter;
     iter++;
-    if (iter != end) {
-      out << ' ';
-    }
   }
 }
 

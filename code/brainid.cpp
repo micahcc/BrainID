@@ -15,11 +15,9 @@
 
 #include <indii/ml/aux/Almost2Norm.hpp>
 #include <indii/ml/aux/AlmostGaussianKernel.hpp>
-#include <indii/ml/filter/RegularisedParticleResampler.hpp>
-
-#include "boost/numeric/bindings/lapack/lapack.hpp"
 
 #include "BoldModel.hpp"
+#include "RegularizedParticleResamplerMod.hpp"
 
 #include <vector>
 #include <cmath>
@@ -30,7 +28,7 @@ using namespace std;
 namespace aux = indii::ml::aux;
     
 const int NUM_PARTICLES = 10000;
-const int RESAMPNESS = 300;
+const int RESAMPNESS = 1000;
 const double SAMPLERATE = 2;
 const int DIVIDER = 8;//divider must be a power of 2 (2, 4, 8, 16, 32....)
 
@@ -39,81 +37,13 @@ typedef itk::Image< ImagePixelType,  2 > ImageType;
 typedef itk::ImageFileReader< ImageType >  ImageReaderType;
 typedef itk::ImageFileWriter< ImageType >  WriterType;
 
-class ResamplerMod : public indii::ml::filter::RegularisedParticleResampler< 
-            aux::Almost2Norm, aux::AlmostGaussianKernel >
-{
-    ResamplerMod(const aux::Almost2Norm& norm, const aux::AlmostGaussianKernel& kernel) : 
-                indii::ml::filter::RegularisedParticleResampler< aux::Almost2Norm,
-                aux::AlmostGaussianKernel >(norm, kernel) 
-    { };
-
-    aux::DiracMixturePdf resample(aux::DiracMixturePdf& p)
-    {
-        namespace lapack = boost::numeric::bindings::lapack;
-        unsigned int i;
-        aux::DiracMixturePdf r(p.getDimensions());
-        aux::vector x(p.getDimensions());
-
-        /* standardise particles */
-        aux::symmetric_matrix sd(p.getDistributedCovariance());
-        aux::symmetric_matrix diag(sd);
-        //int err = lapack::syev<symmetric_matrix, matrix>('V', 'U', sd, diag);
-        int err = lapack::syev('V', 'U', sd, diag);
-        /* rebuild distribution with kernel noise */
-//        for (i = 0; i < p.getSize(); i++) {
-//            noalias(x) = p.get(i) + prod(sd, K.sample() * N.sample(
-//                        p.getDimensions()));
-//            r.add(x, p.getWeight(i));
-//        }
-
-        return r;
-    };
-};
-
-//class ParticleFilterMod : public ParticleFilter<double>
-//{
-//public:
-//    void print_particles() {
-//        for (unsigned int i = 0; i < this->p_xtn_ytn.getSize(); i++) {
-//            outputVector(std::cerr, this->p_xtn_ytn.get(i));
-//        }
-//    }
-//
-//    ParticleFilterMod(ParticleFilterModel<double>* model,
-//            indii::ml::aux::DiracMixturePdf& p_x0);
-//
-//    virtual void filter(const double tnp1, const indii::ml::aux::vector& ytnp1);
-//};
-//
-//void ParticleFilterMod::filter(const double tnp1, const aux::vector& ytnp1) {
-//    
-//};
-//
-//ParticleFilterMod::ParticleFilterMod(ParticleFilterModel<double>* model,
-//            indii::ml::aux::DiracMixturePdf& p_x0) : 
-//            ParticleFilter<double>(model, p_x0) {
-//
-//};
-
-void fix(aux::symmetric_matrix& mat) 
-{
-    cerr << "Fixing matrix " << endl;
-    outputMatrix(cerr, mat);
-    unsigned int i, j;
-    for (j = 0; j < mat.size2(); j++) {
-        for (i = 0; i < mat.size1(); i++) {
-            mat(i, j) = mat(i,j) < 0 ? -mat(i,j) : mat(i,j);
-        }
-    }
-    outputMatrix(cerr, mat);
-}
-
 int main(int argc, char* argv[])
 {
     boost::mpi::environment env(argc, argv);
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
     const unsigned int size = world.size();
+    fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
 
     if(argc != 2) {
         fprintf(stderr, "Usage: %s <inputname>\n", argv[0]);
@@ -149,7 +79,7 @@ int main(int argc, char* argv[])
     /* Regularized Resample */
     aux::Almost2Norm norm;
     aux::AlmostGaussianKernel kernel(BoldModel::SYSTEM_SIZE, 1);
-    indii::ml::filter::RegularisedParticleResampler< aux::Almost2Norm, 
+    RegularizedParticleResamplerMod< aux::Almost2Norm, 
                 aux::AlmostGaussianKernel > resampler_reg(norm, kernel);
   
     /* estimate and output results */
@@ -198,23 +128,22 @@ int main(int argc, char* argv[])
 //            fpart << endl;
 //        }
 //        fpart << endl;
-        int err;
         if(fmod(t, SAMPLERATE) < 0.01) { 
             ++iter;//intentionally skips first measurement
             meas(0) = iter.Get();
             filter.filter(t,meas);
-            double ess = pred.calculateDistributedEss();
+            double ess = filter.getFilteredState().calculateDistributedEss();
             cerr << "t= " << t << " ESS: " << ess << endl;
             if(ess < RESAMPNESS || isnan(ess) || dirty) {
                 cerr << "Resampling" << endl;
-                symmetric_matrix sigma(filter.getFilteredState().getCovariance());
-                err = boost::numeric::bindings::lapack::pptrf(sigma);
-                assert(err == 0);
-//                filter.resample(&resampler);
+                filter.resample(&resampler);
                 filter.resample(&resampler_reg);
                 dirty = false;
+            } else {
+                cerr << "No Resampling Necessary!" << endl;
             }
         } else {
+            cerr << "t= " << t << endl;
             filter.filter(t);
         }
        
