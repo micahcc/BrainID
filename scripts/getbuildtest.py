@@ -6,6 +6,8 @@ from urllib import urlretrieve
 import tarfile
 from optparse import OptionParser
 
+import time
+
 # some user modifiable constants
 CMAKEURL="http://www.cmake.org/files/v2.6/cmake-2.6.2.tar.gz"
 DYSIIURL="http://www.indii.org/files/dysii/releases/dysii-1.4.0.tar.gz"
@@ -57,10 +59,17 @@ if platform == 'Darwin':
 
 
 # make directories if they do not exist
-#try:
-#	os.makedirs(options.depdir)
-#except os.error:
-#	print "Directory " + options.depdir + " exists. Halting."
+try:
+	os.makedirs(options.depdir)
+except os.error:
+	print "Directory " + options.depdir + " may overwrite."
+        print "3"
+        time.sleep(1);
+        print "2"
+        time.sleep(1);
+        print "1"
+        time.sleep(1);
+
 #	sys.exit()
 
 
@@ -101,7 +110,6 @@ print "Build of CMake Completed"
 gsl_archive_file = split(GSLURL)[1]
 gsl_archive_path = join(options.depdir, gsl_archive_file)
 gsl_src_dir = join(options.depdir, (splitext(splitext(gsl_archive_file)[0])[0]))
-gsl_lib_dir = join(options.depdir, "gsl-lib")
 if not os.path.isfile(gsl_archive_path):
     print "Downloading gsl"
     urlretrieve(GSLURL, gsl_archive_path, progress)
@@ -129,7 +137,6 @@ boost_archive_file = split(BOOSTURL)[1]
 boost_archive_file = boost_archive_file.partition("?")[0];
 boost_archive_path = join(options.depdir, boost_archive_file)
 boost_src_dir = join(options.depdir , (splitext(splitext(boost_archive_file)[0])[0]))
-boost_lib_dir = join(options.depdir, "boost-lib")
 if not os.path.isfile(boost_archive_path):
     print "Downloading Boost"
     urlretrieve(BOOSTURL, boost_archive_path, progress)
@@ -146,6 +153,8 @@ if os.system("make -j%i" % ncpus()) != 0:
 if os.system("make install") != 0:
     print "make install in %s failed" % boost_src_dir
     sys.exit()
+os.movedirs(join(options.prefix,splitext(boost_archive_file)[0],"boost"), options.prefix)
+os.removedirs(options.prefix,splitext(boost_archive_file)[0])
 os.chdir(topdir)
 
 ############################
@@ -164,13 +173,13 @@ os.chdir(topdir)
 ###########################
 # dysii
 ###########################
-#dysii_archive_file = split(DYSIIURL)[1]
-#dysii_archive_path = join(options.depdir, dysii_archive_file)
-#dysii_src_dir = join("..", (splitext(splitext(dysii_archive_file)[0])[0]))
-#dysii_build_dir = join(options.depdir, "dysii-build")
-#if not os.path.isfile(boost_archive_path):
-#    print "Downloading dysii-1.4"
-#    urlretrieve(DYSIIURL, dysii_archive_path, progress)
+dysii_archive_file = split(DYSIIURL)[1]
+dysii_archive_path = join(options.depdir, dysii_archive_file)
+dysii_src_dir = join(options.depdir, (splitext(splitext(dysii_archive_file)[0])[0]))
+dysii_build_dir = join(options.depdir, "dysii-build")
+if not os.path.isfile(boost_archive_path):
+    print "Downloading dysii-1.4"
+    urlretrieve(DYSIIURL, dysii_archive_path, progress)
 #tarobj = tarfile.open(dysii_archive_path, 'r:gz')
 #tarobj.extractall(options.depdir)
 #print "Patching dysii for CMAKE"
