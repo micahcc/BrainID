@@ -1,28 +1,50 @@
 diff -crBN dysii-1.4.0/CMakeLists.txt dysii-1.4.0-base/CMakeLists.txt
-*** dysii-1.4.0/CMakeLists.txt	Mon Mar 30 18:41:04 2009
+*** dysii-1.4.0/CMakeLists.txt	Mon Mar 30 23:19:27 2009
 --- dysii-1.4.0-base/CMakeLists.txt	Wed Dec 31 19:00:00 1969
 ***************
-*** 1,22 ****
+*** 1,25 ****
 - cmake_minimum_required(VERSION 2.6)
 - SET(CMAKE_VERBOSE_MAKEFILE)
 - INCLUDE (CheckIncludeFiles)
+- 
+- PROJECT(dysii)
+- 
 - 
 - CHECK_INCLUDE_FILES (math.h HAVE_MATH_H)
 - CHECK_INCLUDE_FILES (mpi.h HAVE_MPI_H)
 - 
 - IF(NOT HAVE_MATH_H)
--     MESSAGE("You need to have math.h")
+-     MESSAGE(FATAL_ERROR "You need to have math.h")
 - ENDIF()
-- 
-- IF(NOT HAVE_MPI_H)
--     MESSAGE("You need to have some version of mpi installed")
-- ENDIF()
-- 
-- PROJECT(dysii)
 - 
 - find_path(GSL include/gsl lib/libgsl.a)
+- find_path(MPI include/mpi.h lib/libmpi.la)
+- find_path(BOOST include/boost/numeric/ublas/vector.h
+-     include/boost/numeric/ublas/matrix.hpp 
+-     include/boost/numeric/bindings/traits/ublas_vector.hpp
+-     include/boost/numeric/bindings/traits/ublas_matrix.hpp
+-     include/boost/serialization/serialization.hpp lib/boost/)
 - 
 - SUBDIRS(src)
 - SUBDIRS(tests)
 - 
+--- 0 ----
+diff -crBN dysii-1.4.0/src/CMakeLists.txt dysii-1.4.0-base/src/CMakeLists.txt
+*** dysii-1.4.0/src/CMakeLists.txt	Mon Mar 30 23:18:30 2009
+--- dysii-1.4.0-base/src/CMakeLists.txt	Wed Dec 31 19:00:00 1969
+***************
+*** 1,2 ****
+- 
+- SUBDIRS(indii)
+--- 0 ----
+diff -crBN dysii-1.4.0/src/indii/ml/CMakeLists.txt dysii-1.4.0-base/src/indii/ml/CMakeLists.txt
+*** dysii-1.4.0/src/indii/ml/CMakeLists.txt	Mon Mar 30 23:20:03 2009
+--- dysii-1.4.0-base/src/indii/ml/CMakeLists.txt	Wed Dec 31 19:00:00 1969
+***************
+*** 1,5 ****
+- 
+- SUBDIRS(aux)
+- SUBDIRS(filter)
+- SUBDIRS(ode)
+- SUBDIRS(sde)
 --- 0 ----

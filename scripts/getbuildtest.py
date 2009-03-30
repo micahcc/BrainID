@@ -1,11 +1,11 @@
 #!env python
 import os
 from os.path import join, split, splitext 
+import shutil
 import sys
 from urllib import urlretrieve
 import tarfile
 from optparse import OptionParser
-
 import time
 
 # some user modifiable constants
@@ -13,8 +13,8 @@ CMAKEURL="http://www.cmake.org/files/v2.6/cmake-2.6.2.tar.gz"
 DYSIIURL="http://www.indii.org/files/dysii/releases/dysii-1.4.0.tar.gz"
 GSLURL="ftp://ftp.gnu.org/gnu/gsl/gsl-1.9.tar.gz"
 BOOSTURL="http://downloads.sourceforge.net/boost/boost_1_38_0.tar.gz?use_mirror=voxel"
-
 BINDINGSURL="http://mathema.tician.de/news.tiker.net/download/software/boost-numeric-bindings/boost-numeric-bindings-20081116.tar.gz"
+OPENMPI_URL="http://www.open-mpi.org/software/ompi/v1.3/downloads/openmpi-1.3.1.tar.gz"
 
 def ncpus():
 	try:
@@ -47,7 +47,7 @@ parser.add_option("-u", "--update",
                   action="store_true", dest="update", default=False,
                   help="run svn update first")
 parser.add_option("-p", "--prefix",
-                  action="store_true", dest="prefix", default="%s/../deps" % topdir,
+                  action="store_true", dest="prefix", default="%s/root" % topdir,
                   help="The location to put the final include, lib, bin....dirs")
 (options, args) = parser.parse_args()
 
@@ -111,11 +111,11 @@ gsl_archive_file = split(GSLURL)[1]
 gsl_archive_path = join(options.depdir, gsl_archive_file)
 gsl_src_dir = join(options.depdir, (splitext(splitext(gsl_archive_file)[0])[0]))
 if not os.path.isfile(gsl_archive_path):
-    print "Downloading gsl"
+    print "downloading gsl"
     urlretrieve(GSLURL, gsl_archive_path, progress)
 tarobj = tarfile.open(gsl_archive_path, 'r:gz')
 tarobj.extractall(options.depdir)
-print "Building gsl"
+print "building gsl"
 os.chdir(gsl_src_dir)
 if os.system("./configure --prefix=%s" % join(options.prefix)) != 0:
     print "gsl configuration failed"
@@ -127,7 +127,7 @@ if os.system("make install") != 0:
     print "make install in %s failed" % gsl_src_dir
     sys.exit()
 os.chdir(topdir)
-print "Build of gsl Completed"
+print "build of gsl completed"
 
 ############################
 # Boost 
@@ -137,7 +137,7 @@ boost_archive_file = split(BOOSTURL)[1]
 boost_archive_file = boost_archive_file.partition("?")[0];
 boost_archive_path = join(options.depdir, boost_archive_file)
 boost_src_dir = join(options.depdir , (splitext(splitext(boost_archive_file)[0])[0]))
-if not os.path.isfile(boost_archive_path):
+if not os.path.exists(boost_archive_path):
     print "Downloading Boost"
     urlretrieve(BOOSTURL, boost_archive_path, progress)
 tarobj = tarfile.open(boost_archive_path, 'r:gz')
@@ -153,8 +153,11 @@ if os.system("make -j%i" % ncpus()) != 0:
 if os.system("make install") != 0:
     print "make install in %s failed" % boost_src_dir
     sys.exit()
-os.movedirs(join(options.prefix,splitext(boost_archive_file)[0],"boost"), options.prefix)
-os.removedirs(options.prefix,splitext(boost_archive_file)[0])
+#KLUDGE 
+if os.path.exists(join(options.prefix, "include", "boost")):
+    shutil.rmtree(join(options.prefix, "include", "boost"))
+shutil.move(join(options.prefix, "include","boost-1_38","boost"), join(options.prefix, "include", "boost"))
+shutil.rmtree(join(options.prefix, "include", "boost-1_38"))
 os.chdir(topdir)
 
 ############################
@@ -163,12 +166,41 @@ os.chdir(topdir)
 boost_numeric_bindings_archive_file = split(BINDINGSURL)[1]
 boost_numeric_bindings_archive_path = join(options.depdir, boost_numeric_bindings_archive_file)
 boost_numeric_bindings_src_dir = join(options.depdir, (splitext(splitext(boost_numeric_bindings_archive_file)[0])[0]))
-if not os.path.isfile(boost_archive_path):
+if not os.path.exists(boost_numeric_bindings_archive_path):
     print "Downloading Boost Numeric Bindings"
     urlretrieve(BINDINGSURL, boost_numeric_bindings_archive_path, progress)
 tarobj = tarfile.open(boost_numeric_bindings_archive_path, 'r:gz')
-tarobj.extractall(options.depdir, join(options.prefix, inclue, boost))
+tarobj.extractall(options.depdir)
+if os.path.exists(join(options.prefix, "include", "boost", "numeric", "bindings")):
+    shutil.rmtree(join(options.prefix, "include", "boost", "numeric", "bindings"))
+shutil.move(join(options.depdir, "boost-numeric-bindings", "boost", "numeric", "bindings"), join(options.prefix, "include", "boost", "numeric","bindings"))
 os.chdir(topdir)
+
+###########################
+# openmpi
+###########################
+mpi_archive_file = split(OPENMPI_URL)[1]
+mpi_archive_path = join(options.depdir, mpi_archive_file)
+mpi_src_dir = join(options.depdir, (splitext(splitext(mpi_archive_file)[0])[0]))
+if not os.path.isfile(mpi_archive_path):
+    print "downloading openmpi"
+    urlretrieve(OPENMPI_URL, mpi_archive_path, progress)
+tarobj = tarfile.open(mpi_archive_path, 'r:gz')
+tarobj.extractall(options.depdir)
+print "building openmpi"
+os.chdir(mpi_src_dir)
+if os.system("./configure --prefix=%s" % join(options.prefix)) != 0:
+    print "openmpi configuration failed"
+    sys.exit()
+if os.system("make -j%i" % ncpus()) != 0:
+    print "build in %s failed" % open_src_dir
+    sys.exit()
+if os.system("make install") != 0:
+    print "make install in %s failed" % open_src_dir
+    sys.exit()
+os.chdir(topdir)
+print "build of openmpi completed"
+
 
 ###########################
 # dysii
