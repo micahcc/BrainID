@@ -8,6 +8,11 @@ from optparse import OptionParser
 
 # some user modifiable constants
 CMAKEURL="http://www.cmake.org/files/v2.6/cmake-2.6.2.tar.gz"
+DYSIIURL="http://www.indii.org/files/dysii/releases/dysii-1.4.0.tar.gz"
+GSLURL="ftp://ftp.gnu.org/gnu/gsl/gsl-1.9.tar.gz"
+BOOSTURL="http://downloads.sourceforge.net/boost/boost_1_38_0.tar.gz?use_mirror=voxel"
+
+BINDINGSGIT="http://git.tiker.net/trees/boost-numeric-bindings.git"
 
 def ncpus():
 	try:
@@ -80,4 +85,69 @@ if os.system("make -j%i" % ncpus()) != 0:
 os.chdir(topdir)
 print "Build of CMake Completed"
 
+###########################
+# gsl
+###########################
+print "Downloading gsl"
+gsl_archive_file = split(GSLURL)[1]
+gsl_archive_path = join(options.depdir, gsl_archive_file)
+gsl_src_dir = join("..", (splitext(splitext(gsl_archive_file)[0])[0]))
+gsl_build_dir = join(options.depdir, "gsl-build")
+urlretrieve(GSLURL, gsl_archive_path, progress)
+tarobj = tarfile.open(gsl_archive_path, 'r:gz')
+tarobj.extractall(options.depdir)
+print "Building gsl"
+os.makedirs(gsl_build_dir)
+os.chdir(gsl_build_dir)
+if os.system("cmake %s" % gsl_src_dir) != 0:
+	print "gsl configuration in %s failed" % gsl_build_dir
+	sys.exit()
+if os.system("make -j%i" % ncpus()) != 0:
+	print "build in %s failed" % gsl_build_dir
+	sys.exit()
+os.chdir(topdir)
+print "Build of gsl Completed"
 
+############################
+# Boost 
+############################
+#build serialization
+
+
+############################
+# Boost Numeric Bindings
+############################
+print "Boost Numeric Bindings"
+boost-numeric-bindings_archive_file = split(BINDINGSURL)[1]
+boost-numeric-bindings_archive_path = join(options.depdir, boost-numeric-bindings_archive_file)
+boost-numeric-bindings_src_dir = join("..", (splitext(splitext(boost-numeric-bindings_archive_file)[0])[0]))
+boost-numeric-bindings_build_dir = join(options.depdir, "boost-numeric-bindings-build")
+urlretrieve(BINDINGSURL, boost-numeric-bindings_archive_path, progress)
+tarobj = tarfile.open(boost-numeric-bindings_archive_path, 'r:gz')
+tarobj.extractall(options.depdir)
+os.chdir(topdir)
+print "Build of boost-numeric-bindings Completed"
+
+###########################
+# dysii
+###########################
+print "Downloading dysii-1.4"
+dysii_archive_file = split(DYSIIURL)[1]
+dysii_archive_path = join(options.depdir, dysii_archive_file)
+dysii_src_dir = join("..", (splitext(splitext(dysii_archive_file)[0])[0]))
+dysii_build_dir = join(options.depdir, "dysii-build")
+urlretrieve(DYSIIURL, dysii_archive_path, progress)
+tarobj = tarfile.open(dysii_archive_path, 'r:gz')
+tarobj.extractall(options.depdir)
+print "Patching dysii for CMAKE"
+print "Building dysii-1.4"
+os.makedirs(dysii_build_dir)
+os.chdir(dysii_build_dir)
+if os.system("cmake %s" % dysii_src_dir) != 0:
+	print "dysii configuration in %s failed" % dysii_build_dir
+	sys.exit()
+if os.system("make -j%i" % ncpus()) != 0:
+	print "build in %s failed" % dysii_build_dir
+	sys.exit()
+os.chdir(topdir)
+print "Build of dysii Completed"
