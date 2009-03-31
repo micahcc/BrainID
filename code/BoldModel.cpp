@@ -44,13 +44,14 @@ aux::vector BoldModel::transition(const aux::vector& s,
     return transition(s, t, delta, u);
 }
 
+//TODO make transition as FAST as possible
 aux::vector BoldModel::transition(const aux::vector& dustin,
         const double time, const double delta_t, const aux::vector& u_t)
 {
     aux::vector dustout(SYSTEM_SIZE);
-    static aux::symmetric_matrix cov(1);
-    cov(0,0) = 1;
-    static aux::GaussianPdf rng(aux::zero_vector(1), cov);
+//    static aux::symmetric_matrix cov(1);
+//    cov(0,0) = 1;
+//    static aux::GaussianPdf rng(aux::zero_vector(1), cov);
 //    double v_t;
  
     //transition the parameters
@@ -87,7 +88,7 @@ aux::vector BoldModel::transition(const aux::vector& dustin,
         //V_t* = (1/tau_0) * ( f_t - v_t ^ (1/\alpha)) 
         double dot = (  ( dustin[indexof(F_T,ii)] - 
                     pow(dustin[indexof(V_T,ii)], 1./dustin[ALPHA]) ) / 
-                    dustin[TAU_0]  )  + (rng.sample())[0];
+                    dustin[TAU_0]  );//  + (rng.sample())[0];
         if(isnan(dot) || isinf(dot))
             dot = 0;
         dustout[indexof(V_T,ii)] = dustin[indexof(V_T,ii)] + dot*delta_t;

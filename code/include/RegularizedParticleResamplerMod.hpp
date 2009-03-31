@@ -132,25 +132,28 @@ RegularizedParticleResamplerMod<NT, KT>::resample(indii::ml::aux::DiracMixturePd
     int err = lapack::syev('V', 'U', sd, diag_v);
     assert(err == 0);
 
-//    diag_v = element_sqrt(diag_v);
     for(unsigned int i = 0 ; i<diag_v.size() ; i++) {
-        diag_v(i) = diag_v(i) < 0 ? .1 : sqrt(diag_v(i));
+        if(diag_v(i) < 0) {
+            diag_v(i) = -diag_v(i);
+            std::err << "Fixing diagnal matrix to prevent non-real solution" << std::endl;
+        }
     }
+    diag_v = element_sqrt(diag_v);
     ublas::diagonal_matrix<double, ublas::column_major, 
                 ublas::unbounded_array<double> > diag_dm(diag_v.size(), diag_v.data());
     aux::matrix diag_m(diag_dm);
     
-    outputMatrix(std::cout, sd);
-    std::cout << std::endl << std::endl;;
-    outputVector(std::cout, diag_v);
-    std::cout << std::endl << std::endl;;
-    outputMatrix(std::cout, diag_m);
-    std::cout << std::endl << std::endl;;
-    aux::matrix tmp = prod(sd,diag_m);
+//    outputMatrix(std::cout, sd);
+//    std::cout << std::endl << std::endl;;
+//    outputVector(std::cout, diag_v);
+//    std::cout << std::endl << std::endl;;
+//    outputMatrix(std::cout, diag_m);
+//    std::cout << std::endl << std::endl;;
+//    aux::matrix tmp = prod(sd,diag_m);
     sd = prod(tmp, trans(sd));
     tmp = prod(sd, sd);
-    std::cout << "This matrix should be equal to the first one printed" << std::endl;
-    outputMatrix(std::cout, tmp);
+//    std::cout << "This matrix should be equal to the first one printed" << std::endl;
+//    outputMatrix(std::cout, tmp);
 
     /* rebuild distribution with kernel noise */
     for (unsigned int i = 0; i < p.getSize(); i++) {
@@ -163,5 +166,4 @@ RegularizedParticleResamplerMod<NT, KT>::resample(indii::ml::aux::DiracMixturePd
 };
 
 #endif
-
 
