@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
     mu = pred.getDistributedExpectation();
   
     std::ofstream fmeas("meas.out");
-    std::ofstream fpred("pred.out");
+    std::ofstream fstate("state.out");
     std::ofstream fpart("particles.out");
     
     double t = 0;
@@ -102,19 +102,16 @@ int main(int argc, char* argv[])
     fmeas << "# rows: " << reader->GetOutput()->GetRequestedRegion().GetSize()[1] - 1<< endl;
     fmeas << "# columns: 3" << endl;
 
-    fpred << "# Created by brainid" << endl;
-    fpred << "# name: calc " << endl;
-    fpred << "# type: matrix" << endl;
-    fpred << "# rows: " << reader->GetOutput()->GetRequestedRegion().GetSize()[1] -1 << endl;
-    fpred << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
+    fstate << "# Created by brainid" << endl;
+    fstate << "# name: states " << endl;
+    fstate << "# type: matrix" << endl;
+    fstate << "# rows: " << reader->GetOutput()->GetRequestedRegion().GetSize()[1] -1 << endl;
+    fstate << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
     
     fpart << "# Created by brainid" << endl;
     
     aux::vector sample_state(BoldModel::SYSTEM_SIZE);
 
-//TODO, get resample working
-//TODO, get distribution creation working
-//TODO, stop using ABS for s(0)
     bool dirty = false;
 //    std::vector<aux::DiracPdf> particles;
     while(!iter.IsAtEndOfLine()) {
@@ -155,17 +152,17 @@ int main(int argc, char* argv[])
         fmeas << " " << model.measure(mu)(0) << endl;
 
         /* output filtered state */
-        fpred << t << ' ';
-        outputVector(fpred, mu);
-//        fpred << ' ';
-//        outputVector(fpred, sample_state);
-        fpred << endl;
+        fstate << t << ' ';
+        outputVector(fstate, mu);
+//        fstate << ' ';
+//        outputVector(fstate, sample_state);
+        fstate << endl;
         t += SAMPLERATE/DIVIDER; 
     }
     printf("Index at end: %ld %ld \n", iter.GetIndex()[0], iter.GetIndex()[1]);
 
     fmeas.close();
-    fpred.close();
+    fstate.close();
 
   return 0;
 

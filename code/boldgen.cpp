@@ -46,6 +46,8 @@ int main (int argc, char** argv)
     int series = atoi(argv[5]);
     
     out_size[0] = series;
+    //TODO deal with add error in double which could cause less or more
+    //states to be simulated
     out_size[1] = (int)(stoptime/outstep)+1+1; //|T|T|T| + one for the series number
     
     out_index[0] = 0;
@@ -70,39 +72,49 @@ int main (int argc, char** argv)
     out_it.NextLine();
 
     BoldModel model;
+    
+    std::ofstream fstate("statesim.out");
+    
+    fstate << "# Created by boldgen " << endl;
+    fstate << "# name: statessim " << endl;
+    fstate << "# type: matrix" << endl;
+    fstate << "# rows: " << out_size[1] << endl;
+    fstate << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
 
-    aux::vector systems[series];
+    aux::vector system(BoldModel::SYSTEM_SIZE);
     aux::DiracMixturePdf x0(BoldModel::SYSTEM_SIZE);
     model.generatePrior(x0, 10000);
     
-    for(int i=0 ; i<series ; i++) {
-        systems[i] = x0.sample();
-        std::cout << i << "\t";
-        outputVector(std::cout, systems[i]);
-        std::cout << std::endl;
-    }
+    system = x0.sample();
+    outputVector(std::cout, system);
+    std::cout << std::endl;
 
     double sample = 0;
     double t = 0;
+    //TODO modify input 
     aux::zero_vector input(1);
     while (t < stoptime) {
         //for now
         if(t > sample) {
             sample += outstep;
             int i;
-            for(i = 0 ; i<series && !out_it.IsAtEndOfLine() ; i++) {
-                out_it.Value() = model.measure(systems[i])[0];
-                ++out_it;
-            }
+            out_it.Value() = model.measure(system)[0];
+            
+            //save states in a matlab file for comparison purposes
+            fstate << t << ' ';
+            outputVector(fstate, system);
+            fstate << endl;
+
+            //move forward iterators
+            ++out_it;
             assert(out_it.IsAtEndOfLine() && i == series);
             out_it.NextLine();
         }
         
-        //for next time
+        //setup next timestep
         t += simstep;
-        for(int i = 0 ; i < series ; i++) {
-            systems[i] = model.transition(systems[i], t, simstep, input);
-        }
+        system = model.transition(systems, t, simstep, input);
+        //TODO add noise to simulation
     }
 
     writer->SetFileName(argv[1]);  
