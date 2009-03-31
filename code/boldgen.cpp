@@ -7,6 +7,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <fstream>
+    
+using namespace std;
 
 typedef itk::OrientedImage<double, 2> Image2DType;
 
@@ -40,15 +43,16 @@ int main (int argc, char** argv)
     Image2DType::IndexType out_index;
     Image2DType::SizeType out_size;
 
-    double stoptime = atof(argv[4]);
-    double outstep= atof(argv[2]);
-    double simstep = atof(argv[3]);
-    int series = atoi(argv[5]);
+    const double stoptime = atof(argv[4]);
+    const double outstep= atof(argv[2]);
+    const double simstep = atof(argv[3]);
+    const int series = atoi(argv[5]);
+    const int endcount = (int)(stoptime/outstep)+1;
     
     out_size[0] = series;
     //TODO deal with add error in double which could cause less or more
     //states to be simulated
-    out_size[1] = (int)(stoptime/outstep)+1+1; //|T|T|T| + one for the series number
+    out_size[1] = endcount+1; //|T|T|T| + one for the series number
     
     out_index[0] = 0;
     out_index[1] = 0;
@@ -73,7 +77,7 @@ int main (int argc, char** argv)
 
     BoldModel model;
     
-    std::ofstream fstate("statesim.out");
+    std::ofstream fstate(argv[6]);
     
     fstate << "# Created by boldgen " << endl;
     fstate << "# name: statessim " << endl;
@@ -89,32 +93,42 @@ int main (int argc, char** argv)
     outputVector(std::cout, system);
     std::cout << std::endl;
 
-    double sample = 0;
-    double t = 0;
+    int sample = 0;
+    count = 0;
+    double realt = 0;
+    double prev = 0;
+
     //TODO modify input 
+    //TODO implement multiple series
     aux::zero_vector input(1);
-    while (t < stoptime) {
+    for(count = 0 ; count  < endcount; count++) {
+        //setup next timestep
+        prev = realt;
+        realt = count*simstep;
+        system = model.transition(system, realt, realt-prev, input);
+        //TODO add noise to simulation
+        
         //for now
-        if(t > sample) {
-            sample += outstep;
+        if(count == sample) {
             int i;
-            out_it.Value() = model.measure(system)[0];
             
             //save states in a matlab file for comparison purposes
-            fstate << t << ' ';
+            fstate << realt << ' ';
             outputVector(fstate, system);
             fstate << endl;
 
+            //TODO put multiple series here
+            out_it.Value() = model.measure(system)[0];
+            for(i = 0 ; i < series ; i++) {
+                ++out_it;
+            }
+
             //move forward iterators
-            ++out_it;
             assert(out_it.IsAtEndOfLine() && i == series);
             out_it.NextLine();
+            sample += (int)(outstep/simstep);
         }
         
-        //setup next timestep
-        t += simstep;
-        system = model.transition(systems, t, simstep, input);
-        //TODO add noise to simulation
     }
 
     writer->SetFileName(argv[1]);  

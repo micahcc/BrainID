@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
     iter.SetDirection(1);
     ImageType::IndexType index;
     index[1] = 0; //skip section label later by allowing iter++ on first pass
-    index[0] = 5; //just kind of picking a section
+    index[0] = 0; //just kind of picking a section
     iter.SetIndex(index);
 
     /* Create a model */
