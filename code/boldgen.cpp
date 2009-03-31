@@ -47,7 +47,7 @@ int main (int argc, char** argv)
     const double outstep= atof(argv[2]);
     const double simstep = atof(argv[3]);
     const int series = atoi(argv[5]);
-    const int endcount = (int)(stoptime/outstep)+1;
+    const int endcount = (int)(stoptime/simstep)+1;
     
     out_size[0] = series;
     //TODO deal with add error in double which could cause less or more
@@ -108,7 +108,7 @@ int main (int argc, char** argv)
         system = model.transition(system, realt, realt-prev, input);
         //TODO add noise to simulation
         
-        //for now
+        //check to see if it is time to sample
         if(count == sample) {
             int i;
             
