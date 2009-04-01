@@ -1,50 +1,52 @@
-diff -crBN dysii-1.4.0/CMakeLists.txt dysii-1.4.0-base/CMakeLists.txt
-*** dysii-1.4.0/CMakeLists.txt	Mon Mar 30 23:19:27 2009
---- dysii-1.4.0-base/CMakeLists.txt	Wed Dec 31 19:00:00 1969
-***************
-*** 1,25 ****
-- cmake_minimum_required(VERSION 2.6)
-- SET(CMAKE_VERBOSE_MAKEFILE)
-- INCLUDE (CheckIncludeFiles)
-- 
-- PROJECT(dysii)
-- 
-- 
-- CHECK_INCLUDE_FILES (math.h HAVE_MATH_H)
-- CHECK_INCLUDE_FILES (mpi.h HAVE_MPI_H)
-- 
-- IF(NOT HAVE_MATH_H)
--     MESSAGE(FATAL_ERROR "You need to have math.h")
-- ENDIF()
-- 
-- find_path(GSL include/gsl lib/libgsl.a)
-- find_path(MPI include/mpi.h lib/libmpi.la)
-- find_path(BOOST include/boost/numeric/ublas/vector.h
--     include/boost/numeric/ublas/matrix.hpp 
--     include/boost/numeric/bindings/traits/ublas_vector.hpp
--     include/boost/numeric/bindings/traits/ublas_matrix.hpp
--     include/boost/serialization/serialization.hpp lib/boost/)
-- 
-- SUBDIRS(src)
-- SUBDIRS(tests)
-- 
---- 0 ----
-diff -crBN dysii-1.4.0/src/CMakeLists.txt dysii-1.4.0-base/src/CMakeLists.txt
-*** dysii-1.4.0/src/CMakeLists.txt	Mon Mar 30 23:18:30 2009
---- dysii-1.4.0-base/src/CMakeLists.txt	Wed Dec 31 19:00:00 1969
-***************
-*** 1,2 ****
-- 
-- SUBDIRS(indii)
---- 0 ----
-diff -crBN dysii-1.4.0/src/indii/ml/CMakeLists.txt dysii-1.4.0-base/src/indii/ml/CMakeLists.txt
-*** dysii-1.4.0/src/indii/ml/CMakeLists.txt	Mon Mar 30 23:20:03 2009
---- dysii-1.4.0-base/src/indii/ml/CMakeLists.txt	Wed Dec 31 19:00:00 1969
-***************
-*** 1,5 ****
-- 
-- SUBDIRS(aux)
-- SUBDIRS(filter)
-- SUBDIRS(ode)
-- SUBDIRS(sde)
---- 0 ----
+diff -Naur dysii-1.4.0-orig/CMakeLists.txt dysii-1.4.0/CMakeLists.txt
+--- dysii-1.4.0-orig/CMakeLists.txt	1970-01-01 00:00:00.000000000 +0000
++++ dysii-1.4.0/CMakeLists.txt	2009-04-01 22:11:57.000000000 +0000
+@@ -0,0 +1,23 @@
++cmake_minimum_required(VERSION 2.6)
++SET(CMAKE_VERBOSE_MAKEFILE)
++INCLUDE (CheckIncludeFiles)
++
++PROJECT(dysii)
++
++CHECK_INCLUDE_FILES(math.h HAVE_MATH_H)
++
++IF(NOT HAVE_MATH_H)
++    MESSAGE(FATAL_ERROR "You need to have math.h")
++ENDIF()
++
++find_path(GSL include/gsl lib/libgsl.a)
++find_path(MPI include/mpi.h lib/libmpi.la)
++find_path(BOOST include/boost/numeric/ublas/vector.h
++    include/boost/numeric/ublas/matrix.hpp 
++    include/boost/numeric/bindings/traits/ublas_vector.hpp
++    include/boost/numeric/bindings/traits/ublas_matrix.hpp
++    include/boost/serialization/serialization.hpp lib/boost/)
++
++ADD_SUBDIRECTORY(src ${CMAKE_BINARY_DIR})
++ADD_SUBDIRECTORY(tests)
++
+diff -Naur dysii-1.4.0-orig/src/CMakeLists.txt dysii-1.4.0/src/CMakeLists.txt
+--- dysii-1.4.0-orig/src/CMakeLists.txt	1970-01-01 00:00:00.000000000 +0000
++++ dysii-1.4.0/src/CMakeLists.txt	2009-04-01 21:46:11.000000000 +0000
+@@ -0,0 +1,2 @@
++
++SUBDIRS(indii)
+diff -Naur dysii-1.4.0-orig/src/indii/CMakeLists.txt dysii-1.4.0/src/indii/CMakeLists.txt
+--- dysii-1.4.0-orig/src/indii/CMakeLists.txt	1970-01-01 00:00:00.000000000 +0000
++++ dysii-1.4.0/src/indii/CMakeLists.txt	2009-04-01 21:46:19.000000000 +0000
+@@ -0,0 +1 @@
++SUBDIRS(ml)
+diff -Naur dysii-1.4.0-orig/src/indii/ml/CMakeLists.txt dysii-1.4.0/src/indii/ml/CMakeLists.txt
+--- dysii-1.4.0-orig/src/indii/ml/CMakeLists.txt	1970-01-01 00:00:00.000000000 +0000
++++ dysii-1.4.0/src/indii/ml/CMakeLists.txt	2009-04-01 22:12:03.000000000 +0000
+@@ -0,0 +1,10 @@
++
++AUX_SOURCE_DIRECTORY(aux SOURCES )
++AUX_SOURCE_DIRECTORY(data SOURCES )
++AUX_SOURCE_DIRECTORY(filter SOURCES )
++AUX_SOURCE_DIRECTORY(ode SOURCES )
++AUX_SOURCE_DIRECTORY(sde SOURCES )
++
++INCLUDE_DIRECTORIES(${GSL}/include ${MPI}/include ${BOOST}/include)
++
++ADD_LIBRARY(dysii STATIC ${SOURCES})

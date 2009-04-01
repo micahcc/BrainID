@@ -86,6 +86,7 @@ int main(int argc, char* argv[])
     aux::vector meas(BoldModel::MEAS_SIZE);
     aux::DiracMixturePdf pred(BoldModel::SYSTEM_SIZE);
     aux::vector mu(BoldModel::SYSTEM_SIZE);
+    aux::symmetric_matrix cov(BoldModel::SYSTEM_SIZE);
 
     pred = filter.getFilteredState();
     mu = pred.getDistributedExpectation();
@@ -145,6 +146,7 @@ int main(int argc, char* argv[])
         }
        
         mu = filter.getFilteredState().getDistributedExpectation();
+        cov = filter.getFilteredState().getDistributedCovariance();
 
         /* output measurement */
         fmeas << t << ' ';
@@ -154,6 +156,8 @@ int main(int argc, char* argv[])
         /* output filtered state */
         fstate << t << ' ';
         outputVector(fstate, mu);
+        
+        outputMatrix(std::cerr, cov);
 //        fstate << ' ';
 //        outputVector(fstate, sample_state);
         fstate << endl;

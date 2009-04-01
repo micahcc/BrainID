@@ -135,7 +135,7 @@ RegularizedParticleResamplerMod<NT, KT>::resample(indii::ml::aux::DiracMixturePd
     for(unsigned int i = 0 ; i<diag_v.size() ; i++) {
         if(diag_v(i) < 0) {
             diag_v(i) = -diag_v(i);
-            std::err << "Fixing diagnal matrix to prevent non-real solution" << std::endl;
+            std::cerr << "Fixing diagnal matrix to prevent non-real solution" << std::endl;
         }
     }
     diag_v = element_sqrt(diag_v);
@@ -149,9 +149,9 @@ RegularizedParticleResamplerMod<NT, KT>::resample(indii::ml::aux::DiracMixturePd
 //    std::cout << std::endl << std::endl;;
 //    outputMatrix(std::cout, diag_m);
 //    std::cout << std::endl << std::endl;;
-//    aux::matrix tmp = prod(sd,diag_m);
+    aux::matrix tmp = prod(sd,diag_m);
     sd = prod(tmp, trans(sd));
-    tmp = prod(sd, sd);
+//    tmp = prod(sd, sd);
 //    std::cout << "This matrix should be equal to the first one printed" << std::endl;
 //    outputMatrix(std::cout, tmp);
 

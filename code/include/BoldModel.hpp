@@ -10,15 +10,13 @@
 
 //State Consists of Two or More Sections:
 //Theta
-//0 - V_0
-//1 - a_1
-//2 - a_2
-//3 - tau_0
 //4 - tau_s
 //5 - tau_f
+//8 - epsilon
+//3 - tau_0
 //6 - alpha
 //7 - E_0
-//8 - epsilon
+//0 - V_0
 //Actual States
 //9+4*i+0 - v_t
 //9+4*i+1 - q_t

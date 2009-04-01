@@ -47,12 +47,12 @@ int main (int argc, char** argv)
     const double outstep= atof(argv[2]);
     const double simstep = atof(argv[3]);
     const int series = atoi(argv[5]);
-    const int endcount = (int)(stoptime/simstep)+1;
+    const int endcount = (int)(stoptime/simstep);
     
     out_size[0] = series;
     //TODO deal with add error in double which could cause less or more
     //states to be simulated
-    out_size[1] = endcount+1; //|T|T|T| + one for the series number
+    out_size[1] = (int)(stoptime/outstep)+2; //|T|T|T| + one for the series number
     
     out_index[0] = 0;
     out_index[1] = 0;
