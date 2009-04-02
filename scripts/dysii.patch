@@ -1,7 +1,7 @@
-diff -Naur dysii-1.4.0/CMakeLists.txt BrainID-Dependencies/dysii-1.4.0/CMakeLists.txt
---- dysii-1.4.0/CMakeLists.txt	1970-01-01 00:00:00.000000000 +0000
-+++ BrainID-Dependencies/dysii-1.4.0/CMakeLists.txt	2009-04-02 15:56:25.000000000 +0000
-@@ -0,0 +1,25 @@
+diff -Naur /home/micahc/dysii-1.4.0/CMakeLists.txt BrainID-Dependencies/dysii-1.4.0/CMakeLists.txt
+--- /home/micahc/dysii-1.4.0/CMakeLists.txt	1970-01-01 00:00:00.000000000 +0000
++++ BrainID-Dependencies/dysii-1.4.0/CMakeLists.txt	2009-04-02 18:31:15.000000000 +0000
+@@ -0,0 +1,37 @@
 +cmake_minimum_required(VERSION 2.6)
 +SET(CMAKE_VERBOSE_MAKEFILE)
 +INCLUDE (CheckIncludeFiles)
@@ -22,26 +22,38 @@ diff -Naur dysii-1.4.0/CMakeLists.txt BrainID-Dependencies/dysii-1.4.0/CMakeList
 +    include/boost/numeric/bindings/traits/ublas_matrix.hpp
 +    include/boost/serialization/serialization.hpp lib/boost/)
 +
++
++#FILE(GLOB_RECURSE files "*hpp")
++#MESSAGE(${files})
++#INSTALL(TARGETS  PUBLIC_HEADER DESTINATION include/)
++#INSTALL_FILES(include/ .txt)
++#install_files(include/ FILES ${files} )
++
++#FILE(GLOB files "${CMAKE_CURRENT_SOURCE_DIR}/*.txt")
++#INSTALL(FILES ${files} DESTINATION docs)
++#INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR} CMakeLists.txt DESTINATION dumb)
++#    FILES_MATCHING REGEX ".*hpp")
++#install(DIRECTORY src/ DESTINATION include/
++#    FILES_MATCHING REGEX ".*\.hpp")
++#install(DIRECTORY src/ DESTINATION src/)
++    
 +ADD_SUBDIRECTORY(src ${CMAKE_BINARY_DIR})
 +ADD_SUBDIRECTORY(tests)
-+
-+install(DIRECTORY src/ DESTINATION include/indii
-+    FILES_MATCHING PATTERN "*.hpp")
-diff -Naur dysii-1.4.0/src/CMakeLists.txt BrainID-Dependencies/dysii-1.4.0/src/CMakeLists.txt
---- dysii-1.4.0/src/CMakeLists.txt	1970-01-01 00:00:00.000000000 +0000
-+++ BrainID-Dependencies/dysii-1.4.0/src/CMakeLists.txt	2009-04-02 15:44:06.000000000 +0000
+diff -Naur /home/micahc/dysii-1.4.0/src/CMakeLists.txt BrainID-Dependencies/dysii-1.4.0/src/CMakeLists.txt
+--- /home/micahc/dysii-1.4.0/src/CMakeLists.txt	1970-01-01 00:00:00.000000000 +0000
++++ BrainID-Dependencies/dysii-1.4.0/src/CMakeLists.txt	2009-04-02 16:43:02.000000000 +0000
 @@ -0,0 +1,3 @@
 +
 +SUBDIRS(indii)
 +
-diff -Naur dysii-1.4.0/src/indii/CMakeLists.txt BrainID-Dependencies/dysii-1.4.0/src/indii/CMakeLists.txt
---- dysii-1.4.0/src/indii/CMakeLists.txt	1970-01-01 00:00:00.000000000 +0000
-+++ BrainID-Dependencies/dysii-1.4.0/src/indii/CMakeLists.txt	2009-04-02 15:23:41.000000000 +0000
+diff -Naur /home/micahc/dysii-1.4.0/src/indii/CMakeLists.txt BrainID-Dependencies/dysii-1.4.0/src/indii/CMakeLists.txt
+--- /home/micahc/dysii-1.4.0/src/indii/CMakeLists.txt	1970-01-01 00:00:00.000000000 +0000
++++ BrainID-Dependencies/dysii-1.4.0/src/indii/CMakeLists.txt	2009-04-02 16:43:02.000000000 +0000
 @@ -0,0 +1 @@
 +SUBDIRS(ml)
-diff -Naur dysii-1.4.0/src/indii/ml/CMakeLists.txt BrainID-Dependencies/dysii-1.4.0/src/indii/ml/CMakeLists.txt
---- dysii-1.4.0/src/indii/ml/CMakeLists.txt	1970-01-01 00:00:00.000000000 +0000
-+++ BrainID-Dependencies/dysii-1.4.0/src/indii/ml/CMakeLists.txt	2009-04-02 15:49:06.000000000 +0000
+diff -Naur /home/micahc/dysii-1.4.0/src/indii/ml/CMakeLists.txt BrainID-Dependencies/dysii-1.4.0/src/indii/ml/CMakeLists.txt
+--- /home/micahc/dysii-1.4.0/src/indii/ml/CMakeLists.txt	1970-01-01 00:00:00.000000000 +0000
++++ BrainID-Dependencies/dysii-1.4.0/src/indii/ml/CMakeLists.txt	2009-04-02 18:01:10.000000000 +0000
 @@ -0,0 +1,11 @@
 +
 +AUX_SOURCE_DIRECTORY(aux SOURCES )
@@ -53,4 +65,4 @@ diff -Naur dysii-1.4.0/src/indii/ml/CMakeLists.txt BrainID-Dependencies/dysii-1.
 +INCLUDE_DIRECTORIES(${GSL}/include ${MPI}/include ${BOOST}/include)
 +
 +ADD_LIBRARY(dysii STATIC ${SOURCES})
-+INSTALL(TARGETS dysii LIBRARY ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/)
++INSTALL(TARGETS dysii LIBRARY ARCHIVE DESTINATION lib/)
