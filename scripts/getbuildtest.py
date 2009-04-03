@@ -76,165 +76,165 @@ except os.error:
 #	sys.exit()
 
 
-##########################
-# CMake
-##########################
-cmake_archive_file = split(CMAKE_URL)[1]
-cmake_archive_path = join(options.depdir, cmake_archive_file)
-cmake_src_dir = join("..", (splitext(splitext(cmake_archive_file)[0])[0]))
-cmake_build_dir = join(options.depdir, "cmake-build")
-if not os.path.exists(cmake_archive_path):
-    print "Downloading CMake"
-    urlretrieve(CMAKE_URL, cmake_archive_path, progress)
-tarobj = tarfile.open(cmake_archive_path, 'r:gz')
-tarobj.extractall(options.depdir)
-print "Building CMake"
-try:
-    os.makedirs(cmake_build_dir)
-except os.error:
-    print "Directory %s exists, using it" %cmake_build_dir
-
-os.chdir(cmake_build_dir)
-if os.system("cmake %s -DCMAKE_INSTALL_PREFIX=%s" % (cmake_src_dir, options.prefix)) != 0:
-	print "cmake configuration in %s failed" % cmake_build_dir
-	sys.exit()
-if os.system("make -j%i" % ncpus()) != 0:
-	print "build in %s failed" % cmake_build_dir
-	sys.exit()
-if os.system("make install") != 0:
-	print "build in %s failed" % cmake_build_dir
-	sys.exit()
-os.chdir(topdir)
-print "Build of CMake Completed"
-
 ###########################
-# gsl
+## CMake
 ###########################
-gsl_archive_file = split(GSL_URL)[1]
-gsl_archive_path = join(options.depdir, gsl_archive_file)
-gsl_src_dir = join(options.depdir, (splitext(splitext(gsl_archive_file)[0])[0]))
-if not os.path.exists(gsl_archive_path):
-    print "downloading gsl"
-    urlretrieve(GSL_URL, gsl_archive_path, progress)
-tarobj = tarfile.open(gsl_archive_path, 'r:gz')
-tarobj.extractall(options.depdir)
-print "building gsl"
-os.chdir(gsl_src_dir)
-if os.system("./configure --prefix=%s" % join(options.prefix)) != 0:
-    print "gsl configuration failed"
-    sys.exit()
-if os.system("make -j%i" % ncpus()) != 0:
-    print "build in %s failed" % gsl_src_dir
-    sys.exit()
-if os.system("make install") != 0:
-    print "make install in %s failed" % gsl_src_dir
-    sys.exit()
-os.chdir(topdir)
-print "build of gsl completed"
-
+#cmake_archive_file = split(CMAKE_URL)[1]
+#cmake_archive_path = join(options.depdir, cmake_archive_file)
+#cmake_src_dir = join("..", (splitext(splitext(cmake_archive_file)[0])[0]))
+#cmake_build_dir = join(options.depdir, "cmake-build")
+#if not os.path.exists(cmake_archive_path):
+#    print "Downloading CMake"
+#    urlretrieve(CMAKE_URL, cmake_archive_path, progress)
+#tarobj = tarfile.open(cmake_archive_path, 'r:gz')
+#tarobj.extractall(options.depdir)
+#print "Building CMake"
+#try:
+#    os.makedirs(cmake_build_dir)
+#except os.error:
+#    print "Directory %s exists, using it" %cmake_build_dir
+#
+#os.chdir(cmake_build_dir)
+#if os.system("cmake %s -DCMAKE_INSTALL_PREFIX=%s" % (cmake_src_dir, options.prefix)) != 0:
+#	print "cmake configuration in %s failed" % cmake_build_dir
+#	sys.exit()
+#if os.system("make -j%i" % ncpus()) != 0:
+#	print "build in %s failed" % cmake_build_dir
+#	sys.exit()
+#if os.system("make install") != 0:
+#	print "build in %s failed" % cmake_build_dir
+#	sys.exit()
+#os.chdir(topdir)
+#print "Build of CMake Completed"
+#
 ############################
-# Boost 
+## gsl
 ############################
-#build serialization
-boost_archive_file = split(BOOST_URL)[1]
-boost_archive_file = boost_archive_file.partition("?")[0];
-boost_archive_path = join(options.depdir, boost_archive_file)
-boost_src_dir = join(options.depdir , (splitext(splitext(boost_archive_file)[0])[0]))
-if not os.path.exists(boost_archive_path):
-    print "Downloading Boost"
-    urlretrieve(BOOST_URL, boost_archive_path, progress)
-tarobj = tarfile.open(boost_archive_path, 'r:gz')
-tarobj.extractall(options.depdir)
-print "Building Boost Serialization Library"
-os.chdir(boost_src_dir)
-if os.system("./configure --with-libraries=serialization --prefix=%s" % options.prefix) != 0:
-    print "boost configuration failed"
-    sys.exit()
-if os.system("make -j%i" % ncpus()) != 0:
-    print "build in %s failed" % boost_src_dir
-    sys.exit()
-if os.system("make install") != 0:
-    print "make install in %s failed" % boost_src_dir
-    sys.exit()
-#KLUDGE 
-if os.path.exists(join(options.prefix, "include", "boost")):
-    shutil.rmtree(join(options.prefix, "include", "boost"))
-shutil.move(join(options.prefix, "include","boost-1_38","boost"), join(options.prefix, "include", "boost"))
-shutil.rmtree(join(options.prefix, "include", "boost-1_38"))
-os.chdir(topdir)
-
+#gsl_archive_file = split(GSL_URL)[1]
+#gsl_archive_path = join(options.depdir, gsl_archive_file)
+#gsl_src_dir = join(options.depdir, (splitext(splitext(gsl_archive_file)[0])[0]))
+#if not os.path.exists(gsl_archive_path):
+#    print "downloading gsl"
+#    urlretrieve(GSL_URL, gsl_archive_path, progress)
+#tarobj = tarfile.open(gsl_archive_path, 'r:gz')
+#tarobj.extractall(options.depdir)
+#print "building gsl"
+#os.chdir(gsl_src_dir)
+#if os.system("./configure --prefix=%s" % join(options.prefix)) != 0:
+#    print "gsl configuration failed"
+#    sys.exit()
+#if os.system("make -j%i" % ncpus()) != 0:
+#    print "build in %s failed" % gsl_src_dir
+#    sys.exit()
+#if os.system("make install") != 0:
+#    print "make install in %s failed" % gsl_src_dir
+#    sys.exit()
+#os.chdir(topdir)
+#print "build of gsl completed"
+#
+#############################
+## Boost 
+#############################
+##build serialization
+#boost_archive_file = split(BOOST_URL)[1]
+#boost_archive_file = boost_archive_file.partition("?")[0];
+#boost_archive_path = join(options.depdir, boost_archive_file)
+#boost_src_dir = join(options.depdir , (splitext(splitext(boost_archive_file)[0])[0]))
+#if not os.path.exists(boost_archive_path):
+#    print "Downloading Boost"
+#    urlretrieve(BOOST_URL, boost_archive_path, progress)
+#tarobj = tarfile.open(boost_archive_path, 'r:gz')
+#tarobj.extractall(options.depdir)
+#print "Building Boost Serialization Library"
+#os.chdir(boost_src_dir)
+#if os.system("./configure --with-libraries=serialization --prefix=%s" % options.prefix) != 0:
+#    print "boost configuration failed"
+#    sys.exit()
+#if os.system("make -j%i" % ncpus()) != 0:
+#    print "build in %s failed" % boost_src_dir
+#    sys.exit()
+#if os.system("make install") != 0:
+#    print "make install in %s failed" % boost_src_dir
+#    sys.exit()
+##KLUDGE 
+#if os.path.exists(join(options.prefix, "include", "boost")):
+#    shutil.rmtree(join(options.prefix, "include", "boost"))
+#shutil.move(join(options.prefix, "include","boost-1_38","boost"), join(options.prefix, "include", "boost"))
+#shutil.rmtree(join(options.prefix, "include", "boost-1_38"))
+#os.chdir(topdir)
+#
+#############################
+## Boost Numeric Bindings
+#############################
+#boost_numeric_bindings_archive_file = split(BINDINGS_URL)[1]
+#boost_numeric_bindings_archive_path = join(options.depdir, boost_numeric_bindings_archive_file)
+#boost_numeric_bindings_src_dir = join(options.depdir, (splitext(splitext(boost_numeric_bindings_archive_file)[0])[0]))
+#if not os.path.exists(boost_numeric_bindings_archive_path):
+#    print "Downloading Boost Numeric Bindings"
+#    urlretrieve(BINDINGS_URL, boost_numeric_bindings_archive_path, progress)
+#tarobj = tarfile.open(boost_numeric_bindings_archive_path, 'r:gz')
+#tarobj.extractall(options.depdir)
+#if os.path.exists(join(options.prefix, "include", "boost", "numeric", "bindings")):
+#    shutil.rmtree(join(options.prefix, "include", "boost", "numeric", "bindings"))
+#shutil.move(join(options.depdir, "boost-numeric-bindings", "boost", "numeric", "bindings"), join(options.prefix, "include", "boost", "numeric","bindings"))
+#os.chdir(topdir)
+#
 ############################
-# Boost Numeric Bindings
+## openmpi
 ############################
-boost_numeric_bindings_archive_file = split(BINDINGS_URL)[1]
-boost_numeric_bindings_archive_path = join(options.depdir, boost_numeric_bindings_archive_file)
-boost_numeric_bindings_src_dir = join(options.depdir, (splitext(splitext(boost_numeric_bindings_archive_file)[0])[0]))
-if not os.path.exists(boost_numeric_bindings_archive_path):
-    print "Downloading Boost Numeric Bindings"
-    urlretrieve(BINDINGS_URL, boost_numeric_bindings_archive_path, progress)
-tarobj = tarfile.open(boost_numeric_bindings_archive_path, 'r:gz')
-tarobj.extractall(options.depdir)
-if os.path.exists(join(options.prefix, "include", "boost", "numeric", "bindings")):
-    shutil.rmtree(join(options.prefix, "include", "boost", "numeric", "bindings"))
-shutil.move(join(options.depdir, "boost-numeric-bindings", "boost", "numeric", "bindings"), join(options.prefix, "include", "boost", "numeric","bindings"))
-os.chdir(topdir)
-
-###########################
-# openmpi
-###########################
-mpi_archive_file = split(OPENMPI_URL)[1]
-mpi_archive_path = join(options.depdir, mpi_archive_file)
-mpi_src_dir = join(options.depdir, (splitext(splitext(mpi_archive_file)[0])[0]))
-if not os.path.exists(mpi_archive_path):
-    print "downloading openmpi"
-    urlretrieve(OPENMPI_URL, mpi_archive_path, progress)
-tarobj = tarfile.open(mpi_archive_path, 'r:gz')
-tarobj.extractall(options.depdir)
-print "building openmpi"
-os.chdir(mpi_src_dir)
-if os.system("./configure --prefix=%s" % join(options.prefix)) != 0:
-    print "openmpi configuration failed"
-    sys.exit()
-if os.system("make -j%i" % ncpus()) != 0:
-    print "build in %s failed" % mpi_src_dir
-    sys.exit()
-if os.system("make install") != 0:
-    print "make install in %s failed" % mpi_src_dir
-    sys.exit()
-os.chdir(topdir)
-print "build of openmpi completed"
-
-###########################
-# ITK
-###########################
-itk_archive_file = split(ITK_URL)[1]
-itk_archive_path = join(options.depdir, itk_archive_file)
-itk_src_dir = join("..", (splitext(splitext(itk_archive_file)[0])[0]))
-itk_build_dir = join(options.depdir, "itk-build")
-if not os.path.exists(itk_archive_path):
-    print "Downloading ITK"
-    urlretrieve(ITK_URL, itk_archive_path, progress)
-tarobj = tarfile.open(itk_archive_path, 'r:gz')
-tarobj.extractall(options.depdir)
-
-print "Building ITK"
-try:
-    os.makedirs(itk_build_dir)
-except os.error:
-    print "Directory %s exists, using it" %itk_build_dir
-
-os.chdir(itk_build_dir)
-if os.system("cmake %s -DCMAKE_INSTALL_PREFIX=%s -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF" % (itk_src_dir, options.prefix)) != 0:
-	print "itk configuration in %s failed" % itk_build_dir
-	sys.exit()
-if os.system("make -j%i" % ncpus()) != 0:
-	print "build in %s failed" % itk_build_dir
-	sys.exit()
-if os.system("make install") != 0:
-	print "build in %s failed" % itk_build_dir
-	sys.exit()
-os.chdir(topdir)
-print "Build of ITK Completed"
+#mpi_archive_file = split(OPENMPI_URL)[1]
+#mpi_archive_path = join(options.depdir, mpi_archive_file)
+#mpi_src_dir = join(options.depdir, (splitext(splitext(mpi_archive_file)[0])[0]))
+#if not os.path.exists(mpi_archive_path):
+#    print "downloading openmpi"
+#    urlretrieve(OPENMPI_URL, mpi_archive_path, progress)
+#tarobj = tarfile.open(mpi_archive_path, 'r:gz')
+#tarobj.extractall(options.depdir)
+#print "building openmpi"
+#os.chdir(mpi_src_dir)
+#if os.system("./configure --prefix=%s" % join(options.prefix)) != 0:
+#    print "openmpi configuration failed"
+#    sys.exit()
+#if os.system("make -j%i" % ncpus()) != 0:
+#    print "build in %s failed" % mpi_src_dir
+#    sys.exit()
+#if os.system("make install") != 0:
+#    print "make install in %s failed" % mpi_src_dir
+#    sys.exit()
+#os.chdir(topdir)
+#print "build of openmpi completed"
+#
+############################
+## ITK
+############################
+#itk_archive_file = split(ITK_URL)[1]
+#itk_archive_path = join(options.depdir, itk_archive_file)
+#itk_src_dir = join("..", (splitext(splitext(itk_archive_file)[0])[0]))
+#itk_build_dir = join(options.depdir, "itk-build")
+#if not os.path.exists(itk_archive_path):
+#    print "Downloading ITK"
+#    urlretrieve(ITK_URL, itk_archive_path, progress)
+#tarobj = tarfile.open(itk_archive_path, 'r:gz')
+#tarobj.extractall(options.depdir)
+#
+#print "Building ITK"
+#try:
+#    os.makedirs(itk_build_dir)
+#except os.error:
+#    print "Directory %s exists, using it" %itk_build_dir
+#
+#os.chdir(itk_build_dir)
+#if os.system("cmake %s -DCMAKE_INSTALL_PREFIX=%s -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF" % (itk_src_dir, options.prefix)) != 0:
+#	print "itk configuration in %s failed" % itk_build_dir
+#	sys.exit()
+#if os.system("make -j%i" % ncpus()) != 0:
+#	print "build in %s failed" % itk_build_dir
+#	sys.exit()
+#if os.system("make install") != 0:
+#	print "build in %s failed" % itk_build_dir
+#	sys.exit()
+#os.chdir(topdir)
+#print "Build of ITK Completed"
 
 ###########################
 # dysii
@@ -259,10 +259,15 @@ except os.error:
     print "Directory %s exists, using it" %dysii_build_dir
 
 os.chdir(dysii_build_dir)
-if os.system("cmake %s" % dysii_src_dir) != 0:
+if os.system("cmake %s -DGSL=%s -DMPI=%s -DBOOST=%s -DCMAKE_INSTALL_PREFIX=%s" % \
+                (join(topdir, dysii_src_dir), options.prefix, options.prefix, \
+                options.prefix, options.prefix)) != 0:
 	print "dysii configuration in %s failed" % dysii_build_dir
 	sys.exit()
 if os.system("make -j%i" % ncpus()) != 0:
+	print "build in %s failed" % dysii_build_dir
+	sys.exit()
+if os.system("make install") != 0:
 	print "build in %s failed" % dysii_build_dir
 	sys.exit()
 os.chdir(topdir)
