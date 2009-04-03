@@ -213,7 +213,7 @@ itk_src_dir = join("..", (splitext(splitext(itk_archive_file)[0])[0]))
 itk_build_dir = join(options.depdir, "itk-build")
 if not os.path.exists(itk_archive_path):
     print "Downloading ITK"
-    urlretrieve(CMAKE_URL, itk_archive_path, progress)
+    urlretrieve(ITK_URL, itk_archive_path, progress)
 tarobj = tarfile.open(itk_archive_path, 'r:gz')
 tarobj.extractall(options.depdir)
 print "Building ITK"
@@ -223,16 +223,16 @@ except os.error:
     print "Directory %s exists, using it" %itk_build_dir
 
 os.chdir(itk_build_dir)
-#if os.system("cmake %s -DCMAKE_INSTALL_PREFIX=%s" % (itk_src_dir, options.prefix)) != 0:
-#	print "itk configuration in %s failed" % itk_build_dir
-#	sys.exit()
-#if os.system("make -j%i" % ncpus()) != 0:
-#	print "build in %s failed" % itk_build_dir
-#	sys.exit()
-#if os.system("make install") != 0:
-#	print "build in %s failed" % itk_build_dir
-#	sys.exit()
-#os.chdir(topdir)
+if os.system("cmake %s -DCMAKE_INSTALL_PREFIX=%s -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF" % (itk_src_dir, options.prefix)) != 0:
+	print "itk configuration in %s failed" % itk_build_dir
+	sys.exit()
+if os.system("make -j%i" % ncpus()) != 0:
+	print "build in %s failed" % itk_build_dir
+	sys.exit()
+if os.system("make install") != 0:
+	print "build in %s failed" % itk_build_dir
+	sys.exit()
+os.chdir(topdir)
 print "Build of ITK Completed"
 
 ###########################
