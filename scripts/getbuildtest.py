@@ -42,13 +42,13 @@ srcpath = split(sys.path[0])[0]
 
 parser = OptionParser()
 parser.add_option("-d", "--depdir", dest="depdir",
-                  default="BrainID-Dependencies",
+                  default="BrainID-Dependencies-Build",
                   help="name of directory for dependencies")
 parser.add_option("-u", "--update",
                   action="store_true", dest="update", default=False,
                   help="run svn update first")
 parser.add_option("-p", "--prefix",
-                  action="store_true", dest="prefix", default="%s/root" % topdir,
+                  action="store_true", dest="prefix", default="%s/BrainID-Dependencies-Install" % topdir,
                   help="The location to put the final include, lib, bin....dirs")
 (options, args) = parser.parse_args()
 
@@ -216,6 +216,7 @@ if not os.path.exists(itk_archive_path):
     urlretrieve(ITK_URL, itk_archive_path, progress)
 tarobj = tarfile.open(itk_archive_path, 'r:gz')
 tarobj.extractall(options.depdir)
+
 print "Building ITK"
 try:
     os.makedirs(itk_build_dir)
@@ -250,17 +251,22 @@ tarobj.extractall(options.depdir)
 print "Patching dysii for CMAKE"
 print dysii_src_dir
 os.system("patch -Np1 -d %s < %s" % (dysii_src_dir, "dysii.patch"))
-#print "Building dysii-1.4"
-#os.makedirs(dysii_build_dir)
-#os.chdir(dysii_build_dir)
-#if os.system("cmake %s" % dysii_src_dir) != 0:
-#	print "dysii configuration in %s failed" % dysii_build_dir
-#	sys.exit()
-#if os.system("make -j%i" % ncpus()) != 0:
-#	print "build in %s failed" % dysii_build_dir
-#	sys.exit()
-#os.chdir(topdir)
-#print "Build of dysii Completed"
+
+print "Building dysii-1.4"
+try:
+    os.makedirs(dysii_build_dir)
+except os.error:
+    print "Directory %s exists, using it" %dysii_build_dir
+
+os.chdir(dysii_build_dir)
+if os.system("cmake %s" % dysii_src_dir) != 0:
+	print "dysii configuration in %s failed" % dysii_build_dir
+	sys.exit()
+if os.system("make -j%i" % ncpus()) != 0:
+	print "build in %s failed" % dysii_build_dir
+	sys.exit()
+os.chdir(topdir)
+print "Build of dysii Completed"
 
 ###########################
 # brainid
