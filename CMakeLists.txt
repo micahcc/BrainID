@@ -12,8 +12,14 @@ ELSE(ITK_FOUND)
 ENDIF(ITK_FOUND)
 
 # Find dysii
-find_path(DYSII_INCLUDE indii/ml/filter/ParticleFilter.hpp)
-FIND_LIBRARY(DYSII_LIB NAMES dysii PATH /usr/lib) 
+#FIND_PACKAGE(dysii)
+#if(dysii_found)
+#    include(${dysii_use_file})
+#else(itk_found)
+#    MESSAGE(FATAL_ERROR "Cannont build without dysii, please set dysii_DIR.")
+#endif(itk_found)
+find_path(dysii_INCLUDE_DIRS indii/ml/filter/ParticleFilter.hpp)
+FIND_LIBRARY(dysii_LIBRARY_DIRS NAMES dysii PATH /usr/lib) 
 #find_path(MPI_INCLUDE mpi.hpp)
 
 SUBDIRS(code)

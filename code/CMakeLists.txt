@@ -8,8 +8,8 @@ cmake_minimum_required(VERSION 2.6)
 #  MESSAGE(FATAL_ERROR "Cannot build without ITK. Please set ITK_DIR.")
 #ENDIF(ITK_FOUND)
 
-INCLUDE_DIRECTORIES(${brainid_SOURCE_DIR}/code/include ${DYSII_INCLUDE})
-LINK_DIRECTORIES(${brainid_SOURCE_DIR}/code ${DYSII_LIB})
+INCLUDE_DIRECTORIES(${brainid_SOURCE_DIR}/code/include ${dysii_INCLUDE_DIRS})
+LINK_DIRECTORIES(${brainid_SOURCE_DIR}/code ${dysii_LIBRARY_DIRS})
 
 ADD_LIBRARY(segment segment.cpp)
 ADD_LIBRARY(BoldModel BoldModel.cpp)

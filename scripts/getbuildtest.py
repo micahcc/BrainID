@@ -196,10 +196,10 @@ if os.system("./configure --prefix=%s" % join(options.prefix)) != 0:
     print "openmpi configuration failed"
     sys.exit()
 if os.system("make -j%i" % ncpus()) != 0:
-    print "build in %s failed" % open_src_dir
+    print "build in %s failed" % mpi_src_dir
     sys.exit()
 if os.system("make install") != 0:
-    print "make install in %s failed" % open_src_dir
+    print "make install in %s failed" % mpi_src_dir
     sys.exit()
 os.chdir(topdir)
 print "build of openmpi completed"
@@ -265,3 +265,4 @@ os.system("patch -Np1 -d %s < %s" % (dysii_src_dir, "dysii.patch"))
 ###########################
 # brainid
 ###########################
+
