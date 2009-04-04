@@ -18,15 +18,17 @@ BOOST_URL="http://voxel.dl.sourceforge.net/sourceforge/boost/boost_1_36_0.tar.gz
 BINDINGS_URL="http://mathema.tician.de/news.tiker.net/download/software/boost-numeric-bindings/boost-numeric-bindings-20081116.tar.gz"
 ITK_URL="http://voxel.dl.sourceforge.net/sourceforge/itk/InsightToolkit-3.12.0.tar.gz"
 OPENMPI_URL="http://www.open-mpi.org/software/ompi/v1.3/downloads/openmpi-1.3.1.tar.gz"
+LAPACK_URL="http://www.netlib.org/lapack/lapack-3.1.1.tgz"
 
 
-#defstrings should be a tuple of string arguments to pass to configure
-def confmakeinst(basedir, instdir, name, url, defstrings = ""):
-    topdir = os.getcwd()
+def getep(basedir, name, url):
     archive_file = split(url)[1]
     archive_path = join(basedir, archive_file)
-    src_dir = join(basedir, (splitext(splitext(archive_file)[0])[0]))
-    install_dir = join(instdir, name)
+
+    src_dir = join(basedir, splitext(archive_file)[0])
+    if splitext(src_dir)[1] == ".tar":
+        src_dir = splitext(src_dir)[0]
+    
     if not os.path.exists(src_dir):
         if not os.path.exists(archive_path):
             print "downloading %s" % name
@@ -37,7 +39,14 @@ def confmakeinst(basedir, instdir, name, url, defstrings = ""):
     if os.path.exists("%s.patch" %name) and os.system("patch --dry-run -Np2 -d %s < %s" %(src_dir, "%s.patch" % name)) == 0:
         print "Patching %s" % name
         os.system("patch -Np2 -d %s < %s" % (src_dir, "%s.patch" % name))
+    return src_dir
 
+#defstrings should be a tuple of string arguments to pass to configure
+def confmakeinst(basedir, instdir, name, url, defstrings = ""):
+    topdir = os.getcwd()
+    src_dir = getep(basedir, name, url)
+    install_dir = join(instdir, name)
+    
     print "building %s" % name
     os.chdir(src_dir)
     if os.system("make -j%i" % ncpus()) != 0:
@@ -58,23 +67,11 @@ def confmakeinst(basedir, instdir, name, url, defstrings = ""):
 #defstrings should be a tuple of extra arguments to give to cmake
 def cmakeinst(basedir, instdir, name, url, defstrings = ""):
     topdir = os.getcwd()
-    archive_file = split(url)[1]
-    archive_path = join(basedir, archive_file)
-    src_dir = join(basedir, (splitext(splitext(archive_file)[0])[0]))
-    build_dir = join(basedir, "%s-build" % name)
+    src_dir = getep(basedir,name,url)
     install_dir = join(instdir, name)
-    if not os.path.exists(src_dir):
-        if not os.path.exists(archive_path):
-            print "Downloading %s" % name
-            urlretrieve(url, archive_path, progress)
-        tarobj = tarfile.open(archive_path, 'r:gz')
-        tarobj.extractall(basedir)
-
-    if os.path.exists("%s.patch" %name) and os.system("patch --dry-run -Np2 -d %s < %s" %(src_dir, "%s.patch" % name)) == 0:
-        print "Patching %s" % name
-        os.system("patch -Np2 -d %s < %s" % (src_dir, "%s.patch" % name))
     
     print "Building %s" % name
+    build_dir = join(basedir, "%s-build" % name)
     try:
         os.makedirs(build_dir)
     except os.error:
@@ -207,6 +204,20 @@ mpi_install_dir = confmakeinst(depdir, depprefix, "mpi", OPENMPI_URL)
 ###########################
 itk_install_dir = cmakeinst(depdir, depprefix, "itk", ITK_URL, ("-DBUILD_TESTING=OFF", "-DBUILD_EXAMPLES=OFF"))
 
+###########################
+# LAPACK
+###########################
+lapack_src_dir = getep(depdir, "lapack", LAPACK_URL)
+os.chdir(lapack_src_dir)
+os.system("make -j%i blaslib" % ncpus())
+os.system("make -j%i all" % ncpus())
+for files in os.listdir("./"):
+    if splitext(files)[1] == ".a":
+        os.
+
+os.path.
+os.chdir(topdir)
+sys.exit()
 ###########################
 # dysii
 ###########################
