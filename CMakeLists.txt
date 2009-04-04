@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
-SET(CMAKE_VERBOSE_MAKEFILE)
+SET(CMAKE_VERBOSE_MAKEFILE 1)
 
 PROJECT(brainid)
 
@@ -18,6 +18,7 @@ ENDIF(ITK_FOUND)
 #else(itk_found)
 #    MESSAGE(FATAL_ERROR "Cannont build without dysii, please set dysii_DIR.")
 #endif(itk_found)
+
 find_path(dysii_INCLUDE_DIRS indii/ml/filter/ParticleFilter.hpp)
 FIND_LIBRARY(dysii_LIBRARY_DIRS NAMES dysii PATH /usr/lib) 
 #find_path(MPI_INCLUDE mpi.hpp)
