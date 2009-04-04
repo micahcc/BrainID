@@ -82,11 +82,7 @@ def buildboost(basedir, instdir, name, url, defstrings = ""):
             print "Error: %s" % file
             liblist.append(file)
 
-    print liblist
     for file in liblist:
-        print file
-        print splitext(file)
-        print file.split("-")
         if splitext(file)[1] == ".a":
             print "Symlinking %s -> %s" % (file.split("-")[0] + ".a", file)
             try: 
@@ -296,11 +292,13 @@ except os.error:
     print "Directory %s exists, using it" %brainid_install_dir
 
 os.chdir(brainid_build_dir)
-if os.system("cmake %s -DITK_DIR=%s -Ddysii_INCLUDE_DIRS=%s -Ddysii_LIBRARY_DIRS=%s -DCMAKE_INSTALL_PREFIX=%s"  % \
-            (srcpath, join(itk_install_dir, "lib", "InsightToolkit"), \
-            join(dysii_install_dir, "include"),  \
-            join(dysii_install_dir, "lib"), brainid_install_dir)) != 0:
-    print "dysii configuration in %s failed" % dysii_build_dir
+if os.system("cmake %s -DITK_DIR=%s " % (srcpath, join(itk_install_dir, "lib", "InsightToolkit")) \
+                + " -Ddysii_INCLUDE_DIRS=%s " % join(dysii_install_dir, "include")\
+                + " -Ddysii_LIBRARY_DIRS=%s " % join(dysii_install_dir, "lib")\
+                + " -DBOOST_INCLUDE_DIRS=%s " % join(boost_install_dir, "include")\
+                + " -DBOOST_LIBRARY_DIRS=%s " % join(boost_install_dir, "lib")\
+                + " -DCMAKE_INSTALL_PREFIX=%s " % brainid_install_dir) != 0:
+    print "brainid configuration in %s failed" % brainid_build_dir
     sys.exit()
 
 if os.system("make -j%i" % ncpus()) != 0:
