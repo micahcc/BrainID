@@ -58,3 +58,4 @@ diff -Naur ../../dysii-1.4.0/UseDysii.cmake BrainID-Dependencies/dysii-1.4.0/Use
 +    link_directories(${dysii_LIBRARY_DIRS})
 +
 +endif(NOT dysii_USE_FILE_INCLUDED)
++

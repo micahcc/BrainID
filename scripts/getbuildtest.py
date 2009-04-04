@@ -8,11 +8,83 @@ import tarfile
 from optparse import OptionParser
 import time
 
+#defstrings should be a tuple of string arguments to pass to configure
+def confmakeinst(basedir, instdir, name, url, defstrings = ""):
+    topdir = os.getcwd()
+    archive_file = split(url)[1]
+    archive_path = join(basedir, archive_file)
+    src_dir = join(basedir, (splitext(splitext(archive_file)[0])[0]))
+    install_dir = join(instdir, name)
+    if not os.path.exists(src_dir):
+        if not os.path.exists(archive_path):
+            print "downloading %s" % name
+            urlretrieve(url, archive_path, progress)
+        tarobj = tarfile.open(archive_path, 'r:gz')
+        tarobj.extractall(basedir)
+   
+    if os.path.exists("%s.patch" %name) and os.system("patch --dry-run -Np2 -d %s < %s" %(src_dir, "%s.patch" % name)) == 0:
+        print "Patching %s" % name
+        os.system("patch -Np2 -d %s < %s" % (src_dir, "%s.patch" % name))
+
+    print "building %s" % name
+    os.chdir(src_dir)
+    if os.system("make -j%i" % ncpus()) != 0:
+        if  os.system("./configure --prefix=%s %s" % (install_dir, " ".join(defstrings))) != 0:
+            print "%s configuration failed" % name
+            sys.exit()
+        if os.system("make -j%i" % ncpus()) != 0:
+            print "build in %s failed" % src_dir
+            sys.exit()
+    
+    if os.system("make install") != 0:
+        print "make install in %s failed" % src_dir
+        sys.exit()
+    os.chdir(topdir)
+    print "build of %s completed" % name
+
+#defstrings should be a tuple of extra arguments to give to cmake
+def cmakeinst(basedir, instdir, name, url, defstrings = ""):
+    topdir = os.getcwd()
+    archive_file = split(url)[1]
+    archive_path = join(basedir, archive_file)
+    src_dir = join(basedir, (splitext(splitext(archive_file)[0])[0]))
+    build_dir = join(basedir, "%s-build" % name)
+    install_dir = join(instdir, name)
+    if not os.path.exists(src_dir):
+        if not os.path.exists(archive_path):
+            print "Downloading %s" % name
+            urlretrieve(url, archive_path, progress)
+        tarobj = tarfile.open(archive_path, 'r:gz')
+        tarobj.extractall(basedir)
+    if os.path.exists("%s.patch" %name) and os.system("patch --dry-run -Np2 -d %s < %s" %(src_dir, "%s.patch" % name)) == 0:
+        print "Patching %s" % name
+        os.system("patch -Np2 -d %s < %s" % (src_dir, "%s.patch" % name))
+    
+    print "Building %s" % name
+    try:
+        os.makedirs(build_dir)
+    except os.error:
+        print "Directory %s exists, using it" % build_dir
+    
+    os.chdir(build_dir)
+    if os.system("cmake %s -DCMAKE_INSTALL_PREFIX=%s %s" % (src_dir, install_dir, " ".join(defstrings))) != 0:
+    	print "%s configuration in %s failed" % (name, build_dir)
+    	sys.exit()
+    if os.system("make -j%i" % ncpus()) != 0:
+    	print "build in %s failed" % build_dir
+    	sys.exit()
+    if os.system("make install") != 0:
+    	print "build in %s failed" % build_dir
+    	sys.exit()
+    os.chdir(topdir)
+    print "Build of %s Completed" % name
+
 # some user modifiable constants
 CMAKE_URL="http://www.cmake.org/files/v2.6/cmake-2.6.2.tar.gz"
 DYSII_URL="http://www.indii.org/files/dysii/releases/dysii-1.4.0.tar.gz"
 GSL_URL="ftp://ftp.gnu.org/gnu/gsl/gsl-1.9.tar.gz"
-BOOST_URL="http://downloads.sourceforge.net/boost/boost_1_38_0.tar.gz?use_mirror=voxel"
+#BOOST_URL="http://downloads.sourceforge.net/boost/boost_1_38_0.tar.gz?use_mirror=voxel"
+BOOST_URL="http://voxel.dl.sourceforge.net/sourceforge/boost/boost_1_36_0.tar.gz"
 BINDINGS_URL="http://mathema.tician.de/news.tiker.net/download/software/boost-numeric-bindings/boost-numeric-bindings-20081116.tar.gz"
 ITK_URL="http://voxel.dl.sourceforge.net/sourceforge/itk/InsightToolkit-3.12.0.tar.gz"
 OPENMPI_URL="http://www.open-mpi.org/software/ompi/v1.3/downloads/openmpi-1.3.1.tar.gz"
@@ -48,14 +120,17 @@ parser.add_option("-u", "--update",
                   action="store_true", dest="update", default=False,
                   help="run svn update first")
 parser.add_option("-i", "--depinstall",
-                  action="store_true", dest="depprefix", default="BrainID-Dependencies-Install",
+                  action="store_true", dest="depprefix", default="%s/BrainID-Dependencies-Install" % topdir,
                   help="The location to put the final <depname>/include, <depname>/lib, <depname>/bin ")
 parser.add_option("-p", "--prefix",
-                  action="store_true", dest="prefix", default="%s" % srcdir,
+                  action="store_true", dest="prefix", default="%s" % srcpath,
                   help="The location to put the final include, lib, bin....dirs")
 (options, args) = parser.parse_args()
 
 PROFILE_OUT="%s/prof.sh" % options.depdir
+
+depdir = join(topdir, options.depdir)
+depprefix = join(topdir, options.depprefix)
 
 platform = os.uname()[0]
 if platform == 'Darwin':
@@ -82,234 +157,259 @@ except os.error:
 ##########################
 # CMake
 ##########################
-cmake_archive_file = split(CMAKE_URL)[1]
-cmake_archive_path = join(options.depdir, cmake_archive_file)
-cmake_src_dir = join("..", (splitext(splitext(cmake_archive_file)[0])[0]))
-cmake_build_dir = join(options.depdir, "cmake-build")
-cmake_install_dir = join(options.depprefix, "cmake")
-if not os.path.exists(cmake_archive_path):
-    print "Downloading CMake"
-    urlretrieve(CMAKE_URL, cmake_archive_path, progress)
-tarobj = tarfile.open(cmake_archive_path, 'r:gz')
-tarobj.extractall(options.depdir)
-print "Building CMake"
-try:
-    os.makedirs(cmake_build_dir)
-except os.error:
-    print "Directory %s exists, using it" %cmake_build_dir
-
-os.chdir(cmake_build_dir)
-if os.system("cmake %s -DCMAKE_INSTALL_PREFIX=%s" % (cmake_src_dir, cmake_install_dir)) != 0:
-	print "cmake configuration in %s failed" % cmake_build_dir
-	sys.exit()
-if os.system("make -j%i" % ncpus()) != 0:
-	print "build in %s failed" % cmake_build_dir
-	sys.exit()
-if os.system("make install") != 0:
-	print "build in %s failed" % cmake_build_dir
-	sys.exit()
-os.chdir(topdir)
-print "Build of CMake Completed"
+cmakeinst(depdir, depprefix, "cmake", CMAKE_URL)
+#cmake_archive_file = split(CMAKE_URL)[1]
+#cmake_archive_path = join(depdir, cmake_archive_file)
+#cmake_src_dir = join("..", (splitext(splitext(cmake_archive_file)[0])[0]))
+#cmake_build_dir = join(depdir, "cmake-build")
+#cmake_install_dir = join(depprefix, "cmake")
+#if not os.path.exists(cmake_src_dir):
+#    if not os.path.exists(cmake_archive_path):
+#        print "Downloading CMake"
+#        urlretrieve(CMAKE_URL, cmake_archive_path, progress)
+#    tarobj = tarfile.open(cmake_archive_path, 'r:gz')
+#    tarobj.extractall(depdir)
+#
+#print "Building CMake"
+#try:
+#    os.makedirs(cmake_build_dir)
+#except os.error:
+#    print "Directory %s exists, using it" %cmake_build_dir
+#
+#os.chdir(cmake_build_dir)
+#if os.system("cmake %s -DCMAKE_INSTALL_PREFIX=%s" % (cmake_src_dir, cmake_install_dir)) != 0:
+#	print "cmake configuration in %s failed" % cmake_build_dir
+#	sys.exit()
+#if os.system("make -j%i" % ncpus()) != 0:
+#	print "build in %s failed" % cmake_build_dir
+#	sys.exit()
+#if os.system("make install") != 0:
+#	print "build in %s failed" % cmake_build_dir
+#	sys.exit()
+#os.chdir(topdir)
+#print "Build of CMake Completed"
 
 ###########################
 # gsl
 ###########################
-gsl_archive_file = split(GSL_URL)[1]
-gsl_archive_path = join(options.depdir, gsl_archive_file)
-gsl_src_dir = join(options.depdir, (splitext(splitext(gsl_archive_file)[0])[0]))
-gsl_install_dir = join(options.depprefix, "gsl")
-if not os.path.exists(gsl_archive_path):
-    print "downloading gsl"
-    urlretrieve(GSL_URL, gsl_archive_path, progress)
-tarobj = tarfile.open(gsl_archive_path, 'r:gz')
-tarobj.extractall(options.depdir)
-print "building gsl"
-os.chdir(gsl_src_dir)
-if os.system("./configure --prefix=%s" % gsl_install_dir) != 0:
-    print "gsl configuration failed"
-    sys.exit()
-if os.system("make -j%i" % ncpus()) != 0:
-    print "build in %s failed" % gsl_src_dir
-    sys.exit()
-if os.system("make install") != 0:
-    print "make install in %s failed" % gsl_src_dir
-    sys.exit()
-os.chdir(topdir)
-print "build of gsl completed"
+confmakeinst(depdir, depprefix, "gsl", GSL_URL)
+#gsl_archive_file = split(GSL_URL)[1]
+#gsl_archive_path = join(depdir, gsl_archive_file)
+#gsl_src_dir = join(depdir, (splitext(splitext(gsl_archive_file)[0])[0]))
+#gsl_install_dir = join(depprefix, "gsl")
+#if not os.path.exists(gsl_src_dir):
+#    if not os.path.exists(gsl_archive_path):
+#        print "downloading gsl"
+#        urlretrieve(GSL_URL, gsl_archive_path, progress)
+#    tarobj = tarfile.open(gsl_archive_path, 'r:gz')
+#    tarobj.extractall(depdir)
+#
+#print "building gsl"
+#os.chdir(gsl_src_dir)
+#if os.system("./configure --prefix=%s" % gsl_install_dir) != 0:
+#    print "gsl configuration failed"
+#    sys.exit()
+#if os.system("make -j%i" % ncpus()) != 0:
+#    print "build in %s failed" % gsl_src_dir
+#    sys.exit()
+#if os.system("make install") != 0:
+#    print "make install in %s failed" % gsl_src_dir
+#    sys.exit()
+#os.chdir(topdir)
+#print "build of gsl completed"
 
 ############################
 # Boost 
 ############################
+confmakeinst(depdir, depprefix, "boost", BOOST_URL, ("--with-libraries=serialization,mpi", ""))
 #build serialization
-boost_archive_file = split(BOOST_URL)[1]
-boost_archive_file = boost_archive_file.partition("?")[0];
-boost_archive_path = join(options.depdir, boost_archive_file)
-boost_src_dir = join(options.depdir , (splitext(splitext(boost_archive_file)[0])[0]))
-boost_install_dir = join(options.depprefix, "boost")
-if not os.path.exists(boost_archive_path):
-    print "Downloading Boost"
-    urlretrieve(BOOST_URL, boost_archive_path, progress)
-tarobj = tarfile.open(boost_archive_path, 'r:gz')
-tarobj.extractall(options.depdir)
-print "Building Boost Serialization Library"
-os.chdir(boost_src_dir)
-if os.system("./configure --with-libraries=serialization --prefix=%s" % boost_install_dir) != 0:
-    print "boost configuration failed"
-    sys.exit()
-if os.system("make -j%i" % ncpus()) != 0:
-    print "build in %s failed" % boost_src_dir
-    sys.exit()
-if os.system("make install") != 0:
-    print "make install in %s failed" % boost_src_dir
-    sys.exit()
-#KLUDGE 
-if os.path.exists(join(boost_install_dir, "include", "boost")):
-    shutil.rmtree(join(boost_install_dir, "include", "boost"))
-shutil.move(join(boost_install_dir, "include","boost-1_38","boost"), join(boost_install_dir, "include", "boost"))
-shutil.rmtree(join(boost_install_dir, "include", "boost-1_38"))
-os.chdir(topdir)
+#boost_archive_file = split(BOOST_URL)[1]
+#boost_archive_file = boost_archive_file.partition("?")[0];
+#boost_archive_path = join(depdir, boost_archive_file)
+#boost_src_dir = join(depdir , (splitext(splitext(boost_archive_file)[0])[0]))
+#boost_install_dir = join(depprefix, "boost")
+#if not os.path.exists(boost_src_dir):
+#    if not os.path.exists(boost_archive_path):
+#        print "Downloading Boost"
+#        urlretrieve(BOOST_URL, boost_archive_path, progress)
+#    tarobj = tarfile.open(boost_archive_path, 'r:gz')
+#    tarobj.extractall(depdir)
+#
+#print "Building Boost Serialization Library"
+#os.chdir(boost_src_dir)
+#if os.system("./configure --with-libraries=serialization,mpi --prefix=%s" % boost_install_dir) != 0:
+#    print "boost configuration failed"
+#    sys.exit()
+#if os.system("make -j%i" % ncpus()) != 0:
+#    print "build in %s failed" % boost_src_dir
+#    sys.exit()
+#if os.system("make install") != 0:
+#    print "make install in %s failed" % boost_src_dir
+#    sys.exit()
+##KLUDGE 
+try:
+    shutil.rmtree(join(depprefix, "boost", "include", "boost"))
+except os.error:
+    pass
+shutil.move(join(depprefix, "boost", "include","boost-1_36","boost"), \
+            join(depprefix, "boost", "include", "boost"))
+shutil.rmtree(join(depprefix, "boost", "include", "boost-1_36"))
+#os.chdir(topdir)
 
 ############################
 # Boost Numeric Bindings
 ############################
 boost_numeric_bindings_archive_file = split(BINDINGS_URL)[1]
-boost_numeric_bindings_archive_path = join(options.depdir, boost_numeric_bindings_archive_file)
-boost_numeric_bindings_src_dir = join(options.depdir, (splitext(splitext(boost_numeric_bindings_archive_file)[0])[0]))
+boost_numeric_bindings_archive_path = join(depdir, boost_numeric_bindings_archive_file)
+boost_numeric_bindings_src_dir = join(depdir, (splitext(splitext(boost_numeric_bindings_archive_file)[0])[0]))
 if not os.path.exists(boost_numeric_bindings_archive_path):
     print "Downloading Boost Numeric Bindings"
     urlretrieve(BINDINGS_URL, boost_numeric_bindings_archive_path, progress)
 tarobj = tarfile.open(boost_numeric_bindings_archive_path, 'r:gz')
-tarobj.extractall(options.depdir)
-if os.path.exists(join(boost_install_dir, "include", "boost", "numeric", "bindings")):
-    shutil.rmtree(join(boost_install_dir, "include", "boost", "numeric", "bindings"))
-shutil.move(join(options.depdir, "boost-numeric-bindings", "boost", "numeric", "bindings"), join(boost_install_dir, "include", "boost", "numeric","bindings"))
+tarobj.extractall(depdir)
+
+#try:
+#    shutil.rmtree(join(depprefix, "boost", "include", "boost", "numeric", "bindings"))
+#except os.error:
+#    pass
+
+shutil.move(join(depdir, "boost-numeric-bindings", "boost", "numeric", "bindings"), \
+            join(depprefix, "boost", "include", "boost", "numeric","bindings"))
 os.chdir(topdir)
-
-###########################
-# openmpi
-###########################
-mpi_archive_file = split(OPENMPI_URL)[1]
-mpi_archive_path = join(options.depdir, mpi_archive_file)
-mpi_src_dir = join(options.depdir, (splitext(splitext(mpi_archive_file)[0])[0]))
-mpi_install_dir = join(options.depprefix, "openmpi")
-if not os.path.exists(mpi_archive_path):
-    print "downloading openmpi"
-    urlretrieve(OPENMPI_URL, mpi_archive_path, progress)
-tarobj = tarfile.open(mpi_archive_path, 'r:gz')
-tarobj.extractall(options.depdir)
-print "building openmpi"
-os.chdir(mpi_src_dir)
-if os.system("./configure --prefix=%s" % mpi_install_dir) != 0:
-    print "openmpi configuration failed"
-    sys.exit()
-if os.system("make -j%i" % ncpus()) != 0:
-    print "build in %s failed" % mpi_src_dir
-    sys.exit()
-if os.system("make install") != 0:
-    print "make install in %s failed" % mpi_src_dir
-    sys.exit()
-os.chdir(topdir)
-print "build of openmpi completed"
-
-###########################
-# ITK
-###########################
-itk_archive_file = split(ITK_URL)[1]
-itk_archive_path = join(options.depdir, itk_archive_file)
-itk_src_dir = join("..", (splitext(splitext(itk_archive_file)[0])[0]))
-itk_build_dir = join(options.depdir, "itk-build")
-itk_install_dir = join(options.depprefix, "itk")
-if not os.path.exists(itk_archive_path):
-    print "Downloading ITK"
-    urlretrieve(ITK_URL, itk_archive_path, progress)
-tarobj = tarfile.open(itk_archive_path, 'r:gz')
-tarobj.extractall(options.depdir)
-
-print "Building ITK"
-try:
-    os.makedirs(itk_build_dir)
-except os.error:
-    print "Directory %s exists, using it" %itk_build_dir
-
-os.chdir(itk_build_dir)
-if os.system("cmake %s -DCMAKE_INSTALL_PREFIX=%s -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF" % (itk_src_dir, itk_install_dir)) != 0:
-	print "itk configuration in %s failed" % itk_build_dir
-	sys.exit()
-if os.system("make -j%i" % ncpus()) != 0:
-	print "build in %s failed" % itk_build_dir
-	sys.exit()
-if os.system("make install") != 0:
-	print "build in %s failed" % itk_build_dir
-	sys.exit()
-os.chdir(topdir)
-print "Build of ITK Completed"
-
-###########################
-# dysii
-###########################
-dysii_archive_file = split(DYSII_URL)[1]
-dysii_archive_path = join(options.depdir, dysii_archive_file)
-dysii_src_dir = join(options.depdir, (splitext(splitext(dysii_archive_file)[0])[0]))
-dysii_build_dir = join(options.depdir, "dysii-build")
-dysii_install_dir = join(options.depprefix, "dysii")
-if not os.path.exists(dysii_archive_path):
-    print "Downloading dysii-1.4"
-    urlretrieve(DYSII_URL, dysii_archive_path, progress)
-tarobj = tarfile.open(dysii_archive_path, 'r:gz')
-tarobj.extractall(options.depdir)
-print "Patching dysii for CMAKE"
-print dysii_src_dir
-os.system("patch -Np1 -d %s < %s" % (dysii_src_dir, "dysii.patch"))
-
-print "Building dysii-1.4"
-try:
-    os.makedirs(dysii_build_dir)
-except os.error:
-    print "Directory %s exists, using it" %dysii_build_dir
-
-os.chdir(dysii_build_dir)
-if os.system("cmake %s -DGSL=%s -DMPI=%s -DBOOST=%s -DCMAKE_INSTALL_PREFIX=%s" % \
-                (join(topdir, dysii_src_dir), gsl_install_dir, mpi_install_dir, \
-                boost_install_dir, dysii_install_dir)) != 0:
-	print "dysii configuration in %s failed" % dysii_build_dir
-	sys.exit()
-if os.system("make -j%i" % ncpus()) != 0:
-	print "build in %s failed" % dysii_build_dir
-	sys.exit()
-if os.system("make install") != 0:
-	print "build in %s failed" % dysii_build_dir
-	sys.exit()
-os.chdir(topdir)
-print "Build of dysii Completed"
-
-###########################
-# brainid
-###########################
-os.chdir(srcdir)
-brainid_build_dir = join(srcdir, "build")
-brainid_install_dir = join(options.prefix, "install")
-try:
-    os.makedirs(brainid_build_dir)
-except os.error:
-    print "Directory %s exists, using it" %brainid_build_dir
-
-try:
-    os.makedirs(brainid_install_dir)
-except os.error:
-    print "Directory %s exists, using it" %brainid_install_dir
-
-os.chdir(brainid_build_dir)
-if os.system("cmake %s -ITK_DIR=%s -Ddysii_INCLUDE_DIRS=%s -D=dysii_LIBRARY_DIRS%s -DCMAKE_INSTALL_PREFIX=%s" % \
-                (srcdir, itk_install_dir., join(dysii_install_dir, "include"), \
-                join(dysii_install_dir, "lib"), brainid_install_dir)) != 0:
-	print "dysii configuration in %s failed" % dysii_build_dir
-	sys.exit()
-if os.system("make -j%i" % ncpus()) != 0:
-	print "build in %s failed" % brainid_build_dir
-	sys.exit()
-if os.system("make install") != 0:
-	print "install from %s failed" % brainid_build_dir
-	sys.exit()
-os.chdir(topdir)
-print "Build of brainid Completed"
-
+#
+############################
+## openmpi
+############################
+confmakeinst(depdir, depprefix, "mpi", OPENMPI_URL)
+#mpi_archive_file = split(OPENMPI_URL)[1]
+#mpi_archive_path = join(depdir, mpi_archive_file)
+#mpi_src_dir = join(depdir, (splitext(splitext(mpi_archive_file)[0])[0]))
+#mpi_install_dir = join(depprefix, "openmpi")
+#if not os.path.exists(mpi_src_dir):
+#    if not os.path.exists(mpi_archive_path):
+#        print "downloading openmpi"
+#        urlretrieve(OPENMPI_URL, mpi_archive_path, progress)
+#    tarobj = tarfile.open(mpi_archive_path, 'r:gz')
+#    tarobj.extractall(depdir)
+#print "building openmpi"
+#os.chdir(mpi_src_dir)
+#if os.system("./configure --prefix=%s" % mpi_install_dir) != 0:
+#    print "openmpi configuration failed"
+#    sys.exit()
+#if os.system("make -j%i" % ncpus()) != 0:
+#    print "build in %s failed" % mpi_src_dir
+#    sys.exit()
+#if os.system("make install") != 0:
+#    print "make install in %s failed" % mpi_src_dir
+#    sys.exit()
+#os.chdir(topdir)
+#print "build of openmpi completed"
+#
+############################
+## ITK
+############################
+cmakeinst(depdir, depprefix, "itk", ITK_URL, ("-DBUILD_TESTING=OFF", "-DBUILD_EXAMPLES=OFF"))
+#itk_archive_file = split(ITK_URL)[1]
+#itk_archive_path = join(depdir, itk_archive_file)
+#itk_src_dir = join("..", (splitext(splitext(itk_archive_file)[0])[0]))
+#itk_build_dir = join(depdir, "itk-build")
+#itk_install_dir = join(depprefix, "itk")
+#if not os.path.exists(itk_src_dir):
+#    if not os.path.exists(itk_archive_path):
+#        print "Downloading ITK"
+#        urlretrieve(ITK_URL, itk_archive_path, progress)
+#    tarobj = tarfile.open(itk_archive_path, 'r:gz')
+#    tarobj.extractall(depdir)
+#
+#print "Building ITK"
+#try:
+#    os.makedirs(itk_build_dir)
+#except os.error:
+#    print "Directory %s exists, using it" %itk_build_dir
+#
+#os.chdir(itk_build_dir)
+#if os.system("cmake %s -DCMAKE_INSTALL_PREFIX=%s -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF" % (itk_src_dir, itk_install_dir)) != 0:
+#	print "itk configuration in %s failed" % itk_build_dir
+#	sys.exit()
+#if os.system("make -j%i" % ncpus()) != 0:
+#	print "build in %s failed" % itk_build_dir
+#	sys.exit()
+#if os.system("make install") != 0:
+#	print "build in %s failed" % itk_build_dir
+#	sys.exit()
+#os.chdir(topdir)
+#print "Build of ITK Completed"
+#
+############################
+## dysii
+############################
+cmakeinst(depdir, depprefix, "dysii", DYSII_URL, ("-DGSL=%s" % join(depprefix, "gsl"), \
+            "-DMPI=%s" % join(depprefix, "mpi"), "-DBOOST=%s" % join(depprefix, "boost")))
+#dysii_archive_file = split(DYSII_URL)[1]
+#dysii_archive_path = join(depdir, dysii_archive_file)
+#dysii_src_dir = join(depdir, (splitext(splitext(dysii_archive_file)[0])[0]))
+#dysii_build_dir = join(depdir, "dysii-build")
+#dysii_install_dir = join(depprefix, "dysii")
+#if not os.path.exists(dysii_src_dir):
+#    if not os.path.exists(dysii_archive_path):
+#        print "Downloading dysii-1.4"
+#        urlretrieve(DYSII_URL, dysii_archive_path, progress)
+#    tarobj = tarfile.open(dysii_archive_path, 'r:gz')
+#    tarobj.extractall(depdir)
+#
+#print "Checking to see if we need to patch dysii for CMAKE"
+#if not os.path.exists(join(dysii_src_dir, "CMakeLists.txt")):
+#    print "Patching dysii"
+#    os.system("patch -Np1 -d %s < %s" % (dysii_src_dir, "dysii.patch"))
+#
+#print "Building dysii"
+#try:
+#    os.makedirs(dysii_build_dir)
+#except os.error:
+#    print "Directory %s exists, using it" %dysii_build_dir
+#
+#os.chdir(dysii_build_dir)
+#if os.system("cmake %s -DGSL=%s -DMPI=%s -DBOOST=%s -DCMAKE_INSTALL_PREFIX=%s" % \
+#                (join(topdir, dysii_src_dir), gsl_install_dir, mpi_install_dir, \
+#                boost_install_dir, dysii_install_dir)) != 0:
+#	print "dysii configuration in %s failed" % dysii_build_dir
+#	sys.exit()
+#if os.system("make -j%i" % ncpus()) != 0:
+#	print "build in %s failed" % dysii_build_dir
+#	sys.exit()
+#if os.system("make install") != 0:
+#	print "build in %s failed" % dysii_build_dir
+#	sys.exit()
+#os.chdir(topdir)
+#print "Build of dysii Completed"
+#
+############################
+## brainid
+############################
+#os.chdir(srcpath)
+#brainid_build_dir = join(srcpath, "build")
+#brainid_install_dir = join(options.prefix, "install")
+#try:
+#    os.makedirs(brainid_build_dir)
+#except os.error:
+#    print "Directory %s exists, using it" %brainid_build_dir
+#
+#try:
+#    os.makedirs(brainid_install_dir)
+#except os.error:
+#    print "Directory %s exists, using it" %brainid_install_dir
+#
+#os.chdir(brainid_build_dir)
+#print "cmake %s -DITK_DIR=%s -Ddysii_INCLUDE_DIRS=%s -Ddysii_LIBRARY_DIRS=%s -DCMAKE_INSTALL_PREFIX=%s" %  (srcpath, join(itk_install_dir, "lib", "InsightToolkit"), join(dysii_install_dir, "include"),  join(dysii_install_dir, "lib"), brainid_install_dir)
+#if os.system("cmake %s -DITK_DIR=%s -Ddysii_INCLUDE_DIRS=%s -Ddysii_LIBRARY_DIRS=%s -DCMAKE_INSTALL_PREFIX=%s" %  (srcpath, join(itk_install_dir, "lib", "InsightToolkit"), join(dysii_install_dir, "include"),  join(dysii_install_dir, "lib"), brainid_install_dir)) != 0:
+#	print "dysii configuration in %s failed" % dysii_build_dir
+#	sys.exit()
+#if os.system("make -j%i" % ncpus()) != 0:
+#	print "build in %s failed" % brainid_build_dir
+#	sys.exit()
+#if os.system("make install") != 0:
+#	print "install from %s failed" % brainid_build_dir
+#	sys.exit()
+#os.chdir(topdir)
+#print "Build of brainid Completed"
+#

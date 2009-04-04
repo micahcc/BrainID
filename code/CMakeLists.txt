@@ -8,8 +8,10 @@ cmake_minimum_required(VERSION 2.6)
 #  MESSAGE(FATAL_ERROR "Cannot build without ITK. Please set ITK_DIR.")
 #ENDIF(ITK_FOUND)
 
-INCLUDE_DIRECTORIES(${brainid_SOURCE_DIR}/code/include ${dysii_INCLUDE_DIRS})
-LINK_DIRECTORIES(${brainid_SOURCE_DIR}/code ${dysii_LIBRARY_DIRS})
+INCLUDE_DIRECTORIES(${brainid_SOURCE_DIR}/code/include ${dysii_INCLUDE_DIRS}
+    ${BOOST_INCLUDE_DIRS})
+LINK_DIRECTORIES(${brainid_SOURCE_DIR}/code ${dysii_LIBRARY_DIRS}
+    ${BOOST_LIBRARY_DIRS})
 
 ADD_LIBRARY(segment segment.cpp)
 ADD_LIBRARY(BoldModel BoldModel.cpp)
@@ -24,7 +26,8 @@ ADD_EXECUTABLE(boldgen boldgen.cpp)
 
 TARGET_LINK_LIBRARIES(fmri_timeseries segment ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
 TARGET_LINK_LIBRARIES(unbias ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
-TARGET_LINK_LIBRARIES(brainid BoldModel ITKAlgorithms ITKBasicFilters
-    ITKCommon ITKIO mpi boost_mpi-mt gsl lapack dysii)
+TARGET_LINK_LIBRARIES(brainid BoldModel boost_serialization-gcc41-mt-1_38 ITKAlgorithms ITKBasicFilters
+    ITKCommon ITKIO mpi boost_mpi-mt boost_serialization gsl lapack dysii)
 TARGET_LINK_LIBRARIES(boldgen BoldModel ITKAlgorithms ITKBasicFilters
+    boost_serialization boost_wserialization
     ITKCommon ITKIO mpi boost_mpi-mt gsl lapack dysii)
