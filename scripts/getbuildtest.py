@@ -14,10 +14,11 @@ CMAKE_URL="http://www.cmake.org/files/v2.6/cmake-2.6.2.tar.gz"
 DYSII_URL="http://www.indii.org/files/dysii/releases/dysii-1.4.0.tar.gz"
 GSL_URL="ftp://ftp.gnu.org/gnu/gsl/gsl-1.9.tar.gz"
 #BOOST_URL="http://downloads.sourceforge.net/boost/boost_1_38_0.tar.gz?use_mirror=voxel"
-BOOST_URL="http://voxel.dl.sourceforge.net/sourceforge/boost/boost_1_38_0.tar.gz"
+BOOST_URL="http://voxel.dl.sourceforge.net/sourceforge/boost/boost_1_36_0.tar.gz"
 BINDINGS_URL="http://mathema.tician.de/news.tiker.net/download/software/boost-numeric-bindings/boost-numeric-bindings-20081116.tar.gz"
 ITK_URL="http://voxel.dl.sourceforge.net/sourceforge/itk/InsightToolkit-3.12.0.tar.gz"
-OPENMPI_URL="http://www.open-mpi.org/software/ompi/v1.3/downloads/openmpi-1.3.1.tar.gz"
+#OPENMPI_URL="http://www.open-mpi.org/software/ompi/v1.3/downloads/openmpi-1.3.1.tar.gz"
+OPENMPI_URL="http://www.open-mpi.org/software/ompi/v1.2/downloads/openmpi-1.2.9.tar.gz"
 LAPACK_URL="http://www.netlib.org/lapack/lapack-3.1.1.tgz"
 
 
@@ -67,9 +68,9 @@ def buildboost(basedir, instdir, name, url, defstrings = ""):
         shutil.rmtree(join(install_dir, "include", "boost"))
     except os.error:
         pass
-    shutil.move(join(install_dir, "include","boost-1_38","boost"), \
+    shutil.move(join(install_dir, "include","boost-1_36","boost"), \
                 join(install_dir, "include", "boost"))
-    shutil.rmtree(join(install_dir, "include", "boost-1_38"))
+    shutil.rmtree(join(install_dir, "include", "boost-1_36"))
 
     os.chdir(join(install_dir, "lib"));
 
@@ -297,6 +298,8 @@ if os.system("cmake %s -DITK_DIR=%s " % (srcpath, join(itk_install_dir, "lib", "
                 + " -Ddysii_LIBRARY_DIRS=%s " % join(dysii_install_dir, "lib")\
                 + " -DBOOST_INCLUDE_DIRS=%s " % join(boost_install_dir, "include")\
                 + " -DBOOST_LIBRARY_DIRS=%s " % join(boost_install_dir, "lib")\
+                + " -DMPI_INCLUDE_DIRS=%s " % join(mpi_install_dir, "include")\
+                + " -DMPI_LIBRARY_DIRS=%s " % join(mpi_install_dir, "lib")\
                 + " -DCMAKE_INSTALL_PREFIX=%s " % brainid_install_dir) != 0:
     print "brainid configuration in %s failed" % brainid_build_dir
     sys.exit()

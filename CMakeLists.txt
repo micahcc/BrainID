@@ -24,7 +24,9 @@ FIND_LIBRARY(dysii_LIBRARY_DIRS NAMES dysii PATH /usr/lib)
 
 find_path(BOOST_INCLUDE_DIRS boost/mpi.h)
 FIND_LIBRARY(BOOST_LIBRARY_DIRS NAMES boost_serialization PATH /usr/lib) 
-#find_path(MPI_INCLUDE mpi.hpp)
+
+find_path(MPI_INCLUDE_DIRS mpi.hpp)
+FIND_LIBRARY(MPI_LIBRARY_DIRS NAMES mpi PATH /usr/lib) 
 
 SUBDIRS(code)
 SUBDIRS(testing)
