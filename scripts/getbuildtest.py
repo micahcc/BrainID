@@ -14,7 +14,7 @@ CMAKE_URL="http://www.cmake.org/files/v2.6/cmake-2.6.2.tar.gz"
 DYSII_URL="http://www.indii.org/files/dysii/releases/dysii-1.4.0.tar.gz"
 GSL_URL="ftp://ftp.gnu.org/gnu/gsl/gsl-1.9.tar.gz"
 #BOOST_URL="http://downloads.sourceforge.net/boost/boost_1_38_0.tar.gz?use_mirror=voxel"
-BOOST_URL="http://voxel.dl.sourceforge.net/sourceforge/boost/boost_1_36_0.tar.gz"
+BOOST_URL="http://voxel.dl.sourceforge.net/sourceforge/boost/boost_1_38_0.tar.gz"
 BINDINGS_URL="http://mathema.tician.de/news.tiker.net/download/software/boost-numeric-bindings/boost-numeric-bindings-20081116.tar.gz"
 ITK_URL="http://voxel.dl.sourceforge.net/sourceforge/itk/InsightToolkit-3.12.0.tar.gz"
 OPENMPI_URL="http://www.open-mpi.org/software/ompi/v1.3/downloads/openmpi-1.3.1.tar.gz"
@@ -40,6 +40,68 @@ def getep(basedir, name, url):
         print "Patching %s" % name
         os.system("patch -Np2 -d %s < %s" % (src_dir, "%s.patch" % name))
     return src_dir
+
+#defstrings should be a tuple of string arguments to pass to configure
+def buildboost(basedir, instdir, name, url, defstrings = ""):
+    topdir = os.getcwd()
+    src_dir = getep(basedir, name, url)
+    install_dir = join(instdir, name)
+    
+    print "building %s" % name
+    os.chdir(src_dir)
+    if os.system("make -j%i" % ncpus()) != 0:
+        if  os.system("./configure --prefix=%s %s" % (install_dir, " ".join(defstrings))) != 0:
+            print "%s configuration failed" % name
+            sys.exit()
+        os.system("echo using mpi \; >> %s/user-config.jam" % src_dir)
+        if os.system("make -j%i" % ncpus()) != 0:
+            print "build in %s failed" % src_dir
+            sys.exit()
+    
+    if os.system("make install") != 0:
+        print "make install in %s failed" % src_dir
+        sys.exit()
+    print "build of %s completed" % name
+    
+    try:
+        shutil.rmtree(join(install_dir, "include", "boost"))
+    except os.error:
+        pass
+    shutil.move(join(install_dir, "include","boost-1_38","boost"), \
+                join(install_dir, "include", "boost"))
+    shutil.rmtree(join(install_dir, "include", "boost-1_38"))
+
+    os.chdir(join(install_dir, "lib"));
+
+    liblist = [];
+    for file in os.listdir("./"):
+        try:
+            os.readlink(file)
+            print "Success: %s" % file
+        except os.error:
+            print "Error: %s" % file
+            liblist.append(file)
+
+    print liblist
+    for file in liblist:
+        print file
+        print splitext(file)
+        print file.split("-")
+        if splitext(file)[1] == ".a":
+            print "Symlinking %s -> %s" % (file.split("-")[0] + ".a", file)
+            try: 
+                os.symlink(file, file.split("-")[0] +".a");
+            except os.error:
+                pass
+        else:
+            print "Symlinking %s -> %s" % (file.split("-")[0] + ".so", file)
+            try: 
+                os.symlink(file, file.split("-")[0] + ".so");
+            except os.error:
+                pass
+
+    os.chdir(topdir)
+    return install_dir
 
 #defstrings should be a tuple of string arguments to pass to configure
 def confmakeinst(basedir, instdir, name, url, defstrings = ""):
@@ -169,14 +231,7 @@ gsl_install_dir = confmakeinst(depdir, depprefix, "gsl", GSL_URL)
 ############################
 # Boost 
 ############################
-boost_install_dir = confmakeinst(depdir, depprefix, "boost", BOOST_URL, ("--with-libraries=serialization,mpi", ""))
-try:
-    shutil.rmtree(join(depprefix, "boost", "include", "boost"))
-except os.error:
-    pass
-shutil.move(join(boost_install_dir, "include","boost-1_36","boost"), \
-            join(boost_install_dir, "include", "boost"))
-shutil.rmtree(join(boost_install_dir, "include", "boost-1_36"))
+boost_install_dir = buildboost(depdir, depprefix, "boost", BOOST_URL, ("-with-libraries=serialization,mpi", "") )
 
 ############################
 # Boost Numeric Bindings
@@ -211,13 +266,13 @@ lapack_src_dir = getep(depdir, "lapack", LAPACK_URL)
 os.chdir(lapack_src_dir)
 os.system("make -j%i blaslib" % ncpus())
 os.system("make -j%i all" % ncpus())
-for files in os.listdir("./"):
-    if splitext(files)[1] == ".a":
-        os.
+#for files in os.listdir("./"):
+#    if splitext(files)[1] == ".a":
+#        os.
 
-os.path.
+#os.path.
 os.chdir(topdir)
-sys.exit()
+
 ###########################
 # dysii
 ###########################

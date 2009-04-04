@@ -21,6 +21,9 @@ ENDIF(ITK_FOUND)
 
 find_path(dysii_INCLUDE_DIRS indii/ml/filter/ParticleFilter.hpp)
 FIND_LIBRARY(dysii_LIBRARY_DIRS NAMES dysii PATH /usr/lib) 
+
+find_path(BOOST_INCLUDE_DIRS boost/mpi.h)
+FIND_LIBRARY(BOOST_LIBRARY_DIRS NAMES boost_serialization PATH /usr/lib) 
 #find_path(MPI_INCLUDE mpi.hpp)
 
 SUBDIRS(code)
