@@ -28,5 +28,8 @@ FIND_LIBRARY(BOOST_LIBRARY_DIRS NAMES boost_serialization PATH /usr/lib)
 find_path(MPI_INCLUDE_DIRS mpi.hpp)
 FIND_LIBRARY(MPI_LIBRARY_DIRS NAMES mpi PATH /usr/lib) 
 
+find_path(GSL_INCLUDE_DIRS gsl/gsl_errno.h)
+FIND_LIBRARY(GSL_LIBRARY_DIRS NAMES gsl PATH /usr/lib) 
+
 SUBDIRS(code)
 SUBDIRS(testing)

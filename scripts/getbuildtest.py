@@ -14,7 +14,7 @@ CMAKE_URL="http://www.cmake.org/files/v2.6/cmake-2.6.2.tar.gz"
 DYSII_URL="http://www.indii.org/files/dysii/releases/dysii-1.4.0.tar.gz"
 GSL_URL="ftp://ftp.gnu.org/gnu/gsl/gsl-1.9.tar.gz"
 #BOOST_URL="http://downloads.sourceforge.net/boost/boost_1_38_0.tar.gz?use_mirror=voxel"
-BOOST_URL="http://voxel.dl.sourceforge.net/sourceforge/boost/boost_1_36_0.tar.gz"
+BOOST_URL="http://voxel.dl.sourceforge.net/sourceforge/boost/boost_1_38_0.tar.gz"
 BINDINGS_URL="http://mathema.tician.de/news.tiker.net/download/software/boost-numeric-bindings/boost-numeric-bindings-20081116.tar.gz"
 ITK_URL="http://voxel.dl.sourceforge.net/sourceforge/itk/InsightToolkit-3.12.0.tar.gz"
 #OPENMPI_URL="http://www.open-mpi.org/software/ompi/v1.3/downloads/openmpi-1.3.1.tar.gz"
@@ -68,9 +68,11 @@ def buildboost(basedir, instdir, name, url, defstrings = ""):
         shutil.rmtree(join(install_dir, "include", "boost"))
     except os.error:
         pass
-    shutil.move(join(install_dir, "include","boost-1_36","boost"), \
+
+    #kludge
+    shutil.move(join(install_dir, "include","boost-1_38","boost"), \
                 join(install_dir, "include", "boost"))
-    shutil.rmtree(join(install_dir, "include", "boost-1_36"))
+    shutil.rmtree(join(install_dir, "include", "boost-1_38"))
 
     os.chdir(join(install_dir, "lib"));
 
@@ -224,6 +226,13 @@ os.environ["PATH"] = join(cmake_install_dir, "bin") + ":"+ os.environ["PATH"]
 # gsl
 ###########################
 gsl_install_dir = confmakeinst(depdir, depprefix, "gsl", GSL_URL)
+os.environ["PATH"] = join(gsl_install_dir, "bin") + ":"+ os.environ["PATH"]
+
+###########################
+# openmpi
+###########################
+mpi_install_dir = confmakeinst(depdir, depprefix, "mpi", OPENMPI_URL)
+os.environ["PATH"] = join(mpi_install_dir, "bin") + ":"+ os.environ["PATH"]
 
 ############################
 # Boost 
@@ -247,14 +256,10 @@ shutil.move(join(depdir, "boost-numeric-bindings", "boost", "numeric", "bindings
 os.chdir(topdir)
 
 ###########################
-# openmpi
-###########################
-mpi_install_dir = confmakeinst(depdir, depprefix, "mpi", OPENMPI_URL)
-
-###########################
 # ITK
 ###########################
 itk_install_dir = cmakeinst(depdir, depprefix, "itk", ITK_URL, ("-DBUILD_TESTING=OFF", "-DBUILD_EXAMPLES=OFF"))
+os.environ["PATH"] = join(itk_install_dir, "bin") + ":"+ os.environ["PATH"]
 
 ###########################
 # LAPACK
@@ -300,6 +305,8 @@ if os.system("cmake %s -DITK_DIR=%s " % (srcpath, join(itk_install_dir, "lib", "
                 + " -DBOOST_LIBRARY_DIRS=%s " % join(boost_install_dir, "lib")\
                 + " -DMPI_INCLUDE_DIRS=%s " % join(mpi_install_dir, "include")\
                 + " -DMPI_LIBRARY_DIRS=%s " % join(mpi_install_dir, "lib")\
+                + " -DGSL_INCLUDE_DIRS=%s " % join(gsl_install_dir, "include")\
+                + " -DGSL_LIBRARY_DIRS=%s " % join(gsl_install_dir, "lib")\
                 + " -DCMAKE_INSTALL_PREFIX=%s " % brainid_install_dir) != 0:
     print "brainid configuration in %s failed" % brainid_build_dir
     sys.exit()
@@ -315,3 +322,10 @@ if os.system("make install") != 0:
 os.chdir(topdir)
 print "Build of brainid Completed"
 
+print "Writing out bash script"
+FILE = open(PROFILE_OUT, "w")
+FILE.writeline("#!/bin/bash")
+FILE.writeline("PATH=%s:%s:%s:%s:$PATH" % (join(mpi_install_dir, "bin"), 
+            join(gsl_install_dir, "bin"), join(itk_install_dir, "bin"), 
+            join(cmake_install_dir, "bin")))
+FILE.close()

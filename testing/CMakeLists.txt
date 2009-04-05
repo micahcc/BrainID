@@ -11,9 +11,9 @@ SET(CMAKE_VERBOSE_MAKEFILE 1)
 #ENDIF(ITK_FOUND)
 
 INCLUDE_DIRECTORIES(${brainid_SOURCE_DIR}/code/include ${BOOST_INCLUDE_DIRS}
-    ${dysii_INCLUDE_DIRS})
+    ${dysii_INCLUDE_DIRS} ${MPI_INCLUDE_DIRS} ${GSL_INCLUDE_DIRS})
 LINK_DIRECTORIES(${brainid_SOURCE_DIR}/code ${BOOST_LIBRARY_DIRS} 
-    ${dysii_LIBRARY_DIRS})
+    ${dysii_LIBRARY_DIRS} ${MPI_LIBRARY_DIRS} ${GSL_LIBRARY_DIRS})
 
 if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
@@ -25,8 +25,8 @@ ADD_EXECUTABLE(segment_alltogether segment_alltogether.cpp)
 ADD_EXECUTABLE(segment_sections segment_sections.cpp)
 ADD_EXECUTABLE(segment_times segment_times.cpp)
 
-TARGET_LINK_LIBRARIES(particle_test mpi boost_mpi boost_serialization ITKIO ITKCommon dysii gsl
-    lapack)
+TARGET_LINK_LIBRARIES(particle_test mpi boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
+    ITKCommon ITKIO mpi gslcblas gsl lapack dysii)
 
 TARGET_LINK_LIBRARIES(segment_alltogether ITKCommon segment ITKIO)
 TARGET_LINK_LIBRARIES(segment_sections ITKCommon segment ITKIO)
