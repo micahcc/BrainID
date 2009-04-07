@@ -1,6 +1,6 @@
-diff -Naur ../../dysii-1.4.0/CMakeLists.txt BrainID-Dependencies/dysii-1.4.0/CMakeLists.txt
+diff -Naur ../../dysii-1.4.0/CMakeLists.txt BrainID-Dependencies-Build/dysii-1.4.0/CMakeLists.txt
 --- ../../dysii-1.4.0/CMakeLists.txt	1970-01-01 00:00:00.000000000 +0000
-+++ BrainID-Dependencies/dysii-1.4.0/CMakeLists.txt	2009-04-02 19:31:59.000000000 +0000
++++ BrainID-Dependencies-Build/dysii-1.4.0/CMakeLists.txt	2009-04-04 23:59:59.000000000 +0000
 @@ -0,0 +1,37 @@
 +cmake_minimum_required(VERSION 2.6)
 +SET(CMAKE_VERBOSE_MAKEFILE)
@@ -39,9 +39,9 @@ diff -Naur ../../dysii-1.4.0/CMakeLists.txt BrainID-Dependencies/dysii-1.4.0/CMa
 +
 +SET(dysii_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src)
 +SET(dysii_LIBRARY_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
-diff -Naur ../../dysii-1.4.0/UseDysii.cmake BrainID-Dependencies/dysii-1.4.0/UseDysii.cmake
+diff -Naur ../../dysii-1.4.0/UseDysii.cmake BrainID-Dependencies-Build/dysii-1.4.0/UseDysii.cmake
 --- ../../dysii-1.4.0/UseDysii.cmake	1970-01-01 00:00:00.000000000 +0000
-+++ BrainID-Dependencies/dysii-1.4.0/UseDysii.cmake	2009-04-02 19:32:15.000000000 +0000
++++ BrainID-Dependencies-Build/dysii-1.4.0/UseDysii.cmake	2009-04-04 23:59:59.000000000 +0000
 @@ -0,0 +1,16 @@
 +#   This file will permit you to add dysii to your project using
 +#   FIND_PACKAGE(dysii REQUIRED)
@@ -59,3 +59,29 @@ diff -Naur ../../dysii-1.4.0/UseDysii.cmake BrainID-Dependencies/dysii-1.4.0/Use
 +
 +endif(NOT dysii_USE_FILE_INCLUDED)
 +
+diff -Naur ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp BrainID-Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp
+--- ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp	2008-12-17 15:15:27.000000000 +0000
++++ BrainID-Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp	2009-04-07 22:34:07.000000000 +0000
+@@ -88,7 +88,7 @@
+    */
+   void resample(ParticleResampler* resampler);
+ 
+-private:
++protected:
+   /**
+    * Model.
+    */
+diff -Naur ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilterModel.hpp BrainID-Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilterModel.hpp
+--- ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilterModel.hpp	2008-12-17 15:15:27.000000000 +0000
++++ BrainID-Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilterModel.hpp	2009-04-07 22:31:38.000000000 +0000
+@@ -51,8 +51,8 @@
+    * @return \f$f(\mathbf{s}, \mathbf{w}, \Delta t)\f$; propagation of
+    * the particle through the transition function, with noise.
+    */
+-  virtual indii::ml::aux::vector transition(const indii::ml::aux::vector& s,
+-      const T t, const T delta) = 0;
++  virtual void transition(indii::ml::aux::vector& s,
++      const T t, const T delta) = 0;
+ 
+   /**
+    * Apply the measurement function to an individual particle.
