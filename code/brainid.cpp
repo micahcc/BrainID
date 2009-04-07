@@ -137,7 +137,7 @@ int main(int argc, char* argv[])
         fpart << "# rows: " << NUM_PARTICLES << endl;
         fpart << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
         particles = filter.getFilteredState().getAll();
-        for(int i=0 ; i<particles.size(); i++) {
+        for(unsigned int i=0 ; i<particles.size(); i++) {
             fpart << i << " ";
             outputVector(fpart, particles[i].getExpectation());
             fpart << endl;
