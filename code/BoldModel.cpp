@@ -38,7 +38,7 @@ BoldModel::~BoldModel()
 //necessary. This might not work though, because Particle Filter likes to
 //keep all the particles around for history. After trying, this would mean
 //that particle filter is no longer compatible with Filter.hpp.
-aux::vector BoldModel::transition(const aux::vector& s,
+void BoldModel::transition(aux::vector& s,
         const double t, const double delta)
 {
     //use the default input
@@ -46,7 +46,7 @@ aux::vector BoldModel::transition(const aux::vector& s,
 }
 
 //TODO make transition as FAST as possible
-aux::vector BoldModel::transition(const aux::vector& dustin,
+void BoldModel::transition(aux::vector& dustin,
         const double time, const double delta_t, const aux::vector& u_t)
 {
     aux::vector dustout(SYSTEM_SIZE);
@@ -128,7 +128,7 @@ aux::vector BoldModel::transition(const aux::vector& dustin,
 //    std::cerr  <<"Printing Output state" << std::endl;
 //    outputVector(std::cerr, dustout);
 //    std::cerr << std::endl;
-    return dustout;
+//    return dustout;
 }
 
 aux::vector BoldModel::measure(const aux::vector& s)

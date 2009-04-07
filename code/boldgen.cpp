@@ -122,7 +122,7 @@ int main (int argc, char** argv)
             fin >> input[0];
             fin >> nextinput;
         }
-        system = model.transition(system, realt, realt-prev, input);
+        model.transition(system, realt, realt-prev, input);
         //TODO add noise to simulation
         
         //check to see if it is time to sample
