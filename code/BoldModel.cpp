@@ -7,23 +7,23 @@
 #include <cmath>
 #include <iomanip>
 
-BoldModel::BoldModel() : theta_sigmas(THETA_SIZE)
+BoldModel::BoldModel(aux::vector u)// : theta_sigmas(THETA_SIZE)
 {
     if(THETA_SIZE + STATE_SIZE*SIMUL_STATES != SYSTEM_SIZE) {
         std::cerr << "Incorrect system size" << std::endl;
         exit(-1);
     }
+    this->input = u;
+//    theta_sigmas(TAU_S) = 1.07/20;
+//    theta_sigmas(TAU_F) = 1.51/20;
+//    theta_sigmas(EPSILON) = .014/20;
+//    theta_sigmas(TAU_0) = 1.5/20;
+//    theta_sigmas(ALPHA) = .004/20;
+//    theta_sigmas(E_0) = .072/20;
+//    theta_sigmas(V_0) = .006/20;
 
-    theta_sigmas(TAU_S) = 1.07/20;
-    theta_sigmas(TAU_F) = 1.51/20;
-    theta_sigmas(EPSILON) = .014/20;
-    theta_sigmas(TAU_0) = 1.5/20;
-    theta_sigmas(ALPHA) = .004/20;
-    theta_sigmas(E_0) = .072/20;
-    theta_sigmas(V_0) = .006/20;
-
-    small_g = .95e-5;
-    //  var_e = 3.92e-6;
+//    small_g = .95e-5;
+//    //  var_e = 3.92e-6;
     var_e = 3.92e-3;
     sigma_e = sqrt(var_e);
 }
@@ -36,12 +36,13 @@ BoldModel::~BoldModel()
 //TODO, I would like to modify these functions so that the vector s
 //will just be modified in place, which would reduce the amount of copying
 //necessary. This might not work though, because Particle Filter likes to
-//keep all the particles around for history.
+//keep all the particles around for history. After trying, this would mean
+//that particle filter is no longer compatible with Filter.hpp.
 aux::vector BoldModel::transition(const aux::vector& s,
         const double t, const double delta)
 {
-    aux::zero_vector u(INPUT_SIZE);
-    return transition(s, t, delta, u);
+    //use the default input
+    return transition(s, t, delta, input);
 }
 
 //TODO make transition as FAST as possible
@@ -178,22 +179,22 @@ void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme)
     
     const double mu_V_T = 1;
     const double mu_Q_T = 1;
-    const double mu_S_T = .25;
+    const double mu_S_T = 0;
     const double mu_F_T = 1;
 
     //set the variances for all the variables
-    const double var_TAU_S = 1.07*1.07;
-    const double var_TAU_F = 1.51*1.51;
-    const double var_EPSILON = 0.014*.014;
-    const double var_TAU_0 = 1.5*1.5;
-    const double var_ALPHA = .004*.004;
-    const double var_E_0 = .072*.072;
-    const double var_V_0 = .6e-2*.6e-2;
+    const double var_TAU_S =   4*1.07*1.07;
+    const double var_TAU_F =   4*1.51*1.51;
+    const double var_EPSILON = 4*0.014*.014;
+    const double var_TAU_0 =   4*1.5*1.5;
+    const double var_ALPHA =   4*.004*.004;
+    const double var_E_0 =     4*.072*.072;
+    const double var_V_0 =     4*.6e-2*.6e-2;
     
-    const double var_V_T = 2;
-    const double var_Q_T = 2;
-    const double var_S_T = 1;
-    const double var_F_T = 2;
+    const double var_V_T = .5;
+    const double var_Q_T = .5;
+    const double var_S_T = .5;
+    const double var_F_T = .1;
     
     //set the theta of the variables
     const double theta_TAU_S   = var_TAU_S/mu_TAU_S;
@@ -206,7 +207,6 @@ void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme)
     
     const double theta_V_T = var_V_T/mu_V_T;
     const double theta_Q_T = var_Q_T/mu_Q_T;
-    const double theta_S_T = var_S_T/mu_S_T;
     const double theta_F_T = var_F_T/mu_F_T;
 
     //set the k of the variables
@@ -220,7 +220,7 @@ void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme)
     
     const double k_V_T = mu_V_T/theta_V_T;
     const double k_Q_T = mu_Q_T/theta_Q_T;
-    const double k_S_T = mu_S_T/theta_S_T;
+    const double sigma_S_T = sqrt(var_S_T);
     const double k_F_T = mu_F_T/theta_F_T;
 
     //draw from the gama, assume independence between the variables
@@ -235,7 +235,7 @@ void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme)
     for(int i = 0 ; i< SIMUL_STATES ; i++) {
         fillme[indexof(V_T, i)] = gsl_ran_gamma(rng, k_V_T, theta_V_T);
         fillme[indexof(Q_T, i)] = gsl_ran_gamma(rng, k_Q_T, theta_Q_T);
-        fillme[indexof(S_T, i)] = gsl_ran_gamma(rng, k_S_T, theta_S_T);
+        fillme[indexof(S_T, i)] = gsl_ran_gaussian(rng, sigma_S_T);
         fillme[indexof(F_T, i)] = gsl_ran_gamma(rng, k_F_T, theta_F_T);
     }
 }
@@ -252,13 +252,10 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
 }
 
 
-void outputVector(std::ostream& out, aux::vector vec) {
-  aux::vector::iterator iter, end;
-  iter = vec.begin();
-  end = vec.end();
-  while (iter != end) {
-    out << std::setw(15) << *iter;
-    iter++;
+void outputVector(std::ostream& out, aux::vector mat) {
+  unsigned int i;
+  for (i = 0; i < mat.size(); i++) {
+      out << std::setw(15) << mat(i);
   }
 }
 

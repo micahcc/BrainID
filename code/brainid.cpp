@@ -16,6 +16,9 @@
 #include <indii/ml/aux/Almost2Norm.hpp>
 #include <indii/ml/aux/AlmostGaussianKernel.hpp>
 
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+
 #include "BoldModel.hpp"
 #include "RegularizedParticleResamplerMod.hpp"
 
@@ -28,9 +31,9 @@ using namespace std;
 namespace aux = indii::ml::aux;
     
 const int NUM_PARTICLES = 10000;
-const int RESAMPNESS = 1000;
+const int RESAMPNESS = 8000;
 const double SAMPLERATE = 2;
-const int DIVIDER = 8;//divider must be a power of 2 (2, 4, 8, 16, 32....)
+const int DIVIDER = 32;//divider must be a power of 2 (2, 4, 8, 16, 32....)
 
 typedef float ImagePixelType;
 typedef itk::Image< ImagePixelType,  2 > ImageType;
@@ -45,10 +48,13 @@ int main(int argc, char* argv[])
     const unsigned int size = world.size();
     fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
 
-    if(argc != 2) {
-        fprintf(stderr, "Usage: %s <inputname>\n", argv[0]);
+    if(argc < 4) {
+        fprintf(stderr, "Usage: %s <inputname> <stimfile> <serialout> [serialin]\n", argv[0]);
+        printf("stimfile is very simple, a double time followed by the new value at that time\n");
         return -1;
     }
+    
+    std::ifstream fin(argv[2]);
     
     /* Open up the input */
     ImageReaderType::Pointer reader = ImageReaderType::New();
@@ -67,7 +73,13 @@ int main(int argc, char* argv[])
     /* Create a model */
     BoldModel model; 
     aux::DiracMixturePdf x0(BoldModel::SYSTEM_SIZE);
-    model.generatePrior(x0, NUM_PARTICLES);
+    if(argc == 4) {
+        model.generatePrior(x0, NUM_PARTICLES);
+    } else  {
+        std::ifstream serialin(argv[4], std::ios::binary);
+        boost::archive::binary_iarchive inArchive(serialin);
+        inArchive >> x0;
+    }
 
     /* Create the filter */
     indii::ml::filter::ParticleFilter<double> filter(&model, x0);
@@ -114,18 +126,30 @@ int main(int argc, char* argv[])
     aux::vector sample_state(BoldModel::SYSTEM_SIZE);
 
     bool dirty = false;
-//    std::vector<aux::DiracPdf> particles;
+    std::vector<aux::DiracPdf> particles;
+    aux::vector input(1);
+    input[0] = 0;
+    double nextinput;
+    fin >> nextinput;
     while(!iter.IsAtEndOfLine()) {
-//        fpart << "# name: partilces" << t << endl;
-//        fpart << "# type: matrix" << endl;
-//        fpart << "# rows: " << NUM_PARTICLES << endl;
-//        fpart << "# columns: " << BoldModel::SYSTEM_SIZE << endl;
-//        particles = filter.getFilteredState().getAll();
-//        for(int i=0 ; i<particles.size(); i++) {
-//            outputVector(fpart, particles[i].getExpectation());
-//            fpart << endl;
-//        }
-//        fpart << endl;
+        fpart << "# name: particles" << t*1000 << endl;
+        fpart << "# type: matrix" << endl;
+        fpart << "# rows: " << NUM_PARTICLES << endl;
+        fpart << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
+        particles = filter.getFilteredState().getAll();
+        for(int i=0 ; i<particles.size(); i++) {
+            fpart << i << " ";
+            outputVector(fpart, particles[i].getExpectation());
+            fpart << endl;
+        }
+        fpart << endl;
+        
+        if(!fin.eof() && t >= nextinput) {
+            fin >> input[0];
+            fin >> nextinput;
+            model.setinput(input);
+        }
+
         if(fmod(t, SAMPLERATE) < 0.01) { 
             ++iter;//intentionally skips first measurement
             meas(0) = iter.Get();
@@ -157,7 +181,7 @@ int main(int argc, char* argv[])
         fstate << t << ' ';
         outputVector(fstate, mu);
         
-        outputMatrix(std::cerr, cov);
+//        outputMatrix(std::cerr, cov);
 //        fstate << ' ';
 //        outputVector(fstate, sample_state);
         fstate << endl;
@@ -167,6 +191,12 @@ int main(int argc, char* argv[])
 
     fmeas.close();
     fstate.close();
+
+    //serialize
+
+    std::ofstream serialout("distribution.serial", std::ios::binary);
+    boost::archive::binary_oarchive outArchive(serialout);
+    outArchive << filter.getFilteredState();
 
   return 0;
 

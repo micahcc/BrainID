@@ -126,9 +126,9 @@ RegularizedParticleResamplerMod<NT, KT>::resample(indii::ml::aux::DiracMixturePd
     /* standardise particles */
     aux::matrix sd(p.getDistributedCovariance());
     aux::vector diag_v(sd.size1());
-    std::cout << "STARTING!" << std::endl;
-    outputMatrix(std::cout, sd);
-    std::cout << std::endl << std::endl;;
+//    std::cout << "STARTING!" << std::endl;
+//    outputMatrix(std::cout, sd);
+//    std::cout << std::endl << std::endl;;
     int err = lapack::syev('V', 'U', sd, diag_v);
     assert(err == 0);
 
@@ -159,6 +159,12 @@ RegularizedParticleResamplerMod<NT, KT>::resample(indii::ml::aux::DiracMixturePd
     for (unsigned int i = 0; i < p.getSize(); i++) {
         noalias(x) = p.get(i) + prod(sd, K.sample() * N.sample(
                     p.getDimensions()));
+        for(unsigned int j = 0 ; j < (p.getDimensions()-7)/4 ; j++) {
+            if(x[10+j*4] < 0) {
+                std::cerr << "Fixing negative f value" << std::endl;
+                x[10+j*4] = .0001;
+            }
+        }
         r.add(x, p.getWeight(i));
     }
 

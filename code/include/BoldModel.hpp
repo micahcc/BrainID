@@ -32,7 +32,7 @@ class BoldModel : public indii::ml::filter::ParticleFilterModel<double>
 {
 public:
     ~BoldModel();
-    BoldModel();
+    BoldModel(aux::vector u = aux::zero_vector(INPUT_SIZE));
 
     unsigned int getStateSize() { return SYSTEM_SIZE; };
     unsigned int getStimSize() { return INPUT_SIZE; };
@@ -45,9 +45,14 @@ public:
 
     aux::vector measure(const aux::vector& s);
 
+    //acquire the weight of the particle based on the inpu
     double weight(const aux::vector& s, const aux::vector& y);
 
     void generatePrior(aux::DiracMixturePdf&, int);
+
+    //since the particle filter doesn't yet support input, we are
+    //going to hack around that and set it directly
+    void setinput(aux::vector& in) { input = in; };
     
     //Constants
     static const int THETA_SIZE = 7;
@@ -60,8 +65,14 @@ public:
     static const int STEPS = 250;
     
 private:
-    aux::vector theta_sigmas;
+    //the standard deviations for the parameters theta, which are
+    //theoretically constant for the whole volume
+//    aux::vector theta_sigmas;
+    
+    //storage for the current input
+    aux::vector input;
 
+    //goes to the index of the given state
     inline int indexof(int name, int index){
         return THETA_SIZE + index*STATE_SIZE + name;
     };
@@ -71,11 +82,16 @@ private:
     //Internal Constants
     static const double A1 = 3.4;
     static const double A2 = 1.0;
-    enum Theta { TAU_S, TAU_F, EPSILON, TAU_0, ALPHA, E_0, V_0};
-    enum StateVar { V_T, Q_T, S_T, F_T };
+    //these are at the beginning of the state array so this assigns the indices
+    enum Theta { TAU_S=0, TAU_F=1, EPSILON=2, TAU_0=3 , ALPHA=4, E_0=5, V_0=6};
+
+    //these are recurring in the state array, so V_T could be at 0,4,...16,20...
+    enum StateVar { V_T=0, Q_T=1, S_T=2, F_T =3 };
+
+    //variance to apply to 
     double var_e;
     double sigma_e;
-    double small_g;
+//    double small_g;
 };
 
 #endif
