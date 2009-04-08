@@ -1,6 +1,6 @@
 diff -Naur ../../dysii-1.4.0/CMakeLists.txt BrainID-Dependencies-Build/dysii-1.4.0/CMakeLists.txt
 --- ../../dysii-1.4.0/CMakeLists.txt	1970-01-01 00:00:00.000000000 +0000
-+++ BrainID-Dependencies-Build/dysii-1.4.0/CMakeLists.txt	2009-04-08 02:40:40.000000000 +0000
++++ BrainID-Dependencies-Build/dysii-1.4.0/CMakeLists.txt	2009-04-08 22:10:52.000000000 +0000
 @@ -0,0 +1,37 @@
 +cmake_minimum_required(VERSION 2.6)
 +SET(CMAKE_VERBOSE_MAKEFILE)
@@ -41,7 +41,7 @@ diff -Naur ../../dysii-1.4.0/CMakeLists.txt BrainID-Dependencies-Build/dysii-1.4
 +SET(dysii_LIBRARY_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
 diff -Naur ../../dysii-1.4.0/UseDysii.cmake BrainID-Dependencies-Build/dysii-1.4.0/UseDysii.cmake
 --- ../../dysii-1.4.0/UseDysii.cmake	1970-01-01 00:00:00.000000000 +0000
-+++ BrainID-Dependencies-Build/dysii-1.4.0/UseDysii.cmake	2009-04-08 02:40:40.000000000 +0000
++++ BrainID-Dependencies-Build/dysii-1.4.0/UseDysii.cmake	2009-04-08 22:10:52.000000000 +0000
 @@ -0,0 +1,16 @@
 +#   This file will permit you to add dysii to your project using
 +#   FIND_PACKAGE(dysii REQUIRED)
@@ -61,7 +61,7 @@ diff -Naur ../../dysii-1.4.0/UseDysii.cmake BrainID-Dependencies-Build/dysii-1.4
 +
 diff -Naur ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp BrainID-Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp
 --- ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp	2008-12-17 15:15:27.000000000 +0000
-+++ BrainID-Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp	2009-04-08 02:50:01.000000000 +0000
++++ BrainID-Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp	2009-04-08 22:12:53.000000000 +0000
 @@ -88,7 +88,7 @@
     */
    void resample(ParticleResampler* resampler);
@@ -71,7 +71,7 @@ diff -Naur ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp BrainID-Depe
    /**
     * Model.
     */
-@@ -129,39 +129,26 @@
+@@ -129,39 +129,27 @@
    /* pre-condition */
    assert (tnp1 >= this->tn);
  
@@ -88,7 +88,8 @@ diff -Naur ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp BrainID-Depe
 -
 -    p_xtnp1_ytnp1.add(x, w);
 +  for (unsigned int i = 0; i < this->p_xtn_ytn.getSize(); i++) {
-+    model->transition(this->p_xtn_ytn.get(i), this->tn, delta);
++    if(model->transition(this->p_xtn_ytn.get(i), this->tn, delta) < 0)
++      this->p_xtn_ytn.setWeight(i, 0);
    }
  
    /* update state */
@@ -115,7 +116,7 @@ diff -Naur ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp BrainID-Depe
  }
  
  template <class T>
-@@ -172,23 +159,19 @@
+@@ -172,23 +160,20 @@
    /* pre-condition */
    assert (tnp1 >= this->tn);
  
@@ -132,11 +133,12 @@ diff -Naur ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp BrainID-Depe
 -
 -    p_xtnp1_ytnp1.add(x, w);
 +  for (unsigned int i = 0; i < this->p_xtn_ytn.getSize(); i++) {
-+  //move particle forward
-+    model->transition(this->p_xtn_ytn.get(i), this->tn, delta);
-+  //weight particle based on sampling and previous weight
-+    this->p_xtn_ytn.setWeight(i, this->p_xtn_ytn.getWeight(i) * 
-+          model->weight(this->p_xtn_ytn.get(i), ytnp1));
++    //move particle forward, and in case of error make the weight 0
++    if(model->transition(this->p_xtn_ytn.get(i), this->tn, delta) < 0)
++      this->p_xtn_ytn.setWeight(i, 0);
++    else //weight particle based on sampling and previous weight
++      this->p_xtn_ytn.setWeight(i, this->p_xtn_ytn.getWeight(i) * 
++            model->weight(this->p_xtn_ytn.get(i), ytnp1));
    }
  
    /* update state */
@@ -147,13 +149,13 @@ diff -Naur ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp BrainID-Depe
  template <class T>
 diff -Naur ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilterModel.hpp BrainID-Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilterModel.hpp
 --- ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilterModel.hpp	2008-12-17 15:15:27.000000000 +0000
-+++ BrainID-Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilterModel.hpp	2009-04-08 02:40:40.000000000 +0000
++++ BrainID-Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilterModel.hpp	2009-04-08 22:13:08.000000000 +0000
 @@ -51,7 +51,7 @@
     * @return \f$f(\mathbf{s}, \mathbf{w}, \Delta t)\f$; propagation of
     * the particle through the transition function, with noise.
     */
 -  virtual indii::ml::aux::vector transition(const indii::ml::aux::vector& s,
-+  virtual void transition(indii::ml::aux::vector& s,
++  virtual int transition(indii::ml::aux::vector& s,
        const T t, const T delta) = 0;
  
    /**

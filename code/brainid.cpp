@@ -173,12 +173,12 @@ int main(int argc, char* argv[])
         cov = filter.getFilteredState().getDistributedCovariance();
 
         /* output measurement */
-        fmeas << t << ' ';
+        fmeas << setw(10) << t;
         outputVector(fmeas, meas);
-        fmeas << " " << model.measure(mu)(0) << endl;
+        fmeas << setw(12) << model.measure(mu)(0) << endl;
 
         /* output filtered state */
-        fstate << t << ' ';
+        fstate << setw(10) << t; 
         outputVector(fstate, mu);
         
 //        outputMatrix(std::cerr, cov);

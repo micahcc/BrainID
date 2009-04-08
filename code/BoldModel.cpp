@@ -38,7 +38,7 @@ BoldModel::~BoldModel()
 //necessary. This might not work though, because Particle Filter likes to
 //keep all the particles around for history. After trying, this would mean
 //that particle filter is no longer compatible with Filter.hpp.
-void BoldModel::transition(aux::vector& s,
+int BoldModel::transition(aux::vector& s,
         const double t, const double delta)
 {
     //use the default input
@@ -46,89 +46,54 @@ void BoldModel::transition(aux::vector& s,
 }
 
 //TODO make transition as FAST as possible
-void BoldModel::transition(aux::vector& dustin,
+int BoldModel::transition(aux::vector& dustin,
         const double time, const double delta_t, const aux::vector& u_t)
 {
-    aux::vector dustout(SYSTEM_SIZE);
-//    static aux::symmetric_matrix cov(1);
-//    cov(0,0) = 1;
-//    static aux::GaussianPdf rng(aux::zero_vector(1), cov);
-//    double v_t;
- 
-    //transition the parameters
-    //the GaussianPdf class is a little shady for non univariate, zero-mean
-    //cases, so we will just sample from the N(0,1) case and then convert
-    //the variables to a correct variance by multiplying by the std-dev
-    //The std-deviations are 1/2 the stated std-deviations listed in 
-    //Johnston et al.
-    dustout(TAU_S)   = dustin(TAU_S)  ; //+ rng.sample()[0] * theta_sigmas(TAU_S);
-    dustout(TAU_F)   = dustin(TAU_F)  ; //+ rng.sample()[0] * theta_sigmas(TAU_F);
-    dustout(EPSILON) = dustin(EPSILON); //+ rng.sample()[0] * theta_sigmas(EPSILON);
-    dustout(TAU_0)   = dustin(TAU_0)  ; //+ rng.sample()[0] * theta_sigmas(TAU_0);
-    dustout(ALPHA)   = dustin(ALPHA)  ; //+ rng.sample()[0] * theta_sigmas(ALPHA);
-    dustout(E_0)     = dustin(E_0)    ; //+ rng.sample()[0] * theta_sigmas(E_0);
-    dustout(V_0)     = dustin(V_0)    ; //+ rng.sample()[0] * theta_sigmas(V_0);
-
 //    std::cerr  <<"Printing input state" << std::endl;
 //    outputVector(std::cerr, dustin);
 //    std::cerr << std::endl;
+    double dot1, dot2, dot3;
+    double tmpA, tmpB;
+
     //transition the actual state variables
     //TODO, potentially add some randomness here.
     for(int ii=0 ; ii<SIMUL_STATES ; ii++) {
-        //This is a bit of a kludge, but it is unavoidable right now
-        //once this function returns void and dustin isn't const this
-        //won't be as necessary, or this could be done when the prior
-        //is generated. 
-        //Note: Removed code because weight SHOULD filter out NAN particles
-//        v_t = dustin[indexof(V_T,ii)];
-//        if(v_t < 0) {
-//            fprintf(stderr, "Warning, had to move volume to");
-//            fprintf(stderr, "zero because it was negative\n");
-//            v_t = 0;
-//        }
         //V_t* = (1/tau_0) * ( f_t - v_t ^ (1/\alpha)) 
-        double dot = (  ( dustin[indexof(F_T,ii)] - 
+        dot1 = (  ( dustin[indexof(F_T,ii)] - 
                     pow(dustin[indexof(V_T,ii)], 1./dustin[ALPHA]) ) / 
                     dustin[TAU_0]  );//  + (rng.sample())[0];
-        if(isnan(dot) || isinf(dot))
-            dot = 0;
-        dustout[indexof(V_T,ii)] = dustin[indexof(V_T,ii)] + dot*delta_t;
-
-        //this is rather important. It truncates v_t to be positive. While
-        //this is something like a kludge it doesn't make sense to have negative
-        //volume anyway, and having a negative volume is the result of too large steps
-        //if(dustout[indexof(V_T,ii)] < 0 || isnan(dustout[indexof(V_T,ii)]))
-        //    dustout[indexof(V_T,ii)] = 0;
+//        if(isnan(dot) || isinf(dot))
+//            dot = 0;
+        dustin[indexof(V_T,ii)] += dot1*delta_t;
 
         //Q_t* = \frac{1}{tau_0} * (\frac{f_t}{E_0} * (1- (1-E_0)^{1/f_t}) - 
         //              \frac{q_t}{v_t^{1-1/\alpha})
-        double tmpA = (dustin[indexof(F_T,ii)] / dustin[E_0]) * 
+        tmpA = (dustin[indexof(F_T,ii)] / dustin[E_0]) * 
                     (1 - pow( 1. - dustin[E_0], 1./dustin[indexof(F_T,ii)]));
-        double tmpB = dustin[indexof(Q_T,ii)] / 
+        tmpB = dustin[indexof(Q_T,ii)] / 
                     pow(dustin[indexof(V_T,ii)], 1.-1./dustin[ALPHA]);
-        dot =  ( tmpA - tmpB )/dustin[TAU_0];
-        if(isnan(dot) || isinf(dot))
-            dot = 0;
-        dustout[indexof(Q_T,ii)] = dustin[indexof(Q_T,ii)] + dot*delta_t;
+        dot2 =  ( tmpA - tmpB )/dustin[TAU_0];
+//        if(isnan(dot) || isinf(dot))
+//            dot = 0;
+        dustin[indexof(Q_T,ii)] += dot2*delta_t;
 
         //S_t* = \epsilon*u_t - 1/\tau_s * s_t - 1/\tau_f * (f_t - 1)
-        dot = u_t[0]*dustin[EPSILON]- dustin[indexof(S_T,ii)]/dustin[TAU_S] - 
+        dot3 = u_t[0]*dustin[EPSILON]- dustin[indexof(S_T,ii)]/dustin[TAU_S] - 
                     (dustin[indexof(F_T,ii)] - 1.) / dustin[TAU_F];
-        if(isnan(dot) || isinf(dot))
-            dot = 0;
-        dustout[indexof(S_T,ii)] = dustin[indexof(S_T,ii)] + dot*delta_t;
+//        if(isnan(dot) || isinf(dot))
+//            dot = 0;
+        dustin[indexof(S_T,ii)] += dot3*delta_t;
 
         //f_t* = s_t;
-        dot = dustin[indexof(S_T,ii)];
-        if(isnan(dot) || isinf(dot))
-            dot = 0;
-        dustout[indexof(F_T,ii)] = dustin[indexof(F_T,ii)] + dot*delta_t;
+//        if(isnan(dot) || isinf(dot))
+//            dot = 0;
+        dustin[indexof(F_T,ii)] += dustin[indexof(S_T,ii)]*delta_t;
     }
 
 //    std::cerr  <<"Printing Output state" << std::endl;
 //    outputVector(std::cerr, dustout);
 //    std::cerr << std::endl;
-//    return dustout;
+    return 0;
 }
 
 aux::vector BoldModel::measure(const aux::vector& s)
@@ -235,7 +200,7 @@ void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme)
     for(int i = 0 ; i< SIMUL_STATES ; i++) {
         fillme[indexof(V_T, i)] = gsl_ran_gamma(rng, k_V_T, theta_V_T);
         fillme[indexof(Q_T, i)] = gsl_ran_gamma(rng, k_Q_T, theta_Q_T);
-        fillme[indexof(S_T, i)] = gsl_ran_gaussian(rng, sigma_S_T);
+        fillme[indexof(S_T, i)] = gsl_ran_gaussian(rng, sigma_S_T) + mu_S_T;
         fillme[indexof(F_T, i)] = gsl_ran_gamma(rng, k_F_T, theta_F_T);
     }
 }
@@ -255,7 +220,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
 void outputVector(std::ostream& out, aux::vector mat) {
   unsigned int i;
   for (i = 0; i < mat.size(); i++) {
-      out << std::setw(15) << mat(i);
+      out << std::setw(15) << mat(i) << std::endl;
   }
 }
 

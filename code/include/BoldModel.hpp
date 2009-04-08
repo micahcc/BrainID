@@ -38,9 +38,9 @@ public:
     unsigned int getStimSize() { return INPUT_SIZE; };
     unsigned int getMeasurementSize() { return MEAS_SIZE; };
 
-    void transition(aux::vector& s,
+    int transition(aux::vector& s,
             const double t, const double delta);
-    void transition(aux::vector& s,
+    int transition(aux::vector& s,
             const double t, const double delta, const aux::vector& u);
 
     aux::vector measure(const aux::vector& s);

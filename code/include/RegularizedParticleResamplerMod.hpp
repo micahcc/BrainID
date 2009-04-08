@@ -10,6 +10,11 @@
 #include "boost/numeric/bindings/traits/ublas_symmetric.hpp"                                             
 #include "boost/numeric/bindings/lapack/lapack.hpp"                                                      
 
+//this is a reverse dependency, which I know is a bit of a faux pa, but
+//it this is already going to be hackish to avoid getting negative values
+//for which negative variables are impossible.
+#include "BoldModel.hpp"
+
 #include <assert.h>                                                                                      
 
 /**
@@ -159,11 +164,15 @@ RegularizedParticleResamplerMod<NT, KT>::resample(indii::ml::aux::DiracMixturePd
     for (unsigned int i = 0; i < p.getSize(); i++) {
         noalias(x) = p.get(i) + prod(sd, K.sample() * N.sample(
                     p.getDimensions()));
-        for(unsigned int j = 0 ; j < (p.getDimensions()-7)/4 ; j++) {
-            if(x[10+j*4] < 0) {
-                std::cerr << "Fixing negative f value" << std::endl;
-                x[10+j*4] = .0001;
-            }
+        //if the particle is not S_T and is negative, make its
+        //weight 0
+        for(unsigned int j = 0 ; j < p.getDimensions() ; j++) {
+            if((j < BoldModel::THETA_SIZE + BoldModel::S_T 
+                        || (j - BoldModel::THETA_SIZE - BoldModel::S_T)%4 != 0) 
+                        && x[j] < 0) {
+                p.setWeight(i, 0.0);
+                break;
+            } 
         }
         r.add(x, p.getWeight(i));
     }
