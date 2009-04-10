@@ -106,7 +106,10 @@ int main(int argc, char* argv[])
   
     std::ofstream fmeas("meas.out");
     std::ofstream fstate("state.out");
+
+#ifdef OUTPART
     std::ofstream fpart("particles.out");
+#endif //OUTPART
     
     double t = 0;
     
@@ -122,17 +125,22 @@ int main(int argc, char* argv[])
     fstate << "# rows: " << DIVIDER*reader->GetOutput()->GetRequestedRegion().GetSize()[1] -1 << endl;
     fstate << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
     
+#ifdef OUTPART
     fpart << "# Created by brainid" << endl;
+#endif //OUTPART
     
     aux::vector sample_state(BoldModel::SYSTEM_SIZE);
 
     bool dirty = false;
+#ifdef OUTPART
     std::vector<aux::DiracPdf> particles;
+#endif //OUTPART
     aux::vector input(1);
     input[0] = 0;
     double nextinput;
     fin >> nextinput;
     while(!iter.IsAtEndOfLine()) {
+#ifdef OUTPART
         fpart << "# name: particles" << setw(5) << t*10000 << endl;
         fpart << "# type: matrix" << endl;
         fpart << "# rows: " << NUM_PARTICLES << endl;
@@ -145,6 +153,7 @@ int main(int argc, char* argv[])
             fpart << endl;
         }
         fpart << endl;
+#endif // OUTPART
         
         if(!fin.eof() && t >= nextinput) {
             fin >> input[0];
