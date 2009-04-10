@@ -58,14 +58,20 @@ int BoldModel::transition(aux::vector& dustin,
     //transition the actual state variables
     //TODO, potentially add some randomness here.
     for(int ii=0 ; ii<SIMUL_STATES ; ii++) {
+        // Normalized Blood Volume
         //V_t* = (1/tau_0) * ( f_t - v_t ^ (1/\alpha)) 
         dot1 = (  ( dustin[indexof(F_T,ii)] - 
                     pow(dustin[indexof(V_T,ii)], 1./dustin[ALPHA]) ) / 
-                    dustin[TAU_0]  );//  + (rng.sample())[0];
-//        if(isnan(dot) || isinf(dot))
-//            dot = 0;
+                    dustin[TAU_0]  );
         dustin[indexof(V_T,ii)] += dot1*delta_t;
+        
+        if(isnan(dustin[indexof(V_T,ii)]) || isinf(dustin[indexof(V_T,ii)]) || 
+                    dustin[indexof(V_T,ii)] < 0) {
+            dustin[indexof(V_T,ii)] = 1;
+            return -1;
+        }
 
+        // Normalized Deoxyhaemoglobin Content
         //Q_t* = \frac{1}{tau_0} * (\frac{f_t}{E_0} * (1- (1-E_0)^{1/f_t}) - 
         //              \frac{q_t}{v_t^{1-1/\alpha})
         tmpA = (dustin[indexof(F_T,ii)] / dustin[E_0]) * 
@@ -73,23 +79,30 @@ int BoldModel::transition(aux::vector& dustin,
         tmpB = dustin[indexof(Q_T,ii)] / 
                     pow(dustin[indexof(V_T,ii)], 1.-1./dustin[ALPHA]);
         dot2 =  ( tmpA - tmpB )/dustin[TAU_0];
-//        if(isnan(dot) || isinf(dot))
-//            dot = 0;
         dustin[indexof(Q_T,ii)] += dot2*delta_t;
+        
+        if(isnan(dustin[indexof(Q_T,ii)]) || isinf(dustin[indexof(Q_T,ii)]) || 
+                    dustin[indexof(Q_T,ii)] < 0) {
+            dustin[indexof(Q_T,ii)] = 1;
+            return -2;
+        }
 
+        // Second Derivative of Cerebral Blood Flow
         //S_t* = \epsilon*u_t - 1/\tau_s * s_t - 1/\tau_f * (f_t - 1)
         dot3 = u_t[0]*dustin[EPSILON]- dustin[indexof(S_T,ii)]/dustin[TAU_S] - 
                     (dustin[indexof(F_T,ii)] - 1.) / dustin[TAU_F];
-//        if(isnan(dot) || isinf(dot))
-//            dot = 0;
         dustin[indexof(S_T,ii)] += dot3*delta_t;
-
+       
+        // Normalized Cerebral Blood Flow
         //f_t* = s_t;
-//        if(isnan(dot) || isinf(dot))
-//            dot = 0;
         dustin[indexof(F_T,ii)] += dustin[indexof(S_T,ii)]*delta_t;
+        
+        if(dustin[indexof(F_T,ii)] < 0) {
+            dustin[indexof(F_T,ii)] = 1;
+            return -3;
+        }
     }
-
+        
 //    std::cerr  <<"Printing Output state" << std::endl;
 //    outputVector(std::cerr, dustout);
 //    std::cerr << std::endl;
@@ -220,7 +233,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
 void outputVector(std::ostream& out, aux::vector mat) {
   unsigned int i;
   for (i = 0; i < mat.size(); i++) {
-      out << std::setw(15) << mat(i) << std::endl;
+      out << std::setw(15) << mat(i);
   }
 }
 

@@ -24,6 +24,7 @@
 
 #include <vector>
 #include <cmath>
+#include <ctime>
 #include <iostream>
 
 using namespace std;
@@ -112,13 +113,13 @@ int main(int argc, char* argv[])
     fmeas << "# Created by brainid" << endl;
     fmeas << "# name: bold" << endl;
     fmeas << "# type: matrix" << endl;
-    fmeas << "# rows: " << reader->GetOutput()->GetRequestedRegion().GetSize()[1] - 1<< endl;
+    fmeas << "# rows: " << DIVIDER*reader->GetOutput()->GetRequestedRegion().GetSize()[1] - 1<< endl;
     fmeas << "# columns: 3" << endl;
 
     fstate << "# Created by brainid" << endl;
     fstate << "# name: states " << endl;
     fstate << "# type: matrix" << endl;
-    fstate << "# rows: " << reader->GetOutput()->GetRequestedRegion().GetSize()[1] -1 << endl;
+    fstate << "# rows: " << DIVIDER*reader->GetOutput()->GetRequestedRegion().GetSize()[1] -1 << endl;
     fstate << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
     
     fpart << "# Created by brainid" << endl;
@@ -132,10 +133,11 @@ int main(int argc, char* argv[])
     double nextinput;
     fin >> nextinput;
     while(!iter.IsAtEndOfLine()) {
-        fpart << "# name: particles" << t*1000 << endl;
+        fpart << "# name: particles" << setw(5) << t*10000 << endl;
         fpart << "# type: matrix" << endl;
         fpart << "# rows: " << NUM_PARTICLES << endl;
         fpart << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
+        fpart << "# time: " << time(NULL) << endl;
         particles = filter.getFilteredState().getAll();
         for(unsigned int i=0 ; i<particles.size(); i++) {
             fpart << i << " ";

@@ -61,7 +61,7 @@ diff -Naur ../../dysii-1.4.0/UseDysii.cmake BrainID-Dependencies-Build/dysii-1.4
 +
 diff -Naur ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp BrainID-Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp
 --- ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp	2008-12-17 15:15:27.000000000 +0000
-+++ BrainID-Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp	2009-04-08 22:12:53.000000000 +0000
++++ BrainID-Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp	2009-04-10 15:24:44.000000000 +0000
 @@ -88,7 +88,7 @@
     */
    void resample(ParticleResampler* resampler);
@@ -71,7 +71,7 @@ diff -Naur ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp BrainID-Depe
    /**
     * Model.
     */
-@@ -129,39 +129,27 @@
+@@ -129,39 +129,33 @@
    /* pre-condition */
    assert (tnp1 >= this->tn);
  
@@ -88,10 +88,13 @@ diff -Naur ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp BrainID-Depe
 -
 -    p_xtnp1_ytnp1.add(x, w);
 +  for (unsigned int i = 0; i < this->p_xtn_ytn.getSize(); i++) {
-+    if(model->transition(this->p_xtn_ytn.get(i), this->tn, delta) < 0)
-+      this->p_xtn_ytn.setWeight(i, 0);
++    if(model->transition(this->p_xtn_ytn.get(i), this->tn, delta) < 0) {
++        this->p_xtn_ytn.setWeight(i, 0);
++      }
    }
  
++  /* Make the distribution dirty since values changed */
++  this->p_xtn_ytn.setWeight(0, this->p_xtn_ytn.getWeight(0));
    /* update state */
    this->tn = tnp1;
 -  this->p_xtn_ytn = p_xtnp1_ytnp1;
@@ -102,21 +105,24 @@ diff -Naur ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp BrainID-Depe
 -  aux::vector x(model->getStateSize());
 -  aux::vector ws(this->p_xtn_ytn.getSize());
    unsigned int i;
-   
+-  
++  aux::vector weights = this->p_xtn_ytn.getWeights();
    /* filter */
    for (i = 0; i < this->p_xtn_ytn.getSize(); i++) {
 -    noalias(x) = this->p_xtn_ytn.get(i);
 -    ws(i) = this->p_xtn_ytn.getWeight(i) * model->weight(x, ytn);
-+    this->p_xtn_ytn.setWeight(i, this->p_xtn_ytn.getWeight(i) * 
-+          model->weight(this->p_xtn_ytn.get(i), ytn));
++    weights[i] = this->p_xtn_ytn.getWeight(i) * 
++          model->weight(this->p_xtn_ytn.get(i), ytn);
    }
--
+ 
 -  /* update state */
 -  this->p_xtn_ytn.setWeights(ws);
++  /* Update the weights */
++  this->p_xtn_ytn.setWeights(weights);
  }
  
  template <class T>
-@@ -172,23 +160,20 @@
+@@ -172,23 +166,22 @@
    /* pre-condition */
    assert (tnp1 >= this->tn);
  
@@ -125,6 +131,7 @@ diff -Naur ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp BrainID-Depe
 -  double w;
    T delta = tnp1 - this->tn;
 -  unsigned int i;
++  aux::vector weights = this->p_xtn_ytn.getWeights();
  
    /* filter */
 -  for (i = 0; i < this->p_xtn_ytn.getSize(); i++) {
@@ -135,15 +142,16 @@ diff -Naur ../../dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp BrainID-Depe
 +  for (unsigned int i = 0; i < this->p_xtn_ytn.getSize(); i++) {
 +    //move particle forward, and in case of error make the weight 0
 +    if(model->transition(this->p_xtn_ytn.get(i), this->tn, delta) < 0)
-+      this->p_xtn_ytn.setWeight(i, 0);
++      weights[i] = 0;
 +    else //weight particle based on sampling and previous weight
-+      this->p_xtn_ytn.setWeight(i, this->p_xtn_ytn.getWeight(i) * 
-+            model->weight(this->p_xtn_ytn.get(i), ytnp1));
++      weights[i] = this->p_xtn_ytn.getWeight(i) * 
++            model->weight(this->p_xtn_ytn.get(i), ytnp1);
    }
  
    /* update state */
    this->tn = tnp1;
 -  this->p_xtn_ytn = p_xtnp1_ytnp1;
++  this->p_xtn_ytn.setWeights(weights);
  }
  
  template <class T>

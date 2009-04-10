@@ -127,6 +127,10 @@ RegularizedParticleResamplerMod<NT, KT>::resample(indii::ml::aux::DiracMixturePd
 
     aux::DiracMixturePdf r(p.getDimensions());
     aux::vector x(p.getDimensions());
+    double weight = 0;
+    aux::vector placeholder(p.getDimensions());
+    for(unsigned int i = 0 ; i<p.getDimensions() ; i++)
+        placeholder[i] = 1;
 
     /* standardise particles */
     aux::matrix sd(p.getDistributedCovariance());
@@ -164,17 +168,19 @@ RegularizedParticleResamplerMod<NT, KT>::resample(indii::ml::aux::DiracMixturePd
     for (unsigned int i = 0; i < p.getSize(); i++) {
         noalias(x) = p.get(i) + prod(sd, K.sample() * N.sample(
                     p.getDimensions()));
+        weight = p.getWeight(i);
         //if the particle is not S_T and is negative, make its
         //weight 0
         for(unsigned int j = 0 ; j < p.getDimensions() ; j++) {
             if((j < BoldModel::THETA_SIZE + BoldModel::S_T 
                         || (j - BoldModel::THETA_SIZE - BoldModel::S_T)%4 != 0) 
                         && x[j] < 0) {
-                p.setWeight(i, 0.0);
+                weight = 0.0;
+                x = placeholder;
                 break;
             } 
         }
-        r.add(x, p.getWeight(i));
+        r.add(x, weight);
     }
 
     return r;
