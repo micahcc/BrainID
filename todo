@@ -1,11 +1,7 @@
 Todo List:
--Make a new particlefilter that allows input.
--convert Dysii to cmake.
+-Need to add nifti data to boldgen and fmri_timeseries to define time parameters as well
+ as some other misc data.
 -Normalize timeseries based on the total average, not just for each section.
 -Perform tests to compare estimation of parameters using the average from a section
 as compared to estimation of parameters for all the voxels in the section, with each
 voxel as a state.
--Modify transition functions to change state in place, to reduce overhead of returning by
-copy. The may only result in a minor performance boost, and would require a rewrite of 
-particle filter code. It would also have to be written in such a way that the old particles
-could be preserved in cases where we ant to see the time series of the particles
