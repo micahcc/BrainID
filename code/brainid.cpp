@@ -33,7 +33,7 @@ namespace aux = indii::ml::aux;
     
 const int NUM_PARTICLES = 10000;
 const int RESAMPNESS = 8000;
-const double SAMPLERATE = 2;
+const double SAMPLETIME = 2; //in seconds
 const int DIVIDER = 32;//divider must be a power of 2 (2, 4, 8, 16, 32....)
 
 typedef float ImagePixelType;
@@ -111,7 +111,6 @@ int main(int argc, char* argv[])
     std::ofstream fpart("particles.out");
 #endif //OUTPART
     
-    double t = 0;
     
     fmeas << "# Created by brainid" << endl;
     fmeas << "# name: bold" << endl;
@@ -131,7 +130,6 @@ int main(int argc, char* argv[])
     
     aux::vector sample_state(BoldModel::SYSTEM_SIZE);
 
-    bool dirty = false;
 #ifdef OUTPART
     std::vector<aux::DiracPdf> particles;
 #endif //OUTPART
@@ -139,6 +137,7 @@ int main(int argc, char* argv[])
     input[0] = 0;
     double nextinput;
     fin >> nextinput;
+    int disctime = 0;
     while(!iter.IsAtEndOfLine()) {
 #ifdef OUTPART
         fpart << "# name: particles" << setw(5) << t*10000 << endl;
@@ -155,48 +154,50 @@ int main(int argc, char* argv[])
         fpart << endl;
 #endif // OUTPART
         
-        if(!fin.eof() && t >= nextinput) {
+        //the +.1 is just to remove the possibility of missing something
+        //due to roundoff error, since disctime is the smallest possible 
+        //timestep adding .1 will never go into the next timestep
+        if(!fin.eof() && (disctime+.1)*SAMPLETIME/DIVIDER >= nextinput) {
             fin >> input[0];
             fin >> nextinput;
             model.setinput(input);
         }
 
-        if(fmod(t, SAMPLERATE) < 0.01) { 
+        if(disctime%DIVIDER == 0) { 
             ++iter;//intentionally skips first measurement
             meas(0) = iter.Get();
-            filter.filter(t,meas);
+            filter.filter(disctime*SAMPLETIME/DIVIDER,meas);
             double ess = filter.getFilteredState().calculateDistributedEss();
-            cerr << "t= " << t << " ESS: " << ess << endl;
-            if(ess < RESAMPNESS || isnan(ess) || dirty) {
+            cerr << "t= " << disctime*SAMPLETIME/DIVIDER << " ESS: " << ess << endl;
+            if(ess < RESAMPNESS || isnan(ess)) {
                 cerr << "Resampling" << endl;
                 filter.resample(&resampler);
                 filter.resample(&resampler_reg);
-                dirty = false;
             } else {
                 cerr << "No Resampling Necessary!" << endl;
             }
         } else {
-            cerr << "t= " << t << endl;
-            filter.filter(t);
+            cerr << "t= " << disctime*SAMPLETIME/DIVIDER << endl;
+            filter.filter(disctime*SAMPLETIME/DIVIDER);
         }
        
         mu = filter.getFilteredState().getDistributedExpectation();
         cov = filter.getFilteredState().getDistributedCovariance();
 
         /* output measurement */
-        fmeas << setw(10) << t;
+        fmeas << setw(10) << disctime*SAMPLETIME/DIVIDER;
         outputVector(fmeas, meas);
         fmeas << setw(12) << model.measure(mu)(0) << endl;
 
         /* output filtered state */
-        fstate << setw(10) << t; 
+        fstate << setw(10) << disctime*SAMPLETIME/DIVIDER; 
         outputVector(fstate, mu);
         
 //        outputMatrix(std::cerr, cov);
 //        fstate << ' ';
 //        outputVector(fstate, sample_state);
         fstate << endl;
-        t += SAMPLERATE/DIVIDER; 
+        disctime++;
     }
     printf("Index at end: %ld %ld \n", iter.GetIndex()[0], iter.GetIndex()[1]);
 
