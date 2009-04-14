@@ -34,7 +34,7 @@ namespace aux = indii::ml::aux;
 const int NUM_PARTICLES = 10000;
 const int RESAMPNESS = 8000;
 const double SAMPLETIME = 2; //in seconds
-const int DIVIDER = 32;//divider must be a power of 2 (2, 4, 8, 16, 32....)
+const int DIVIDER = 8;//divider must be a power of 2 (2, 4, 8, 16, 32....)
 
 typedef float ImagePixelType;
 typedef itk::Image< ImagePixelType,  2 > ImageType;
@@ -115,13 +115,13 @@ int main(int argc, char* argv[])
     fmeas << "# Created by brainid" << endl;
     fmeas << "# name: bold" << endl;
     fmeas << "# type: matrix" << endl;
-    fmeas << "# rows: " << DIVIDER*reader->GetOutput()->GetRequestedRegion().GetSize()[1] - 1<< endl;
+    fmeas << "# rows: " << DIVIDER*(reader->GetOutput()->GetRequestedRegion().GetSize()[1] - 1)<< endl;
     fmeas << "# columns: 3" << endl;
 
     fstate << "# Created by brainid" << endl;
     fstate << "# name: states " << endl;
     fstate << "# type: matrix" << endl;
-    fstate << "# rows: " << DIVIDER*reader->GetOutput()->GetRequestedRegion().GetSize()[1] -1 << endl;
+    fstate << "# rows: " << DIVIDER*(reader->GetOutput()->GetRequestedRegion().GetSize()[1] -1) << endl;
     fstate << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
     
 #ifdef OUTPART

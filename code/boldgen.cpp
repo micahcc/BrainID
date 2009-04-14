@@ -100,9 +100,9 @@ int main (int argc, char** argv)
     aux::DiracMixturePdf x0(BoldModel::SYSTEM_SIZE);
     model.generatePrior(x0, 10000);
     
-//    system = x0.sample();
-//    outputVector(std::cout, system);
-//    std::cout << std::endl;
+    system = x0.sample();
+    outputVector(std::cout, system);
+    std::cout << std::endl;
 
     int sample = 0;
     count = 0;
@@ -128,15 +128,17 @@ int main (int argc, char** argv)
         //check to see if it is time to sample
         if(count == sample) {
             int i;
-            
+        
             //save states in a matlab file for comparison purposes
-            fstate << realt << ' ' << input[0] << ' ';
+            fstate << setw(10) << realt << setw(10) << input[0];
             outputVector(fstate, system);
             fstate << endl;
 
+            fmeas << setw(10) << realt << setw(10) << input[0] << setw(14) << model.measure(system)[0] << endl;
+        
+            
             //TODO put multiple series here
             out_it.Value() = model.measure(system)[0];
-            fmeas << realt << " " << input[0] << " " << model.measure(system)[0] << endl;
             for(i = 0 ; i < series ; i++) {
                 ++out_it;
             }
@@ -144,6 +146,8 @@ int main (int argc, char** argv)
             //move forward iterators
             assert(out_it.IsAtEndOfLine() && i == series);
             out_it.NextLine();
+
+            //TODO should use an absolute value here to prevent error
             sample += (int)(outstep/simstep);
         }
         
