@@ -3,9 +3,13 @@ mkdir "run$1"
 cd "run$1"
 if [[ $1 != 1 ]]
 then
-    ../brainid ../simseries.nii.gz ../stim.in distribution.serial ../distribution.serial
+    pwd
+    echo time ../brainid ../simseries.nii.gz ../stim.in distribution.serial ../distribution.serial
+    time ../brainid ../simseries.nii.gz ../stim.in distribution.serial ../distribution.serial
 else
-    ../brainid ../simseries.nii.gz ../stim.in distribution.serial
+    echo time ../brainid ../simseries.nii.gz ../stim.in distribution.serial
+    time ../brainid ../simseries.nii.gz ../stim.in distribution.serial
 fi
-ln -s distribution.serial ../distribution.serial
+rm "../distribution.serial"
+ln -s "$(pwd)/distribution.serial" "../distribution.serial"
 cd ../

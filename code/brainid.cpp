@@ -186,8 +186,8 @@ int main(int argc, char* argv[])
 
         /* output measurement */
         fmeas << setw(10) << disctime*SAMPLETIME/DIVIDER;
-        outputVector(fmeas, meas);
-        fmeas << setw(12) << model.measure(mu)(0) << endl;
+        fmeas << setw(10) << input[0];
+        fmeas << setw(14) << model.measure(mu)(0) << endl;
 
         /* output filtered state */
         fstate << setw(10) << disctime*SAMPLETIME/DIVIDER; 

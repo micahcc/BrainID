@@ -192,6 +192,8 @@ parser.add_option("-p", "--prefix",
 (options, args) = parser.parse_args()
 
 PROFILE_OUT="%s/prof.sh" % options.depdir
+prof_bin = ""
+prof_ld = ""
 
 depdir = join(topdir, options.depdir)
 depprefix = join(topdir, options.depprefix)
@@ -221,23 +223,29 @@ except os.error:
 ##########################
 cmake_install_dir = cmakeinst(depdir, depprefix, "cmake", CMAKE_URL)
 os.environ["PATH"] = join(cmake_install_dir, "bin") + ":"+ os.environ["PATH"]
+prof_bin.append(join(cmake_install_dir, "bin:"));
 
 ###########################
 # gsl
 ###########################
 gsl_install_dir = confmakeinst(depdir, depprefix, "gsl", GSL_URL)
 os.environ["PATH"] = join(gsl_install_dir, "bin") + ":"+ os.environ["PATH"]
+prof_bin.append(join(gsl_install_dir, "bin:"));
+prof_ld.append(join(gsl_install_dir, "lib:"));
 
 ###########################
 # openmpi
 ###########################
 mpi_install_dir = confmakeinst(depdir, depprefix, "mpi", OPENMPI_URL)
 os.environ["PATH"] = join(mpi_install_dir, "bin") + ":"+ os.environ["PATH"]
+prof_bin.append(join(mpi_install_dir, "bin:"));
+prof_ld.append(join(mpi_install_dir, "lib:"));
 
 ############################
 # Boost 
 ############################
 boost_install_dir = buildboost(depdir, depprefix, "boost", BOOST_URL, ("-with-libraries=serialization,mpi", "") )
+prof_ld.append(join(boost_install_dir, "lib:"));
 
 ############################
 # Boost Numeric Bindings
@@ -260,26 +268,29 @@ os.chdir(topdir)
 ###########################
 itk_install_dir = cmakeinst(depdir, depprefix, "itk", ITK_URL, ("-DBUILD_TESTING=OFF", "-DBUILD_EXAMPLES=OFF"))
 os.environ["PATH"] = join(itk_install_dir, "bin") + ":"+ os.environ["PATH"]
+prof_bin.append(join(itk_install_dir, "bin:"));
+prof_ld.append(join(itk_install_dir, "lib:"));
 
 ###########################
 # LAPACK
 ###########################
-lapack_src_dir = getep(depdir, "lapack", LAPACK_URL)
-os.chdir(lapack_src_dir)
-os.system("make -j%i blaslib" % ncpus())
-os.system("make -j%i all" % ncpus())
+#lapack_src_dir = getep(depdir, "lapack", LAPACK_URL)
+#os.chdir(lapack_src_dir)
+#os.system("make -j%i blaslib" % ncpus())
+#os.system("make -j%i all" % ncpus())
 #for files in os.listdir("./"):
 #    if splitext(files)[1] == ".a":
 #        os.
 
 #os.path.
-os.chdir(topdir)
+#os.chdir(topdir)
 
 ###########################
 # dysii
 ###########################
 dysii_install_dir = cmakeinst(depdir, depprefix, "dysii", DYSII_URL, ("-DGSL=%s" % gsl_install_dir, \
             "-DMPI=%s" % mpi_install_dir, "-DBOOST=%s" % boost_install_dir))
+prof_ld.append(join(dysii_install_dir, "lib:"));
 
 ###########################
 # brainid
@@ -315,17 +326,17 @@ if os.system("make -j%i" % ncpus()) != 0:
     print "build in %s failed" % brainid_build_dir
     sys.exit()
 
-if os.system("make install") != 0:
-    print "install from %s failed" % brainid_build_dir
-    sys.exit()
+#if os.system("make install") != 0:
+#    print "install from %s failed" % brainid_build_dir
+#    sys.exit()
 
 os.chdir(topdir)
 print "Build of brainid Completed"
 
 print "Writing out bash script"
+
 FILE = open(PROFILE_OUT, "w")
 FILE.writeline("#!/bin/bash")
-FILE.writeline("PATH=%s:%s:%s:%s:$PATH" % (join(mpi_install_dir, "bin"), 
-            join(gsl_install_dir, "bin"), join(itk_install_dir, "bin"), 
-            join(cmake_install_dir, "bin")))
+FILE.writeline("LD_LIBRARY_PATH=" + prof_ld + "\"$LD_LIBRARY_PATH\"")
+FILE.writeline("PATH=" + prof_bin + "\"$PATH\"")
 FILE.close()

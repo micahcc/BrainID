@@ -130,7 +130,7 @@ int main (int argc, char** argv)
             int i;
         
             //save states in a matlab file for comparison purposes
-            fstate << setw(10) << realt << setw(10) << input[0];
+            fstate << setw(10) << realt;
             outputVector(fstate, system);
             fstate << endl;
 
