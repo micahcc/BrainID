@@ -1,7 +1,7 @@
 Todo List:
+-put particles on the command line
+-get mpi working
 -Use maybe faster sampling.
--Use longer sequences
--Look over particle resampler, maybe broaden distributions
 -Derive an fmri sequence to optimally extract the bold system parameters, may want to 
  apply maths to the problem.
 -Need to add nifti data to boldgen and fmri_timeseries to define time parameters as well

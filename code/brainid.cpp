@@ -31,9 +31,9 @@ using namespace std;
 
 namespace aux = indii::ml::aux;
     
-const int NUM_PARTICLES = 30000;
-const int RESAMPNESS = 24000;
-const double SAMPLETIME = 2; //in seconds
+const int NUM_PARTICLES = 30000; //should be command line
+const int RESAMPNESS = 24000; //should be some percentage of NUM_PARTICLES
+const double SAMPLETIME = 2; //in seconds, should get from fmri image
 const int DIVIDER = 8;//divider must be a power of 2 (2, 4, 8, 16, 32....)
 
 typedef float ImagePixelType;
