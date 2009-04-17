@@ -23,8 +23,7 @@ BoldModel::BoldModel(aux::vector u)// : theta_sigmas(THETA_SIZE)
 //    theta_sigmas(V_0) = .006/20;
 
 //    small_g = .95e-5;
-//    //  var_e = 3.92e-6;
-    var_e = 3.92e-5;
+    var_e = 3.92e-6;
     sigma_e = sqrt(var_e);
 }
 

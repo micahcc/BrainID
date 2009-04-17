@@ -191,12 +191,13 @@ parser.add_option("-p", "--prefix",
                   help="The location to put the final include, lib, bin....dirs")
 (options, args) = parser.parse_args()
 
-PROFILE_OUT="%s/prof.sh" % options.depdir
+depdir = join(topdir, options.depdir)
+depprefix = join(topdir, options.depprefix)
+
+PROFILE_OUT="%s/bash_profile" % topdir
 prof_bin = ""
 prof_ld = ""
 
-depdir = join(topdir, options.depdir)
-depprefix = join(topdir, options.depprefix)
 
 platform = os.uname()[0]
 if platform == 'Darwin':
@@ -223,29 +224,29 @@ except os.error:
 ##########################
 cmake_install_dir = cmakeinst(depdir, depprefix, "cmake", CMAKE_URL)
 os.environ["PATH"] = join(cmake_install_dir, "bin") + ":"+ os.environ["PATH"]
-prof_bin.append(join(cmake_install_dir, "bin:"));
+prof_bin += join(cmake_install_dir, "bin:");
 
 ###########################
 # gsl
 ###########################
 gsl_install_dir = confmakeinst(depdir, depprefix, "gsl", GSL_URL)
 os.environ["PATH"] = join(gsl_install_dir, "bin") + ":"+ os.environ["PATH"]
-prof_bin.append(join(gsl_install_dir, "bin:"));
-prof_ld.append(join(gsl_install_dir, "lib:"));
+prof_bin += join(gsl_install_dir, "bin:");
+prof_ld += join(gsl_install_dir, "lib:");
 
 ###########################
 # openmpi
 ###########################
 mpi_install_dir = confmakeinst(depdir, depprefix, "mpi", OPENMPI_URL)
 os.environ["PATH"] = join(mpi_install_dir, "bin") + ":"+ os.environ["PATH"]
-prof_bin.append(join(mpi_install_dir, "bin:"));
-prof_ld.append(join(mpi_install_dir, "lib:"));
+prof_bin += join(mpi_install_dir, "bin:");
+prof_ld += join(mpi_install_dir, "lib:");
 
 ############################
 # Boost 
 ############################
 boost_install_dir = buildboost(depdir, depprefix, "boost", BOOST_URL, ("-with-libraries=serialization,mpi", "") )
-prof_ld.append(join(boost_install_dir, "lib:"));
+prof_ld += join(boost_install_dir, "lib:");
 
 ############################
 # Boost Numeric Bindings
@@ -268,8 +269,8 @@ os.chdir(topdir)
 ###########################
 itk_install_dir = cmakeinst(depdir, depprefix, "itk", ITK_URL, ("-DBUILD_TESTING=OFF", "-DBUILD_EXAMPLES=OFF"))
 os.environ["PATH"] = join(itk_install_dir, "bin") + ":"+ os.environ["PATH"]
-prof_bin.append(join(itk_install_dir, "bin:"));
-prof_ld.append(join(itk_install_dir, "lib:"));
+prof_bin += join(itk_install_dir, "bin:");
+prof_ld += join(itk_install_dir, "lib:");
 
 ###########################
 # LAPACK
@@ -290,7 +291,7 @@ prof_ld.append(join(itk_install_dir, "lib:"));
 ###########################
 dysii_install_dir = cmakeinst(depdir, depprefix, "dysii", DYSII_URL, ("-DGSL=%s" % gsl_install_dir, \
             "-DMPI=%s" % mpi_install_dir, "-DBOOST=%s" % boost_install_dir))
-prof_ld.append(join(dysii_install_dir, "lib:"));
+prof_ld += join(dysii_install_dir, "lib:");
 
 ###########################
 # brainid
@@ -336,7 +337,7 @@ print "Build of brainid Completed"
 print "Writing out bash script"
 
 FILE = open(PROFILE_OUT, "w")
-FILE.writeline("#!/bin/bash")
-FILE.writeline("LD_LIBRARY_PATH=" + prof_ld + "\"$LD_LIBRARY_PATH\"")
-FILE.writeline("PATH=" + prof_bin + "\"$PATH\"")
+FILE.write("#!/bin/bash\n")
+FILE.write("LD_LIBRARY_PATH=\"" + prof_ld + "$LD_LIBRARY_PATH\"\n")
+FILE.write("PATH=\"" + prof_bin + "$PATH\"\n")
 FILE.close()
