@@ -18,6 +18,7 @@
 
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
+#include <boost/program_options.hpp>
 
 #include "BoldModel.hpp"
 #include "RegularizedParticleResamplerMod.hpp"
@@ -29,6 +30,7 @@
 
 using namespace std;
 
+namespace opts = boost::program_options;
 namespace aux = indii::ml::aux;
     
 const int NUM_PARTICLES = 30000; //should be command line
@@ -41,19 +43,41 @@ typedef itk::Image< ImagePixelType,  2 > ImageType;
 typedef itk::ImageFileReader< ImageType >  ImageReaderType;
 typedef itk::ImageFileWriter< ImageType >  WriterType;
 
+// Declare the supported options.
+// po::options_description desc("Allowed options");
+// desc.add_options()
+//     ("help", "produce help message")
+//         ("compression", po::value<int>(), "set compression level")
+//         ;
+//
+//         po::variables_map vm;
+//         po::store(po::parse_command_line(ac, av, desc), vm);
+//         po::notify(vm);    
+//
+
 int main(int argc, char* argv[])
 {
     boost::mpi::environment env(argc, argv);
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
     const unsigned int size = world.size();
+    
     fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
 
+    //CLI
+    opts::options_description desc("Allowed options");
+    desc.add_options()("help", "produce help message");
+
+    opts::variables_map cli_vars;
+    opts::store(opts::parse_command_line(argc, argv, desc), cli_vars);
+    opts::notify(cli_vars);
+
     if(argc < 4) {
-        fprintf(stderr, "Usage: %s <inputname> <stimfile> <serialout> [serialin]\n", argv[0]);
+        fprintf(stderr, "Usage: %s <inputname> <stimfile> [-s <serialout>] [serialin]\n", argv[0]);
         printf("stimfile is very simple, a double time followed by the new value at that time\n");
         return -1;
     }
+        return 0;
     
     std::ifstream fin(argv[2]);
     

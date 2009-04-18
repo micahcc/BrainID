@@ -80,9 +80,9 @@ def buildboost(basedir, instdir, name, url, defstrings = ""):
     for file in os.listdir("./"):
         try:
             os.readlink(file)
-            print "Success: %s" % file
+#            print "Success: %s" % file
         except os.error:
-            print "Error: %s" % file
+#            print "Error: %s" % file
             liblist.append(file)
 
     for file in liblist:
@@ -245,7 +245,7 @@ prof_ld += join(mpi_install_dir, "lib:");
 ############################
 # Boost 
 ############################
-boost_install_dir = buildboost(depdir, depprefix, "boost", BOOST_URL, ("-with-libraries=serialization,mpi", "") )
+boost_install_dir = buildboost(depdir, depprefix, "boost", BOOST_URL, ("--with-libraries=serialization,mpi,program_options", "") )
 prof_ld += join(boost_install_dir, "lib:");
 
 ############################
