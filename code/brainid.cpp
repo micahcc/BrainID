@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    if(cli_vars.count("stimefile")) {
+    if(cli_vars.count("stimfile")) {
         cout << "Stimfile: " << cli_vars["stimfile"].as < string >() << endl;
     } else {
         cout << "Need to enter a stimulus input file" << endl;
@@ -109,7 +109,6 @@ int main(int argc, char* argv[])
         cout << "No serial input selected" << endl;
     }
 
-    return 0;
     fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
 
     std::ifstream fin(cli_vars["stimfile"].as< string >().c_str());
