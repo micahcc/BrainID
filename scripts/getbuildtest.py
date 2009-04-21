@@ -50,14 +50,13 @@ def buildboost(basedir, instdir, name, url, defstrings = ""):
     
     print "building %s" % name
     os.chdir(src_dir)
+    if  os.system("./configure --prefix=%s %s" % (install_dir, " ".join(defstrings))) != 0:
+        print "%s configuration failed" % name
+        sys.exit()
+    os.system("echo using mpi \; >> %s/user-config.jam" % src_dir)
     if os.system("make -j%i" % ncpus()) != 0:
-        if  os.system("./configure --prefix=%s %s" % (install_dir, " ".join(defstrings))) != 0:
-            print "%s configuration failed" % name
-            sys.exit()
-        os.system("echo using mpi \; >> %s/user-config.jam" % src_dir)
-        if os.system("make -j%i" % ncpus()) != 0:
-            print "build in %s failed" % src_dir
-            sys.exit()
+        print "build in %s failed" % src_dir
+        sys.exit()
     
     if os.system("make install") != 0:
         print "make install in %s failed" % src_dir

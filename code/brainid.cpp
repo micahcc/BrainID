@@ -27,6 +27,7 @@
 #include <cmath>
 #include <ctime>
 #include <iostream>
+#include <string>
 
 using namespace std;
 
@@ -55,35 +56,67 @@ typedef itk::ImageFileWriter< ImageType >  WriterType;
 //         po::notify(vm);    
 //
 
+
 int main(int argc, char* argv[])
 {
     boost::mpi::environment env(argc, argv);
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
     const unsigned int size = world.size();
-    
-    fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
 
     //CLI
     opts::options_description desc("Allowed options");
-    desc.add_options()("help", "produce help message");
+    desc.add_options()
+            ("help", "produce help message")
+            ("timeseries,t", opts::value<string>(), "2D timeseries file")
+            ("stimfile,s", opts::value<string>(), "file containing \"time value\""
+                        "pairs which give the time at which input changed")
+            ("serialout", opts::value<string>(), "Where to put a serial output file")
+            ("serialin", opts::value<string>(), "Where to find a serial input file");
 
     opts::variables_map cli_vars;
     opts::store(opts::parse_command_line(argc, argv, desc), cli_vars);
     opts::notify(cli_vars);
+    
+    if(cli_vars.count("help")) {
+        cout << desc << endl;
+        return 1;
+    }
 
-    if(argc < 4) {
-        fprintf(stderr, "Usage: %s <inputname> <stimfile> [-s <serialout>] [serialin]\n", argv[0]);
-        printf("stimfile is very simple, a double time followed by the new value at that time\n");
+    if(cli_vars.count("timeseries")) {
+        cout << "Timeseries: " << cli_vars["timeseries"].as< string >() << endl;
+    } else {
+        cout << "Need to enter a timeseries file" << endl;
         return -1;
     }
-        return 0;
-    
-    std::ifstream fin(argv[2]);
+
+    if(cli_vars.count("stimefile")) {
+        cout << "Stimfile: " << cli_vars["stimfile"].as < string >() << endl;
+    } else {
+        cout << "Need to enter a stimulus input file" << endl;
+        return -2;
+    }
+
+    if(cli_vars.count("serialout")) {
+        cout << "Serial Output: " << cli_vars["serialout"].as < string >() << endl;
+    } else {
+        cout << "No serial out selected" << endl;
+    }
+
+    if(cli_vars.count("serialin")) {
+        cout << "Serial Input: " << cli_vars["serialin"].as < string >() << endl;
+    } else {
+        cout << "No serial input selected" << endl;
+    }
+
+    return 0;
+    fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
+
+    std::ifstream fin(cli_vars["stimfile"].as< string >().c_str());
     
     /* Open up the input */
     ImageReaderType::Pointer reader = ImageReaderType::New();
-    reader->SetFileName( argv[1] );
+    reader->SetFileName( cli_vars["timeseries"].as< string >() );
     reader->Update();
 
     /* Create the iterator, to move forward in time for a particlular section */
@@ -98,12 +131,12 @@ int main(int argc, char* argv[])
     /* Create a model */
     BoldModel model; 
     aux::DiracMixturePdf x0(BoldModel::SYSTEM_SIZE);
-    if(argc == 4) {
-        model.generatePrior(x0, NUM_PARTICLES);
-    } else  {
-        std::ifstream serialin(argv[4], std::ios::binary);
+    if(cli_vars.count("serialin")) {
+        std::ifstream serialin(cli_vars["serialin"].as< string >().c_str(), std::ios::binary);
         boost::archive::binary_iarchive inArchive(serialin);
         inArchive >> x0;
+    } else  {
+        model.generatePrior(x0, NUM_PARTICLES);
     }
 
     /* Create the filter */
@@ -230,9 +263,11 @@ int main(int argc, char* argv[])
 
     //serialize
 
-    std::ofstream serialout("distribution.serial", std::ios::binary);
-    boost::archive::binary_oarchive outArchive(serialout);
-    outArchive << filter.getFilteredState();
+    if(cli_vars.count("serialout")) {
+        std::ofstream serialout(cli_vars["serialout"].as< string >().c_str(), std::ios::binary);
+        boost::archive::binary_oarchive outArchive(serialout);
+        outArchive << filter.getFilteredState();
+    }
 
   return 0;
 
