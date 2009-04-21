@@ -1,14 +1,15 @@
 #!/bin/bash
 mkdir "run$1"
 cd "run$1"
+PROCESSES=4
 if [[ $1 != 1 ]]
 then
     pwd
-    echo time ../brainid ../simseries.nii.gz ../stim.in distribution.serial ../distribution.serial
-    time ../brainid ../simseries.nii.gz ../stim.in distribution.serial ../distribution.serial
+    echo time mpirun -c $PROCESSES ../brainid -t ../simseries.nii.gz -s ../stim.in --serialout distribution.serial --serialin ../distribution.serial -p 30000
+    time mpirun -c $PROCESSES ../brainid -t ../simseries.nii.gz -s ../stim.in --serialout distribution.serial --serialin ../distribution.serial -p 30000
 else
-    echo time ../brainid ../simseries.nii.gz ../stim.in distribution.serial
-    time ../brainid ../simseries.nii.gz ../stim.in distribution.serial
+    echo time mpirun -c $PROCESSES ../brainid -t ../simseries.nii.gz -s ../stim.in --serialout distribution.serial -p 30000
+    time mpirun -c $PROCESSES ../brainid -t ../simseries.nii.gz -s ../stim.in --serialout distribution.serial -p 30000
 fi
 rm "../distribution.serial"
 ln -s "$(pwd)/distribution.serial" "../distribution.serial"

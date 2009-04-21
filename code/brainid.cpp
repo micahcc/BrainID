@@ -28,13 +28,13 @@
 #include <ctime>
 #include <iostream>
 #include <string>
+#include <sstream>
 
 using namespace std;
 
 namespace opts = boost::program_options;
 namespace aux = indii::ml::aux;
     
-//const int NUM_PARTICLES = 30000; //should be command line
 const double RESAMPNESS = .8; //should be some percentage of NUM_PARTICLES
 const double SAMPLETIME = 2; //in seconds, should get from fmri image
 const int DIVIDER = 8;//divider must be a power of 2 (2, 4, 8, 16, 32....)
@@ -122,21 +122,25 @@ int main(int argc, char* argv[])
 
     fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
 
-    std::ifstream fin(cli_vars["stimfile"].as< string >().c_str());
+    std::ifstream fin;
     
     /* Open up the input */
-    ImageReaderType::Pointer reader = ImageReaderType::New();
-    reader->SetFileName( cli_vars["timeseries"].as< string >() );
-    reader->Update();
+    ImageReaderType::Pointer reader;
+    itk::ImageLinearIteratorWithIndex<ImageType> iter;
+    if(rank == 0) {
+        reader = ImageReaderType::New();
+        reader->SetFileName( cli_vars["timeseries"].as< string >() );
+        reader->Update();
 
-    /* Create the iterator, to move forward in time for a particlular section */
-    itk::ImageLinearIteratorWithIndex<ImageType> iter(reader->GetOutput(), 
-                reader->GetOutput()->GetRequestedRegion());
-    iter.SetDirection(1);
-    ImageType::IndexType index;
-    index[1] = 0; //skip section label later by allowing iter++ on first pass
-    index[0] = 0; //just kind of picking a section
-    iter.SetIndex(index);
+        /* Create the iterator, to move forward in time for a particlular section */
+        iter = itk::ImageLinearIteratorWithIndex<ImageType>(reader->GetOutput(), 
+                    reader->GetOutput()->GetRequestedRegion());
+        iter.SetDirection(1);
+        ImageType::IndexType index;
+        index[1] = 1; //skip section label
+        index[0] = 0; //just kind of picking a section
+        iter.SetIndex(index);
+    }
 
     /* Create a model */
     BoldModel model; 
@@ -146,7 +150,7 @@ int main(int argc, char* argv[])
         boost::archive::binary_iarchive inArchive(serialin);
         inArchive >> x0;
     } else  {
-        model.generatePrior(x0, num_particles);
+        model.generatePrior(x0, num_particles / size);
     }
 
     /* Create the filter */
@@ -162,121 +166,163 @@ int main(int argc, char* argv[])
     RegularizedParticleResamplerMod< aux::Almost2Norm, 
                 aux::AlmostGaussianKernel > resampler_reg(norm, kernel);
   
-    /* estimate and output results */
-    aux::vector meas(BoldModel::MEAS_SIZE);
-    aux::DiracMixturePdf pred(BoldModel::SYSTEM_SIZE);
-    aux::vector mu(BoldModel::SYSTEM_SIZE);
-    aux::symmetric_matrix cov(BoldModel::SYSTEM_SIZE);
+    /* output setup */
+    std::ofstream fmeas;
+    std::ofstream fstate;
+#ifdef OUTPART
+    std::ofstream fpart;
+#endif //OUTPART
 
-    pred = filter.getFilteredState();
-    mu = pred.getDistributedExpectation();
-  
-    std::ofstream fmeas("meas.out");
-    std::ofstream fstate("state.out");
+    if(rank == 0) {
+        std::ostringstream iss("");
+        iss << "meas" << ".out";
+        fmeas.open(iss.str().c_str());
+        iss.str("");
+        iss << "state" << ".out";
+        fstate.open(iss.str().c_str());
+#ifdef OUTPART
+       iss.str("");
+       iss << "particles" << rank << ".out";
+       fpart.open(iss.str().c_str());
+#endif //OUTPART
+        
+        fmeas << "# Created by brainid" << endl;
+        fmeas << "# name: bold" << endl;
+        fmeas << "# type: matrix" << endl;
+        fmeas << "# rows: " << 
+                    (reader->GetOutput()->GetRequestedRegion().GetSize()[1] - 1)
+                    << endl;
+        fmeas << "# columns: 3" << endl;
+
+        fstate << "# Created by brainid" << endl;
+        fstate << "# name: states " << endl;
+        fstate << "# type: matrix" << endl;
+        fstate << "# rows: " << 
+                    (reader->GetOutput()->GetRequestedRegion().GetSize()[1] -1) 
+                    << endl;
+        fstate << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
 
 #ifdef OUTPART
-    std::ofstream fpart("particles.out");
+        fpart << "# Created by brainid" << endl;
 #endif //OUTPART
-    
-    
-    fmeas << "# Created by brainid" << endl;
-    fmeas << "# name: bold" << endl;
-    fmeas << "# type: matrix" << endl;
-    fmeas << "# rows: " << DIVIDER*(reader->GetOutput()->GetRequestedRegion().GetSize()[1] - 1)<< endl;
-    fmeas << "# columns: 3" << endl;
-
-    fstate << "# Created by brainid" << endl;
-    fstate << "# name: states " << endl;
-    fstate << "# type: matrix" << endl;
-    fstate << "# rows: " << DIVIDER*(reader->GetOutput()->GetRequestedRegion().GetSize()[1] -1) << endl;
-    fstate << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
-    
-#ifdef OUTPART
-    fpart << "# Created by brainid" << endl;
-#endif //OUTPART
-    
-    aux::vector sample_state(BoldModel::SYSTEM_SIZE);
+    } 
 
 #ifdef OUTPART
     std::vector<aux::DiracPdf> particles;
 #endif //OUTPART
+
+    /* Simulation Section */
     aux::vector input(1);
+    aux::vector meas(1);
+    aux::vector mu(BoldModel::SYSTEM_SIZE);
+    aux::symmetric_matrix cov(BoldModel::SYSTEM_SIZE);
     input[0] = 0;
     double nextinput;
-    fin >> nextinput;
     int disctime = 0;
-    while(!iter.IsAtEndOfLine()) {
+    bool done = false;
+    int tmp = 0;
+    if(rank == 0) {
+        fin.open(cli_vars["stimfile"].as< string >().c_str());
+        fin >> nextinput;
+    }
+
+    while(!done) {
 #ifdef OUTPART
-        fpart << "# name: particles" << setw(5) << t*10000 << endl;
-        fpart << "# type: matrix" << endl;
-        fpart << "# rows: " << num_particles << endl;
-        fpart << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
-        fpart << "# time: " << time(NULL) << endl;
-        particles = filter.getFilteredState().getAll();
-        for(unsigned int i=0 ; i<particles.size(); i++) {
-            fpart << i << " ";
-            outputVector(fpart, particles[i].getExpectation());
+        if( rank == 0 ) {
+            fpart << "# name: particles" << setw(5) << t*10000 << endl;
+            fpart << "# type: matrix" << endl;
+            fpart << "# rows: " << num_particles << endl;
+            fpart << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
+            fpart << "# time: " << time(NULL) << endl;
+            particles = filter.getFilteredState().getAll();
+            for(unsigned int i=0 ; i<particles.size(); i++) {
+                fpart << i << " ";
+                outputVector(fpart, particles[i].getExpectation());
+                fpart << endl;
+            }
             fpart << endl;
         }
-        fpart << endl;
 #endif // OUTPART
         
         //the +.1 is just to remove the possibility of missing something
         //due to roundoff error, since disctime is the smallest possible 
         //timestep adding .1 will never go into the next timestep
-        if(!fin.eof() && (disctime+.1)*SAMPLETIME/DIVIDER >= nextinput) {
+        if(rank == 0 && !fin.eof() && disctime*SAMPLETIME/DIVIDER >= nextinput) {
             fin >> input[0];
             fin >> nextinput;
-            model.setinput(input);
         }
 
-        if(disctime%DIVIDER == 0) { 
-            ++iter;//intentionally skips first measurement
-            meas(0) = iter.Get();
+        boost::mpi::broadcast(world, input, 0);
+        model.setinput(input);
+
+        /* time for update */
+        if( rank == 0 ) 
+            cerr << "t= " << disctime*SAMPLETIME/DIVIDER << endl;
+        
+        if(disctime%DIVIDER == 0) {
+            if(rank == 0) {
+                meas(0) = iter.Get();
+                ++iter;
+                done = iter.IsAtEndOfLine();
+            }
+            boost::mpi::broadcast(world, meas, 0);
+            boost::mpi::broadcast(world, done, 0);
             filter.filter(disctime*SAMPLETIME/DIVIDER,meas);
+
             double ess = filter.getFilteredState().calculateDistributedEss();
-            cerr << "t= " << disctime*SAMPLETIME/DIVIDER << " ESS: " << ess << endl;
-            if(ess < num_particles*RESAMPNESS || isnan(ess)) {
-                cerr << "Resampling" << endl;
+
+            if(ess < size*num_particles*RESAMPNESS || isnan(ess)) {
+                if( rank == 0 )
+                    cerr << " ESS: " << ess << ", Resampling" << endl;
                 filter.resample(&resampler);
                 filter.resample(&resampler_reg);
-            } else {
-                cerr << "No Resampling Necessary!" << endl;
+            } else if (rank == 0 )
+                cerr << " ESS: " << ess << ", No Resampling Necessary!" << endl;
+        
+            mu = filter.getFilteredState().getDistributedExpectation();
+            cov = filter.getFilteredState().getDistributedCovariance();
+            if( rank == 0 ) {
+                /* Get state */
+                
+                /* output measurement */
+                fmeas << setw(10) << disctime*SAMPLETIME/DIVIDER;
+                fmeas << setw(10) << input[0];
+                fmeas << setw(14) << model.measure(mu)(0) << endl;
+
+                /* output filtered state */
+                fstate << setw(10) << disctime*SAMPLETIME/DIVIDER; 
+                outputVector(fstate, mu);
+                fstate << endl;
             }
+
         } else {
-            cerr << "t= " << disctime*SAMPLETIME/DIVIDER << endl;
             filter.filter(disctime*SAMPLETIME/DIVIDER);
         }
+   
        
-        mu = filter.getFilteredState().getDistributedExpectation();
-        cov = filter.getFilteredState().getDistributedCovariance();
-
-        /* output measurement */
-        fmeas << setw(10) << disctime*SAMPLETIME/DIVIDER;
-        fmeas << setw(10) << input[0];
-        fmeas << setw(14) << model.measure(mu)(0) << endl;
-
-        /* output filtered state */
-        fstate << setw(10) << disctime*SAMPLETIME/DIVIDER; 
-        outputVector(fstate, mu);
-        
-//        outputMatrix(std::cerr, cov);
-//        fstate << ' ';
-//        outputVector(fstate, sample_state);
-        fstate << endl;
+        /* Update Time, disctime */
+        tmp = disctime;
+        boost::mpi::broadcast(world, disctime, 0);
+        if(tmp != disctime) {
+            cerr << "ERROR ranks have gotten out of sync at " << disctime << endl;
+            exit(-1);
+        }
         disctime++;
     }
     printf("Index at end: %ld %ld \n", iter.GetIndex()[0], iter.GetIndex()[1]);
 
-    fmeas.close();
-    fstate.close();
-
     //serialize
 
-    if(cli_vars.count("serialout")) {
-        std::ofstream serialout(cli_vars["serialout"].as< string >().c_str(), std::ios::binary);
-        boost::archive::binary_oarchive outArchive(serialout);
-        outArchive << filter.getFilteredState();
+    x0 = filter.getFilteredState();
+    if( rank == 0 ) {
+        fmeas.close();
+        fstate.close();
+        
+        if(cli_vars.count("serialout")) {
+            std::ofstream serialout(cli_vars["serialout"].as< string >().c_str(), std::ios::binary);
+            boost::archive::binary_oarchive outArchive(serialout);
+            outArchive << x0;
+        }
     }
 
   return 0;

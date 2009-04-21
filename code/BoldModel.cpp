@@ -220,12 +220,17 @@ void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme)
 //TODO make some of these non-gaussian
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
 {
+    boost::mpi::communicator world;
+    const unsigned int rank = world.rank();
+    const unsigned int size = world.size();
     gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);
+    gsl_rng_set(rng, (int)(rank*11.)/3.);
     aux::vector comp(SYSTEM_SIZE);
     for(int i = 0 ; i < samples; i ++) {
         generate_component(rng, comp);
         x0.add(comp, 1.0);
     }
+    gsl_rng_free(rng);
 }
 
 

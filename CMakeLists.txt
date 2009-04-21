@@ -11,6 +11,8 @@ ELSE(ITK_FOUND)
   MESSAGE(FATAL_ERROR "Cannot build without ITK. Please set ITK_DIR.")
 ENDIF(ITK_FOUND)
 
+set(CMAKE_CXX_FLAGS_DEBUG "-ggdb -pg")
+
 # Find dysii
 #FIND_PACKAGE(dysii)
 #if(dysii_found)
