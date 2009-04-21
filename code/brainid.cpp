@@ -34,8 +34,8 @@ using namespace std;
 namespace opts = boost::program_options;
 namespace aux = indii::ml::aux;
     
-const int NUM_PARTICLES = 30000; //should be command line
-const int RESAMPNESS = 24000; //should be some percentage of NUM_PARTICLES
+//const int NUM_PARTICLES = 30000; //should be command line
+const double RESAMPNESS = .8; //should be some percentage of NUM_PARTICLES
 const double SAMPLETIME = 2; //in seconds, should get from fmri image
 const int DIVIDER = 8;//divider must be a power of 2 (2, 4, 8, 16, 32....)
 
@@ -64,10 +64,13 @@ int main(int argc, char* argv[])
     const unsigned int rank = world.rank();
     const unsigned int size = world.size();
 
+    int num_particles;
+
     //CLI
     opts::options_description desc("Allowed options");
     desc.add_options()
             ("help", "produce help message")
+            ("particles,p", opts::value<int>(), "Number of particles to use.")
             ("timeseries,t", opts::value<string>(), "2D timeseries file")
             ("stimfile,s", opts::value<string>(), "file containing \"time value\""
                         "pairs which give the time at which input changed")
@@ -81,6 +84,14 @@ int main(int argc, char* argv[])
     if(cli_vars.count("help")) {
         cout << desc << endl;
         return 1;
+    }
+    
+    if(cli_vars.count("particles")) {
+        cout << "Number of Particles: " << cli_vars["particles"].as< int >() << endl;
+        num_particles = cli_vars["particles"].as < int >();
+    } else {
+        cout << "Need to enter a number of particles" << endl;
+        return -1;
     }
 
     if(cli_vars.count("timeseries")) {
@@ -135,7 +146,7 @@ int main(int argc, char* argv[])
         boost::archive::binary_iarchive inArchive(serialin);
         inArchive >> x0;
     } else  {
-        model.generatePrior(x0, NUM_PARTICLES);
+        model.generatePrior(x0, num_particles);
     }
 
     /* Create the filter */
@@ -143,7 +154,7 @@ int main(int argc, char* argv[])
   
     /* create resamplers */
     /* Normal resampler, used to eliminate particles */
-    indii::ml::filter::StratifiedParticleResampler resampler(NUM_PARTICLES);
+    indii::ml::filter::StratifiedParticleResampler resampler(num_particles);
 
     /* Regularized Resample */
     aux::Almost2Norm norm;
@@ -198,7 +209,7 @@ int main(int argc, char* argv[])
 #ifdef OUTPART
         fpart << "# name: particles" << setw(5) << t*10000 << endl;
         fpart << "# type: matrix" << endl;
-        fpart << "# rows: " << NUM_PARTICLES << endl;
+        fpart << "# rows: " << num_particles << endl;
         fpart << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
         fpart << "# time: " << time(NULL) << endl;
         particles = filter.getFilteredState().getAll();
@@ -225,7 +236,7 @@ int main(int argc, char* argv[])
             filter.filter(disctime*SAMPLETIME/DIVIDER,meas);
             double ess = filter.getFilteredState().calculateDistributedEss();
             cerr << "t= " << disctime*SAMPLETIME/DIVIDER << " ESS: " << ess << endl;
-            if(ess < RESAMPNESS || isnan(ess)) {
+            if(ess < num_particles*RESAMPNESS || isnan(ess)) {
                 cerr << "Resampling" << endl;
                 filter.resample(&resampler);
                 filter.resample(&resampler_reg);
