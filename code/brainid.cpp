@@ -271,7 +271,7 @@ int main(int argc, char* argv[])
 
             double ess = filter.getFilteredState().calculateDistributedEss();
 
-            if(ess < size*num_particles*RESAMPNESS || isnan(ess)) {
+            if(ess < num_particles*RESAMPNESS || isnan(ess)) {
                 if( rank == 0 )
                     cerr << " ESS: " << ess << ", Resampling" << endl;
                 filter.resample(&resampler);
