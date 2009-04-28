@@ -124,7 +124,7 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
     //of the program, so no need to calculate over and over
     static aux::symmetric_matrix cov(1);
     cov(0,0) = 1;
-    static aux::GaussianPdf rng(aux::zero_vector(MEAS_SIZE), cov);
+//    static aux::GaussianPdf rng(aux::zero_vector(MEAS_SIZE), cov);
     
     aux::vector location(MEAS_SIZE);
 //    fprintf(stderr, "Actual:\n");
@@ -141,7 +141,9 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
 //    fprintf(stderr, "\n");
 //    fprintf(stderr, "Weight calculated: %e\n", rng.densityAt(location));
 //    return out;
-    return rng.densityAt(location);
+//    return rng.densityAt(location);
+//  use exponential distribution with mean = lambda = 1
+    return gsl_ran_exponential_pdf(fabs(location(0)), 1);
 }
 
 void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme) 

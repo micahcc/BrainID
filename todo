@@ -1,8 +1,10 @@
 Todo List:
+-Thinner, stimuli
+-Look at variances
 -Preprocessing
 -Use maybe faster sampling.
 -Derive an fmri sequence to optimally extract the bold system parameters, may want to 
- apply maths to the problem.
+ apply maths to the problem. See sloppy models.
 -Need to add nifti data to boldgen and fmri_timeseries to define time parameters as well
  as some other misc data.
 -Normalize timeseries based on the total average, not just for each section.

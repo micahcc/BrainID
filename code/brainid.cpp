@@ -169,6 +169,7 @@ int main(int argc, char* argv[])
     /* output setup */
     std::ofstream fmeas;
     std::ofstream fstate;
+    std::ofstream fcov;
 #ifdef OUTPART
     std::ofstream fpart;
 #endif //OUTPART
@@ -177,9 +178,15 @@ int main(int argc, char* argv[])
         std::ostringstream iss("");
         iss << "meas" << ".out";
         fmeas.open(iss.str().c_str());
+        
         iss.str("");
         iss << "state" << ".out";
         fstate.open(iss.str().c_str());
+        
+        iss.str("");
+        iss << "cov" << ".out";
+        fcov.open(iss.str().c_str());
+
 #ifdef OUTPART
        iss.str("");
        iss << "particles" << rank << ".out";
@@ -201,6 +208,13 @@ int main(int argc, char* argv[])
                     (reader->GetOutput()->GetRequestedRegion().GetSize()[1] -1) 
                     << endl;
         fstate << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
+
+        fcov << "# Created by brainid" << endl;
+        fcov << "# name: covariances" << endl;
+        fcov << "# type: matrix" << endl;
+        fcov << "# ndims: 3" << endl;
+        fcov <<  BoldModel::SYSTEM_SIZE << " " << BoldModel::SYSTEM_SIZE << " "
+                    << reader->GetOutput()->GetRequestedRegion().GetSize()[1] -1 << endl;
 
 #ifdef OUTPART
         fpart << "# Created by brainid" << endl;
@@ -271,7 +285,7 @@ int main(int argc, char* argv[])
 
             double ess = filter.getFilteredState().calculateDistributedEss();
 
-            if(ess < num_particles*RESAMPNESS || isnan(ess)) {
+            if(ess < num_particles*RESAMPNESS || isnan(ess) || isinf(ess)) {
                 if( rank == 0 )
                     cerr << endl << " ESS: " << ess << ", Deterministic Resampling" << endl;
                 filter.resample(&resampler);
@@ -295,6 +309,13 @@ int main(int argc, char* argv[])
                 fstate << setw(10) << disctime*SAMPLETIME/DIVIDER; 
                 outputVector(fstate, mu);
                 fstate << endl;
+                
+                /* output filtered covariance */
+                for(int ii=0 ; ii<BoldModel::SYSTEM_SIZE; ii++) {
+                    for(int jj=0 ; jj<BoldModel::SYSTEM_SIZE; jj++) {
+                        fcov << cov(ii,jj) << endl;
+                    }
+                }
             }
 
         } else {
@@ -319,6 +340,7 @@ int main(int argc, char* argv[])
     if( rank == 0 ) {
         fmeas.close();
         fstate.close();
+        fcov.close();
         
         if(cli_vars.count("serialout")) {
             std::ofstream serialout(cli_vars["serialout"].as< string >().c_str(), std::ios::binary);
