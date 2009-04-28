@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <fstream>
 #include <string>
+#include <ctime>
     
 using namespace std;
 namespace opts = boost::program_options;
@@ -35,18 +36,21 @@ int main (int argc, char** argv)
     ofstream fmeas;
     
     string imagename;
+
+    double noise_var;
     
     //CLI
     opts::options_description desc("Allowed options");
     desc.add_options()
-            ("help", "produce help message")
+            ("help,h", "produce help message")
             ("out,o", opts::value<string>(), "image file to write to")
             ("outtime,t", opts::value<double>(), "How often to sample")
             ("simtime,s", opts::value<double>(), "Step size for sim, smaller is more accurate")
             ("endtime,e", opts::value<double>(), "What time to end at")
             ("numseries,n", opts::value<int>(), "Number of brain regions to simulate")
             ("matlab,m", opts::value<string>(), "prefix for matlab files")
-            ("inputstim,i", opts::value<string>(), "file to read in stimuli from");
+            ("inputstim,i", opts::value<string>(), "file to read in stimuli from")
+            ("noisevar,v", opts::value<double>(), "Variance of Gaussian Noise to apply to bold signal");
 
     opts::variables_map cli_vars;
     opts::store(opts::parse_command_line(argc, argv, desc), cli_vars);
@@ -117,6 +121,13 @@ int main (int argc, char** argv)
         cout << "No stimuli given, will decay freely" << endl;
     }
     
+    if(cli_vars.count("noisevar")) {
+        noise_var = cli_vars["noisevar"].as<double>();
+        cout << "Using variance of: " << noise_var << endl;
+    } else {
+        noise_var = 0;
+    }
+    
     fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
 
     srand(1333);
@@ -173,6 +184,10 @@ int main (int argc, char** argv)
         fmeas << "# rows: " << out_size[1] << endl;
         fmeas << "# columns: " << 3 << endl;
     }
+    
+    //Used to add noise
+    gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);
+    gsl_rng_set(rng, (int)(time(NULL)*rank)/11.);
 
     aux::vector system(BoldModel::SYSTEM_SIZE);
     aux::DiracMixturePdf x0(BoldModel::SYSTEM_SIZE);
@@ -221,7 +236,8 @@ int main (int argc, char** argv)
             }
             
             //TODO put multiple series here
-            out_it.Value() = model.measure(system)[0];
+            out_it.Value() = model.measure(system)[0] + 
+                        gsl_ran_gaussian(rng, sqrt(noise_var));
             for(i = 0 ; i < series ; i++) {
                 ++out_it;
             }
@@ -241,6 +257,8 @@ int main (int argc, char** argv)
         writer->SetInput(outputImage);
         writer->Update();
     }
+    
+    gsl_rng_free(rng);
     return 0;
 }
 

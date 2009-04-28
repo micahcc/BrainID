@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
     //CLI
     opts::options_description desc("Allowed options");
     desc.add_options()
-            ("help", "produce help message")
+            ("help,h", "produce help message")
             ("particles,p", opts::value<int>(), "Number of particles to use.")
             ("timeseries,t", opts::value<string>(), "2D timeseries file")
             ("stimfile,s", opts::value<string>(), "file containing \"time value\""
@@ -257,7 +257,7 @@ int main(int argc, char* argv[])
 
         /* time for update */
         if( rank == 0 ) 
-            cerr << "t= " << disctime*SAMPLETIME/DIVIDER << endl;
+            cerr << "t= " << disctime*SAMPLETIME/DIVIDER << ", ";
         
         if(disctime%DIVIDER == 0) {
             if(rank == 0) {
@@ -273,11 +273,13 @@ int main(int argc, char* argv[])
 
             if(ess < num_particles*RESAMPNESS || isnan(ess)) {
                 if( rank == 0 )
-                    cerr << " ESS: " << ess << ", Resampling" << endl;
+                    cerr << endl << " ESS: " << ess << ", Deterministic Resampling" << endl;
                 filter.resample(&resampler);
+                if( rank == 0)
+                    cerr << " ESS: " << ess << ", Regularized Resampling" << endl << endl;
                 filter.resample(&resampler_reg);
             } else if (rank == 0 )
-                cerr << " ESS: " << ess << ", No Resampling Necessary!" << endl;
+                cerr << endl << " ESS: " << ess << ", No Resampling Necessary!" << endl;
         
             mu = filter.getFilteredState().getDistributedExpectation();
             cov = filter.getFilteredState().getDistributedCovariance();

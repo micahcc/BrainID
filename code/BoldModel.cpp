@@ -5,6 +5,7 @@
 #include <indii/ml/aux/DiracPdf.hpp>
 
 #include <cmath>
+#include <ctime>
 #include <iomanip>
 
 BoldModel::BoldModel(aux::vector u)// : theta_sigmas(THETA_SIZE)
@@ -224,7 +225,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
     const unsigned int rank = world.rank();
     const unsigned int size = world.size();
     gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);
-    gsl_rng_set(rng, (int)(rank*11.)/3.);
+    gsl_rng_set(rng, (int)(time(NULL)*rank)/11.);
     aux::vector comp(SYSTEM_SIZE);
     for(int i = 0 ; i < samples; i ++) {
         generate_component(rng, comp);
