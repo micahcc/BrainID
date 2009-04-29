@@ -11,3 +11,8 @@ Todo List:
 -Perform tests to compare estimation of parameters using the average from a section
 as compared to estimation of parameters for all the voxels in the section, with each
 voxel as a state.
+
+for parameters that are "constant" it might be worth looking at the overall
+mean squared error over the entire sequence up to the current time 
+for weighting. This would be O(N^2)
+but we are already at O(PN) and typically P is vastly larger than N.
