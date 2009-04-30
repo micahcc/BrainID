@@ -50,7 +50,8 @@ int main (int argc, char** argv)
             ("numseries,n", opts::value<int>(), "Number of brain regions to simulate")
             ("matlab,m", opts::value<string>(), "prefix for matlab files")
             ("inputstim,i", opts::value<string>(), "file to read in stimuli from")
-            ("noisevar,v", opts::value<double>(), "Variance of Gaussian Noise to apply to bold signal");
+            ("noisevar,v", opts::value<double>(), "Variance of Gaussian Noise to apply to bold signal")
+            ("params,p", opts::value<string>(), "File with X0, Theta for simulation");
 
     opts::variables_map cli_vars;
     opts::store(opts::parse_command_line(argc, argv, desc), cli_vars);
@@ -128,6 +129,13 @@ int main (int argc, char** argv)
         noise_var = 0;
     }
     
+    if(cli_vars.count("params")) {
+        cout << "Reading Simulation Init/theta from: " 
+                    << cli_vars["params"].as<string>() << endl;
+    } else {
+        cout << "Using random values for init/theta" << endl;
+    }
+
     fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
 
     srand(1333);
@@ -190,10 +198,22 @@ int main (int argc, char** argv)
     gsl_rng_set(rng, (int)(time(NULL)*rank)/11.);
 
     aux::vector system(BoldModel::SYSTEM_SIZE);
-    aux::DiracMixturePdf x0(BoldModel::SYSTEM_SIZE);
-    model.generatePrior(x0, 10000);
-    
-    system = x0.sample();
+    if(cli_vars.count("params") == 0) {
+        aux::DiracMixturePdf x0(BoldModel::SYSTEM_SIZE);
+        model.generatePrior(x0, 10000);
+        system = x0.sample();
+    } else {
+        ifstream init(cli_vars["params"].as<string>().c_str());
+        for(int i = 0 ; i < BoldModel::SYSTEM_SIZE ; i++) {
+            init >> system[i];
+        }
+        if(init.eof()) {
+            cerr << "Error not enough arguments given" << endl;
+            outputVector(std::cout, system);
+            exit(-1);
+        }
+    }
+
     outputVector(std::cout, system);
     std::cout << std::endl;
 
