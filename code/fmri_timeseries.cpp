@@ -7,8 +7,7 @@
 
 #include <itkImageFileReader.h>
 
-typedef itk::OrientedImage<double, 2> Image2DType;
-
+typedef itk::OrientedImage<double, 4> ImageTimeSeries;
 //The labelmap should already have been masked through a maxprob image for
 //graymatter
 //TODO: Make the first element in each time series the section label
@@ -50,21 +49,25 @@ int main( int argc, char **argv )
     Image4DType::RegionType fmri_region = fmri_img->GetRequestedRegion();
 
     //create a 2D output image of appropriate size.
-    itk::ImageFileWriter< Image2DType >::Pointer writer = 
-        itk::ImageFileWriter< Image2DType >::New();
-    Image2DType::Pointer outputImage = Image2DType::New();
+    itk::ImageFileWriter< ImageTimeSeries >::Pointer writer = 
+        itk::ImageFileWriter< ImageTimeSeries >::New();
+    ImageTimeSeries::Pointer outputImage = ImageTimeSeries::New();
 
-    Image2DType::RegionType out_region;
-    Image2DType::IndexType out_index;
-    Image2DType::SizeType out_size;
+    ImageTimeSeries::RegionType out_region;
+    ImageTimeSeries::IndexType out_index;
+    ImageTimeSeries::SizeType out_size;
     
     out_size[0] = num_sections;
-    out_size[1] = fmri_region.GetSize()[3] + 1; //extra for labels
+    out_size[1] = 1;
+    out_size[2] = 1;
+    out_size[3] = fmri_region.GetSize()[3] + 1; //extra for labels
     
     fprintf(stderr, "Output will be %lu x %lu\n", out_size[0], out_size[1]);
 
     out_index[0] = 0;
-    out_index[1] = fmri_region.GetIndex()[3];
+    out_index[1] = 0;
+    out_index[2] = 0;
+    out_index[4] = fmri_region.GetIndex()[3];
     
     fprintf(stderr, "Region will be %lu x %lu\n", out_index[0], out_index[1]);
 
@@ -72,13 +75,14 @@ int main( int argc, char **argv )
     out_region.SetIndex(out_index);
 
     outputImage->SetRegions( out_region );
-    //outputImage->CopyInformation( fmri_img );
+//    outputImage->CopyInformation( fmri_img );
     outputImage->Allocate();
 
     //setup iterators
-    itk::ImageLinearIteratorWithIndex<Image2DType> 
+    itk::ImageSliceIteratorWithIndex<ImageTimeSeries> 
                 out_it(outputImage, outputImage->GetRequestedRegion());
-    out_it.SetDirection(0);
+    out_it.SetFirstDirection(0);
+    out_it.SetSecondDirection(3);
 
     std::list< SectionType >::iterator list_it = active_voxels.begin();
     out_it.GoToBegin();
@@ -143,12 +147,21 @@ int main( int argc, char **argv )
     //convert absolute values in output image to percent change values
     //this means dividing each entire timeseries by the average for
     //that timeseries
-    out_it.SetDirection(1); //move in the time direction first
+
+    //skip the label
+    //layout: down is the fastest dimension, right is the slowest
+    //name0 d0 d1 d2 ...
+    //name1 d0 d1 d2 ...
+    //name2 d0 d1 d2 ...
+    //name3 d0 d1 d2 ...
+    //name4 d0 d1 d2 ...
+    out_it.SetFirstDirection(3);
+    out_it.SetSecondDirection(0);
     out_it.GoToBegin();
     ++out_it; //skip the label
     
     averages_it = averages.begin();
-    while(!out_it.IsAtEnd() && averages_it != averages.end()) {
+    while(!out_it.IsAtEndOfSlice() && averages_it != averages.end()) {
         while(!out_it.IsAtEndOfLine()) {
             out_it.Value() = out_it.Get()/(*averages_it);
             ++out_it;

@@ -8,7 +8,7 @@
 #include <ctime>
 #include <iomanip>
 
-#define EXPONENTIAL .01
+#define EXPONENTIAL .1
 
 BoldModel::BoldModel(aux::vector u)// : theta_sigmas(THETA_SIZE)
 {

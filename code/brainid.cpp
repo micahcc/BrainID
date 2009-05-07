@@ -37,10 +37,10 @@ namespace aux = indii::ml::aux;
     
 const double RESAMPNESS = .8; //should be some percentage of NUM_PARTICLES
 const double SAMPLETIME = 2; //in seconds, should get from fmri image
-const int DIVIDER = 8;//divider must be a power of 2 (2, 4, 8, 16, 32....)
+//const int DIVIDER = 8;//divider must be a power of 2 (2, 4, 8, 16, 32....)
 
 typedef float ImagePixelType;
-typedef itk::Image< ImagePixelType,  2 > ImageType;
+typedef itk::Image< ImagePixelType,  4 > ImageType;
 typedef itk::ImageFileReader< ImageType >  ImageReaderType;
 typedef itk::ImageFileWriter< ImageType >  WriterType;
 
@@ -64,7 +64,8 @@ int main(int argc, char* argv[])
     const unsigned int rank = world.rank();
     const unsigned int size = world.size();
 
-    int num_particles;
+    int NUM_PARTICLES;
+    int DIVIDER;
 
     //CLI
     opts::options_description desc("Allowed options");
@@ -72,6 +73,7 @@ int main(int argc, char* argv[])
             ("help,h", "produce help message")
             ("particles,p", opts::value<int>(), "Number of particles to use.")
             ("timeseries,t", opts::value<string>(), "2D timeseries file")
+            ("divider,d", opts::value<int>(), "Ratio of linearization points to number of samples")
             ("stimfile,s", opts::value<string>(), "file containing \"time value\""
                         "pairs which give the time at which input changed")
             ("serialout", opts::value<string>(), "Where to put a serial output file")
@@ -86,9 +88,18 @@ int main(int argc, char* argv[])
         return 1;
     }
     
+    if(cli_vars.count("divider")) {
+        DIVIDER = cli_vars["divider"].as < int >();
+        cout << "Setting divider to" << DIVIDER << endl
+                    << "Setting timestep to " << 2./DIVIDER << endl;
+    } else {
+        cout << "Setting divider to 8" << endl;
+        DIVIDER = 8;
+    }
+    
     if(cli_vars.count("particles")) {
         cout << "Number of Particles: " << cli_vars["particles"].as< int >() << endl;
-        num_particles = cli_vars["particles"].as < int >();
+        NUM_PARTICLES = cli_vars["particles"].as < int >();
     } else {
         cout << "Need to enter a number of particles" << endl;
         return -1;
@@ -135,9 +146,11 @@ int main(int argc, char* argv[])
         /* Create the iterator, to move forward in time for a particlular section */
         iter = itk::ImageLinearIteratorWithIndex<ImageType>(reader->GetOutput(), 
                     reader->GetOutput()->GetRequestedRegion());
-        iter.SetDirection(1);
+        iter.SetDirection(3);
         ImageType::IndexType index;
-        index[1] = 1; //skip section label
+        index[3] = 1; //skip section label
+        index[2] = 0; //skip section label
+        index[1] = 0; //skip section label
         index[0] = 0; //just kind of picking a section
         iter.SetIndex(index);
     }
@@ -150,7 +163,7 @@ int main(int argc, char* argv[])
         boost::archive::binary_iarchive inArchive(serialin);
         inArchive >> x0;
     } else  {
-        model.generatePrior(x0, num_particles / size);
+        model.generatePrior(x0, NUM_PARTICLES / size);
     }
 
     /* Create the filter */
@@ -158,7 +171,7 @@ int main(int argc, char* argv[])
   
     /* create resamplers */
     /* Normal resampler, used to eliminate particles */
-    indii::ml::filter::StratifiedParticleResampler resampler(num_particles);
+    indii::ml::filter::StratifiedParticleResampler resampler(NUM_PARTICLES);
 
     /* Regularized Resample */
     aux::Almost2Norm norm;
@@ -197,7 +210,7 @@ int main(int argc, char* argv[])
         fmeas << "# name: bold" << endl;
         fmeas << "# type: matrix" << endl;
         fmeas << "# rows: " << 
-                    (reader->GetOutput()->GetRequestedRegion().GetSize()[1] - 1)
+                    (reader->GetOutput()->GetRequestedRegion().GetSize()[3] - 1)
                     << endl;
         fmeas << "# columns: 3" << endl;
 
@@ -205,7 +218,7 @@ int main(int argc, char* argv[])
         fstate << "# name: states " << endl;
         fstate << "# type: matrix" << endl;
         fstate << "# rows: " << 
-                    (reader->GetOutput()->GetRequestedRegion().GetSize()[1] -1) 
+                    (reader->GetOutput()->GetRequestedRegion().GetSize()[3] -1) 
                     << endl;
         fstate << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
 
@@ -214,7 +227,7 @@ int main(int argc, char* argv[])
         fcov << "# type: matrix" << endl;
         fcov << "# ndims: 3" << endl;
         fcov <<  BoldModel::SYSTEM_SIZE << " " << BoldModel::SYSTEM_SIZE << " "
-                    << reader->GetOutput()->GetRequestedRegion().GetSize()[1] -1 << endl;
+                    << reader->GetOutput()->GetRequestedRegion().GetSize()[3] -1 << endl;
 
 #ifdef OUTPART
         fpart << "# Created by brainid" << endl;
@@ -245,7 +258,7 @@ int main(int argc, char* argv[])
         if( rank == 0 ) {
             fpart << "# name: particles" << setw(5) << t*10000 << endl;
             fpart << "# type: matrix" << endl;
-            fpart << "# rows: " << num_particles << endl;
+            fpart << "# rows: " << NUM_PARTICLES << endl;
             fpart << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
             fpart << "# time: " << time(NULL) << endl;
             particles = filter.getFilteredState().getAll();
@@ -285,7 +298,7 @@ int main(int argc, char* argv[])
 
             double ess = filter.getFilteredState().calculateDistributedEss();
 
-            if(ess < num_particles*RESAMPNESS || isnan(ess) || isinf(ess)) {
+            if(ess < NUM_PARTICLES*RESAMPNESS || isnan(ess) || isinf(ess)) {
                 if( rank == 0 )
                     cerr << endl << " ESS: " << ess << ", Deterministic Resampling" << endl;
                 filter.resample(&resampler);

@@ -1,6 +1,7 @@
 #include "itkOrientedImage.h"
 #include "itkImageFileWriter.h"
 #include "itkImageLinearIteratorWithIndex.h"
+#include "itkImageSliceIteratorWithIndex.h"
 #include "BoldModel.hpp"
 
 #include <indii/ml/aux/vector.hpp>
@@ -18,7 +19,7 @@
 using namespace std;
 namespace opts = boost::program_options;
 
-typedef itk::OrientedImage<double, 2> Image2DType;
+typedef itk::OrientedImage<double, 4> Image4DType;
 
 int main (int argc, char** argv)
 {
@@ -176,21 +177,25 @@ int main (int argc, char** argv)
     srand(1333);
 
     //create a 2D output image of appropriate size.
-    itk::ImageFileWriter< Image2DType >::Pointer writer = 
-        itk::ImageFileWriter< Image2DType >::New();
-    Image2DType::Pointer outputImage = Image2DType::New();
+    itk::ImageFileWriter< Image4DType >::Pointer writer = 
+        itk::ImageFileWriter< Image4DType >::New();
+    Image4DType::Pointer outputImage = Image4DType::New();
 
-    Image2DType::RegionType out_region;
-    Image2DType::IndexType out_index;
-    Image2DType::SizeType out_size;
+    Image4DType::RegionType out_region;
+    Image4DType::IndexType out_index;
+    Image4DType::SizeType out_size;
 
     out_size[0] = series;
+    out_size[1] = 1;
+    out_size[2] = 1;
     //TODO deal with add error in double which could cause less or more
     //states to be simulated
-    out_size[1] = (int)(stoptime/outstep)+1; //|T|T|T| + one for the series number
+    out_size[3] = (int)(stoptime/outstep)+1; //|T|T|T| + one for the series number
     
     out_index[0] = 0;
     out_index[1] = 0;
+    out_index[2] = 0;
+    out_index[3] = 0;
     
     out_region.SetSize(out_size);
     out_region.SetIndex(out_index);
@@ -199,9 +204,10 @@ int main (int argc, char** argv)
     outputImage->Allocate();
     
     //setup iterator
-    itk::ImageLinearIteratorWithIndex<Image2DType> 
+    itk::ImageSliceIteratorWithIndex<Image4DType> 
                 out_it(outputImage, outputImage->GetRequestedRegion());
-    out_it.SetDirection(0);
+    out_it.SetFirstDirection(0);
+    out_it.SetSecondDirection(3);
 
     int count = 0;
     while(!out_it.IsAtEndOfLine()) {
@@ -216,7 +222,7 @@ int main (int argc, char** argv)
         fstate << "# Created by boldgen " << endl;
         fstate << "# name: statessim " << endl;
         fstate << "# type: matrix" << endl;
-        fstate << "# rows: " << out_size[1] -1 << endl;
+        fstate << "# rows: " << out_size[3] -1 << endl;
         fstate << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
     }
 
@@ -224,7 +230,7 @@ int main (int argc, char** argv)
         fmeas << "# Created by boldgen " << endl;
         fmeas << "# name: meassim " << endl;
         fmeas << "# type: matrix" << endl;
-        fmeas << "# rows: " << out_size[1] - 1<< endl;
+        fmeas << "# rows: " << out_size[3] - 1<< endl;
         fmeas << "# columns: " << 3 << endl;
     }
     

@@ -174,6 +174,7 @@ Image4DType::Pointer read_dicom(std::string directory)
     
     //create image readers
     Image4DType::Pointer fmri_img = elevateFilter->GetOutput();
+    fmri_img->CopyInformation(reader[0]->GetOutput());
     fmri_img->Update();
     return fmri_img;
 };
