@@ -12,6 +12,8 @@
 #include <fstream>
 #include <string>
 #include <ctime>
+#include <vector>
+#include <sstream>
     
 using namespace std;
 namespace opts = boost::program_options;
@@ -39,6 +41,8 @@ int main (int argc, char** argv)
 
     double noise_var;
     
+    aux::vector system(BoldModel::SYSTEM_SIZE);
+    
     //CLI
     opts::options_description desc("Allowed options");
     desc.add_options()
@@ -51,7 +55,10 @@ int main (int argc, char** argv)
             ("matlab,m", opts::value<string>(), "prefix for matlab files")
             ("inputstim,i", opts::value<string>(), "file to read in stimuli from")
             ("noisevar,v", opts::value<double>(), "Variance of Gaussian Noise to apply to bold signal")
-            ("params,p", opts::value<string>(), "File with X0, Theta for simulation");
+            ("file,f", opts::value<string>(), "File with X0, Theta for simulation")
+            ("params,p", opts::value<string>(), "Parameters to pass "
+                        "into the simulation, enclosed in quotes \"Tau_s Tau_f Epsilon Tau_0 "
+                        "alpha E_0 V_0 v_t0 q_t0 s_t0 f_t0\"");
 
     opts::variables_map cli_vars;
     opts::store(opts::parse_command_line(argc, argv, desc), cli_vars);
@@ -130,11 +137,39 @@ int main (int argc, char** argv)
     }
     
     if(cli_vars.count("params")) {
-        cout << "Reading Simulation Init/theta from: " 
+        cout << "Reading Simulation Init/theta from command line: " 
                     << cli_vars["params"].as<string>() << endl;
+
+        istringstream iss(cli_vars["params"].as<string>());
+        
+        for(int i = 0 ; i < BoldModel::SYSTEM_SIZE ; i++) {
+            if(iss.eof()) {
+                cerr << "Error not enough arguments given on command line" << endl;
+                exit(-3);
+            }
+            iss >> system[i];
+        }
+        
+        cout << "Using parameters: " << endl;
+    } else if(cli_vars.count("file")) {
+        cout << "Reading Simulation Init/theta from: " 
+                    << cli_vars["file"].as<string>() << endl;
+        
+        ifstream init(cli_vars["file"].as<string>().c_str());
+        
+        for(int i = 0 ; i < BoldModel::SYSTEM_SIZE ; i++)
+            init >> system[i];
+
+        if(init.eof()) {
+            cerr << "Error not enough arguments given in file" << endl;
+            outputVector(std::cout, system);
+            cerr << endl;
+            exit(-1);
+        }
     } else {
         cout << "Using random values for init/theta" << endl;
     }
+    
 
     fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
 
@@ -181,15 +216,15 @@ int main (int argc, char** argv)
         fstate << "# Created by boldgen " << endl;
         fstate << "# name: statessim " << endl;
         fstate << "# type: matrix" << endl;
-        fstate << "# rows: " << out_size[1] << endl;
-        fstate << "# columns: " << BoldModel::SYSTEM_SIZE + 2 << endl;
+        fstate << "# rows: " << out_size[1] -1 << endl;
+        fstate << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
     }
 
     if(fmeas.is_open()) {
         fmeas << "# Created by boldgen " << endl;
         fmeas << "# name: meassim " << endl;
         fmeas << "# type: matrix" << endl;
-        fmeas << "# rows: " << out_size[1] << endl;
+        fmeas << "# rows: " << out_size[1] - 1<< endl;
         fmeas << "# columns: " << 3 << endl;
     }
     
@@ -197,22 +232,11 @@ int main (int argc, char** argv)
     gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);
     gsl_rng_set(rng, (int)(time(NULL)*rank)/11.);
 
-    aux::vector system(BoldModel::SYSTEM_SIZE);
-    if(cli_vars.count("params") == 0) {
+    if(cli_vars.count("file") == 0 && cli_vars.count("params") == 0) {
         aux::DiracMixturePdf x0(BoldModel::SYSTEM_SIZE);
         model.generatePrior(x0, 10000);
         system = x0.sample();
-    } else {
-        ifstream init(cli_vars["params"].as<string>().c_str());
-        for(int i = 0 ; i < BoldModel::SYSTEM_SIZE ; i++) {
-            init >> system[i];
-        }
-        if(init.eof()) {
-            cerr << "Error not enough arguments given" << endl;
-            outputVector(std::cout, system);
-            exit(-1);
-        }
-    }
+    } 
 
     outputVector(std::cout, system);
     std::cout << std::endl;

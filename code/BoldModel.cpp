@@ -8,6 +8,8 @@
 #include <ctime>
 #include <iomanip>
 
+#define EXPONENTIAL .01
+
 BoldModel::BoldModel(aux::vector u)// : theta_sigmas(THETA_SIZE)
 {
     if(THETA_SIZE + STATE_SIZE*SIMUL_STATES != SYSTEM_SIZE) {
@@ -124,8 +126,9 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
     //of the program, so no need to calculate over and over
     static aux::symmetric_matrix cov(1);
     cov(0,0) = 1;
-//    static aux::GaussianPdf rng(aux::zero_vector(MEAS_SIZE), cov);
-    
+#ifndef EXPONENTIAL
+    static aux::GaussianPdf rng(aux::zero_vector(MEAS_SIZE), cov);
+#endif 
     aux::vector location(MEAS_SIZE);
 //    fprintf(stderr, "Actual:\n");
 //    outputVector(std::cerr, y);
@@ -141,9 +144,12 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
 //    fprintf(stderr, "\n");
 //    fprintf(stderr, "Weight calculated: %e\n", rng.densityAt(location));
 //    return out;
-//    return rng.densityAt(location);
-//  use exponential distribution with mean = lambda = 1
-    return gsl_ran_exponential_pdf(fabs(location(0)), 1);
+#ifdef EXPONENTIAL
+//  use exponential distribution with mean = lambda = .01
+    return gsl_ran_exponential_pdf(fabs(location(0)), EXPONENTIAL);
+#else
+    return rng.densityAt(location);
+#endif
 }
 
 void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme) 
