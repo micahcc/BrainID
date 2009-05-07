@@ -30,3 +30,5 @@ mobile variables. Resting state maybe?
 
 -Maybe somehow treat "const" parameters differently, limit their movement, assume
 no noise in them maybe?
+
+-Maybe try settling out to different levels of stimuli.

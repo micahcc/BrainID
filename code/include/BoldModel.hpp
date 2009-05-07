@@ -45,7 +45,7 @@ public:
 
     aux::vector measure(const aux::vector& s);
 
-    //acquire the weight of the particle based on the inpu
+    //acquire the weight of the particle based on the input
     double weight(const aux::vector& s, const aux::vector& y);
 
     void generatePrior(aux::DiracMixturePdf&, int);

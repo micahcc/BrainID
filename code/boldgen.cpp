@@ -15,7 +15,7 @@
 #include <ctime>
 #include <vector>
 #include <sstream>
-    
+
 using namespace std;
 namespace opts = boost::program_options;
 
@@ -242,6 +242,17 @@ int main (int argc, char** argv)
         aux::DiracMixturePdf x0(BoldModel::SYSTEM_SIZE);
         model.generatePrior(x0, 10000);
         system = x0.sample();
+
+#ifdef ZEROSTART
+        //this assumes you start at resting state, which is not a bad
+        //assumption. Plus this way you don't get negative bold.
+        for(int i = BoldModel::THETA_SIZE ; i < BoldModel::SYSTEM_SIZE ; i++) {
+            if((i-BoldModel::THETA_SIZE)%BoldModel::STATE_SIZE == 2) 
+                system[i] = 1;
+            else
+                system[i] = 0;
+        }
+#endif //ZEROSTART
     } 
 
     outputVector(std::cout, system);
