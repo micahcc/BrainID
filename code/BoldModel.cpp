@@ -266,7 +266,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
 
 //TODO make some of these non-gaussian
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
-            const double mean[])
+            const aux::vector mean)
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();

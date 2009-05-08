@@ -50,7 +50,7 @@ public:
     double weight(const aux::vector& s, const aux::vector& y);
 
     void generatePrior(aux::DiracMixturePdf&, int);
-    void generatePrior(aux::DiracMixturePdf& x0, int samples, const double mean[]);
+    void generatePrior(aux::DiracMixturePdf& x0, int samples, const aux::vector mean);
 
     //since the particle filter doesn't yet support input, we are
     //going to hack around that and set it directly
