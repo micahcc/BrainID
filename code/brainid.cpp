@@ -12,6 +12,7 @@
 #include <indii/ml/filter/StratifiedParticleResampler.hpp>
 #include <indii/ml/aux/GaussianPdf.hpp>
 #include <indii/ml/aux/vector.hpp>
+#include <indii/ml/aux/matrix.hpp>
 
 #include <indii/ml/aux/Almost2Norm.hpp>
 #include <indii/ml/aux/AlmostGaussianKernel.hpp>
@@ -44,19 +45,6 @@ typedef itk::Image< ImagePixelType,  4 > ImageType;
 typedef itk::ImageFileReader< ImageType >  ImageReaderType;
 typedef itk::ImageFileWriter< ImageType >  WriterType;
 
-// Declare the supported options.
-// po::options_description desc("Allowed options");
-// desc.add_options()
-//     ("help", "produce help message")
-//         ("compression", po::value<int>(), "set compression level")
-//         ;
-//
-//         po::variables_map vm;
-//         po::store(po::parse_command_line(ac, av, desc), vm);
-//         po::notify(vm);    
-//
-
-
 int main(int argc, char* argv[])
 {
     boost::mpi::environment env(argc, argv);
@@ -66,6 +54,9 @@ int main(int argc, char* argv[])
 
     int NUM_PARTICLES;
     int DIVIDER;
+    aux::vector cheat(BoldModel::SYSTEM_SIZE) ;
+    double curweight = 0; //how much to weight the current time vs. old times
+    int weightfunc = BoldModel::NORM; //type of weighting function to use
 
     //CLI
     opts::options_description desc("Allowed options");
@@ -77,12 +68,23 @@ int main(int argc, char* argv[])
             ("stimfile,s", opts::value<string>(), "file containing \"time value\""
                         "pairs which give the time at which input changed")
             ("serialout", opts::value<string>(), "Where to put a serial output file")
-            ("serialin", opts::value<string>(), "Where to find a serial input file");
+            ("serialin", opts::value<string>(), "Where to find a serial input file")
+            ("weightf", opts::value<string>(), "weighting function to use, options:"
+                        "norm || exp || hyp")
+            ("reweight", opts::value<string>(), "how to reweight particles, options:"
+                        "mult || <averaging percent of now>")
+            ("cheat", opts::value<string>(), "This cheats and gives the true starting parameters"
+                        "to the particle filter. This is just a validation technique for the "
+                        "filter. Syntax: \"Tau_s Tau_f Epsilon Tau_0 "
+                        "alpha E_0 V_0 v_t0 q_t0 s_t0 f_t0\"");
 
     opts::variables_map cli_vars;
     opts::store(opts::parse_command_line(argc, argv, desc), cli_vars);
     opts::notify(cli_vars);
     
+    ///////////////////////////////////////////////////////////////////////////////
+    //Parse command line options
+    ///////////////////////////////////////////////////////////////////////////////
     if(cli_vars.count("help")) {
         cout << desc << endl;
         return 1;
@@ -131,6 +133,55 @@ int main(int argc, char* argv[])
         cout << "No serial input selected" << endl;
     }
 
+    if(cli_vars.count("weightf")) {
+        if(cli_vars["weightf"].as<string>().compare("exp") == 0) {
+            cout << "weightf: Weighting based on the exponential distribution" << endl;
+            weightfunc = BoldModel::EXP;
+        } else if(cli_vars["weightf"].as<string>().compare("hyp") == 0) {
+            cout << "weightf: Weighting based on 1/dist" << endl;
+            weightfunc = BoldModel::HYP;
+        } else {
+            cout << "weightf: Weighting based on the normal distribution" << endl;
+            weightfunc = BoldModel::NORM;
+        }
+    } else {
+        cout << "weightf: Weighting based on the normal distribution" << endl;
+        weightfunc = BoldModel::NORM;
+    }
+    
+    if(cli_vars.count("reweight")) {
+        istringstream iss(cli_vars["rewight"].as<string>());
+        if(cli_vars["reweight"].as<string>().compare("mult") == 0) {
+            cout << "reweight: will multiply old weight by new weight for updates" << endl;
+            curweight = 0;
+        } else {
+            iss >> curweight;
+            cout << "reweight: weight update: <new> = <old>*" << (1-curweight)
+                        << "+<now>*" << curweight << endl;
+        }
+    } else {
+        curweight = 0;
+    }
+    
+    if(cli_vars.count("cheat")) {
+        cout << "Cheating by distributing starting particles around:" 
+            << cli_vars["cheat"].as < string >() << endl;
+
+        istringstream iss(cli_vars["cheat"].as<string>());
+        
+        for(int i = 0 ; i < BoldModel::SYSTEM_SIZE ; i++) {
+            if(iss.eof()) {
+                cerr << "Error not enough arguments given on command line" << endl;
+                exit(-3);
+            }
+            iss >> cheat[i];
+        }
+        
+    } 
+
+    ///////////////////////////////////////////////////////////////////////////////
+    //Done Parsing, starting main part of code
+    ///////////////////////////////////////////////////////////////////////////////
     fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
 
     std::ifstream fin;
@@ -156,14 +207,24 @@ int main(int argc, char* argv[])
     }
 
     /* Create a model */
-    BoldModel model; 
+    BoldModel model(zero_vector(BoldModel::SYSTEM_SIZE), weightfunc, curweight);
     aux::DiracMixturePdf x0(BoldModel::SYSTEM_SIZE);
     if(cli_vars.count("serialin")) {
         std::ifstream serialin(cli_vars["serialin"].as< string >().c_str(), std::ios::binary);
         boost::archive::binary_iarchive inArchive(serialin);
         inArchive >> x0;
-    } else  {
+    } else if(cli_vars.count("cheat")) {
+        model.generatePrior(x0, NUM_PARTICLES / size, cheat);
+    } else {
+        if(rank == 0)
+            cout << "Generating prior" << endl;
         model.generatePrior(x0, NUM_PARTICLES / size);
+        aux::matrix tmp = x0.getDistributedCovariance();
+        if(rank == 0) {
+            cout << "Covariance: " << endl;
+            outputMatrix(cout, tmp);
+            cout << endl;
+        }
     }
 
     /* Create the filter */

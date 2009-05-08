@@ -10,7 +10,7 @@
 
 #define EXPONENTIAL .1
 
-BoldModel::BoldModel(aux::vector u)// : theta_sigmas(THETA_SIZE)
+BoldModel::BoldModel(aux::vector u, int weightf, double tweight)
 {
     if(THETA_SIZE + STATE_SIZE*SIMUL_STATES != SYSTEM_SIZE) {
         std::cerr << "Incorrect system size" << std::endl;
@@ -28,6 +28,9 @@ BoldModel::BoldModel(aux::vector u)// : theta_sigmas(THETA_SIZE)
 //    small_g = .95e-5;
     var_e = 3.92e-6;
     sigma_e = sqrt(var_e);
+
+    this->weightf = weightf;
+    this->tweight = tweight;
 }
 
 BoldModel::~BoldModel()
@@ -152,8 +155,43 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
 #endif
 }
 
-void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme) 
+
+//Note that k_sigma contains std. deviation OR k and theta_mu contains either
+//mean or theta depending on the distribution
+void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme, 
+            const double k_sigma[], const double theta_mu[]) 
 {
+    //draw from the gama, assume independence between the variables
+
+    fillme[TAU_S]   = gsl_ran_gamma(rng, k_sigma[TAU_S],   theta_mu[TAU_S]);
+    fillme[TAU_F]   = gsl_ran_gamma(rng, k_sigma[TAU_F],   theta_mu[TAU_F]);
+    fillme[EPSILON] = gsl_ran_gamma(rng, k_sigma[EPSILON], theta_mu[EPSILON]);
+    fillme[TAU_0]   = gsl_ran_gamma(rng, k_sigma[TAU_0],   theta_mu[TAU_0]);
+    fillme[ALPHA]   = gsl_ran_gamma(rng, k_sigma[ALPHA],   theta_mu[ALPHA]);
+    fillme[E_0]     = gsl_ran_gamma(rng, k_sigma[E_0],     theta_mu[E_0]);
+    fillme[V_0]     = gsl_ran_gamma(rng, k_sigma[V_0],     theta_mu[V_0]);
+
+    //going to distribute all the state variables the same even if they are
+    //in different sections
+    for(int i = 0 ; i< SIMUL_STATES ; i++) {
+        fillme[indexof(V_T, i)] = gsl_ran_gamma(rng, k_sigma[indexof(V_T,0)], 
+                    theta_mu[indexof(V_T,0)]);
+        fillme[indexof(Q_T, i)] = gsl_ran_gamma(rng, k_sigma[indexof(Q_T,0)], 
+                    theta_mu[indexof(Q_T,0)]);
+        fillme[indexof(S_T, i)] = gsl_ran_gaussian(rng, k_sigma[indexof(S_T,0)])+
+                    theta_mu[indexof(S_T,0)];
+        fillme[indexof(F_T, i)] = gsl_ran_gamma(rng, k_sigma[indexof(F_T,0)], 
+                    theta_mu[indexof(F_T,0)]);
+    }
+    
+}
+
+//TODO make some of these non-gaussian
+void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
+{
+    boost::mpi::communicator world;
+    const unsigned int rank = world.rank();
+    
     //set the averages of the variables
     const double mu_TAU_S = 4.98;
     const double mu_TAU_F = 8.31;
@@ -167,7 +205,7 @@ void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme)
     const double mu_Q_T = 1;
     const double mu_S_T = 0;
     const double mu_F_T = 1;
-
+    
     //set the variances for all the variables
     const double var_TAU_S =   4*1.07*1.07;
     const double var_TAU_F =   4*1.51*1.51;
@@ -209,39 +247,89 @@ void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme)
     const double sigma_S_T = sqrt(var_S_T);
     const double k_F_T = mu_F_T/theta_F_T;
 
-    //draw from the gama, assume independence between the variables
 
-    fillme[TAU_S]   = gsl_ran_gamma(rng, k_TAU_S,   theta_TAU_S);
-    fillme[TAU_F]   = gsl_ran_gamma(rng, k_TAU_F,   theta_TAU_F);
-    fillme[EPSILON] = gsl_ran_gamma(rng, k_EPSILON, theta_EPSILON);
-    fillme[TAU_0]   = gsl_ran_gamma(rng, k_TAU_0,   theta_TAU_0);
-    fillme[ALPHA]   = gsl_ran_gamma(rng, k_ALPHA,   theta_ALPHA);
-    fillme[E_0]     = gsl_ran_gamma(rng, k_E_0,     theta_E_0);
-    fillme[V_0]     = gsl_ran_gamma(rng, k_V_0,     theta_V_0);
-    for(int i = 0 ; i< SIMUL_STATES ; i++) {
-        fillme[indexof(V_T, i)] = gsl_ran_gamma(rng, k_V_T, theta_V_T);
-        fillme[indexof(Q_T, i)] = gsl_ran_gamma(rng, k_Q_T, theta_Q_T);
-        fillme[indexof(S_T, i)] = gsl_ran_gaussian(rng, sigma_S_T) + mu_S_T;
-        fillme[indexof(F_T, i)] = gsl_ran_gamma(rng, k_F_T, theta_F_T);
-    }
-}
+    const double k_sigma[] = {k_TAU_S, k_TAU_F, k_EPSILON, k_TAU_0, k_ALPHA, k_E_0,
+                k_V_0, k_V_T, k_Q_T, sigma_S_T, k_F_T};
+    const double theta_mu[] = {theta_TAU_S, theta_TAU_F, theta_EPSILON, 
+                theta_TAU_0, theta_ALPHA, theta_E_0, theta_V_0, theta_V_T, 
+                theta_Q_T, mu_S_T, theta_F_T};
 
-//TODO make some of these non-gaussian
-void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
-{
-    boost::mpi::communicator world;
-    const unsigned int rank = world.rank();
-    const unsigned int size = world.size();
     gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);
-    gsl_rng_set(rng, (int)(time(NULL)*rank)/11.);
+    gsl_rng_set(rng, (int)((time(NULL)*(rank+11))/71.));
     aux::vector comp(SYSTEM_SIZE);
     for(int i = 0 ; i < samples; i ++) {
-        generate_component(rng, comp);
+        generate_component(rng, comp, k_sigma, theta_mu);
         x0.add(comp, 1.0);
     }
     gsl_rng_free(rng);
 }
 
+//TODO make some of these non-gaussian
+void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
+            const double mean[])
+{
+    boost::mpi::communicator world;
+    const unsigned int rank = world.rank();
+    
+    //set the variances for all the variables
+    const double var_TAU_S =   4*1.07*1.07;
+    const double var_TAU_F =   4*1.51*1.51;
+    const double var_EPSILON = 4*0.014*.014;
+    const double var_TAU_0 =   4*1.5*1.5;
+    const double var_ALPHA =   4*.004*.004;
+    const double var_E_0 =     4*.072*.072;
+    const double var_V_0 =     4*.6e-2*.6e-2;
+    
+    const double var_V_T = .5;
+    const double var_Q_T = .5;
+    const double var_S_T = .5;
+    const double var_F_T = .1;
+    
+    //set the theta of the variables
+    //theta = var/mu
+    double theta_TAU_S   = var_TAU_S  /mean[TAU_S  ];
+    double theta_TAU_F   = var_TAU_F  /mean[TAU_F  ];
+    double theta_EPSILON = var_EPSILON/mean[EPSILON];
+    double theta_TAU_0   = var_TAU_0  /mean[TAU_0  ];
+    double theta_ALPHA   = var_ALPHA  /mean[ALPHA  ];
+    double theta_E_0     = var_E_0    /mean[E_0    ];
+    double theta_V_0     = var_V_0    /mean[V_0    ];
+    
+    double theta_V_T = var_V_T/mean[indexof(V_T,0)];
+    double theta_Q_T = var_Q_T/mean[indexof(Q_T,0)];
+    double theta_F_T = var_F_T/mean[indexof(F_T,0)];
+
+    //set the k of the variables
+    //k = mu^2/var = mu/theta
+    double k_TAU_S   = mean[TAU_S  ]/theta_TAU_S;
+    double k_TAU_F   = mean[TAU_F  ]/theta_TAU_F;
+    double k_EPSILON = mean[EPSILON]/theta_EPSILON;
+    double k_TAU_0   = mean[TAU_0  ]/theta_TAU_0;
+    double k_ALPHA   = mean[ALPHA  ]/theta_ALPHA;
+    double k_E_0     = mean[E_0    ]/theta_E_0;
+    double k_V_0     = mean[V_0    ]/theta_V_0;
+    
+    double k_V_T =     mean[indexof(V_T,0)]/theta_V_T;
+    double k_Q_T =     mean[indexof(Q_T,0)]/theta_Q_T;
+    double sigma_S_T = sqrt(var_S_T);
+    double k_F_T =     mean[indexof(F_T,0)]/theta_F_T;
+
+
+    double k_sigma[] = {k_TAU_S, k_TAU_F, k_EPSILON, k_TAU_0, k_ALPHA, k_E_0,
+                k_V_0, k_V_T, k_Q_T, sigma_S_T, k_F_T};
+    double theta_mu[] = {theta_TAU_S, theta_TAU_F, theta_EPSILON, 
+                theta_TAU_0, theta_ALPHA, theta_E_0, theta_V_0, theta_V_T, 
+                theta_Q_T, mean[indexof(S_T,0)], theta_F_T};
+
+    gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);
+    gsl_rng_set(rng, (int)((time(NULL)*rank)/11.));
+    aux::vector comp(SYSTEM_SIZE);
+    for(int i = 0 ; i < samples; i ++) {
+        generate_component(rng, comp, k_sigma, theta_mu);
+        x0.add(comp, 1.0);
+    }
+    gsl_rng_free(rng);
+}
 
 void outputVector(std::ostream& out, aux::vector mat) {
   unsigned int i;

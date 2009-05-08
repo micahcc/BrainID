@@ -151,7 +151,6 @@ int main (int argc, char** argv)
             iss >> system[i];
         }
         
-        cout << "Using parameters: " << endl;
     } else if(cli_vars.count("file")) {
         cout << "Reading Simulation Init/theta from: " 
                     << cli_vars["file"].as<string>() << endl;

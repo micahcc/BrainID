@@ -32,7 +32,8 @@ class BoldModel : public indii::ml::filter::ParticleFilterModel<double>
 {
 public:
     ~BoldModel();
-    BoldModel(aux::vector u = aux::zero_vector(INPUT_SIZE));
+    BoldModel(aux::vector u = aux::zero_vector(INPUT_SIZE), int weightf = 0, 
+                double tweight = 0);
 
     unsigned int getStateSize() { return SYSTEM_SIZE; };
     unsigned int getStimSize() { return INPUT_SIZE; };
@@ -49,6 +50,7 @@ public:
     double weight(const aux::vector& s, const aux::vector& y);
 
     void generatePrior(aux::DiracMixturePdf&, int);
+    void generatePrior(aux::DiracMixturePdf& x0, int samples, const double mean[]);
 
     //since the particle filter doesn't yet support input, we are
     //going to hack around that and set it directly
@@ -63,6 +65,11 @@ public:
     static const int MEAS_SIZE = 1;
     static const int INPUT_SIZE = 1;
     static const int STEPS = 250;
+
+    enum WeightF { NORM = 0, EXP = 1, HYP = 2} ;
+    
+    int weightf;
+    double tweight;
     
 private:
     //the standard deviations for the parameters theta, which are
@@ -77,7 +84,8 @@ private:
         return THETA_SIZE + index*STATE_SIZE + name;
     };
 
-    void generate_component(gsl_rng* rng, aux::vector& fillme);
+    void generate_component(gsl_rng* rng, aux::vector& fillme, 
+                const double k_sigma[], const double theta_mu[]);
 
     //Internal Constants
     static const double A1 = 3.4;

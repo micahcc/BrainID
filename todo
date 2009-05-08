@@ -25,10 +25,22 @@ but we are already at O(PN) and typically P is vastly larger than N.
 -Maybe assumptions should be made about the starting location of the 4
 mobile variables. Resting state maybe?
 
--Switching to exponential increased tracking but resulted in significant 
-    oscillations in the constant variables.
-
 -Maybe somehow treat "const" parameters differently, limit their movement, assume
 no noise in them maybe?
 
 -Maybe try settling out to different levels of stimuli.
+
+-Hyperbolic weighting? Thus as you get infinitesimally closer to the real value you
+ get weighted infinitely higher. Maybe that is a bad idea, since a right answer could
+ be stumbled upon, but have completely different parameters and still shouldn't be 
+ considered "good"
+
+
+*-Cheating, to test the algorithm, give it the solution to ensure it will recognize
+* a correct answer.
+
+-Do a measure of gaussianity on the particles.
+
+-Try shrinking timestep sizes.
+
+-Look at the output after 1, 2 etc sample times.
