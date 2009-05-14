@@ -29,6 +29,7 @@
 #include <ctime>
 #include <iostream>
 #include <string>
+#include <fstream>
 #include <sstream>
 
 using namespace std;
@@ -36,9 +37,7 @@ using namespace std;
 namespace opts = boost::program_options;
 namespace aux = indii::ml::aux;
     
-const double RESAMPNESS = .8; //should be some percentage of NUM_PARTICLES
 const double SAMPLETIME = 2; //in seconds, should get from fmri image
-//const int DIVIDER = 8;//divider must be a power of 2 (2, 4, 8, 16, 32....)
 
 typedef float ImagePixelType;
 typedef itk::Image< ImagePixelType,  4 > ImageType;
@@ -52,8 +51,19 @@ int main(int argc, char* argv[])
     const unsigned int rank = world.rank();
     const unsigned int size = world.size();
 
-    int NUM_PARTICLES;
-    int DIVIDER;
+    ostream* out;
+    ofstream nullout("/dev/null");
+
+    if(rank == 0) {
+        out = &cout;
+    } else {
+        out = &nullout;
+    }
+
+    double RESAMPNESS = .5; //should be some percentage of NUM_PARTICLES
+    int NUM_PARTICLES = 60000;
+    int DIVIDER = 8;
+    int NUM_MOSTPROB= 4;
     aux::vector cheat(BoldModel::SYSTEM_SIZE) ;
     double curweight = 0; //how much to weight the current time vs. old times
     int weightfunc = BoldModel::NORM; //type of weighting function to use
@@ -73,7 +83,9 @@ int main(int argc, char* argv[])
                         "norm || exp || hyp")
             ("reweight", opts::value<string>(), "how to reweight particles, options:"
                         "mult || <averaging percent of now>")
-            ("cheat", opts::value<string>(), "This cheats and gives the true starting parameters"
+            ("resampness,r", opts::value<string>(), "Ratio of total particles that the ESS must "
+                        "reach for the filter to resample. Ex .8 Ex2. .34") 
+            ("cheat", opts::value<double>(), "This cheats and gives the true starting parameters"
                         "to the particle filter. This is just a validation technique for the "
                         "filter. Syntax: \"Tau_s Tau_f Epsilon Tau_0 "
                         "alpha E_0 V_0 v_t0 q_t0 s_t0 f_t0\"");
@@ -86,86 +98,86 @@ int main(int argc, char* argv[])
     //Parse command line options
     ///////////////////////////////////////////////////////////////////////////////
     if(cli_vars.count("help")) {
-        cout << desc << endl;
+        *out << desc << endl;
         return 1;
     }
     
+    if(cli_vars.count("resampness")) {
+        RESAMPNESS = cli_vars["resampness"].as < double >();
+    } 
+    *out << left << setw(20) << "resampness" << ":" << RESAMPNESS << endl;
+    
     if(cli_vars.count("divider")) {
         DIVIDER = cli_vars["divider"].as < int >();
-        cout << "Setting divider to" << DIVIDER << endl
-                    << "Setting timestep to " << 2./DIVIDER << endl;
-    } else {
-        cout << "Setting divider to 8" << endl;
-        DIVIDER = 8;
-    }
+    } 
+    *out << left << setw(20) << "divider" << ":" << DIVIDER << endl;
+    
     
     if(cli_vars.count("particles")) {
-        cout << "Number of Particles: " << cli_vars["particles"].as< int >() << endl;
         NUM_PARTICLES = cli_vars["particles"].as < int >();
-    } else {
-        cout << "Need to enter a number of particles" << endl;
-        return -1;
-    }
+    } 
+    *out << left << setw(20) << "Particles" << ":" << NUM_PARTICLES << endl;
 
     if(cli_vars.count("timeseries")) {
-        cout << "Timeseries: " << cli_vars["timeseries"].as< string >() << endl;
+        *out << left << setw(20) <<  "Timeseries" << ":" << cli_vars["timeseries"].as< string >() << endl;
     } else {
-        cout << "Need to enter a timeseries file" << endl;
+        *out << "Error! Timeseries: Need to enter a timeseries file!" << endl;
         return -1;
     }
 
     if(cli_vars.count("stimfile")) {
-        cout << "Stimfile: " << cli_vars["stimfile"].as < string >() << endl;
+        *out << left << setw(20) <<  "Stimfile" << ":" << cli_vars["stimfile"].as < string >() << endl;
     } else {
-        cout << "Need to enter a stimulus input file" << endl;
+        *out << "Error! Stimfile: Need to enter a stimulus input file" << endl;
         return -2;
     }
 
     if(cli_vars.count("serialout")) {
-        cout << "Serial Output: " << cli_vars["serialout"].as < string >() << endl;
-    } else {
-        cout << "No serial out selected" << endl;
-    }
+        *out << left << setw(20) << "SerialOut" << ":" << cli_vars["serialout"].as < string >() << endl;
+    } 
 
     if(cli_vars.count("serialin")) {
-        cout << "Serial Input: " << cli_vars["serialin"].as < string >() << endl;
-    } else {
-        cout << "No serial input selected" << endl;
-    }
+        *out << left << setw(20) << "SerialIn" << ":" << cli_vars["serialin"].as < string >() << endl;
+    } 
 
     if(cli_vars.count("weightf")) {
         if(cli_vars["weightf"].as<string>().compare("exp") == 0) {
-            cout << "weightf: Weighting based on the exponential distribution" << endl;
+            *out << left << setw(20) << "weightf" << ":Weighting based on the"
+                        << " exponential distribution" << endl;
             weightfunc = BoldModel::EXP;
         } else if(cli_vars["weightf"].as<string>().compare("hyp") == 0) {
-            cout << "weightf: Weighting based on 1/dist" << endl;
+            *out << left << setw(20) << "weightf" << ":Weighting based on 1/dist" << endl;
             weightfunc = BoldModel::HYP;
         } else {
-            cout << "weightf: Weighting based on the normal distribution" << endl;
+            *out << left << setw(20) << "weightf" << ":Weighting based on the normal"
+                        << " distribution" << endl;
             weightfunc = BoldModel::NORM;
         }
     } else {
-        cout << "weightf: Weighting based on the normal distribution" << endl;
+        *out << left << setw(20) << "weightf" << ":Weighting based on the normal"
+                    << " distribution" << endl;
         weightfunc = BoldModel::NORM;
     }
     
     if(cli_vars.count("reweight")) {
         istringstream iss(cli_vars["rewight"].as<string>());
         if(cli_vars["reweight"].as<string>().compare("mult") == 0) {
-            cout << "reweight: will multiply old weight by new weight for updates" << endl;
+            *out << left << setw(20) << "re-weight" << ": will multiply old weight"
+                        << " by new weight for updates" << endl;
             curweight = 0;
         } else {
             iss >> curweight;
-            cout << "reweight: weight update: <new> = <old>*" << (1-curweight)
-                        << "+<now>*" << curweight << endl;
+            *out << left << setw(20) << "reweight" << ": weight update: <new> = <old>*"
+                        << (1-curweight) << "+<now>*" << curweight << endl;
         }
     } else {
         curweight = 0;
     }
     
     if(cli_vars.count("cheat")) {
-        cout << "Cheating by distributing starting particles around:" 
-            << cli_vars["cheat"].as < string >() << endl;
+        *out << left << setw(20) << "cheat" << ":Cheating by distributing starting"
+                    << " particles around:" 
+                    << cli_vars["cheat"].as < string >() << endl;
 
         istringstream iss(cli_vars["cheat"].as<string>());
         
@@ -216,15 +228,12 @@ int main(int argc, char* argv[])
     } else if(cli_vars.count("cheat")) {
         model.generatePrior(x0, NUM_PARTICLES / size, cheat);
     } else {
-        if(rank == 0)
-            cout << "Generating prior" << endl;
+        *out << "Generating prior" << endl;
         model.generatePrior(x0, NUM_PARTICLES / size);
         aux::matrix tmp = x0.getDistributedCovariance();
-        if(rank == 0) {
-            cout << "Covariance: " << endl;
-            outputMatrix(cout, tmp);
-            cout << endl;
-        }
+        *out << "Covariance: " << endl;
+        outputMatrix(*out, tmp);
+        *out << endl;
     }
 
     /* Create the filter */
@@ -300,6 +309,7 @@ int main(int argc, char* argv[])
 #endif //OUTPART
 
     /* Simulation Section */
+    aux::DiracMixturePdf distr(BoldModel::SYSTEM_SIZE);
     aux::vector input(1);
     aux::vector meas(1);
     aux::vector mu(BoldModel::SYSTEM_SIZE);
@@ -344,33 +354,49 @@ int main(int argc, char* argv[])
         model.setinput(input);
 
         /* time for update */
-        if( rank == 0 ) 
-            cerr << "t= " << disctime*SAMPLETIME/DIVIDER << ", ";
+        *out << "t= " << disctime*SAMPLETIME/DIVIDER << ", ";
         
-        if(disctime%DIVIDER == 0) {
+        if(disctime%DIVIDER == 0) { //time for update!
+            //acquire the latest measurement
             if(rank == 0) {
                 meas(0) = iter.Get();
                 ++iter;
                 done = iter.IsAtEndOfLine();
             }
+
+            //send meas and done to other nodes
             boost::mpi::broadcast(world, meas, 0);
             boost::mpi::broadcast(world, done, 0);
-            filter.filter(disctime*SAMPLETIME/DIVIDER,meas);
+            
+            //step forward in time, with measurement
+            filter.filter(disctime*SAMPLETIME/DIVIDER, meas);
 
+            //check to see if resampling is necessary
             double ess = filter.getFilteredState().calculateDistributedEss();
+            
+            //check for errors, could be caused by total collapse of particles,
+            //for instance if all the particles go to an unreasonable value like 
+            //inf/nan/neg
+            if(isnan(ess) || isinf(ess)) {
+                cerr << "Total Weight: " << filter.getFilteredState().getTotalWeight() << endl;
+                aux::vector weights = filter.getFilteredState().getWeights();
+                outputVector(cerr, weights);
+                exit(-5);
+            }
 
-            if(ess < NUM_PARTICLES*RESAMPNESS || isnan(ess) || isinf(ess)) {
-                if( rank == 0 )
-                    cerr << endl << " ESS: " << ess << ", Deterministic Resampling" << endl;
+            //time to resample
+            if(ess < NUM_PARTICLES*RESAMPNESS) {
+                *out << endl << " ESS: " << ess << ", Deterministic Resampling" << endl;
                 filter.resample(&resampler);
-                if( rank == 0)
-                    cerr << " ESS: " << ess << ", Regularized Resampling" << endl << endl;
+                
+                *out << " ESS: " << ess << ", Regularized Resampling" << endl << endl;
                 filter.resample(&resampler_reg);
-            } else if (rank == 0 )
-                cerr << endl << " ESS: " << ess << ", No Resampling Necessary!" << endl;
+            } else
+                *out << endl << " ESS: " << ess << ", No Resampling Necessary!" << endl;
         
-            mu = filter.getFilteredState().getDistributedExpectation();
-            cov = filter.getFilteredState().getDistributedCovariance();
+            distr = filter.getFilteredState();
+            mu = distr.getDistributedExpectation();
+            cov = distr.getDistributedCovariance();
             if( rank == 0 ) {
                 /* Get state */
                 
@@ -392,7 +418,7 @@ int main(int argc, char* argv[])
                 }
             }
 
-        } else {
+        } else { //no update available, just step update states
             filter.filter(disctime*SAMPLETIME/DIVIDER);
         }
    

@@ -35,12 +35,17 @@ no noise in them maybe?
  be stumbled upon, but have completely different parameters and still shouldn't be 
  considered "good"
 
-
-*-Cheating, to test the algorithm, give it the solution to ensure it will recognize
-* a correct answer.
-
 -Do a measure of gaussianity on the particles.
+    -Look at Most likely instead instead of average
 
 -Try shrinking timestep sizes.
 
 -Look at the output after 1, 2 etc sample times.
+
+
+**Implemented, unrun**
+-Cheating, to test the algorithm, give it the solution to ensure it will recognize
+ a correct answer.
+-exponential weighting
+
+**Implemented, results**

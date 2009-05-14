@@ -8,7 +8,7 @@
 #include <ctime>
 #include <iomanip>
 
-#define EXPONENTIAL .1
+#define EXPONENTIAL .4
 
 BoldModel::BoldModel(aux::vector u, int weightf, double tweight)
 {

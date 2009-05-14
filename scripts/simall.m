@@ -17,16 +17,22 @@ load state.out
 load simmeas.out
 origmeas = meassim;
 
-%for i = 1 : length(statessim)
-%%    fprintf('Running: %s -t 2 -s .01 -e 1800 -m sim%03i -p "%f %f %f %f %f %f %f %f %f %f %f"\n', '../boldgen ', i, states(i,2:8), statessim(1, 9:12));
-%    mystring = sprintf('%s -t 2 -s .01 -e 1800 -m resim%03i -p "%f %f %f %f %f %f %f %f %f %f %f"\n', '../boldgen', i, states(i,2:8), statessim(1, 9:12))
-%    system(mystring);
-%end
+close all
+hold off
+for i = 1 : length(statessim)
+    mystring = sprintf('%s -i stim.in -t 2 -s .01 -e 1800 -m resim%04i -p "%f %f %f %f %f %f %f %f %f %f %f"\n', '../boldgen', i, states(i,2:8), statessim(1, 9:12))
+    system(mystring);
+end
 mse = zeros(length(meassim),1);
 for i = 1 : length(statessim)
-    mystring = sprintf('resim%03imeas.out', i);
-    load(mystring);
-    mse(i) = sum((meassim(:,3) - origmeas(:,3)).^2)/length(meassim);
+    load(sprintf('resim%04imeas.out', i))
+    mse(i) = sum((origmeas(:,3)-meassim(:,3)).^2/length(statessim));
+    plot(meassim(:,1), meassim(:,3), 'g')
+    hold
+    plot(origmeas(:,1), origmeas(:,3), 'r')
+    title(sprintf('i=%04i', i))
+    print('-dtga', sprintf('im%04imeas.tga', i))
+    close all
 end
-
+%
 save('mse.out', 'mse')
