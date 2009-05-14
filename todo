@@ -12,6 +12,10 @@ Todo List:
 as compared to estimation of parameters for all the voxels in the section, with each
 voxel as a state.
 
+-Fix rounding errors on MSE calculations
+-Look at using an ODE solver between time points
+-Try bernouli process for input.
+
 Potential improvements
 -for parameters that are "constant" it might be worth looking at the overall
 mean squared error over the entire sequence up to the current time 
