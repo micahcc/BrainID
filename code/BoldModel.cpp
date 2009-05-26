@@ -191,138 +191,162 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
+
+    aux::vector mean(SYSTEM_SIZE);
+    aux::symmetric_matrix cov = aux::zero_matrix(SYSTEM_SIZE);
     
     //set the averages of the variables
-    const double mu_TAU_S = 4.98;
-    const double mu_TAU_F = 8.31;
-    const double mu_EPSILON = 0.069;
-    const double mu_TAU_0 = 8.38;
-    const double mu_ALPHA = .189;
-    const double mu_E_0 = .635;
-    const double mu_V_0 = 1.49e-2;
-    
-    const double mu_V_T = 1;
-    const double mu_Q_T = 1;
-    const double mu_S_T = 0;
-    const double mu_F_T = 1;
+    mean[0] = 4.98;
+    mean[1] = 8.31;
+    mean[2] = 0.069;
+    mean[3] = 8.38;
+    mean[4] = .189;
+    mean[5] = .635;
+    mean[6] = 1.49e-2;
+
+    mean[7] = 1;
+    mean[8] = 1;
+    mean[9] = 0;
+    mean[10]= 1;
     
     //set the variances for all the variables
-    const double var_TAU_S =   4*1.07*1.07;
-    const double var_TAU_F =   4*1.51*1.51;
-    const double var_EPSILON = 4*0.014*.014;
-    const double var_TAU_0 =   4*1.5*1.5;
-    const double var_ALPHA =   4*.004*.004;
-    const double var_E_0 =     4*.072*.072;
-    const double var_V_0 =     4*.6e-2*.6e-2;
-    
-    const double var_V_T = .5;
-    const double var_Q_T = .5;
-    const double var_S_T = .5;
-    const double var_F_T = .1;
-    
-    //set the theta of the variables
-    const double theta_TAU_S   = var_TAU_S/mu_TAU_S;
-    const double theta_TAU_F   = var_TAU_F/mu_TAU_F;
-    const double theta_EPSILON = var_EPSILON/mu_EPSILON;
-    const double theta_TAU_0   = var_TAU_0/mu_TAU_0;
-    const double theta_ALPHA   = var_ALPHA/mu_ALPHA;
-    const double theta_E_0     = var_E_0/mu_E_0;
-    const double theta_V_0     = var_V_0/mu_V_0;
-    
-    const double theta_V_T = var_V_T/mu_V_T;
-    const double theta_Q_T = var_Q_T/mu_Q_T;
-    const double theta_F_T = var_F_T/mu_F_T;
+    cov(0,0) = 4*1.07*1.07;
+    cov(1,1) = 4*1.51*1.51;
+    cov(2,2) = 4*0.014*.014;
+    cov(3,3) = 4*1.5*1.5;
+    cov(4,4) = 4*.004*.004;
+    cov(5,5) = 4*.072*.072;
+    cov(6,6) = 4*.6e-2*.6e-2;
 
-    //set the k of the variables
-    const double k_TAU_S   = mu_TAU_S/theta_TAU_S;
-    const double k_TAU_F   = mu_TAU_F/theta_TAU_F;
-    const double k_EPSILON = mu_EPSILON/theta_EPSILON;
-    const double k_TAU_0   = mu_TAU_0/theta_TAU_0;
-    const double k_ALPHA   = mu_ALPHA/theta_ALPHA;
-    const double k_E_0     = mu_E_0/theta_E_0;
-    const double k_V_0     = mu_V_0/theta_V_0;
-    
-    const double k_V_T = mu_V_T/theta_V_T;
-    const double k_Q_T = mu_Q_T/theta_Q_T;
-    const double sigma_S_T = sqrt(var_S_T);
-    const double k_F_T = mu_F_T/theta_F_T;
+    cov(7,7) = .5;
+    cov(8,8) = .5;
+    cov(9,9) = .5;
+    cov(10,10) = .5;
 
-
-    const double k_sigma[] = {k_TAU_S, k_TAU_F, k_EPSILON, k_TAU_0, k_ALPHA, k_E_0,
-                k_V_0, k_V_T, k_Q_T, sigma_S_T, k_F_T};
-    const double theta_mu[] = {theta_TAU_S, theta_TAU_F, theta_EPSILON, 
-                theta_TAU_0, theta_ALPHA, theta_E_0, theta_V_0, theta_V_T, 
-                theta_Q_T, mu_S_T, theta_F_T};
-
-    gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);
-    gsl_rng_set(rng, (int)((time(NULL)*(rank+11))/71.));
-    aux::vector comp(SYSTEM_SIZE);
-    for(int i = 0 ; i < samples; i ++) {
-        generate_component(rng, comp, k_sigma, theta_mu);
-        x0.add(comp, 1.0);
-    }
-    gsl_rng_free(rng);
+    generatePrior(x0, samples, mean, cov);
 }
 
-//TODO make some of these non-gaussian
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
             const aux::vector mean)
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
+
+    aux::symmetric_matrix cov = aux::zero_matrix(SYSTEM_SIZE);
     
     //set the variances for all the variables
-    const double var_TAU_S =   4*1.07*1.07;
-    const double var_TAU_F =   4*1.51*1.51;
-    const double var_EPSILON = 4*0.014*.014;
-    const double var_TAU_0 =   4*1.5*1.5;
-    const double var_ALPHA =   4*.004*.004;
-    const double var_E_0 =     4*.072*.072;
-    const double var_V_0 =     4*.6e-2*.6e-2;
+    cov(0,0) = 4*1.07*1.07;
+    cov(1,1) = 4*1.51*1.51;
+    cov(2,2) = 4*0.014*.014;
+    cov(3,3) = 4*1.5*1.5;
+    cov(4,4) = 4*.004*.004;
+    cov(5,5) = 4*.072*.072;
+    cov(6,6) = 4*.6e-2*.6e-2;
+
+    cov(7,7) = .5;
+    cov(8,8) = .5;
+    cov(9,9) = .5;
+    cov(10,10) = .5;
+
+    generatePrior(x0, samples, mean, cov);
+}
+
+void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
+            const aux::symmetric_matrix cov)
+{
+    boost::mpi::communicator world;
+    const unsigned int rank = world.rank();
+
+    aux::vector mean(SYSTEM_SIZE);
     
-    const double var_V_T = .5;
-    const double var_Q_T = .5;
-    const double var_S_T = .5;
-    const double var_F_T = .1;
+    //set the averages of the variables
+    mean[0] = 4.98;
+    mean[1] = 8.31;
+    mean[2] = 0.069;
+    mean[3] = 8.38;
+    mean[4] = .189;
+    mean[5] = .635;
+    mean[6] = 1.49e-2;
+
+    mean[7] = 1;
+    mean[8] = 1;
+    mean[9] = 0;
+    mean[10]= 1;
+
+    generatePrior(x0, samples, mean, cov);
+}
+
+//TODO make some of these non-gaussian
+void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
+            const aux::vector mean, const aux::symmetric_matrix cov)
+{
+    boost::mpi::communicator world;
+    const unsigned int rank = world.rank();
+    
+    //set the averages of the variables
+    double mu_TAU_S = 4.98;
+    double mu_TAU_F = 8.31;
+    double mu_EPSILON = 0.069;
+    double mu_TAU_0 = 8.38;
+    double mu_ALPHA = .189;
+    double mu_E_0 = .635;
+    double mu_V_0 = 1.49e-2;
+    
+    double mu_V_T = 1;
+    double mu_Q_T = 1;
+    double mu_S_T = 0;
+    double mu_F_T = 1;
+    
+    //set the variances for all the variables
+    double var_TAU_S =   4*1.07*1.07;
+    double var_TAU_F =   4*1.51*1.51;
+    double var_EPSILON = 4*0.014*.014;
+    double var_TAU_0 =   4*1.5*1.5;
+    double var_ALPHA =   4*.004*.004;
+    double var_E_0 =     4*.072*.072;
+    double var_V_0 =     4*.6e-2*.6e-2;
+    
+    double var_V_T = .5;
+    double var_Q_T = .5;
+    double var_S_T = .5;
+    double var_F_T = .1;
     
     //set the theta of the variables
-    //theta = var/mu
-    double theta_TAU_S   = var_TAU_S  /mean[TAU_S  ];
-    double theta_TAU_F   = var_TAU_F  /mean[TAU_F  ];
-    double theta_EPSILON = var_EPSILON/mean[EPSILON];
-    double theta_TAU_0   = var_TAU_0  /mean[TAU_0  ];
-    double theta_ALPHA   = var_ALPHA  /mean[ALPHA  ];
-    double theta_E_0     = var_E_0    /mean[E_0    ];
-    double theta_V_0     = var_V_0    /mean[V_0    ];
+    double theta_TAU_S   = var_TAU_S/mu_TAU_S;
+    double theta_TAU_F   = var_TAU_F/mu_TAU_F;
+    double theta_EPSILON = var_EPSILON/mu_EPSILON;
+    double theta_TAU_0   = var_TAU_0/mu_TAU_0;
+    double theta_ALPHA   = var_ALPHA/mu_ALPHA;
+    double theta_E_0     = var_E_0/mu_E_0;
+    double theta_V_0     = var_V_0/mu_V_0;
     
-    double theta_V_T = var_V_T/mean[indexof(V_T,0)];
-    double theta_Q_T = var_Q_T/mean[indexof(Q_T,0)];
-    double theta_F_T = var_F_T/mean[indexof(F_T,0)];
+    double theta_V_T = var_V_T/mu_V_T;
+    double theta_Q_T = var_Q_T/mu_Q_T;
+    double theta_F_T = var_F_T/mu_F_T;
 
     //set the k of the variables
-    //k = mu^2/var = mu/theta
-    double k_TAU_S   = mean[TAU_S  ]/theta_TAU_S;
-    double k_TAU_F   = mean[TAU_F  ]/theta_TAU_F;
-    double k_EPSILON = mean[EPSILON]/theta_EPSILON;
-    double k_TAU_0   = mean[TAU_0  ]/theta_TAU_0;
-    double k_ALPHA   = mean[ALPHA  ]/theta_ALPHA;
-    double k_E_0     = mean[E_0    ]/theta_E_0;
-    double k_V_0     = mean[V_0    ]/theta_V_0;
+    double k_TAU_S   = mu_TAU_S/theta_TAU_S;
+    double k_TAU_F   = mu_TAU_F/theta_TAU_F;
+    double k_EPSILON = mu_EPSILON/theta_EPSILON;
+    double k_TAU_0   = mu_TAU_0/theta_TAU_0;
+    double k_ALPHA   = mu_ALPHA/theta_ALPHA;
+    double k_E_0     = mu_E_0/theta_E_0;
+    double k_V_0     = mu_V_0/theta_V_0;
     
-    double k_V_T =     mean[indexof(V_T,0)]/theta_V_T;
-    double k_Q_T =     mean[indexof(Q_T,0)]/theta_Q_T;
+    double k_V_T = mu_V_T/theta_V_T;
+    double k_Q_T = mu_Q_T/theta_Q_T;
     double sigma_S_T = sqrt(var_S_T);
-    double k_F_T =     mean[indexof(F_T,0)]/theta_F_T;
+    double k_F_T = mu_F_T/theta_F_T;
 
 
     double k_sigma[] = {k_TAU_S, k_TAU_F, k_EPSILON, k_TAU_0, k_ALPHA, k_E_0,
                 k_V_0, k_V_T, k_Q_T, sigma_S_T, k_F_T};
     double theta_mu[] = {theta_TAU_S, theta_TAU_F, theta_EPSILON, 
                 theta_TAU_0, theta_ALPHA, theta_E_0, theta_V_0, theta_V_T, 
-                theta_Q_T, mean[indexof(S_T,0)], theta_F_T};
+                theta_Q_T, mu_S_T, theta_F_T};
 
     gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);
-    gsl_rng_set(rng, (int)((time(NULL)*rank)/11.));
+    gsl_rng_set(rng, (int)((time(NULL)*(rank+11))/71.));
     aux::vector comp(SYSTEM_SIZE);
     for(int i = 0 ; i < samples; i ++) {
         generate_component(rng, comp, k_sigma, theta_mu);

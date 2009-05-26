@@ -20,6 +20,7 @@ ITK_URL="http://voxel.dl.sourceforge.net/sourceforge/itk/InsightToolkit-3.12.0.t
 #OPENMPI_URL="http://www.open-mpi.org/software/ompi/v1.3/downloads/openmpi-1.3.1.tar.gz"
 OPENMPI_URL="http://www.open-mpi.org/software/ompi/v1.2/downloads/openmpi-1.2.9.tar.gz"
 LAPACK_URL="http://www.netlib.org/lapack/lapack-3.1.1.tgz"
+MATLAB_NIFTI="http://www.pc.rhul.ac.uk/staff/J.Larsson/software/cbiNifti/cbiNifti.tar.gz"
 
 
 def getep(basedir, name, url):

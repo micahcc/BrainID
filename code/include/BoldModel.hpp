@@ -51,6 +51,10 @@ public:
 
     void generatePrior(aux::DiracMixturePdf&, int);
     void generatePrior(aux::DiracMixturePdf& x0, int samples, const aux::vector mean);
+    void generatePrior(aux::DiracMixturePdf& x0, int samples, 
+                const aux::symmetric_matrix cov);
+    void generatePrior(aux::DiracMixturePdf& x0, int samples, const aux::vector mean,
+                const aux::symmetric_matrix cov);
 
     //since the particle filter doesn't yet support input, we are
     //going to hack around that and set it directly

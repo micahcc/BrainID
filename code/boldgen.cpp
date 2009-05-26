@@ -235,11 +235,29 @@ int main (int argc, char** argv)
     
     //Used to add noise
     gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);
-    gsl_rng_set(rng, (int)(time(NULL)*rank)/11.);
+    gsl_rng_set(rng, (int)((time(NULL)*rank)/11.));
 
     if(cli_vars.count("file") == 0 && cli_vars.count("params") == 0) {
         aux::DiracMixturePdf x0(BoldModel::SYSTEM_SIZE);
-        model.generatePrior(x0, 10000);
+
+        aux::vector mean(BoldModel::SYSTEM_SIZE);
+        aux::symmetric_matrix cov = aux::zero_matrix(BoldModel::SYSTEM_SIZE);
+        
+        //set the variances for all the variables
+        cov(0,0) = 1.07*1.07;
+        cov(1,1) = 1.51*1.51;
+        cov(2,2) = 0.014*.014;
+        cov(3,3) = 1.5*1.5;
+        cov(4,4) = .004*.004;
+        cov(5,5) = .072*.072;
+        cov(6,6) = .6e-2*.6e-2;
+
+        cov(7,7) = .1;
+        cov(8,8) = .1;
+        cov(9,9) = .1;
+        cov(10,10) = .1;
+
+        model.generatePrior(x0, 1e5, cov);
         system = x0.sample();
 
 #ifdef ZEROSTART
