@@ -42,6 +42,13 @@ int main (int argc, char** argv)
 
     double noise_var;
     
+    struct {
+        ofstream fout;
+        double p;
+        double t;
+        string filename;
+    } stimproc;
+    
     aux::vector system(BoldModel::SYSTEM_SIZE);
     
     //CLI
@@ -55,6 +62,8 @@ int main (int argc, char** argv)
             ("numseries,n", opts::value<int>(), "Number of brain regions to simulate")
             ("matlab,m", opts::value<string>(), "prefix for matlab files")
             ("inputstim,i", opts::value<string>(), "file to read in stimuli from")
+            ("randstim,r", opts::value<string>(), "create a random stimulus then write to"
+                        "file=<where to write to>,t=<time between changes,p=<probability of 1>")
             ("noisevar,v", opts::value<double>(), "Variance of Gaussian Noise to apply to bold signal")
             ("file,f", opts::value<string>(), "File with X0, Theta for simulation")
             ("params,p", opts::value<string>(), "Parameters to pass "
@@ -62,8 +71,14 @@ int main (int argc, char** argv)
                         "alpha E_0 V_0 v_t0 q_t0 s_t0 f_t0\"");
 
     opts::variables_map cli_vars;
-    opts::store(opts::parse_command_line(argc, argv, desc), cli_vars);
-    opts::notify(cli_vars);
+    try {
+        opts::store(opts::parse_command_line(argc, argv, desc), cli_vars);
+        opts::notify(cli_vars);
+    } catch(...) {
+        cout << "Improper Command Line Option Given!" << endl << endl;
+        cout << desc << endl;
+        return -6;
+    }
     
     if(cli_vars.count("help")) {
         cout << desc << endl;
@@ -126,6 +141,30 @@ int main (int argc, char** argv)
         string tmp = cli_vars["inputstim"].as<string>();
         cout << "Will read stimuli from: " << tmp << endl;
         fin.open(tmp.c_str());
+    } else if(cli_vars.count("randstim")) {
+        string tmp;
+        string tmpopts = cli_vars["randstim"].as<string>();
+        tmpopts.append(",");
+        size_t index;
+        
+        while((index = tmpopts.find(',')) != string::npos) {
+            tmp = tmpopts.substr(0,index);
+            if(!tmp.compare(0,5,"file=")) {
+                istringstream iss2(tmp.substr(5));
+                iss2 >> stimproc.filename;
+            } else if(!tmp.compare(0,2,"t=")) {
+                istringstream iss2(tmp.substr(2));
+                iss2 >> stimproc.t;
+            } else if(!tmp.compare(0,2,"p=")) {
+                istringstream iss2(tmp.substr(2));
+                iss2 >> stimproc.p;
+            }
+            tmpopts.erase(0,index+1);
+        }
+        stimproc.fout.open(stimproc.filename.c_str());
+        cout << "Creating binomial process with p=" << stimproc.p 
+                    << " t=" << stimproc.t << " filename="
+                    << stimproc.filename << endl;
     } else {
         cout << "No stimuli given, will decay freely" << endl;
     }
@@ -257,7 +296,7 @@ int main (int argc, char** argv)
         cov(9,9) = .1;
         cov(10,10) = .1;
 
-        model.generatePrior(x0, 1e5, cov);
+        model.generatePrior(x0, 10000, cov);
         system = x0.sample();
 
 #ifdef ZEROSTART
@@ -286,6 +325,11 @@ int main (int argc, char** argv)
     double nextinput;
     if(fin.is_open())
         fin >> nextinput;
+    else if(stimproc.fout.is_open())  {
+        input[0] = (double)rand()/RAND_MAX < stimproc.p;
+        stimproc.fout << 0 << " " << input[0] << endl;
+        nextinput = stimproc.t;
+    }
     for(count = 0 ; count  < endcount; count++) {
         //setup next timestep
         prev = realt;
@@ -293,7 +337,12 @@ int main (int argc, char** argv)
         if(fin.is_open() && !fin.eof() && realt >= nextinput) {
             fin >> input[0];
             fin >> nextinput;
+        } else if(stimproc.fout.is_open() && realt >= nextinput) {
+            input[0] = (double)rand()/RAND_MAX < stimproc.p;
+            stimproc.fout << nextinput << " " << input[0] << endl;
+            nextinput += stimproc.t;
         }
+
         model.transition(system, realt, realt-prev, input);
         //TODO add noise to simulation
         
