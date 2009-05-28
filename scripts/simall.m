@@ -27,12 +27,12 @@ mse = zeros(length(meassim),1);
 for i = 1 : length(statessim)
     load(sprintf('resim%04imeas.out', i))
     mse(i) = sum((origmeas(:,3)-meassim(:,3)).^2/length(statessim));
-    plot(meassim(:,1), meassim(:,3), 'g')
-    hold
-    plot(origmeas(:,1), origmeas(:,3), 'r')
+    hold off
+    plot(meassim(:,1), meassim(:,3), 'b', 'linewidth', 2)
+    hold on
+    plot(origmeas(:,1), origmeas(:,3), 'r', 'linewidth', 2)
     title(sprintf('i=%04i', i))
-    print('-dtga', sprintf('im%04imeas.tga', i))
-    close all
+    print('-djpeg90', sprintf('im%04imeas.jpeg', i))
 end
 %
 save('mse.out', 'mse')

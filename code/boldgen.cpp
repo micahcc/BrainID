@@ -69,7 +69,7 @@ int main (int argc, char** argv)
             ("params,p", opts::value<string>(), "Parameters to pass "
                         "into the simulation, enclosed in quotes \"Tau_s Tau_f Epsilon Tau_0 "
                         "alpha E_0 V_0 v_t0 q_t0 s_t0 f_t0\"");
-
+    
     opts::variables_map cli_vars;
     try {
         opts::store(opts::parse_command_line(argc, argv, desc), cli_vars);

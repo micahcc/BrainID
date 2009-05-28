@@ -91,8 +91,14 @@ int main(int argc, char* argv[])
                         "alpha E_0 V_0 v_t0 q_t0 s_t0 f_t0\"");
 
     opts::variables_map cli_vars;
-    opts::store(opts::parse_command_line(argc, argv, desc), cli_vars);
-    opts::notify(cli_vars);
+    try {
+        opts::store(opts::parse_command_line(argc, argv, desc), cli_vars);
+        opts::notify(cli_vars);
+    } catch(...) {
+        cout << "Improper Command Line Option Given!" << endl << endl;
+        cout << desc << endl;
+        return -6;
+    }
     
     ///////////////////////////////////////////////////////////////////////////////
     //Parse command line options
