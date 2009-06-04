@@ -2,6 +2,7 @@
 #include "itkImageFileWriter.h"
 #include "itkImageLinearIteratorWithIndex.h"
 #include "itkImageSliceIteratorWithIndex.h"
+#include "itkMetaDataObject.h"
 #include "BoldModel.hpp"
 
 #include <indii/ml/aux/vector.hpp>
@@ -15,42 +16,39 @@
 #include <ctime>
 #include <vector>
 #include <sstream>
+#include <cmath>
 
 using namespace std;
 namespace opts = boost::program_options;
 
 typedef itk::OrientedImage<double, 4> Image4DType;
 
-int main (int argc, char** argv)
-{
-    boost::mpi::environment env(argc, argv);
-    boost::mpi::communicator world;
-    const unsigned int rank = world.rank();
-    const unsigned int size = world.size();
-    
-    double stoptime;
-    double outstep;
-    double simstep;
-    int series;
-    int endcount;
-    
-    ifstream fin;
-    ofstream fstate;
-    ofstream fmeas;
-    
-    string imagename;
+double stoptime;
+double outstep;
+double simstep;
+int series;
+int endcount;
 
-    double noise_var;
-    
-    struct {
-        ofstream fout;
-        double p;
-        double t;
-        string filename;
-    } stimproc;
-    
-    aux::vector system(BoldModel::SYSTEM_SIZE);
-    
+ifstream fin;
+
+string boldfile;
+string statefile;
+
+double noise_var;
+
+typedef struct {
+    ofstream fout;
+    double p;
+    double t;
+    string filename;
+} stimproc;
+
+stimproc stim;
+
+aux::vector systemstate(BoldModel::SYSTEM_SIZE);
+
+void parse_cli(int argc, char** argv, BoldModel& model) 
+{
     //CLI
     opts::options_description desc("Allowed options");
     desc.add_options()
@@ -60,7 +58,7 @@ int main (int argc, char** argv)
             ("simtime,s", opts::value<double>(), "Step size for sim, smaller is more accurate")
             ("endtime,e", opts::value<double>(), "What time to end at")
             ("numseries,n", opts::value<int>(), "Number of brain regions to simulate")
-            ("matlab,m", opts::value<string>(), "prefix for matlab files")
+            ("statefile,x", opts::value<string>(), "file to write out state data to")
             ("inputstim,i", opts::value<string>(), "file to read in stimuli from")
             ("randstim,r", opts::value<string>(), "create a random stimulus then write to"
                         "file=<where to write to>,t=<time between changes,p=<probability of 1>")
@@ -75,37 +73,46 @@ int main (int argc, char** argv)
         opts::store(opts::parse_command_line(argc, argv, desc), cli_vars);
         opts::notify(cli_vars);
     } catch(...) {
-        cout << "Improper Command Line Option Given!" << endl << endl;
+        cout << "Error! Improper Command Line Option Given!" << endl << endl;
         cout << desc << endl;
-        return -6;
+        exit(-6);
     }
     
     if(cli_vars.count("help")) {
         cout << desc << endl;
-        return 1;
+        exit(0);
     }
     
     if(cli_vars.count("out")) {
-        cout << "Output Image: " << cli_vars["out"].as<string>() << endl;
-        imagename = cli_vars["out"].as<string>();
+        cout << setw(20) << "Output Image:" << cli_vars["out"].as<string>() << endl;
+        boldfile = cli_vars["out"].as<string>();
     } else {
-        cout << "Not outputing the simulated timeseries image because no name was given" << endl;
+        cout << setw(20) << "Warning:" << "Not outputing the simulated "
+                    "timeseries image because no name was given" << endl;
     }
     
     if(cli_vars.count("outtime")) {
-        cout << "Out timestep: " << cli_vars["outtime"].as<double>() << endl;
+        cout << setw(20) << "Out timestep: " << cli_vars["outtime"].as<double>() << endl;
         outstep = cli_vars["outtime"].as<double>();
     } else {
-        cout << "Must give an output timestep!" << endl;
-        return -1;
+        cout << setw(20) << "Error! " << "Must give an output timestep!" << endl;
+        exit(-1);
     }
     
     if(cli_vars.count("simtime")) {
-        cout << "Simulation timestep: " << cli_vars["simtime"].as<double>() << endl;
+        cout << setw(20) << "Simulation timestep: " << cli_vars["simtime"].as<double>() << endl;
         simstep = cli_vars["simtime"].as<double>();
     } else {
-        cout << "Must give a simulation timestep!" << endl;
-        return -2;
+        cout << setw(20) << "Error!" << "Must give a simulation timestep!" << endl;
+        exit(-2);
+    }
+    
+    if(cli_vars.count("statefile")) {
+        cout << "Statefile: " << cli_vars["statefile"].as<string>() << endl;
+        statefile = cli_vars["statefile"].as<string>();
+    } else {
+        cout << setw(20) << "Warning:" << "Not outputing any state information" 
+                    << endl;
     }
     
     if(cli_vars.count("endtime")) {
@@ -114,7 +121,7 @@ int main (int argc, char** argv)
         endcount = (int)(stoptime/simstep);
     } else {
         cout << "Must give a time to end the simulation!" << endl;
-        return -3;
+        exit(-3);
     }
     
     if(cli_vars.count("numseries")) {
@@ -124,17 +131,6 @@ int main (int argc, char** argv)
     } else {
         cout << "Simulation 1 section" << endl;
         series = 1;
-    }
-    
-    if(cli_vars.count("matlab")) {
-        string tmp = cli_vars["matlab"].as<string>();
-        string tmp2  = tmp;
-        cout << "Outputing to matlab files: " << tmp << "state.out and " << tmp
-                    << "meas.out" << endl;
-        fstate.open(tmp.append("state.out").c_str());
-        fmeas.open(tmp2.append("meas.out").c_str());
-    } else {
-        cout << "No matlab output will be generated" << endl;
     }
     
     if(cli_vars.count("inputstim")) {
@@ -151,20 +147,20 @@ int main (int argc, char** argv)
             tmp = tmpopts.substr(0,index);
             if(!tmp.compare(0,5,"file=")) {
                 istringstream iss2(tmp.substr(5));
-                iss2 >> stimproc.filename;
+                iss2 >> stim.filename;
             } else if(!tmp.compare(0,2,"t=")) {
                 istringstream iss2(tmp.substr(2));
-                iss2 >> stimproc.t;
+                iss2 >> stim.t;
             } else if(!tmp.compare(0,2,"p=")) {
                 istringstream iss2(tmp.substr(2));
-                iss2 >> stimproc.p;
+                iss2 >> stim.p;
             }
             tmpopts.erase(0,index+1);
         }
-        stimproc.fout.open(stimproc.filename.c_str());
-        cout << "Creating binomial process with p=" << stimproc.p 
-                    << " t=" << stimproc.t << " filename="
-                    << stimproc.filename << endl;
+        stim.fout.open(stim.filename.c_str());
+        cout << "Creating binomial process with p=" << stim.p 
+                    << " t=" << stim.t << " filename="
+                    << stim.filename << endl;
     } else {
         cout << "No stimuli given, will decay freely" << endl;
     }
@@ -187,7 +183,7 @@ int main (int argc, char** argv)
                 cerr << "Error not enough arguments given on command line" << endl;
                 exit(-3);
             }
-            iss >> system[i];
+            iss >> systemstate[i];
         }
         
     } else if(cli_vars.count("file")) {
@@ -197,11 +193,11 @@ int main (int argc, char** argv)
         ifstream init(cli_vars["file"].as<string>().c_str());
         
         for(int i = 0 ; i < BoldModel::SYSTEM_SIZE ; i++)
-            init >> system[i];
+            init >> systemstate[i];
 
         if(init.eof()) {
             cerr << "Error not enough arguments given in file" << endl;
-            outputVector(std::cout, system);
+            outputVector(std::cout, systemstate);
             cerr << endl;
             exit(-1);
         }
@@ -209,73 +205,6 @@ int main (int argc, char** argv)
         cout << "Using random values for init/theta" << endl;
     }
     
-
-    fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
-
-    srand(1333);
-
-    //create a 2D output image of appropriate size.
-    itk::ImageFileWriter< Image4DType >::Pointer writer = 
-        itk::ImageFileWriter< Image4DType >::New();
-    Image4DType::Pointer outputImage = Image4DType::New();
-
-    Image4DType::RegionType out_region;
-    Image4DType::IndexType out_index;
-    Image4DType::SizeType out_size;
-
-    out_size[0] = series;
-    out_size[1] = 1;
-    out_size[2] = 1;
-    //TODO deal with add error in double which could cause less or more
-    //states to be simulated
-    out_size[3] = (int)(stoptime/outstep)+1; //|T|T|T| + one for the series number
-    
-    out_index[0] = 0;
-    out_index[1] = 0;
-    out_index[2] = 0;
-    out_index[3] = 0;
-    
-    out_region.SetSize(out_size);
-    out_region.SetIndex(out_index);
-    
-    outputImage->SetRegions( out_region );
-    outputImage->Allocate();
-    
-    //setup iterator
-    itk::ImageSliceIteratorWithIndex<Image4DType> 
-                out_it(outputImage, outputImage->GetRequestedRegion());
-    out_it.SetFirstDirection(0);
-    out_it.SetSecondDirection(3);
-
-    int count = 0;
-    while(!out_it.IsAtEndOfLine()) {
-        out_it.Value() = count++;
-        ++out_it;
-    }
-    out_it.NextLine();
-
-    BoldModel model;
-    
-    if(fstate.is_open()) {
-        fstate << "# Created by boldgen " << endl;
-        fstate << "# name: statessim " << endl;
-        fstate << "# type: matrix" << endl;
-        fstate << "# rows: " << out_size[3] -1 << endl;
-        fstate << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
-    }
-
-    if(fmeas.is_open()) {
-        fmeas << "# Created by boldgen " << endl;
-        fmeas << "# name: meassim " << endl;
-        fmeas << "# type: matrix" << endl;
-        fmeas << "# rows: " << out_size[3] - 1<< endl;
-        fmeas << "# columns: " << 3 << endl;
-    }
-    
-    //Used to add noise
-    gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);
-    gsl_rng_set(rng, (int)((time(NULL)*rank)/11.));
-
     if(cli_vars.count("file") == 0 && cli_vars.count("params") == 0) {
         aux::DiracMixturePdf x0(BoldModel::SYSTEM_SIZE);
 
@@ -297,25 +226,124 @@ int main (int argc, char** argv)
         cov(10,10) = .1;
 
         model.generatePrior(x0, 10000, cov);
-        system = x0.sample();
+        systemstate = x0.sample();
 
 #ifdef ZEROSTART
         //this assumes you start at resting state, which is not a bad
         //assumption. Plus this way you don't get negative bold.
         for(int i = BoldModel::THETA_SIZE ; i < BoldModel::SYSTEM_SIZE ; i++) {
             if((i-BoldModel::THETA_SIZE)%BoldModel::STATE_SIZE == 2) 
-                system[i] = 1;
+                systemstate[i] = 1;
             else
-                system[i] = 0;
+                systemstate[i] = 0;
         }
 #endif //ZEROSTART
     } 
 
-    outputVector(std::cout, system);
+}
+
+void init4DImage(Image4DType::Pointer& out, size_t xlen, size_t ylen, 
+            size_t zlen, size_t tlen)
+{
+    Image4DType::RegionType out_region;
+    Image4DType::IndexType out_index;
+    Image4DType::SizeType out_size;
+
+    out_size[0] = xlen;
+    out_size[1] = ylen;
+    out_size[2] = zlen;
+    out_size[3] = tlen; 
+    
+    out_index[0] = 0;
+    out_index[1] = 0;
+    out_index[2] = 0;
+    out_index[3] = 0;
+    
+    out_region.SetSize(out_size);
+    out_region.SetIndex(out_index);
+    
+    out->SetRegions( out_region );
+    out->Allocate();
+}
+
+int main (int argc, char** argv)
+{
+    boost::mpi::environment env(argc, argv);
+    boost::mpi::communicator world;
+    const unsigned int rank = world.rank();
+    const unsigned int size = world.size();
+    
+    BoldModel model;
+    parse_cli(argc, argv, model);
+
+    fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
+
+    srand(1333);
+
+    //create a 4D output image of appropriate size.
+    itk::ImageFileWriter< Image4DType >::Pointer writer = 
+        itk::ImageFileWriter< Image4DType >::New();
+    Image4DType::Pointer measImage = Image4DType::New();
+    
+    //TODO deal with add error in double which could cause less or more
+    //states to be simulated
+    //tlen = |T|T|T| + one for the series number
+    init4DImage(measImage, series, 1, 1, (int)ceil(stoptime/outstep));
+  
+    itk::MetaDataDictionary dict = measImage->GetMetaDataDictionary();
+    itk::EncapsulateMetaData<double>(dict, "TemporalResolution", 2.0);
+    itk::EncapsulateMetaData<unsigned int>(dict, "NumSections", series);
+    itk::EncapsulateMetaData<unsigned int>(dict, "TimeDim", 3);
+    itk::EncapsulateMetaData<unsigned int>(dict, "SectionDim", 0);
+    //fill in mapping of Section Index to number section number i+5 
+    for(int i=0 ; i<series ; i++ ) {
+        ostringstream oss;
+        oss.str("");
+        oss << "MapIndex " << i;
+        itk::EncapsulateMetaData<unsigned int>(dict, oss.str(), i+5);
+    }
+    measImage->SetMetaDataDictionary(dict);
+
+    //initialize first line in t direction to hold the section number
+    
+    Image4DType::Pointer outState = Image4DType::New();
+    init4DImage(outState, series, BoldModel::SYSTEM_SIZE, 1, 
+                (int)ceil(stoptime/outstep));
+
+    itk::EncapsulateMetaData<unsigned int>(dict, "StateDim", 1);
+    itk::EncapsulateMetaData<unsigned int>(dict, "IndexTauS",    0);
+    itk::EncapsulateMetaData<unsigned int>(dict, "IndexTauF",    1);
+    itk::EncapsulateMetaData<unsigned int>(dict, "IndexEpsilon", 2);
+    itk::EncapsulateMetaData<unsigned int>(dict, "IndexTau0",    3);
+    itk::EncapsulateMetaData<unsigned int>(dict, "IndexAlpha",   4);
+    itk::EncapsulateMetaData<unsigned int>(dict, "IndexE0",      5);
+    itk::EncapsulateMetaData<unsigned int>(dict, "IndexV0",      6);
+    itk::EncapsulateMetaData<unsigned int>(dict, "IndexVT",      7);
+    itk::EncapsulateMetaData<unsigned int>(dict, "IndexQT",      8);
+    itk::EncapsulateMetaData<unsigned int>(dict, "IndexST",      9);
+    itk::EncapsulateMetaData<unsigned int>(dict, "IndexFT",     10);
+    outState->SetMetaDataDictionary(dict);
+
+    //setup iterators
+    itk::ImageSliceIteratorWithIndex<Image4DType> 
+                meas_it(measImage, measImage->GetRequestedRegion());
+    meas_it.SetFirstDirection(0);
+    meas_it.SetSecondDirection(3);
+    meas_it.GoToBegin();
+    
+    itk::ImageLinearIteratorWithIndex<Image4DType> 
+                state_it(outState, outState->GetRequestedRegion());
+    state_it.SetDirection(1);
+
+    //Used to add noise
+    gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);
+    gsl_rng_set(rng, (int)((time(NULL)*rank)/11.));
+
+    outputVector(std::cout, systemstate);
     std::cout << std::endl;
 
-    int sample = 0;
-    count = 0;
+    double sample = 0;
+    int count = 0;
     double realt = 0;
     double prev = 0;
 
@@ -325,11 +353,13 @@ int main (int argc, char** argv)
     double nextinput;
     if(fin.is_open())
         fin >> nextinput;
-    else if(stimproc.fout.is_open())  {
-        input[0] = (double)rand()/RAND_MAX < stimproc.p;
-        stimproc.fout << 0 << " " << input[0] << endl;
-        nextinput = stimproc.t;
+    else if(stim.fout.is_open())  {
+        input[0] = (double)rand()/RAND_MAX < stim.p;
+        stim.fout << 0 << " " << input[0] << endl;
+        nextinput = stim.t;
     }
+
+    cout << endcount << endl;
     for(count = 0 ; count  < endcount; count++) {
         //setup next timestep
         prev = realt;
@@ -337,54 +367,53 @@ int main (int argc, char** argv)
         if(fin.is_open() && !fin.eof() && realt >= nextinput) {
             fin >> input[0];
             fin >> nextinput;
-        } else if(stimproc.fout.is_open() && realt >= nextinput) {
-            input[0] = (double)rand()/RAND_MAX < stimproc.p;
-            stimproc.fout << nextinput << " " << input[0] << endl;
-            nextinput += stimproc.t;
+        } else if(stim.fout.is_open() && realt >= nextinput) {
+            input[0] = (double)rand()/RAND_MAX < stim.p;
+            stim.fout << nextinput << " " << input[0] << endl;
+            nextinput += stim.t;
         }
 
-        model.transition(system, realt, realt-prev, input);
+        model.transition(systemstate, realt, realt-prev, input);
         //TODO add noise to simulation
         
         //check to see if it is time to sample
-        if(count == sample) {
-            int i;
-        
-            //save states in a matlab file for comparison purposes
-            if(fstate.is_open()){
-                fstate << setw(10) << realt;
-                outputVector(fstate, system);
-                fstate << endl;
+        if(count == (int)sample) {
+            while(!meas_it.IsAtEndOfLine()) {
+                
+                //save states in an image
+                state_it.SetIndex(meas_it.GetIndex());
+                
+                int j = 0;
+                while(!state_it.IsAtEndOfLine()){
+                    state_it.Set(systemstate[j++]);
+                    ++state_it;
+                }
+                
+                meas_it.Value() = model.measure(systemstate)[0] + 
+                            gsl_ran_gaussian(rng, sqrt(noise_var));
+                ++meas_it;
             }
 
-            if(fmeas.is_open()) {
-                fmeas << setw(10) << realt << setw(10) << input[0] << setw(14) 
-                            << model.measure(system)[0] << endl;
-            }
+            meas_it.NextLine();
             
-            //TODO put multiple series here
-            out_it.Value() = model.measure(system)[0] + 
-                        gsl_ran_gaussian(rng, sqrt(noise_var));
-            for(i = 0 ; i < series ; i++) {
-                ++out_it;
-            }
-
-            //move forward iterators
-            assert(out_it.IsAtEndOfLine() && i == series);
-            out_it.NextLine();
-
             //TODO should use an absolute value here to prevent error
-            sample += (int)(outstep/simstep);
+            sample += (outstep/simstep);
         }
         
     }
 
-    if(!imagename.empty()) {
-        writer->SetFileName(imagename);  
-        writer->SetInput(outputImage);
+    if(!boldfile.empty()) {
+        writer->SetFileName(boldfile);  
+        writer->SetInput(measImage);
         writer->Update();
     }
     
+    if(!statefile.empty()) {
+        writer->SetFileName(statefile);  
+        writer->SetInput(outState);
+        writer->Update();
+    }
+  
     gsl_rng_free(rng);
     return 0;
 }

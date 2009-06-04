@@ -40,9 +40,33 @@ namespace aux = indii::ml::aux;
 const double SAMPLETIME = 2; //in seconds, should get from fmri image
 
 typedef float ImagePixelType;
-typedef itk::Image< ImagePixelType,  4 > ImageType;
-typedef itk::ImageFileReader< ImageType >  ImageReaderType;
-typedef itk::ImageFileWriter< ImageType >  WriterType;
+typedef itk::Image< ImagePixelType,  4 > Image4DType;
+typedef itk::ImageFileReader< Image4DType >  ImageReaderType;
+typedef itk::ImageFileWriter< Image4DType >  WriterType;
+
+void init4DImage(Image4DType::Pointer& out, size_t xlen, size_t ylen, 
+            size_t zlen, size_t tlen)
+{
+    Image4DType::RegionType out_region;
+    Image4DType::IndexType out_index;
+    Image4DType::SizeType out_size;
+
+    out_size[0] = xlen;
+    out_size[1] = ylen;
+    out_size[2] = zlen;
+    out_size[3] = tlen; 
+    
+    out_index[0] = 0;
+    out_index[1] = 0;
+    out_index[2] = 0;
+    out_index[3] = 0;
+    
+    out_region.SetSize(out_size);
+    out_region.SetIndex(out_index);
+    
+    out->SetRegions( out_region );
+    out->Allocate();
+}
 
 int main(int argc, char* argv[])
 {
@@ -83,7 +107,7 @@ int main(int argc, char* argv[])
                         "norm || exp || hyp")
             ("reweight", opts::value<string>(), "how to reweight particles, options:"
                         "mult || <averaging percent of now>")
-            ("resampness,r", opts::value<string>(), "Ratio of total particles that the ESS must "
+            ("resampness,r", opts::value<double>(), "Ratio of total particles that the ESS must "
                         "reach for the filter to resample. Ex .8 Ex2. .34") 
             ("cheat", opts::value<double>(), "This cheats and gives the true starting parameters"
                         "to the particle filter. This is just a validation technique for the "
@@ -118,7 +142,6 @@ int main(int argc, char* argv[])
     } 
     *out << left << setw(20) << "divider" << ":" << DIVIDER << endl;
     
-    
     if(cli_vars.count("particles")) {
         NUM_PARTICLES = cli_vars["particles"].as < int >();
     } 
@@ -130,7 +153,7 @@ int main(int argc, char* argv[])
         *out << "Error! Timeseries: Need to enter a timeseries file!" << endl;
         return -1;
     }
-
+    
     if(cli_vars.count("stimfile")) {
         *out << left << setw(20) <<  "Stimfile" << ":" << cli_vars["stimfile"].as < string >() << endl;
     } else {
@@ -141,11 +164,11 @@ int main(int argc, char* argv[])
     if(cli_vars.count("serialout")) {
         *out << left << setw(20) << "SerialOut" << ":" << cli_vars["serialout"].as < string >() << endl;
     } 
-
+    
     if(cli_vars.count("serialin")) {
         *out << left << setw(20) << "SerialIn" << ":" << cli_vars["serialin"].as < string >() << endl;
     } 
-
+    
     if(cli_vars.count("weightf")) {
         if(cli_vars["weightf"].as<string>().compare("exp") == 0) {
             *out << left << setw(20) << "weightf" << ":Weighting based on the"
@@ -196,6 +219,7 @@ int main(int argc, char* argv[])
         }
         
     } 
+    
 
     ///////////////////////////////////////////////////////////////////////////////
     //Done Parsing, starting main part of code
@@ -206,21 +230,23 @@ int main(int argc, char* argv[])
     
     /* Open up the input */
     ImageReaderType::Pointer reader;
-    itk::ImageLinearIteratorWithIndex<ImageType> iter;
+    itk::ImageLinearIteratorWithIndex<Image4DType> iter;
     if(rank == 0) {
         reader = ImageReaderType::New();
         reader->SetFileName( cli_vars["timeseries"].as< string >() );
         reader->Update();
 
+        Image4DType::Pointer measInput = reader->GetOutput();
+
         /* Create the iterator, to move forward in time for a particlular section */
-        iter = itk::ImageLinearIteratorWithIndex<ImageType>(reader->GetOutput(), 
-                    reader->GetOutput()->GetRequestedRegion());
+        iter = itk::ImageLinearIteratorWithIndex<Image4DType>(measInput, 
+                    measInput->GetRequestedRegion());
         iter.SetDirection(3);
-        ImageType::IndexType index;
-        index[3] = 1; //skip section label
-        index[2] = 0; //skip section label
-        index[1] = 0; //skip section label
-        index[0] = 0; //just kind of picking a section
+        Image4DType::IndexType index;
+        index[3] = 0;
+        index[2] = 0;
+        index[1] = 0;
+        index[0] = 0;//just kind of picking a section
         iter.SetIndex(index);
     }
 
@@ -256,61 +282,38 @@ int main(int argc, char* argv[])
                 aux::AlmostGaussianKernel > resampler_reg(norm, kernel);
   
     /* output setup */
-    std::ofstream fmeas;
-    std::ofstream fstate;
-    std::ofstream fcov;
-#ifdef OUTPART
-    std::ofstream fpart;
-#endif //OUTPART
+    itk::MetaDataDictionary dict = measInput->GetMetaDataDictionary();
 
-    if(rank == 0) {
-        std::ostringstream iss("");
-        iss << "meas" << ".out";
-        fmeas.open(iss.str().c_str());
-        
-        iss.str("");
-        iss << "state" << ".out";
-        fstate.open(iss.str().c_str());
-        
-        iss.str("");
-        iss << "cov" << ".out";
-        fcov.open(iss.str().c_str());
-
-#ifdef OUTPART
-       iss.str("");
-       iss << "particles" << rank << ".out";
-       fpart.open(iss.str().c_str());
-#endif //OUTPART
-        
-        fmeas << "# Created by brainid" << endl;
-        fmeas << "# name: bold" << endl;
-        fmeas << "# type: matrix" << endl;
-        fmeas << "# rows: " << 
-                    (reader->GetOutput()->GetRequestedRegion().GetSize()[3] - 1)
-                    << endl;
-        fmeas << "# columns: 3" << endl;
-
-        fstate << "# Created by brainid" << endl;
-        fstate << "# name: states " << endl;
-        fstate << "# type: matrix" << endl;
-        fstate << "# rows: " << 
-                    (reader->GetOutput()->GetRequestedRegion().GetSize()[3] -1) 
-                    << endl;
-        fstate << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
-
-        fcov << "# Created by brainid" << endl;
-        fcov << "# name: covariances" << endl;
-        fcov << "# type: matrix" << endl;
-        fcov << "# ndims: 3" << endl;
-        fcov <<  BoldModel::SYSTEM_SIZE << " " << BoldModel::SYSTEM_SIZE << " "
-                    << reader->GetOutput()->GetRequestedRegion().GetSize()[3] -1 << endl;
+    //BOLD
+    Image4DType::Pointer measOutput = Image4DType::New();
+    init4DImage(measOutput , measInput->GetRequestedRegion().GetSize()[0],
+                1, 1, measInput->GetRequestedRegion().GetSize()[3]);
+    measOutput->SetMetaDataDictionary(dict);
+    itk::ImageLinearIteratorWithIndex<Image4DType> 
+                state_it(outState, outState->GetRequestedRegion());
+    state_it.SetDirection(1);
+    
+    //STATE
+    Image4DType::Pointer stateOutput = Image4DType::New();
+    init4DImage(stateOutput, measInput->GetRequestedRegion().GetSize()[0],
+                BoldModel::SYSTEM_SIZE, 1, 
+                measInput->GetRequestedRegion().GetSize()[3]);
+    stateOutput->SetMetaDataDictionary(dict);
+    
+    //COVARIANCE
+    Image4DType::Pointer covOutput = Image4DType::New();
+    init4DImage(covOutput, measInput->GetRequestedRegion().GetSize()[0], 
+                BoldModel::SYSTEM_SIZE, BoldModel::SYSTEM_SIZE, 
+                measInput->GetRequestedRegion().GetSize()[3]);
+    covOutput->SetMetaDataDictionary(dict);
 
 #ifdef OUTPART
-        fpart << "# Created by brainid" << endl;
-#endif //OUTPART
-    } 
-
-#ifdef OUTPART
+    Image4DType::Pointer partOutput = Image4DType::New();
+    init4DImage(partOutput, measInput->GetRequestedRegion().GetSize()[0],  
+                BoldModel::SYSTEM_SIZE, NUM_PARTICLES,
+                measInput->GetRequestedRegion().GetSize()[3]);
+    partOutput->SetMetaDataDictionary(dict);
+    
     std::vector<aux::DiracPdf> particles;
 #endif //OUTPART
 
@@ -331,7 +334,7 @@ int main(int argc, char* argv[])
     }
 
     while(!done) {
-#ifdef OUTPART
+#ifdef OUTPART //todo implement saving particles
         if( rank == 0 ) {
             fpart << "# name: particles" << setw(5) << t*10000 << endl;
             fpart << "# type: matrix" << endl;
@@ -400,13 +403,26 @@ int main(int argc, char* argv[])
             } else
                 *out << endl << " ESS: " << ess << ", No Resampling Necessary!" << endl;
         
+            /* Get state */
             distr = filter.getFilteredState();
             mu = distr.getDistributedExpectation();
             cov = distr.getDistributedCovariance();
             if( rank == 0 ) {
-                /* Get state */
-                
                 /* output measurement */
+                //save states in an image
+                state_it.SetIndex(meas_it.GetIndex());
+                
+                int j = 0;
+                while(!state_it.IsAtEndOfLine()){
+                    state_it.Set(systemstate[j++]);
+                    ++state_it;
+                }
+                
+                meas_it.Value() = model.measure(systemstate)[0] + 
+                            gsl_ran_gaussian(rng, sqrt(noise_var));
+                ++meas_it;
+
+                meas_it.NextLine();
                 fmeas << setw(10) << disctime*SAMPLETIME/DIVIDER;
                 fmeas << setw(10) << input[0];
                 fmeas << setw(14) << model.measure(mu)(0) << endl;

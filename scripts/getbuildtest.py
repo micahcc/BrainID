@@ -338,6 +338,6 @@ print "Writing out bash script"
 
 FILE = open(PROFILE_OUT, "w")
 FILE.write("#!/bin/bash\n")
-FILE.write("LD_LIBRARY_PATH=\"" + prof_ld + "$LD_LIBRARY_PATH\"\n")
+FILE.write("export LD_LIBRARY_PATH=\"" + prof_ld + "$LD_LIBRARY_PATH\"\n")
 FILE.write("PATH=\"" + prof_bin + "$PATH\"\n")
 FILE.close()
