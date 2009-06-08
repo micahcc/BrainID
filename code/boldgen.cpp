@@ -84,10 +84,11 @@ void parse_cli(int argc, char** argv, BoldModel& model)
     }
     
     if(cli_vars.count("out")) {
-        cout << setw(20) << "Output Image:" << cli_vars["out"].as<string>() << endl;
+        cout << left << setw(20) << "Output Image" << ":" 
+                    << cli_vars["out"].as<string>() << endl;
         boldfile = cli_vars["out"].as<string>();
     } else {
-        cout << setw(20) << "Warning:" << "Not outputing the simulated "
+        cout << left << setw(20) << "Warning" << ":Not outputing the simulated "
                     "timeseries image because no name was given" << endl;
     }
     
@@ -100,7 +101,8 @@ void parse_cli(int argc, char** argv, BoldModel& model)
     }
     
     if(cli_vars.count("simtime")) {
-        cout << setw(20) << "Simulation timestep: " << cli_vars["simtime"].as<double>() << endl;
+        cout << left << setw(20) << "Simulation timestep" << ":" 
+                    << cli_vars["simtime"].as<double>() << endl;
         simstep = cli_vars["simtime"].as<double>();
     } else {
         cout << setw(20) << "Error!" << "Must give a simulation timestep!" << endl;
@@ -108,15 +110,17 @@ void parse_cli(int argc, char** argv, BoldModel& model)
     }
     
     if(cli_vars.count("statefile")) {
-        cout << "Statefile: " << cli_vars["statefile"].as<string>() << endl;
+        cout << left << "Statefile" << ":" 
+                    << cli_vars["statefile"].as<string>() << endl;
         statefile = cli_vars["statefile"].as<string>();
     } else {
-        cout << setw(20) << "Warning:" << "Not outputing any state information" 
+        cout << left << setw(20) << "Warning" << ":Not outputing any state information" 
                     << endl;
     }
     
     if(cli_vars.count("endtime")) {
-        cout << "Ending at time: " << cli_vars["endtime"].as<double>() << endl;
+        cout << left << "Ending at time" << ":" 
+                    << cli_vars["endtime"].as<double>() << endl;
         stoptime = cli_vars["endtime"].as<double>();
         endcount = (int)(stoptime/simstep);
     } else {
@@ -125,17 +129,17 @@ void parse_cli(int argc, char** argv, BoldModel& model)
     }
     
     if(cli_vars.count("numseries")) {
-        cout << "Number of series: " << cli_vars["numseries"].as<int>() << endl;
-        cout << "WARNING this is not implemented yet!" << endl;
+        cout << "WARNING numseries is not implemented yet!" << endl;
         series = cli_vars["numseries"].as<int>();
     } else {
-        cout << "Simulation 1 section" << endl;
         series = 1;
     }
+    cout << left << setw(20) << "Number of series" << ":" 
+                << series << endl;
     
     if(cli_vars.count("inputstim")) {
         string tmp = cli_vars["inputstim"].as<string>();
-        cout << "Will read stimuli from: " << tmp << endl;
+        cout << setw(20) << left << "Stimuli File" << ": " << tmp << endl;
         fin.open(tmp.c_str());
     } else if(cli_vars.count("randstim")) {
         string tmp;
@@ -173,7 +177,7 @@ void parse_cli(int argc, char** argv, BoldModel& model)
     }
     
     if(cli_vars.count("params")) {
-        cout << "Reading Simulation Init/theta from command line: " 
+        cout << "Reading Simulation Init/theta from command line: "  << endl
                     << cli_vars["params"].as<string>() << endl;
 
         istringstream iss(cli_vars["params"].as<string>());
@@ -203,9 +207,6 @@ void parse_cli(int argc, char** argv, BoldModel& model)
         }
     } else {
         cout << "Using random values for init/theta" << endl;
-    }
-    
-    if(cli_vars.count("file") == 0 && cli_vars.count("params") == 0) {
         aux::DiracMixturePdf x0(BoldModel::SYSTEM_SIZE);
 
         aux::vector mean(BoldModel::SYSTEM_SIZE);
@@ -239,6 +240,10 @@ void parse_cli(int argc, char** argv, BoldModel& model)
         }
 #endif //ZEROSTART
     } 
+
+    std::cout << std::endl;
+    outputVector(std::cout, systemstate);
+    std::cout << std::endl;
 
 }
 
@@ -322,7 +327,20 @@ int main (int argc, char** argv)
     itk::EncapsulateMetaData<unsigned int>(dict, "IndexQT",      8);
     itk::EncapsulateMetaData<unsigned int>(dict, "IndexST",      9);
     itk::EncapsulateMetaData<unsigned int>(dict, "IndexFT",     10);
+//#define TEST
+#ifdef TEST
+    itk::EncapsulateMetaData<string>(dict, "0010|0040", "M");
+#endif //TEST
+ 
     outState->SetMetaDataDictionary(dict);
+
+#ifdef TEST
+    unsigned int tmp1000;
+    dict = outState->GetMetaDataDictionary();
+    itk::ExposeMetaData<unsigned int>(dict, "IndexE0", tmp1000);
+    cout << "IndexE0 " << tmp1000 << endl;;
+    dict.Print(cout);
+#endif
 
     //setup iterators
     itk::ImageSliceIteratorWithIndex<Image4DType> 

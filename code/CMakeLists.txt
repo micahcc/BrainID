@@ -21,12 +21,13 @@ ADD_LIBRARY(BoldModel BoldModel.cpp)
 
 ADD_EXECUTABLE(unbias unbias.cpp)
 ADD_EXECUTABLE(brainid brainid.cpp)
-#ADD_EXECUTABLE(brainid brainid.cpp StratifiedParticleResampler.cpp)
+ADD_EXECUTABLE(printtags printtags.cpp)
 ADD_EXECUTABLE(fmri_timeseries fmri_timeseries.cpp)
 ADD_EXECUTABLE(boldgen boldgen.cpp)
 
 TARGET_LINK_LIBRARIES(fmri_timeseries segment ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
 TARGET_LINK_LIBRARIES(unbias ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
+TARGET_LINK_LIBRARIES(printtags ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
 TARGET_LINK_LIBRARIES(brainid mpi boost_program_options boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO mpi gslcblas gsl lapack dysii)
 TARGET_LINK_LIBRARIES(boldgen boost_mpi boost_program_options boost_serialization BoldModel ITKAlgorithms ITKBasicFilters 

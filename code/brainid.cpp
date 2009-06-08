@@ -7,6 +7,8 @@
 #include <itkImageFileWriter.h>
 #include <itkImageFileReader.h>
 #include <itkImageLinearIteratorWithIndex.h>
+#include <itkImageSliceIteratorWithIndex.h>
+#include <itkMetaDataObject.h>
 
 #include <indii/ml/filter/ParticleFilter.hpp>
 #include <indii/ml/filter/StratifiedParticleResampler.hpp>
@@ -37,13 +39,99 @@ using namespace std;
 namespace opts = boost::program_options;
 namespace aux = indii::ml::aux;
     
-const double SAMPLETIME = 2; //in seconds, should get from fmri image
+double SAMPLETIME = 2; //in seconds, should get from fmri image
 
-typedef float ImagePixelType;
+/* Typedefs */
+typedef double ImagePixelType;
 typedef itk::Image< ImagePixelType,  4 > Image4DType;
 typedef itk::ImageFileReader< Image4DType >  ImageReaderType;
 typedef itk::ImageFileWriter< Image4DType >  WriterType;
 
+/* Globals from Command Line */
+double RESAMPNESS    = .5; //should be some percentage of NUM_PARTICLES
+size_t NUM_PARTICLES = 60000;
+int    DIVIDER       = 8;
+double curweight     = 0; //how much to weight the current time vs. old times
+int weightfunc       = BoldModel::NORM; //type of weighting function to use
+
+string serialofile   = "";
+string serialifile   = "";
+string stimfile      = "";
+string seriesfile    = "";
+string boldfile      = "";
+string statefile     = "";
+string covfile     = "";
+
+bool cheating;
+aux::vector cheat(BoldModel::SYSTEM_SIZE) ;
+
+void writeVector(Image4DType::Pointer out, int dir, const aux::vector& input, 
+            Image4DType::IndexType start)
+{
+    itk::ImageLinearIteratorWithIndex<Image4DType> 
+                it(out, out->GetRequestedRegion());
+    it.SetDirection(dir);
+    it.SetIndex(start);
+
+    size_t i;
+    for(i = 0 ; i < input.size() && !it.IsAtEndOfLine() ; i++) {
+        it.Set(input[i]);
+        ++it;
+    }
+
+    assert(i==input.size() && it.IsAtEndOfLine());
+}
+
+void writeParticles(Image4DType::Pointer out, 
+            const std::vector<aux::DiracPdf>& elems, int t)
+{
+    Image4DType::IndexType pos = {{0, 0, 0, t}};
+//    Image4DType::IndexType pos(0, 0, 0, t);
+    
+    for(size_t i = 0 ; i<elems.size() ; i++) {
+        pos[2] = i;
+        writeVector(out, 1, elems[i].getExpectation(), pos);
+    }
+}
+
+//dir1 should be the first matrix dimension, dir2 the second
+void writeMatrix(Image4DType::Pointer out, int dir1, int dir2, 
+            const aux::matrix& input, Image4DType::IndexType start)
+{
+    itk::ImageSliceIteratorWithIndex< Image4DType > 
+                it(out, out->GetRequestedRegion());
+    it.SetFirstDirection(dir1);
+    it.SetSecondDirection(dir2);
+    
+    it.SetIndex(start);
+
+    for(size_t j = 0 ; j < input.size2() && !it.IsAtEndOfSlice() ; j++) {
+        for(size_t i = 0 ; i < input.size1() && !it.IsAtEndOfLine() ; i++) {
+            it.Set(input(i,j));
+        }
+        it.NextLine();
+    }
+}
+
+void readVector(const Image4DType::Pointer in, int dir, aux::vector& input, 
+            Image4DType::IndexType start)
+{
+    itk::ImageLinearConstIteratorWithIndex<Image4DType> 
+                it(in, in->GetRequestedRegion());
+    it.SetDirection(dir);
+    it.SetIndex(start);
+
+    size_t i;
+    for(i = 0 ; i < input.size() && !it.IsAtEndOfLine() ; i++) {
+        input[i] = it.Get();
+    }
+
+    assert(i==input.size());
+}
+
+/* init4DImage 
+ * sets the ROI for a new image and then calls allocate
+ */
 void init4DImage(Image4DType::Pointer& out, size_t xlen, size_t ylen, 
             size_t zlen, size_t tlen)
 {
@@ -68,31 +156,9 @@ void init4DImage(Image4DType::Pointer& out, size_t xlen, size_t ylen,
     out->Allocate();
 }
 
-int main(int argc, char* argv[])
+/* Parses the Command line and fills in the globals */
+void parse_cli(int argc, char* argv[])
 {
-    boost::mpi::environment env(argc, argv);
-    boost::mpi::communicator world;
-    const unsigned int rank = world.rank();
-    const unsigned int size = world.size();
-
-    ostream* out;
-    ofstream nullout("/dev/null");
-
-    if(rank == 0) {
-        out = &cout;
-    } else {
-        out = &nullout;
-    }
-
-    double RESAMPNESS = .5; //should be some percentage of NUM_PARTICLES
-    int NUM_PARTICLES = 60000;
-    int DIVIDER = 8;
-    int NUM_MOSTPROB= 4;
-    aux::vector cheat(BoldModel::SYSTEM_SIZE) ;
-    double curweight = 0; //how much to weight the current time vs. old times
-    int weightfunc = BoldModel::NORM; //type of weighting function to use
-
-    //CLI
     opts::options_description desc("Allowed options");
     desc.add_options()
             ("help,h", "produce help message")
@@ -112,7 +178,11 @@ int main(int argc, char* argv[])
             ("cheat", opts::value<double>(), "This cheats and gives the true starting parameters"
                         "to the particle filter. This is just a validation technique for the "
                         "filter. Syntax: \"Tau_s Tau_f Epsilon Tau_0 "
-                        "alpha E_0 V_0 v_t0 q_t0 s_t0 f_t0\"");
+                        "alpha E_0 V_0 v_t0 q_t0 s_t0 f_t0\"")
+            ("boldout,b", opts::value<string>(), "Name of image file to write bold data to")
+            ("stateout,o", opts::value<string>(), "Name of image file to write" 
+                        " state variable data to")
+            ("covout,c", opts::value<string>(), "Name of image file to write covariance data to");
 
     opts::variables_map cli_vars;
     try {
@@ -121,69 +191,72 @@ int main(int argc, char* argv[])
     } catch(...) {
         cout << "Improper Command Line Option Given!" << endl << endl;
         cout << desc << endl;
-        return -6;
+        exit(-6);
     }
     
     ///////////////////////////////////////////////////////////////////////////////
     //Parse command line options
     ///////////////////////////////////////////////////////////////////////////////
     if(cli_vars.count("help")) {
-        *out << desc << endl;
-        return 1;
+        cout << desc << endl;
+        exit(1);
     }
     
     if(cli_vars.count("resampness")) {
         RESAMPNESS = cli_vars["resampness"].as < double >();
     } 
-    *out << left << setw(20) << "resampness" << ":" << RESAMPNESS << endl;
+    cout << left << setw(20) << "resampness" << ":" << RESAMPNESS << endl;
     
     if(cli_vars.count("divider")) {
         DIVIDER = cli_vars["divider"].as < int >();
     } 
-    *out << left << setw(20) << "divider" << ":" << DIVIDER << endl;
+    cout << left << setw(20) << "divider" << ":" << DIVIDER << endl;
     
     if(cli_vars.count("particles")) {
         NUM_PARTICLES = cli_vars["particles"].as < int >();
     } 
-    *out << left << setw(20) << "Particles" << ":" << NUM_PARTICLES << endl;
+    cout << left << setw(20) << "Particles" << ":" << NUM_PARTICLES << endl;
 
     if(cli_vars.count("timeseries")) {
-        *out << left << setw(20) <<  "Timeseries" << ":" << cli_vars["timeseries"].as< string >() << endl;
+        seriesfile = cli_vars["timeseries"].as< string >();
+        cout << left << setw(20) <<  "Timeseries" << ":" << seriesfile << endl;
     } else {
-        *out << "Error! Timeseries: Need to enter a timeseries file!" << endl;
-        return -1;
+        cout << "Error! Timeseries: Need to enter a timeseries file!" << endl;
+        exit(-1);
     }
     
     if(cli_vars.count("stimfile")) {
-        *out << left << setw(20) <<  "Stimfile" << ":" << cli_vars["stimfile"].as < string >() << endl;
+        stimfile = cli_vars["stimfile"].as< string >();
+        cout << left << setw(20) <<  "Stimfile" << ":" << stimfile << endl;
     } else {
-        *out << "Error! Stimfile: Need to enter a stimulus input file" << endl;
-        return -2;
+        cout << left << setw(20) <<  "Stimefile" << ": None! Will decay freely" << endl;
     }
 
     if(cli_vars.count("serialout")) {
-        *out << left << setw(20) << "SerialOut" << ":" << cli_vars["serialout"].as < string >() << endl;
+        serialofile = cli_vars["serialout"].as< string >();
+        cout << left << setw(20) << "SerialOut" << ":" << serialofile << endl;
     } 
     
     if(cli_vars.count("serialin")) {
-        *out << left << setw(20) << "SerialIn" << ":" << cli_vars["serialin"].as < string >() << endl;
-    } 
+        serialifile = cli_vars["serialin"].as< string >();
+        cout << left << setw(20) << "SerialIn" << ":" << serialifile << endl;
+    }
     
     if(cli_vars.count("weightf")) {
         if(cli_vars["weightf"].as<string>().compare("exp") == 0) {
-            *out << left << setw(20) << "weightf" << ":Weighting based on the"
+            cout << left << setw(20) << "weightf" << ":Weighting based on the"
                         << " exponential distribution" << endl;
             weightfunc = BoldModel::EXP;
         } else if(cli_vars["weightf"].as<string>().compare("hyp") == 0) {
-            *out << left << setw(20) << "weightf" << ":Weighting based on 1/dist" << endl;
+            cout << left << setw(20) << "weightf" << ":Weighting based on 1/dist" << endl;
             weightfunc = BoldModel::HYP;
         } else {
-            *out << left << setw(20) << "weightf" << ":Weighting based on the normal"
+            cout << left << setw(20) << "weightf" << ":Weighting based on the normal"
                         << " distribution" << endl;
             weightfunc = BoldModel::NORM;
         }
     } else {
-        *out << left << setw(20) << "weightf" << ":Weighting based on the normal"
+        cout << left << setw(20) << "weightf" << ":Weighting based on the normal"
                     << " distribution" << endl;
         weightfunc = BoldModel::NORM;
     }
@@ -191,20 +264,22 @@ int main(int argc, char* argv[])
     if(cli_vars.count("reweight")) {
         istringstream iss(cli_vars["rewight"].as<string>());
         if(cli_vars["reweight"].as<string>().compare("mult") == 0) {
-            *out << left << setw(20) << "re-weight" << ": will multiply old weight"
+            cout << left << setw(20) << "re-weight" << ": will multiply old weight"
                         << " by new weight for updates" << endl;
             curweight = 0;
         } else {
             iss >> curweight;
-            *out << left << setw(20) << "reweight" << ": weight update: <new> = <old>*"
+            cout << left << setw(20) << "reweight" << ": weight update: <new> = <old>*"
                         << (1-curweight) << "+<now>*" << curweight << endl;
         }
     } else {
         curweight = 0;
     }
     
+    cheating = false;
     if(cli_vars.count("cheat")) {
-        *out << left << setw(20) << "cheat" << ":Cheating by distributing starting"
+        cheating = true;
+        cout << left << setw(20) << "cheat" << ":Cheating by distributing starting"
                     << " particles around:" 
                     << cli_vars["cheat"].as < string >() << endl;
 
@@ -220,6 +295,46 @@ int main(int argc, char* argv[])
         
     } 
     
+    if(cli_vars.count("boldout")) {
+        boldfile = cli_vars["boldout"].as<string>();
+        cout << left << setw(20) << "boldout" << ":" << boldfile << endl;
+    }
+
+    if(cli_vars.count("stateout")) {
+        statefile = cli_vars["stateout"].as<string>();
+        cout << left << setw(20) << "stateout" << ":" << statefile << endl;
+    } 
+    
+    if(cli_vars.count("covout")) {
+        covfile = cli_vars["covout"].as<string>();
+        cout << left << setw(20) << "covout" << ":" << statefile << endl;
+    } 
+}
+
+
+/* Main Function */
+int main(int argc, char* argv[])
+{
+    boost::mpi::environment env(argc, argv);
+    boost::mpi::communicator world;
+    const unsigned int rank = world.rank();
+    const unsigned int size = world.size();
+
+    ostream* out;
+    ofstream nullout("/dev/null");
+
+    if(rank == 0) {
+        out = &cout;
+        parse_cli(argc, argv);
+    } else {
+        out = &nullout;
+    }
+
+    boost::mpi::broadcast(world, RESAMPNESS   , 0);
+    boost::mpi::broadcast(world, NUM_PARTICLES, 0);
+    boost::mpi::broadcast(world, DIVIDER      , 0);
+    boost::mpi::broadcast(world, curweight    , 0);
+    boost::mpi::broadcast(world, weightfunc   , 0);
 
     ///////////////////////////////////////////////////////////////////////////////
     //Done Parsing, starting main part of code
@@ -228,44 +343,60 @@ int main(int argc, char* argv[])
 
     std::ifstream fin;
     
-    /* Open up the input */
     ImageReaderType::Pointer reader;
     itk::ImageLinearIteratorWithIndex<Image4DType> iter;
+    Image4DType::Pointer measInput;
+
+    BoldModel model(zero_vector(BoldModel::SYSTEM_SIZE), weightfunc, curweight);
+
+    aux::DiracMixturePdf x0(BoldModel::SYSTEM_SIZE);
+    
+    /* Full Distribution */
+    aux::DiracMixturePdf tmpX(BoldModel::SYSTEM_SIZE);
     if(rank == 0) {
+        
+        /* Open up the input */
         reader = ImageReaderType::New();
-        reader->SetFileName( cli_vars["timeseries"].as< string >() );
+        cout << seriesfile << endl;;
+        reader->SetFileName( seriesfile );
         reader->Update();
-
-        Image4DType::Pointer measInput = reader->GetOutput();
-
+        measInput = reader->GetOutput();
+        
         /* Create the iterator, to move forward in time for a particlular section */
         iter = itk::ImageLinearIteratorWithIndex<Image4DType>(measInput, 
                     measInput->GetRequestedRegion());
         iter.SetDirection(3);
-        Image4DType::IndexType index;
-        index[3] = 0;
-        index[2] = 0;
-        index[1] = 0;
-        index[0] = 0;//just kind of picking a section
+        Image4DType::IndexType index = {{0, 0, 0, 0}};
         iter.SetIndex(index);
+        
+        /* Create a model */
+    
+        /* Generate Prior */
+        if(!serialifile.empty()) {
+            std::ifstream serialin(serialifile.c_str(), std::ios::binary);
+            boost::archive::binary_iarchive inArchive(serialin);
+            inArchive >> tmpX;
+            if(NUM_PARTICLES != tmpX.getSize())
+                cout << "Number of particles changed to " << tmpX.getSize();
+            NUM_PARTICLES = tmpX.getSize();
+        } else if(cheating) {
+            model.generatePrior(tmpX, NUM_PARTICLES, cheat);
+        } else {
+            *out << "Generating prior" << endl;
+            model.generatePrior(tmpX, NUM_PARTICLES);
+//            aux::matrix tmp = tmpX.getDistributedCovariance();
+//            *out << "Covariance: " << endl;
+//            outputMatrix(*out, tmp);
+//            *out << endl;
+        }
+    
     }
+        
+    boost::mpi::broadcast(world, tmpX, 0);
 
-    /* Create a model */
-    BoldModel model(zero_vector(BoldModel::SYSTEM_SIZE), weightfunc, curweight);
-    aux::DiracMixturePdf x0(BoldModel::SYSTEM_SIZE);
-    if(cli_vars.count("serialin")) {
-        std::ifstream serialin(cli_vars["serialin"].as< string >().c_str(), std::ios::binary);
-        boost::archive::binary_iarchive inArchive(serialin);
-        inArchive >> x0;
-    } else if(cli_vars.count("cheat")) {
-        model.generatePrior(x0, NUM_PARTICLES / size, cheat);
-    } else {
-        *out << "Generating prior" << endl;
-        model.generatePrior(x0, NUM_PARTICLES / size);
-        aux::matrix tmp = x0.getDistributedCovariance();
-        *out << "Covariance: " << endl;
-        outputMatrix(*out, tmp);
-        *out << endl;
+    /* Divide Initial Distribution among nodes */
+    for(size_t i = rank ; i < NUM_PARTICLES ; i+= size) {
+        x0.add(tmpX.get(i));
     }
 
     /* Create the filter */
@@ -280,47 +411,59 @@ int main(int argc, char* argv[])
     aux::AlmostGaussianKernel kernel(BoldModel::SYSTEM_SIZE, 1);
     RegularizedParticleResamplerMod< aux::Almost2Norm, 
                 aux::AlmostGaussianKernel > resampler_reg(norm, kernel);
-  
-    /* output setup */
-    itk::MetaDataDictionary dict = measInput->GetMetaDataDictionary();
 
-    //BOLD
-    Image4DType::Pointer measOutput = Image4DType::New();
-    init4DImage(measOutput , measInput->GetRequestedRegion().GetSize()[0],
+
+    Image4DType::Pointer measOutput, stateOutput, covOutput, partOutput;
+
+    int meassize = 0;
+
+    /////////////////////////////////////////////////////////////////////
+    // output setup 
+    /////////////////////////////////////////////////////////////////////
+    if(rank == 0) {
+        itk::ExposeMetaData<double>(measInput->GetMetaDataDictionary(), 
+                    "TemporalResolution", SAMPLETIME);
+        cout << SAMPLETIME << endl;
+        if(SAMPLETIME == 0) {
+            cout << "Image Had Invalid Temporal Resolution!" << endl;
+            exit(-5);
+        }
+
+        //BOLD
+        measOutput = Image4DType::New();
+        init4DImage(measOutput , measInput->GetRequestedRegion().GetSize()[0],
                 1, 1, measInput->GetRequestedRegion().GetSize()[3]);
-    measOutput->SetMetaDataDictionary(dict);
-    itk::ImageLinearIteratorWithIndex<Image4DType> 
-                state_it(outState, outState->GetRequestedRegion());
-    state_it.SetDirection(1);
-    
-    //STATE
-    Image4DType::Pointer stateOutput = Image4DType::New();
-    init4DImage(stateOutput, measInput->GetRequestedRegion().GetSize()[0],
-                BoldModel::SYSTEM_SIZE, 1, 
+        measOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
+
+        //STATE
+        stateOutput = Image4DType::New();
+        init4DImage(stateOutput, 1, BoldModel::SYSTEM_SIZE, 1, 
                 measInput->GetRequestedRegion().GetSize()[3]);
-    stateOutput->SetMetaDataDictionary(dict);
-    
-    //COVARIANCE
-    Image4DType::Pointer covOutput = Image4DType::New();
-    init4DImage(covOutput, measInput->GetRequestedRegion().GetSize()[0], 
+        stateOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
+
+        //COVARIANCE
+        covOutput = Image4DType::New();
+        init4DImage(covOutput, 1, 
                 BoldModel::SYSTEM_SIZE, BoldModel::SYSTEM_SIZE, 
                 measInput->GetRequestedRegion().GetSize()[3]);
-    covOutput->SetMetaDataDictionary(dict);
+        covOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
 
 #ifdef OUTPART
-    Image4DType::Pointer partOutput = Image4DType::New();
-    init4DImage(partOutput, measInput->GetRequestedRegion().GetSize()[0],  
-                BoldModel::SYSTEM_SIZE, NUM_PARTICLES,
-                measInput->GetRequestedRegion().GetSize()[3]);
-    partOutput->SetMetaDataDictionary(dict);
-    
-    std::vector<aux::DiracPdf> particles;
+        partOutput = Image4DType::New();
+        init4DImage(partOutput, 1,  BoldModel::SYSTEM_SIZE, NUM_PARTICLES,
+                measInput->GetRequestedRegion().GetSize()[3]*DIVIDER);
+        partOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
 #endif //OUTPART
+
+        meassize = measInput->GetRequestedRegion().GetSize()[0];
+    }
+
+    boost::mpi::broadcast(world, SAMPLETIME, 0);
 
     /* Simulation Section */
     aux::DiracMixturePdf distr(BoldModel::SYSTEM_SIZE);
     aux::vector input(1);
-    aux::vector meas(1);
+    aux::vector meas(meassize);
     aux::vector mu(BoldModel::SYSTEM_SIZE);
     aux::symmetric_matrix cov(BoldModel::SYSTEM_SIZE);
     input[0] = 0;
@@ -328,32 +471,22 @@ int main(int argc, char* argv[])
     int disctime = 0;
     bool done = false;
     int tmp = 0;
-    if(rank == 0) {
-        fin.open(cli_vars["stimfile"].as< string >().c_str());
+    if(rank == 0 && !stimfile.empty()) {
+        fin.open(stimfile.c_str());
         fin >> nextinput;
     }
 
     while(!done) {
 #ifdef OUTPART //todo implement saving particles
         if( rank == 0 ) {
-            fpart << "# name: particles" << setw(5) << t*10000 << endl;
-            fpart << "# type: matrix" << endl;
-            fpart << "# rows: " << NUM_PARTICLES << endl;
-            fpart << "# columns: " << BoldModel::SYSTEM_SIZE + 1 << endl;
-            fpart << "# time: " << time(NULL) << endl;
-            particles = filter.getFilteredState().getAll();
-            for(unsigned int i=0 ; i<particles.size(); i++) {
-                fpart << i << " ";
-                outputVector(fpart, particles[i].getExpectation());
-                fpart << endl;
-            }
-            fpart << endl;
+            const std::vector<aux::DiracPdf>& particles = 
+                        filter.getFilteredState().getAll();
+            writeParticles(partOutput, particles, disctime);
         }
 #endif // OUTPART
         
-        //the +.1 is just to remove the possibility of missing something
-        //due to roundoff error, since disctime is the smallest possible 
-        //timestep adding .1 will never go into the next timestep
+        //TODO maybe this should be split up to prevent ranks from having
+        //to move in lock-step
         if(rank == 0 && !fin.eof() && disctime*SAMPLETIME/DIVIDER >= nextinput) {
             fin >> input[0];
             fin >> nextinput;
@@ -368,7 +501,9 @@ int main(int argc, char* argv[])
         if(disctime%DIVIDER == 0) { //time for update!
             //acquire the latest measurement
             if(rank == 0) {
-                meas(0) = iter.Get();
+                cout << "Measuring at " <<  disctime/DIVIDER << endl;
+                Image4DType::IndexType index = {{0, 0, 0, disctime/DIVIDER}};
+                readVector(measInput, 0, meas, index);
                 ++iter;
                 done = iter.IsAtEndOfLine();
             }
@@ -409,35 +544,12 @@ int main(int argc, char* argv[])
             cov = distr.getDistributedCovariance();
             if( rank == 0 ) {
                 /* output measurement */
+                
                 //save states in an image
-                state_it.SetIndex(meas_it.GetIndex());
-                
-                int j = 0;
-                while(!state_it.IsAtEndOfLine()){
-                    state_it.Set(systemstate[j++]);
-                    ++state_it;
-                }
-                
-                meas_it.Value() = model.measure(systemstate)[0] + 
-                            gsl_ran_gaussian(rng, sqrt(noise_var));
-                ++meas_it;
-
-                meas_it.NextLine();
-                fmeas << setw(10) << disctime*SAMPLETIME/DIVIDER;
-                fmeas << setw(10) << input[0];
-                fmeas << setw(14) << model.measure(mu)(0) << endl;
-
-                /* output filtered state */
-                fstate << setw(10) << disctime*SAMPLETIME/DIVIDER; 
-                outputVector(fstate, mu);
-                fstate << endl;
-                
-                /* output filtered covariance */
-                for(int ii=0 ; ii<BoldModel::SYSTEM_SIZE; ii++) {
-                    for(int jj=0 ; jj<BoldModel::SYSTEM_SIZE; jj++) {
-                        fcov << cov(ii,jj) << endl;
-                    }
-                }
+                Image4DType::IndexType index = {{0, 0, 0, disctime/DIVIDER}};
+                writeVector(measOutput, 0, model.measure(mu), index);
+                writeVector(stateOutput, 1, mu, index);
+                writeMatrix(covOutput, 1, 2, cov, index);
             }
 
         } else { //no update available, just step update states
@@ -460,14 +572,29 @@ int main(int argc, char* argv[])
 
     x0 = filter.getFilteredState();
     if( rank == 0 ) {
-        fmeas.close();
-        fstate.close();
-        fcov.close();
-        
-        if(cli_vars.count("serialout")) {
-            std::ofstream serialout(cli_vars["serialout"].as< string >().c_str(), std::ios::binary);
+        WriterType::Pointer writer = WriterType::New();
+        if(!serialofile.empty()) {
+            std::ofstream serialout(serialofile.c_str(), std::ios::binary);
             boost::archive::binary_oarchive outArchive(serialout);
             outArchive << x0;
+        }
+
+        if(!boldfile.empty()) {
+            writer->SetFileName(boldfile);  
+            writer->SetInput(measOutput);
+            writer->Update();
+        }
+
+        if(!statefile.empty()) {
+            writer->SetFileName(statefile);  
+            writer->SetInput(stateOutput);
+            writer->Update();
+        }
+        
+        if(!covfile.empty()) {
+            writer->SetFileName(covfile);  
+            writer->SetInput(covOutput);
+            writer->Update();
         }
     }
 
