@@ -179,13 +179,13 @@ srcpath = split(sys.path[0])[0]
 
 parser = OptionParser()
 parser.add_option("-d", "--depdir", dest="depdir",
-                  default="BrainID-Dependencies-Build",
+                  default="Dependencies-Build",
                   help="name of directory for dependencies")
 parser.add_option("-u", "--update",
                   action="store_true", dest="update", default=False,
                   help="run svn update first")
 parser.add_option("-i", "--depinstall",
-                  action="store_true", dest="depprefix", default="%s/BrainID-Dependencies-Install" % topdir,
+                  action="store_true", dest="depprefix", default="%s/Dependencies-Install" % topdir,
                   help="The location to put the final <depname>/include, <depname>/lib, <depname>/bin ")
 parser.add_option("-p", "--prefix",
                   action="store_true", dest="prefix", default="%s" % join(srcpath, "install"),
