@@ -21,6 +21,10 @@
 using namespace std;
 namespace opts = boost::program_options;
 
+const int SERIES_DIR = 0;
+const int PARAM_DIR = 1;
+const int TIME_DIR = 3;
+
 typedef itk::OrientedImage<double, 4> Image4DType;
 
 double stoptime;
@@ -34,7 +38,7 @@ ifstream fin;
 string boldfile;
 string statefile;
 
-double noise_var;
+double noise_snr;
 
 typedef struct {
     ofstream fout;
@@ -62,7 +66,7 @@ void parse_cli(int argc, char** argv, BoldModel& model)
             ("inputstim,i", opts::value<string>(), "file to read in stimuli from")
             ("randstim,r", opts::value<string>(), "create a random stimulus then write to"
                         "file=<where to write to>,t=<time between changes,p=<probability of 1>")
-            ("noisevar,v", opts::value<double>(), "Variance of Gaussian Noise to apply to bold signal")
+            ("noisesnr,v", opts::value<double>(), "SNR of Gaussian Noise to apply to bold signal")
             ("file,f", opts::value<string>(), "File with X0, Theta for simulation")
             ("params,p", opts::value<string>(), "Parameters to pass "
                         "into the simulation, enclosed in quotes \"Tau_s Tau_f Epsilon Tau_0 "
@@ -93,7 +97,8 @@ void parse_cli(int argc, char** argv, BoldModel& model)
     }
     
     if(cli_vars.count("outtime")) {
-        cout << setw(20) << "Out timestep: " << cli_vars["outtime"].as<double>() << endl;
+        cout << setw(20) << "Out timestep" << ":" 
+                    << cli_vars["outtime"].as<double>() << endl;
         outstep = cli_vars["outtime"].as<double>();
     } else {
         cout << setw(20) << "Error! " << "Must give an output timestep!" << endl;
@@ -110,7 +115,7 @@ void parse_cli(int argc, char** argv, BoldModel& model)
     }
     
     if(cli_vars.count("statefile")) {
-        cout << left << "Statefile" << ":" 
+        cout << left << setw(20) << "Statefile" << ":" 
                     << cli_vars["statefile"].as<string>() << endl;
         statefile = cli_vars["statefile"].as<string>();
     } else {
@@ -119,7 +124,7 @@ void parse_cli(int argc, char** argv, BoldModel& model)
     }
     
     if(cli_vars.count("endtime")) {
-        cout << left << "Ending at time" << ":" 
+        cout << setw(20) << left << "Ending at time" << ":" 
                     << cli_vars["endtime"].as<double>() << endl;
         stoptime = cli_vars["endtime"].as<double>();
         endcount = (int)(stoptime/simstep);
@@ -169,11 +174,11 @@ void parse_cli(int argc, char** argv, BoldModel& model)
         cout << "No stimuli given, will decay freely" << endl;
     }
     
-    if(cli_vars.count("noisevar")) {
-        noise_var = cli_vars["noisevar"].as<double>();
-        cout << "Using variance of: " << noise_var << endl;
+    if(cli_vars.count("noisesnr")) {
+        noise_snr = cli_vars["noisesnr"].as<double>();
+        cout << "Using variance of: " << noise_snr << endl;
     } else {
-        noise_var = 0;
+        noise_snr = 0;
     }
     
     if(cli_vars.count("params")) {
@@ -271,6 +276,69 @@ void init4DImage(Image4DType::Pointer& out, size_t xlen, size_t ylen,
     out->Allocate();
 }
 
+//dir1 should be the direction of several separate series
+//dir2 should be the direction that you want to get rms of
+void get_rms(Image4DType::Pointer in, size_t dir1, size_t dir2, 
+            vector<double>& out)
+{
+    out.assign(in->GetRequestedRegion().GetSize()[dir1], 0);
+    
+    itk::ImageSliceIteratorWithIndex<Image4DType> 
+                iter(in, in->GetRequestedRegion());
+    iter.SetFirstDirection(dir1);
+    iter.SetSecondDirection(dir2);
+    iter.GoToBegin();
+
+    //sum of squares
+    while(!iter.IsAtEndOfSlice()) {
+        size_t ii=0;
+        while(!iter.IsAtEndOfLine()) {
+            out[ii] += pow(iter.Get(),2);
+            ii++;
+            ++iter;
+        }
+        iter.NextLine();
+    }
+
+    //root mean
+    for(size_t i = 0 ; i < out.size() ; i++) {
+        out[i] = sqrt(out[i]/in->GetRequestedRegion().GetSize()[dir2]);
+    }
+}
+
+void add_noise(Image4DType::Pointer in, double snr, gsl_rng* rng) 
+{
+    itk::ImageSliceIteratorWithIndex<Image4DType> 
+                iter(in, in->GetRequestedRegion());
+    iter.SetFirstDirection(SERIES_DIR);
+    iter.SetSecondDirection(TIME_DIR);
+    iter.GoToBegin();
+    
+    vector<double> rms(series, 0);
+
+    //calculate rms of image over time
+    get_rms(in, SERIES_DIR, TIME_DIR, rms);
+    for(size_t ii= 0 ; ii<rms.size() ; ii++) {
+        cout << "RMS: " << ii << ":" << rms[ii] << endl;
+    }
+
+    iter.GoToBegin();
+    while(!iter.IsAtEndOfSlice()) {
+        size_t ii=0;
+        while(!iter.IsAtEndOfLine()) {
+            iter.Value() += gsl_ran_gaussian(rng, rms[ii]/sqrt(snr));
+            ++iter;
+            ii++;
+        }
+        iter.NextLine();
+    }
+    
+    get_rms(in, SERIES_DIR, TIME_DIR, rms);
+    for(size_t ii= 0 ; ii<rms.size() ; ii++) {
+        cout << "RMS: " << ii << " " << rms[ii] << endl;
+    }
+}
+
 int main (int argc, char** argv)
 {
     boost::mpi::environment env(argc, argv);
@@ -327,38 +395,38 @@ int main (int argc, char** argv)
     itk::EncapsulateMetaData<unsigned int>(dict, "IndexQT",      8);
     itk::EncapsulateMetaData<unsigned int>(dict, "IndexST",      9);
     itk::EncapsulateMetaData<unsigned int>(dict, "IndexFT",     10);
-//#define TEST
+#define TEST
 #ifdef TEST
     itk::EncapsulateMetaData<string>(dict, "0010|0040", "M");
 #endif //TEST
  
     outState->SetMetaDataDictionary(dict);
 
-#ifdef TEST
-    unsigned int tmp1000;
-    dict = outState->GetMetaDataDictionary();
-    itk::ExposeMetaData<unsigned int>(dict, "IndexE0", tmp1000);
-    cout << "IndexE0 " << tmp1000 << endl;;
-    dict.Print(cout);
-#endif
+//#ifdef TEST
+//    unsigned int tmp1000;
+//    dict = outState->GetMetaDataDictionary();
+//    itk::ExposeMetaData<unsigned int>(dict, "IndexE0", tmp1000);
+//    cout << "IndexE0 " << tmp1000 << endl;;
+//    dict.Print(cout);
+//#endif
 
     //setup iterators
     itk::ImageSliceIteratorWithIndex<Image4DType> 
                 meas_it(measImage, measImage->GetRequestedRegion());
-    meas_it.SetFirstDirection(0);
-    meas_it.SetSecondDirection(3);
+    meas_it.SetFirstDirection(SERIES_DIR);
+    meas_it.SetSecondDirection(TIME_DIR);
     meas_it.GoToBegin();
     
     itk::ImageLinearIteratorWithIndex<Image4DType> 
                 state_it(outState, outState->GetRequestedRegion());
-    state_it.SetDirection(1);
+    state_it.SetDirection(PARAM_DIR);
 
     //Used to add noise
     gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);
     gsl_rng_set(rng, (int)((time(NULL)*rank)/11.));
 
-    outputVector(std::cout, systemstate);
-    std::cout << std::endl;
+//    outputVector(std::cout, systemstate);
+//    std::cout << std::endl;
 
     double sample = 0;
     int count = 0;
@@ -377,7 +445,7 @@ int main (int argc, char** argv)
         nextinput = stim.t;
     }
 
-    cout << endcount << endl;
+//    cout << endcount << endl;
     for(count = 0 ; count  < endcount; count++) {
         //setup next timestep
         prev = realt;
@@ -407,8 +475,7 @@ int main (int argc, char** argv)
                     ++state_it;
                 }
                 
-                meas_it.Value() = model.measure(systemstate)[0] + 
-                            gsl_ran_gaussian(rng, sqrt(noise_var));
+                meas_it.Value() = model.measure(systemstate)[0];
                 ++meas_it;
             }
 
@@ -420,6 +487,9 @@ int main (int argc, char** argv)
         
     }
 
+    if(noise_snr != 0)
+        add_noise(measImage, noise_snr, rng);
+    
     if(!boldfile.empty()) {
         writer->SetFileName(boldfile);  
         writer->SetInput(measImage);

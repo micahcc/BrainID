@@ -307,7 +307,7 @@ void parse_cli(int argc, char* argv[])
     
     if(cli_vars.count("covout")) {
         covfile = cli_vars["covout"].as<string>();
-        cout << left << setw(20) << "covout" << ":" << statefile << endl;
+        cout << left << setw(20) << "covout" << ":" << covfile << endl;
     } 
 }
 
