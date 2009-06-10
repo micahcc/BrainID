@@ -335,9 +335,9 @@ if os.system("make -j%i" % ncpus()) != 0:
 os.chdir(topdir)
 print "Build of brainid Completed"
 print "Copying scripts to %s/%s" % (brainid_build_dir, "code")
-shutil.copy("plotout.py", join(brainid_build_dir, "code")
-shutil.copy("simall.py", join(brainid_build_dir, "code")
-shutil.copy("plot.py", join(brainid_build_dir, "code")
+shutil.copy("plotout.py", join(brainid_build_dir, "code"))
+shutil.copy("simall.py", join(brainid_build_dir, "code"))
+shutil.copy("plot.py", join(brainid_build_dir, "code"))
 
 
 print "Writing out bash script"
