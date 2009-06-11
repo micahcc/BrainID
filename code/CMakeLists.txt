@@ -28,7 +28,9 @@ ADD_EXECUTABLE(boldgen boldgen.cpp)
 TARGET_LINK_LIBRARIES(fmri_timeseries segment ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
 TARGET_LINK_LIBRARIES(unbias ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
 TARGET_LINK_LIBRARIES(printtags ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
-TARGET_LINK_LIBRARIES(brainid mpi boost_program_options boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
+TARGET_LINK_LIBRARIES(brainid mpi boost_program_options
+    boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO mpi gslcblas gsl lapack dysii)
-TARGET_LINK_LIBRARIES(boldgen boost_mpi boost_program_options boost_serialization BoldModel ITKAlgorithms ITKBasicFilters 
+TARGET_LINK_LIBRARIES(boldgen boost_mpi boost_program_options
+    boost_serialization BoldModel ITKAlgorithms ITKBasicFilters 
     ITKCommon ITKIO gslcblas gsl lapack mpi dysii)

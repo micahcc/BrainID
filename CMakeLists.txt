@@ -13,6 +13,8 @@ ENDIF(ITK_FOUND)
 
 set(CMAKE_CXX_FLAGS_DEBUG "-ggdb -pg")
 
+set(CMAKE_CXX_FLAGS_GENERIC "")
+
 # Find dysii
 #FIND_PACKAGE(dysii)
 #if(dysii_found)

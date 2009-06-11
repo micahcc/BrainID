@@ -1,11 +1,11 @@
-diff -Naur BrainID-Dependencies-Build/lapack-3.1.1.orig/make.inc BrainID-Dependencies-Build/lapack-3.1.1/make.inc
---- BrainID-Dependencies-Build/lapack-3.1.1.orig/make.inc	1970-01-01 00:00:00.000000000 +0000
-+++ BrainID-Dependencies-Build/lapack-3.1.1/make.inc	2009-04-04 15:27:14.000000000 +0000
-@@ -0,0 +1,57 @@
+--- Dependencies-Build/lapack-3.2.1.orig/make.inc	1970-01-01 00:00:00.000000000 +0000
++++ Dependencies-Build/lapack-3.2.1/make.inc	2009-06-11 19:51:17.000000000 +0000
+@@ -0,0 +1,70 @@
++# -*- Makefile -*-
 +####################################################################
 +#  LAPACK make include file.                                       #
-+#  LAPACK, Version 3.1.1                                           #
-+#  February 2007                                                   #
++#  LAPACK, Version 3.2.1                                           #
++#  April 2009                                                      #
 +####################################################################
 +#
 +# See the INSTALL/ directory for more examples.
@@ -19,27 +19,27 @@ diff -Naur BrainID-Dependencies-Build/lapack-3.1.1.orig/make.inc BrainID-Depende
 +#  Modify the FORTRAN and OPTS definitions to refer to the
 +#  compiler and desired compiler options for your machine.  NOOPT
 +#  refers to the compiler options desired when NO OPTIMIZATION is
-+#  selected.  Define LOADER and LOADOPTS to refer to the loader and 
-+#  desired load options for your machine.
++#  selected.  Define LOADER and LOADOPTS to refer to the loader
++#  and desired load options for your machine.
 +#
-+FORTRAN  = gfortran
-+OPTS     = -funroll-all-loops -O3
++FORTRAN  = gfortran -fimplicit-none -g
++OPTS     =
 +DRVOPTS  = $(OPTS)
 +NOOPT    =
-+LOADER   = gfortran
++LOADER   = gfortran -g
 +LOADOPTS =
 +#
 +# Timer for the SECOND and DSECND routines
 +#
 +# Default : SECOND and DSECND will use a call to the EXTERNAL FUNCTION ETIME
-+TIMER    = EXT_ETIME
++# TIMER    = EXT_ETIME
 +# For RS6K : SECOND and DSECND will use a call to the EXTERNAL FUNCTION ETIME_
 +# TIMER    = EXT_ETIME_
 +# For gfortran compiler: SECOND and DSECND will use a call to the INTERNAL FUNCTION ETIME
-+# TIMER    = INT_ETIME 
++# TIMER    = INT_ETIME
 +# If your Fortran compiler does not provide etime (like Nag Fortran Compiler, etc...)
-+# SECOND and DSECND will use a call to the INTERNAL FUNCTION CPU_TIME 
-+# TIMER    = INT_CPU_TIME
++# SECOND and DSECND will use a call to the Fortran standard INTERNAL FUNCTION CPU_TIME 
++TIMER    = INT_CPU_TIME
 +# If neither of this works...you can use the NONE value... In that case, SECOND and DSECND will always return 0
 +# TIMER     = NONE
 +#
@@ -50,12 +50,24 @@ diff -Naur BrainID-Dependencies-Build/lapack-3.1.1.orig/make.inc BrainID-Depende
 +ARCHFLAGS= cr
 +RANLIB   = ranlib
 +#
-+#  The location of the libraries to which you will link.  (The 
-+#  machine-specific, optimized BLAS library should be used whenever
-+#  possible.)
++#  The location of BLAS library for linking the testing programs.
++#  The target's machine-specific, optimized BLAS library should be
++#  used whenever possible.
 +#
-+BLASLIB      = ../../blas$(PLAT).a
-+LAPACKLIB    = lapack$(PLAT).a
-+TMGLIB       = tmglib$(PLAT).a
-+EIGSRCLIB    = eigsrc$(PLAT).a
-+LINSRCLIB    = linsrc$(PLAT).a
++BLASLIB      = ../../blas.a
++#
++#  Location of the extended-precision BLAS (XBLAS) Fortran library
++#  used for building and testing extended-precision routines.  The
++#  relevant routines will be compiled and XBLAS will be linked only if
++#  USEXBLAS is defined.
++#
++# USEXBLAS    = Yes
++XBLASLIB     =
++# XBLASLIB    = -lxblas
++#
++#  Names of generated libraries.
++#
++LAPACKLIB    = lapack.a
++TMGLIB       = tmglib.a
++EIGSRCLIB    = eigsrc.a
++LINSRCLIB    = linsrc.a

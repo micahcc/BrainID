@@ -20,7 +20,7 @@ BINDINGS_URL="http://mathema.tician.de/news.tiker.net/download/software/boost-nu
 ITK_URL="http://voxel.dl.sourceforge.net/sourceforge/itk/InsightToolkit-3.14.0.tar.gz"
 #OPENMPI_URL="http://www.open-mpi.org/software/ompi/v1.3/downloads/openmpi-1.3.1.tar.gz"
 OPENMPI_URL="http://www.open-mpi.org/software/ompi/v1.2/downloads/openmpi-1.2.9.tar.gz"
-LAPACK_URL="http://www.netlib.org/lapack/lapack-3.1.1.tgz"
+LAPACK_URL="http://www.netlib.org/lapack/lapack-3.2.1.tgz"
 MATLAB_NIFTI="http://www.pc.rhul.ac.uk/staff/J.Larsson/software/cbiNifti/cbiNifti.tar.gz"
 
 
@@ -45,17 +45,18 @@ def getep(basedir, name, url):
     return src_dir
 
 #defstrings should be a tuple of string arguments to pass to configure
-def buildboost(basedir, instdir, name, url, defstrings = ""):
+def buildboost(basedir, instdir, name, url):
     topdir = os.getcwd()
     src_dir = getep(basedir, name, url)
-    install_dir = join(instdir, name)
+#    install_dir = join(instdir, name)
     
     print "building %s" % name
     os.chdir(src_dir)
-    if  os.system("./configure --prefix=%s %s" % (install_dir, " ".join(defstrings))) != 0:
+    if  os.system("./configure --prefix=%s %s" % (instdir, "--with-libraries=serialization,mpi,program_options")) != 0:
         print "%s configuration failed" % name
         sys.exit()
     os.system("echo using mpi \; >> %s/user-config.jam" % src_dir)
+    os.system("echo BJAM_CONFIG=\"--layout=system\" >> %s/Makefile" % src_dir)
     if os.system("make -j%i" % ncpus()) != 0:
         print "build in %s failed" % src_dir
         sys.exit()
@@ -65,25 +66,12 @@ def buildboost(basedir, instdir, name, url, defstrings = ""):
         sys.exit()
     print "build of %s completed" % name
     
-    try:
-        shutil.rmtree(join(install_dir, "include", "boost"))
-    except os.error:
-        pass
-
-    #kludge
-    shutil.move(join(install_dir, "include","boost-1_38","boost"), \
-                join(install_dir, "include", "boost"))
-    shutil.rmtree(join(install_dir, "include", "boost-1_38"))
-
-    os.chdir(join(install_dir, "lib"));
-
+    os.chdir(join(instdir, "lib"));
     liblist = [];
     for file in os.listdir("./"):
         try:
             os.readlink(file)
-#            print "Success: %s" % file
         except os.error:
-#            print "Error: %s" % file
             liblist.append(file)
 
     for file in liblist:
@@ -99,20 +87,20 @@ def buildboost(basedir, instdir, name, url, defstrings = ""):
                 os.symlink(file, file.split("-")[0] + ".so");
             except os.error:
                 pass
-
+    
     os.chdir(topdir)
-    return install_dir
+    return instdir
 
 #defstrings should be a tuple of string arguments to pass to configure
 def confmakeinst(basedir, instdir, name, url, defstrings = ""):
     topdir = os.getcwd()
     src_dir = getep(basedir, name, url)
-    install_dir = join(instdir, name)
+#    instdir = join(instdir, name)
     
     print "building %s" % name
     os.chdir(src_dir)
     if os.system("make -j%i" % ncpus()) != 0:
-        if  os.system("./configure --prefix=%s %s" % (install_dir, " ".join(defstrings))) != 0:
+        if  os.system("./configure --prefix=%s %s" % (instdir, " ".join(defstrings))) != 0:
             print "%s configuration failed" % name
             sys.exit()
         if os.system("make -j%i" % ncpus()) != 0:
@@ -124,13 +112,13 @@ def confmakeinst(basedir, instdir, name, url, defstrings = ""):
         sys.exit()
     os.chdir(topdir)
     print "build of %s completed" % name
-    return install_dir
+    return instdir
 
 #defstrings should be a tuple of extra arguments to give to cmake
 def cmakeinst(basedir, instdir, name, url, defstrings = ""):
     topdir = os.getcwd()
     src_dir = getep(basedir,name,url)
-    install_dir = join(instdir, name)
+#    install_dir = join(instdir, name)
     
     print "Building %s" % name
     build_dir = join(basedir, "%s-build" % name)
@@ -140,7 +128,7 @@ def cmakeinst(basedir, instdir, name, url, defstrings = ""):
         print "Directory %s exists, using it" % build_dir
     
     os.chdir(build_dir)
-    if os.system("cmake %s -DCMAKE_INSTALL_PREFIX=%s %s" % (src_dir, install_dir, " ".join(defstrings))) != 0:
+    if os.system("cmake %s -DCMAKE_INSTALL_PREFIX=%s %s" % (src_dir, instdir, " ".join(defstrings))) != 0:
         print "%s configuration in %s failed" % (name, build_dir)
         sys.exit()
     if os.system("make -j%i" % ncpus()) != 0:
@@ -151,7 +139,7 @@ def cmakeinst(basedir, instdir, name, url, defstrings = ""):
         sys.exit()
     os.chdir(topdir)
     print "Build of %s Completed" % name
-    return install_dir
+    return instdir
 
 def ncpus():
     try:
@@ -207,17 +195,21 @@ if platform == 'Darwin':
         CMAKE_APPLE_UNIV = "-D CMAKE_OSX_ARCHITECTURES=i386;ppc -D CMAKE_TRY_COMPILE_OSX_ARCHITECTURES=" + APPLE_ARCH
 
 
-# make directories if they do not exist
-try:
-    os.makedirs(options.depdir)
-except os.error:
-    print "Directory " + options.depdir + " may overwrite."
+if os.path.exists(depdir):
+    print "Directory " + options.depprefix + " exists, removing in..."
     print "3"
     time.sleep(1);
     print "2"
     time.sleep(1);
     print "1"
     time.sleep(1);
+    shutil.rmtree(depdir)
+
+# make directories if they do not exist
+try:
+    os.makedirs(options.depdir)
+except os.error:
+    print "Directory " + options.depdir + " may overwrite."
 
 
 ##########################
@@ -227,6 +219,37 @@ cmake_install_dir = cmakeinst(depdir, depprefix, "cmake", CMAKE_URL)
 os.environ["PATH"] = join(cmake_install_dir, "bin") + ":"+ os.environ["PATH"]
 prof_bin += join(cmake_install_dir, "bin:");
 
+###########################
+# LAPACK
+###########################
+lapack_src_dir = getep(depdir, "lapack", LAPACK_URL)
+lapack_install_dir = join(depprefix, "lib")
+print "Creating %s" % lapack_install_dir
+try:
+    os.makedirs(lapack_install_dir)
+except os.error:
+    print "Directory " + options.depdir + " may overwrite."
+
+os.chdir(lapack_src_dir)
+os.system("make -j%i blaslib" % ncpus())
+os.system("make -j%i all" % ncpus())
+for files in os.listdir("./"):
+    if splitext(files)[1] == ".a":
+        shared = splitext(files)[0]+ ".so"
+        print "Creating %s" % shared
+        os.system("gfortran -shared %s -o %s" % (files, shared))
+        
+        print "Installing %s" % shared
+        shutil.copy(shared, lapack_install_dir)
+        
+        print "Installing %s" % files
+        shutil.copy(files, lapack_install_dir)
+
+prof_ld += lapack_install_dir;
+#        os.
+#os.path.
+os.chdir(topdir)
+exit
 ###########################
 # gsl
 ###########################
@@ -246,7 +269,7 @@ prof_ld += join(mpi_install_dir, "lib:");
 ############################
 # Boost 
 ############################
-boost_install_dir = buildboost(depdir, depprefix, "boost", BOOST_URL, ("--with-libraries=serialization,mpi,program_options", "") )
+boost_install_dir = buildboost(depdir, depprefix, "boost", BOOST_URL);
 prof_ld += join(boost_install_dir, "lib:");
 
 ############################
@@ -262,7 +285,7 @@ tarobj = tarfile.open(boost_numeric_bindings_archive_path, 'r:gz')
 tarobj.extractall(depdir)
 
 shutil.move(join(depdir, "boost-numeric-bindings", "boost", "numeric", "bindings"), \
-            join(depprefix, "boost", "include", "boost", "numeric","bindings"))
+            join(boost_install_dir, "include", "boost", "numeric","bindings"))
 os.chdir(topdir)
 
 ###########################
@@ -272,20 +295,6 @@ itk_install_dir = cmakeinst(depdir, depprefix, "itk", ITK_URL, ("-DBUILD_TESTING
 os.environ["PATH"] = join(itk_install_dir, "bin") + ":"+ os.environ["PATH"]
 prof_bin += join(itk_install_dir, "bin:");
 prof_ld += join(itk_install_dir, "lib:");
-
-###########################
-# LAPACK
-###########################
-#lapack_src_dir = getep(depdir, "lapack", LAPACK_URL)
-#os.chdir(lapack_src_dir)
-#os.system("make -j%i blaslib" % ncpus())
-#os.system("make -j%i all" % ncpus())
-#for files in os.listdir("./"):
-#    if splitext(files)[1] == ".a":
-#        os.
-
-#os.path.
-#os.chdir(topdir)
 
 ###########################
 # dysii
