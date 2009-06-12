@@ -184,8 +184,8 @@ depdir = join(topdir, options.depdir)
 depprefix = join(topdir, options.depprefix)
 
 PROFILE_OUT="%s/bash_profile" % topdir
-prof_bin = ""
-prof_ld = ""
+prof_bin = [] 
+prof_ld = []
 
 
 platform = os.uname()[0]
@@ -245,7 +245,7 @@ for files in os.listdir("./"):
         print "Installing %s" % files
         shutil.copy(files, lapack_install_dir)
 
-prof_ld += lapack_install_dir;
+prof_ld += [lapack_install_dir];
 #        os.
 #os.path.
 os.chdir(topdir)
@@ -255,22 +255,22 @@ exit
 ###########################
 gsl_install_dir = confmakeinst(depdir, depprefix, "gsl", GSL_URL)
 os.environ["PATH"] = join(gsl_install_dir, "bin") + ":"+ os.environ["PATH"]
-prof_bin += join(gsl_install_dir, "bin:");
-prof_ld += join(gsl_install_dir, "lib:");
+prof_bin += [join(gsl_install_dir, "bin")];
+prof_ld += [join(gsl_install_dir, "lib")];
 
 ###########################
 # openmpi
 ###########################
 mpi_install_dir = confmakeinst(depdir, depprefix, "mpi", OPENMPI_URL)
 os.environ["PATH"] = join(mpi_install_dir, "bin") + ":"+ os.environ["PATH"]
-prof_bin += join(mpi_install_dir, "bin:");
-prof_ld += join(mpi_install_dir, "lib:");
+prof_bin += [join(mpi_install_dir, "bin")];
+prof_ld += [join(mpi_install_dir, "lib")];
 
 ############################
 # Boost 
 ############################
 boost_install_dir = buildboost(depdir, depprefix, "boost", BOOST_URL);
-prof_ld += join(boost_install_dir, "lib:");
+prof_ld += [join(boost_install_dir, "lib")];
 
 ############################
 # Boost Numeric Bindings
@@ -293,15 +293,15 @@ os.chdir(topdir)
 ###########################
 itk_install_dir = cmakeinst(depdir, depprefix, "itk", ITK_URL, ("-DBUILD_TESTING=OFF", "-DBUILD_EXAMPLES=OFF"))
 os.environ["PATH"] = join(itk_install_dir, "bin") + ":"+ os.environ["PATH"]
-prof_bin += join(itk_install_dir, "bin:");
-prof_ld += join(itk_install_dir, "lib:");
+prof_bin += [join(itk_install_dir, "bin")];
+prof_ld += [join(itk_install_dir, "lib")];
 
 ###########################
 # dysii
 ###########################
 dysii_install_dir = cmakeinst(depdir, depprefix, "dysii", DYSII_URL, ("-DGSL=%s" % gsl_install_dir, \
             "-DMPI=%s" % mpi_install_dir, "-DBOOST=%s" % boost_install_dir))
-prof_ld += join(dysii_install_dir, "lib:");
+prof_ld += [join(dysii_install_dir, "lib")];
 
 ###########################
 # brainid
@@ -353,6 +353,8 @@ print "Writing out bash script"
 
 FILE = open(PROFILE_OUT, "w")
 FILE.write("#!/bin/bash\n")
-FILE.write("export LD_LIBRARY_PATH=\"" + prof_ld + "$LD_LIBRARY_PATH\"\n")
+for ldd in prof_ld:
+    FILE.write("LD_LIBRARY_PATH=\"" + ldd + ":$LD_LIBRARY_PATH\"\n")
+FILE.write("export LD_LIBRARY_PATH")
 FILE.write("PATH=\"" + prof_bin + "$PATH\"\n")
 FILE.close()

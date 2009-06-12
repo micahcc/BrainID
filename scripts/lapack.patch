@@ -54,7 +54,7 @@
 +#  The target's machine-specific, optimized BLAS library should be
 +#  used whenever possible.
 +#
-+BLASLIB      = ../../blas.a
++BLASLIB      = ../../libblas.a
 +#
 +#  Location of the extended-precision BLAS (XBLAS) Fortran library
 +#  used for building and testing extended-precision routines.  The
@@ -67,7 +67,7 @@
 +#
 +#  Names of generated libraries.
 +#
-+LAPACKLIB    = lapack.a
-+TMGLIB       = tmglib.a
-+EIGSRCLIB    = eigsrc.a
-+LINSRCLIB    = linsrc.a
++LAPACKLIB    = liblapack.a
++TMGLIB       = libtmglib.a
++EIGSRCLIB    = libeigsrc.a
++LINSRCLIB    = liblinsrc.a
