@@ -26,7 +26,7 @@ ADD_EXECUTABLE(segment_sections segment_sections.cpp)
 ADD_EXECUTABLE(segment_times segment_times.cpp)
 
 TARGET_LINK_LIBRARIES(particle_test mpi boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
-    ITKCommon ITKIO mpi gslcblas gsl lapack dysii)
+    ITKCommon ITKIO mpi gslcblas gsl gfortran blas lapack dysii)
 
 TARGET_LINK_LIBRARIES(segment_alltogether ITKCommon segment ITKIO)
 TARGET_LINK_LIBRARIES(segment_sections ITKCommon segment ITKIO)

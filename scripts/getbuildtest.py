@@ -37,7 +37,13 @@ def getep(basedir, name, url):
             print "downloading %s" % name
             urlretrieve(url, archive_path, progress)
         tarobj = tarfile.open(archive_path, 'r:gz')
-        tarobj.extractall(basedir)
+        try:
+            tarobj.extractall(basedir)
+        except AttributeError:
+            #for backward compatability
+            for tarinfo in tarobj:
+                print tarinfo.name
+                tarobj.extract(tarinfo, basedir);
    
     if os.path.exists("%s.patch" %name) and os.system("patch --dry-run -Np2 -d %s < %s" %(src_dir, "%s.patch" % name)) == 0:
         print "Patching %s" % name
@@ -195,21 +201,21 @@ if platform == 'Darwin':
         CMAKE_APPLE_UNIV = "-D CMAKE_OSX_ARCHITECTURES=i386;ppc -D CMAKE_TRY_COMPILE_OSX_ARCHITECTURES=" + APPLE_ARCH
 
 
-if os.path.exists(depdir):
-    print "Directory " + options.depprefix + " exists, removing in..."
+if os.path.exists(depprefix):
+    print "Directory " + depprefix + " exists, removing in..."
     print "3"
     time.sleep(1);
     print "2"
     time.sleep(1);
     print "1"
     time.sleep(1);
-    shutil.rmtree(depdir)
+    shutil.rmtree(depprefix)
 
 # make directories if they do not exist
 try:
-    os.makedirs(options.depdir)
+    os.makedirs(depdir)
 except os.error:
-    print "Directory " + options.depdir + " may overwrite."
+    print "Directory " + depdir + " may overwrite."
 
 
 ##########################
@@ -233,18 +239,26 @@ except os.error:
 os.chdir(lapack_src_dir)
 os.system("make -j%i blaslib" % ncpus())
 os.system("make -j%i all" % ncpus())
-for files in os.listdir("./"):
-    if splitext(files)[1] == ".a":
-        shared = splitext(files)[0]+ ".so"
+for filen in os.listdir("./"):
+    if splitext(filen)[1] == ".a":
+        shared = splitext(filen)[0]+ ".so"
+        
         print "Creating %s" % shared
-        os.system("gfortran -shared %s -o %s" % (files, shared))
+        os.system("ar -x %s; gcc -shared *.o -o %s; rm *.o" % (filen, shared))
         
         print "Installing %s" % shared
         shutil.copy(shared, lapack_install_dir)
-        
-        print "Installing %s" % files
-        shutil.copy(files, lapack_install_dir)
 
+        print "Installing %s" % shared + ".0"
+        os.symlink(join(lapack_install_dir, shared), join(lapack_install_dir, shared+".0"))
+        
+        print "Installing %s" % shared + ".0.0.0"
+        os.symlink(join(lapack_install_dir, shared), join(lapack_install_dir, shared+".0.0.0"))
+        
+        print "Installing %s" % filen
+        shutil.copy(filen, lapack_install_dir)
+
+exit
 prof_ld += [lapack_install_dir];
 #        os.
 #os.path.
@@ -282,7 +296,13 @@ if not os.path.exists(boost_numeric_bindings_archive_path):
     print "Downloading Boost Numeric Bindings"
     urlretrieve(BINDINGS_URL, boost_numeric_bindings_archive_path, progress)
 tarobj = tarfile.open(boost_numeric_bindings_archive_path, 'r:gz')
-tarobj.extractall(depdir)
+try:
+    tarobj.extractall(depdir)
+except AttributeError:
+    #for backward compatability
+    for tarinfo in tarobj:
+        print tarinfo.name
+        tarobj.extract(tarinfo, depdir);
 
 shutil.move(join(depdir, "boost-numeric-bindings", "boost", "numeric", "bindings"), \
             join(boost_install_dir, "include", "boost", "numeric","bindings"))
@@ -356,5 +376,6 @@ FILE.write("#!/bin/bash\n")
 for ldd in prof_ld:
     FILE.write("LD_LIBRARY_PATH=\"" + ldd + ":$LD_LIBRARY_PATH\"\n")
 FILE.write("export LD_LIBRARY_PATH")
-FILE.write("PATH=\"" + prof_bin + "$PATH\"\n")
+for bin in prof_bin:
+    FILE.write("PATH=\"" + prof_bin + ":$PATH\"\n")
 FILE.close()

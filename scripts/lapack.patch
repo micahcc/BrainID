@@ -1,5 +1,18 @@
+diff -Naur Dependencies-Build/lapack-3.2.1.orig/Makefile Dependencies-Build/lapack-3.2.1/Makefile
+--- Dependencies-Build/lapack-3.2.1.orig/Makefile	2008-11-07 17:20:55.000000000 +0000
++++ Dependencies-Build/lapack-3.2.1/Makefile	2009-06-15 15:29:57.000000000 +0000
+@@ -6,7 +6,7 @@
+ 
+ include make.inc
+ 
+-all: lapack_install lib lapack_testing blas_testing
++all: blaslib lib 
+ 
+ lib: lapacklib tmglib
+ #lib: blaslib variants lapacklib tmglib
+diff -Naur Dependencies-Build/lapack-3.2.1.orig/make.inc Dependencies-Build/lapack-3.2.1/make.inc
 --- Dependencies-Build/lapack-3.2.1.orig/make.inc	1970-01-01 00:00:00.000000000 +0000
-+++ Dependencies-Build/lapack-3.2.1/make.inc	2009-06-11 19:51:17.000000000 +0000
++++ Dependencies-Build/lapack-3.2.1/make.inc	2009-06-15 15:29:57.000000000 +0000
 @@ -0,0 +1,70 @@
 +# -*- Makefile -*-
 +####################################################################
@@ -22,12 +35,12 @@
 +#  selected.  Define LOADER and LOADOPTS to refer to the loader
 +#  and desired load options for your machine.
 +#
-+FORTRAN  = gfortran -fimplicit-none -g
++FORTRAN  = gfortran -fimplicit-none -g -fpic
 +OPTS     =
 +DRVOPTS  = $(OPTS)
 +NOOPT    =
 +LOADER   = gfortran -g
-+LOADOPTS =
++LOADOPTS = 
 +#
 +# Timer for the SECOND and DSECND routines
 +#
