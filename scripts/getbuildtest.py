@@ -223,7 +223,8 @@ except os.error:
 ##########################
 cmake_install_dir = cmakeinst(depdir, depprefix, "cmake", CMAKE_URL)
 os.environ["PATH"] = join(cmake_install_dir, "bin") + ":"+ os.environ["PATH"]
-prof_bin += join(cmake_install_dir, "bin:");
+if not join(cmake_install_dir, "bin") in prof_bin:
+    prof_bin += [join(cmake_install_dir, "bin")];
 
 ###########################
 # LAPACK
@@ -258,8 +259,9 @@ for filen in os.listdir("./"):
         print "Installing %s" % filen
         shutil.copy(filen, lapack_install_dir)
 
-exit
-prof_ld += [lapack_install_dir];
+if not lapack_install_dir in prof_ld:
+    prof_ld += [lapack_install_dir];
+print prof_ld, prof_bin
 #        os.
 #os.path.
 os.chdir(topdir)
@@ -269,22 +271,30 @@ exit
 ###########################
 gsl_install_dir = confmakeinst(depdir, depprefix, "gsl", GSL_URL)
 os.environ["PATH"] = join(gsl_install_dir, "bin") + ":"+ os.environ["PATH"]
-prof_bin += [join(gsl_install_dir, "bin")];
-prof_ld += [join(gsl_install_dir, "lib")];
+if not join(gsl_install_dir, "bin") in prof_bin:
+    prof_bin += [join(gsl_install_dir, "bin")];
+if not join(gsl_install_dir, "lib") in prof_ld:
+    prof_ld += [join(gsl_install_dir, "lib")];
+print prof_ld, prof_bin
 
 ###########################
 # openmpi
 ###########################
 mpi_install_dir = confmakeinst(depdir, depprefix, "mpi", OPENMPI_URL)
 os.environ["PATH"] = join(mpi_install_dir, "bin") + ":"+ os.environ["PATH"]
-prof_bin += [join(mpi_install_dir, "bin")];
-prof_ld += [join(mpi_install_dir, "lib")];
+if not join(mpi_install_dir, "bin") in prof_bin:
+    prof_bin += [join(mpi_install_dir, "bin")];
+if not join(mpi_install_dir, "lib") in prof_ld:
+    prof_ld += [join(mpi_install_dir, "lib")];
+print prof_ld, prof_bin
 
 ############################
 # Boost 
 ############################
 boost_install_dir = buildboost(depdir, depprefix, "boost", BOOST_URL);
-prof_ld += [join(boost_install_dir, "lib")];
+if not join(boost_install_dir, "lib") in prof_ld:
+    prof_ld += [join(boost_install_dir, "lib")];
+print prof_ld, prof_bin
 
 ############################
 # Boost Numeric Bindings
@@ -313,15 +323,20 @@ os.chdir(topdir)
 ###########################
 itk_install_dir = cmakeinst(depdir, depprefix, "itk", ITK_URL, ("-DBUILD_TESTING=OFF", "-DBUILD_EXAMPLES=OFF"))
 os.environ["PATH"] = join(itk_install_dir, "bin") + ":"+ os.environ["PATH"]
-prof_bin += [join(itk_install_dir, "bin")];
-prof_ld += [join(itk_install_dir, "lib")];
+if not join(itk_install_dir, "bin") in prof_bin:
+    prof_bin += [join(itk_install_dir, "bin")];
+if not join(itk_install_dir, "lib") in prof_ld:
+    prof_ld += [join(itk_install_dir, "lib")];
+print prof_ld, prof_bin
 
 ###########################
 # dysii
 ###########################
 dysii_install_dir = cmakeinst(depdir, depprefix, "dysii", DYSII_URL, ("-DGSL=%s" % gsl_install_dir, \
             "-DMPI=%s" % mpi_install_dir, "-DBOOST=%s" % boost_install_dir))
-prof_ld += [join(dysii_install_dir, "lib")];
+if not join(dysii_install_dir, "lib") in prof_ld:
+    prof_ld += [join(dysii_install_dir, "lib")];
+print prof_ld, prof_bin
 
 ###########################
 # brainid
@@ -334,10 +349,10 @@ try:
 except os.error:
     print "Directory %s exists, using it" %brainid_build_dir
 
-try:
-    os.makedirs(brainid_install_dir)
-except os.error:
-    print "Directory %s exists, using it" %brainid_install_dir
+#try:
+#    os.makedirs(brainid_install_dir)
+#except os.error:
+#    print "Directory %s exists, using it" %brainid_install_dir
 
 os.chdir(brainid_build_dir)
 if os.system("cmake %s -DITK_DIR=%s " % (srcpath, join(itk_install_dir, "lib", "InsightToolkit")) \
@@ -361,6 +376,10 @@ if os.system("make -j%i" % ncpus()) != 0:
 #    print "install from %s failed" % brainid_build_dir
 #    sys.exit()
 
+#if not join(brainid_install_dir, "bin:") in prof_bin:
+#    prof_bin += join(brainid_install_dir, "bin:");
+prof_bin += [join(brainid_build_dir, "code")]
+
 os.chdir(topdir)
 print "Build of brainid Completed"
 print "Copying scripts to %s/%s" % (brainid_build_dir, "code")
@@ -375,7 +394,7 @@ FILE = open(PROFILE_OUT, "w")
 FILE.write("#!/bin/bash\n")
 for ldd in prof_ld:
     FILE.write("LD_LIBRARY_PATH=\"" + ldd + ":$LD_LIBRARY_PATH\"\n")
-FILE.write("export LD_LIBRARY_PATH")
+FILE.write("export LD_LIBRARY_PATH\n")
 for bin in prof_bin:
-    FILE.write("PATH=\"" + prof_bin + ":$PATH\"\n")
+    FILE.write("PATH=\"" + bin + ":$PATH\"\n")
 FILE.close()
