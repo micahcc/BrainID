@@ -9,6 +9,8 @@
 
 #include <boost/program_options.hpp>
 
+#include "modNiftiImageIO.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fstream>
@@ -356,6 +358,7 @@ int main (int argc, char** argv)
     //create a 4D output image of appropriate size.
     itk::ImageFileWriter< Image4DType >::Pointer writer = 
         itk::ImageFileWriter< Image4DType >::New();
+    writer->SetImageIO(itk::modNiftiImageIO::New());
     Image4DType::Pointer measImage = Image4DType::New();
     
     //TODO deal with add error in double which could cause less or more
@@ -364,11 +367,11 @@ int main (int argc, char** argv)
     init4DImage(measImage, series, 1, 1, (int)ceil(stoptime/outstep));
   
     itk::MetaDataDictionary dict = measImage->GetMetaDataDictionary();
-    itk::EncapsulateMetaData<double>(dict, "TemporalResolution", 2.0);
+    itk::EncapsulateMetaData<double>(dict, "TemporalResolution", outstep);
     itk::EncapsulateMetaData<unsigned int>(dict, "NumSections", series);
-    itk::EncapsulateMetaData<unsigned int>(dict, "TimeDim", 3);
-    itk::EncapsulateMetaData<unsigned int>(dict, "SectionDim", 0);
-    //fill in mapping of Section Index to number section number i+5 
+    itk::EncapsulateMetaData<string>(dict, "Dim3", "time");
+    itk::EncapsulateMetaData<string>(dict, "Dim0", "series");
+    //fill in mapping of Section Index to number section number i+5
     for(int i=0 ; i<series ; i++ ) {
         ostringstream oss;
         oss.str("");
@@ -383,7 +386,7 @@ int main (int argc, char** argv)
     init4DImage(outState, series, BoldModel::SYSTEM_SIZE, 1, 
                 (int)ceil(stoptime/outstep));
 
-    itk::EncapsulateMetaData<unsigned int>(dict, "StateDim", 1);
+    itk::EncapsulateMetaData<string>(dict, "Dim1", "state");
     itk::EncapsulateMetaData<unsigned int>(dict, "IndexTauS",    0);
     itk::EncapsulateMetaData<unsigned int>(dict, "IndexTauF",    1);
     itk::EncapsulateMetaData<unsigned int>(dict, "IndexEpsilon", 2);
@@ -395,10 +398,6 @@ int main (int argc, char** argv)
     itk::EncapsulateMetaData<unsigned int>(dict, "IndexQT",      8);
     itk::EncapsulateMetaData<unsigned int>(dict, "IndexST",      9);
     itk::EncapsulateMetaData<unsigned int>(dict, "IndexFT",     10);
-#define TEST
-#ifdef TEST
-    itk::EncapsulateMetaData<string>(dict, "0010|0040", "M");
-#endif //TEST
  
     outState->SetMetaDataDictionary(dict);
 

@@ -23,6 +23,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/program_options.hpp>
 
+#include "modNiftiImageIO.h"
 #include "BoldModel.hpp"
 #include "RegularizedParticleResamplerMod.hpp"
 
@@ -60,7 +61,8 @@ string stimfile      = "";
 string seriesfile    = "";
 string boldfile      = "";
 string statefile     = "";
-string covfile     = "";
+string covfile       = "";
+string partfile      = "";
 
 bool cheating;
 aux::vector cheat(BoldModel::SYSTEM_SIZE) ;
@@ -86,7 +88,6 @@ void writeParticles(Image4DType::Pointer out,
             const std::vector<aux::DiracPdf>& elems, int t)
 {
     Image4DType::IndexType pos = {{0, 0, 0, t}};
-//    Image4DType::IndexType pos(0, 0, 0, t);
     
     for(size_t i = 0 ; i<elems.size() ; i++) {
         pos[2] = i;
@@ -309,6 +310,12 @@ void parse_cli(int argc, char* argv[])
         covfile = cli_vars["covout"].as<string>();
         cout << left << setw(20) << "covout" << ":" << covfile << endl;
     } 
+    
+    if(cli_vars.count("partout")) {
+        partfile = cli_vars["partout"].as<string>();
+        cout << left << setw(20) << "" << ":" << covfile << endl;
+        cout << "WARNING saving all the particles can make a HUGE file" << endl;
+    } 
 }
 
 
@@ -357,6 +364,7 @@ int main(int argc, char* argv[])
         
         /* Open up the input */
         reader = ImageReaderType::New();
+        reader->SetImageIO(itk::modNiftiImageIO::New());
         cout << seriesfile << endl;;
         reader->SetFileName( seriesfile );
         reader->Update();
@@ -370,6 +378,16 @@ int main(int argc, char* argv[])
         iter.SetIndex(index);
         
         /* Create a model */
+        string str;
+        itk::ExposeMetaData<double>(measInput->GetMetaDataDictionary(), 
+                    "TemporalResolution", SAMPLETIME);
+        cout << SAMPLETIME << endl;;
+        if(SAMPLETIME == 0) {
+            cout << "Image Had Invalid Temporal Resolution!" << endl;
+            cout << "Using 2 seconds!" << endl;
+            SAMPLETIME=2;
+        }
+        cout << left << setw(20) << "TR" << ": " << SAMPLETIME << endl;
     
         /* Generate Prior */
         if(!serialifile.empty()) {
@@ -421,14 +439,6 @@ int main(int argc, char* argv[])
     // output setup 
     /////////////////////////////////////////////////////////////////////
     if(rank == 0) {
-        itk::ExposeMetaData<double>(measInput->GetMetaDataDictionary(), 
-                    "TemporalResolution", SAMPLETIME);
-        cout << SAMPLETIME << endl;
-        if(SAMPLETIME == 0) {
-            cout << "Image Had Invalid Temporal Resolution!" << endl;
-            exit(-5);
-        }
-
         //BOLD
         measOutput = Image4DType::New();
         init4DImage(measOutput , measInput->GetRequestedRegion().GetSize()[0],
@@ -440,6 +450,14 @@ int main(int argc, char* argv[])
         init4DImage(stateOutput, 1, BoldModel::SYSTEM_SIZE, 1, 
                 measInput->GetRequestedRegion().GetSize()[3]);
         stateOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
+        itk::EncapsulateMetaData<std::string>(stateOutput->GetMetaDataDictionary(),
+                    "Dim0", "unused");
+        itk::EncapsulateMetaData<std::string>(stateOutput->GetMetaDataDictionary(),
+                    "Dim1", "systemmean");
+        itk::EncapsulateMetaData<std::string>(stateOutput->GetMetaDataDictionary(),
+                    "Dim2", "unused");
+        itk::EncapsulateMetaData<std::string>(stateOutput->GetMetaDataDictionary(),
+                    "Dim0", "time");
 
         //COVARIANCE
         covOutput = Image4DType::New();
@@ -447,14 +465,29 @@ int main(int argc, char* argv[])
                 BoldModel::SYSTEM_SIZE, BoldModel::SYSTEM_SIZE, 
                 measInput->GetRequestedRegion().GetSize()[3]);
         covOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
-
-#ifdef OUTPART
+        itk::EncapsulateMetaData<std::string>(covOutput->GetMetaDataDictionary(),
+                    "Dim0", "unused");
+        itk::EncapsulateMetaData<std::string>(covOutput->GetMetaDataDictionary(),
+                    "Dim1", "systemcov");
+        itk::EncapsulateMetaData<std::string>(covOutput->GetMetaDataDictionary(),
+                    "Dim2", "unusedcov");
+        itk::EncapsulateMetaData<std::string>(covOutput->GetMetaDataDictionary(),
+                    "Dim0", "time");
+#ifdef PARTOUT
+        //PARTICLES
         partOutput = Image4DType::New();
         init4DImage(partOutput, 1,  BoldModel::SYSTEM_SIZE, NUM_PARTICLES,
                 measInput->GetRequestedRegion().GetSize()[3]*DIVIDER);
         partOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
-#endif //OUTPART
-
+        itk::EncapsulateMetaData<std::string>(partOutput->GetMetaDataDictionary(),
+                    "Dim0", "unused");
+        itk::EncapsulateMetaData<std::string>(partOutput->GetMetaDataDictionary(),
+                    "Dim1", "systemval");
+        itk::EncapsulateMetaData<std::string>(partOutput->GetMetaDataDictionary(),
+                    "Dim2", "particle");
+        itk::EncapsulateMetaData<std::string>(partOutput->GetMetaDataDictionary(),
+                    "Dim0", "time");
+#endif //partout
         meassize = measInput->GetRequestedRegion().GetSize()[0];
     }
 
@@ -477,13 +510,13 @@ int main(int argc, char* argv[])
     }
 
     while(!done) {
-#ifdef OUTPART //todo implement saving particles
-        if( rank == 0 ) {
+#ifdef PARTOUT
+        if( rank == 0 && !partfile.empty() ) {
             const std::vector<aux::DiracPdf>& particles = 
                         filter.getFilteredState().getAll();
             writeParticles(partOutput, particles, disctime);
         }
-#endif // OUTPART
+#endif //PARTOUT
         
         //TODO maybe this should be split up to prevent ranks from having
         //to move in lock-step
@@ -526,6 +559,10 @@ int main(int argc, char* argv[])
                 aux::vector weights = filter.getFilteredState().getWeights();
                 outputVector(cerr, weights);
                 exit(-5);
+            } else {
+                cerr << "Total Weight: " << filter.getFilteredState().getTotalWeight() << endl;
+                aux::vector weights = filter.getFilteredState().getWeights();
+                outputVector(cerr, weights);
             }
 
             //time to resample
@@ -573,6 +610,7 @@ int main(int argc, char* argv[])
     x0 = filter.getFilteredState();
     if( rank == 0 ) {
         WriterType::Pointer writer = WriterType::New();
+        writer->SetImageIO(itk::modNiftiImageIO::New());
         if(!serialofile.empty()) {
             std::ofstream serialout(serialofile.c_str(), std::ios::binary);
             boost::archive::binary_oarchive outArchive(serialout);

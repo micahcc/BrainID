@@ -14,6 +14,7 @@ INCLUDE_DIRECTORIES(${brainid_SOURCE_DIR}/code/include ${BOOST_INCLUDE_DIRS}
 LINK_DIRECTORIES(${brainid_SOURCE_DIR}/code ${BOOST_LIBRARY_DIRS} 
     ${dysii_LIBRARY_DIRS} ${MPI_LIBRARY_DIRS} ${GSL_LIBRARY_DIRS})
 
+ADD_LIBRARY(modNiftiImageIO modNiftiImageIO.cxx)
 ADD_LIBRARY(segment segment.cpp)
 ADD_LIBRARY(BoldModel BoldModel.cpp)
 
@@ -27,10 +28,10 @@ ADD_EXECUTABLE(boldgen boldgen.cpp)
 
 TARGET_LINK_LIBRARIES(fmri_timeseries segment ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
 TARGET_LINK_LIBRARIES(unbias ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
-TARGET_LINK_LIBRARIES(printtags ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
-TARGET_LINK_LIBRARIES(brainid gfortran blas lapack mpi boost_program_options
+TARGET_LINK_LIBRARIES(printtags modNiftiImageIO ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
+TARGET_LINK_LIBRARIES(brainid gfortran blas modNiftiImageIO lapack mpi boost_program_options
     boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO mpi gslcblas gsl dysii)
-TARGET_LINK_LIBRARIES(boldgen gfortran blas lapack boost_mpi boost_program_options
+TARGET_LINK_LIBRARIES(boldgen gfortran blas lapack modNiftiImageIO boost_mpi boost_program_options
     boost_serialization BoldModel ITKAlgorithms ITKBasicFilters 
     ITKCommon ITKIO gslcblas gsl mpi dysii)
