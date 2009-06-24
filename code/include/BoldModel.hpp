@@ -32,12 +32,12 @@ class BoldModel : public indii::ml::filter::ParticleFilterModel<double>
 {
 public:
     ~BoldModel();
-    BoldModel(aux::vector u = aux::zero_vector(INPUT_SIZE), int weightf = 0, 
-                double tweight = 0);
+    BoldModel(bool weightf = false, bool tweight = false, size_t sections = 1,
+                aux::vector u = aux::zero_vector(1));
 
-    unsigned int getStateSize() { return SYSTEM_SIZE; };
+    virtual unsigned int getStateSize() { return SYSTEM_SIZE; };
     unsigned int getStimSize() { return INPUT_SIZE; };
-    unsigned int getMeasurementSize() { return MEAS_SIZE; };
+    virtual unsigned int getMeasurementSize() { return MEAS_SIZE; };
 
     int transition(aux::vector& s,
             const double t, const double delta);
@@ -60,20 +60,12 @@ public:
     //going to hack around that and set it directly
     void setinput(aux::vector& in) { input = in; };
     
-    //Constants
-    static const int THETA_SIZE = 7;
-    static const int STATE_SIZE = 4;
-    static const int SIMUL_STATES = 1;
-    static const int SYSTEM_SIZE = 11;
-
-    static const int MEAS_SIZE = 1;
-    static const int INPUT_SIZE = 1;
-    static const int STEPS = 250;
-
     enum WeightF { NORM = 0, EXP = 1, HYP = 2} ;
     
     int weightf;
     double tweight;
+
+    bool reweight(aux::vector& checkme, double& weight);
     
 private:
     //the standard deviations for the parameters theta, which are
@@ -84,7 +76,7 @@ private:
     aux::vector input;
 
     //goes to the index of the given state
-    inline int indexof(int name, int index){
+    inline size_t indexof(int name, int index){
         return THETA_SIZE + index*STATE_SIZE + name;
     };
 
@@ -95,15 +87,24 @@ private:
     static const double A1 = 3.4;
     static const double A2 = 1.0;
     //these are at the beginning of the state array so this assigns the indices
-    enum Theta { TAU_S=0, TAU_F=1, EPSILON=2, TAU_0=3 , ALPHA=4, E_0=5, V_0=6};
+    enum Theta { TAU_0=0 , ALPHA=1, E_0=2, V_0=3};
 
     //these are recurring in the state array, so V_T could be at 0,4,...16,20...
-    enum StateVar { V_T=0, Q_T=1, S_T=2, F_T =3 };
+    enum StateVar {TAU_S=0, TAU_F=1, EPSILON=2, V_T=3, Q_T=4, S_T=5, F_T =6};
 
     //variance to apply to 
     double var_e;
     double sigma_e;
 //    double small_g;
+    
+    //Constants
+    const unsigned int THETA_SIZE;
+    const unsigned int STATE_SIZE;
+    const unsigned int SIMUL_STATES;
+    const unsigned int SYSTEM_SIZE;
+
+    const unsigned int MEAS_SIZE;
+    const unsigned int INPUT_SIZE;
 };
 
 #endif

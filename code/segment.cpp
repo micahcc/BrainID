@@ -15,6 +15,8 @@
 
 #include "segment.h"
 
+//sort first by increasing label, then by increasing time
+//then by increasing slice, then by dim[1] then dim[0]
 bool compare_lt(SectionType first, SectionType second)
 {
     if(first.label < second.label) 
@@ -154,10 +156,16 @@ Image4DType::Pointer read_dicom(std::string directory)
 
         tmp_reader->Update();
         tmp_reader->GetOutput()->SetMetaDataDictionary(dicomIO->GetMetaDataDictionary());
+    
+        itk::MetaDataDictionary& dict = tmp_reader->GetOutput()->GetMetaDataDictionary();
         
         std::string value;
         dicomIO->GetValueFromTag("0020|0100", value);
         printf("Temporal Number: %s\n", value.c_str());
+
+        dicomIO->GetValueFromTag("0018|0080", value);
+        itk::EncapsulateMetaData<double>(dict, "TemporalResolution", 
+                    atof(value.c_str())/1000.);
         
         reader[atoi(value.c_str())-1] = tmp_reader;
 

@@ -10,13 +10,17 @@
 
 #define EXPONENTIAL .4
 
-BoldModel::BoldModel(aux::vector u, int weightf, double tweight)
+BoldModel::BoldModel(bool expweight, bool avgweight, size_t sections, aux::vector u) :
+            THETA_SIZE(4), STATE_SIZE(7), SIMUL_STATES(sections), 
+            SYSTEM_SIZE(THETA_SIZE+STATE_SIZE*SIMUL_STATES), MEAS_SIZE(SIMUL_STATES),
+            INPUT_SIZE(1)
 {
-    if(THETA_SIZE + STATE_SIZE*SIMUL_STATES != SYSTEM_SIZE) {
-        std::cerr << "Incorrect system size" << std::endl;
-        exit(-1);
-    }
-    this->input = u;
+    //this is only a problem if the user put in a bad vector
+    //in which case the u will be overwritten with 0's
+    if(u.size() != sections)
+        this->input = aux::zero_vector(sections);
+    else 
+        this->input = u;
 //    theta_sigmas(TAU_S) = 1.07/20;
 //    theta_sigmas(TAU_F) = 1.51/20;
 //    theta_sigmas(EPSILON) = .014/20;
@@ -29,8 +33,11 @@ BoldModel::BoldModel(aux::vector u, int weightf, double tweight)
     var_e = 3.92e-6;
     sigma_e = sqrt(var_e);
 
-    this->weightf = weightf;
-    this->tweight = tweight;
+    if(expweight) 
+        this->weightf = EXP;;
+
+    if(avgweight)
+        this->tweight = 5;
 }
 
 BoldModel::~BoldModel()
@@ -62,7 +69,7 @@ int BoldModel::transition(aux::vector& dustin,
 
     //transition the actual state variables
     //TODO, potentially add some randomness here.
-    for(int ii=0 ; ii<SIMUL_STATES ; ii++) {
+    for(unsigned int ii=0 ; ii<SIMUL_STATES ; ii++) {
         // Normalized Blood Volume
         //V_t* = (1/tau_0) * ( f_t - v_t ^ (1/\alpha)) 
         dot1 = (  ( dustin[indexof(F_T,ii)] - 
@@ -117,7 +124,7 @@ int BoldModel::transition(aux::vector& dustin,
 aux::vector BoldModel::measure(const aux::vector& s)
 {
     aux::vector y(MEAS_SIZE);
-    for(int i = 0 ; i < MEAS_SIZE ; i++) {
+    for(size_t i = 0 ; i < MEAS_SIZE ; i++) {
         y[i] = s[V_0] * ( A1 * ( 1 - s[indexof(Q_T,i)]) - A2 * (1 - s[indexof(V_T,i)]));
     }
     return y;
@@ -141,7 +148,18 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
 //    outputVector(std::cerr , s);
 //    fprintf(stderr, "\n");
     
+    //after computing the n-dimensional location whose density
+    //will be found on a gaussian curve, set all terms that came
+    //from y[i] = -1 elements to 0, thus eleminating them from the 
+    //density calculation. The effectively ignores them for weighting
+    //purposes, thus ignoring terms that received no update in this step.
+    //This is ok because bold values should be positive (they are percent
+    //deviation from the average)
     location = (y-measure(s))/sigma_e;
+    for(size_t i = 0 ; i < y.size() ; i++) {
+        if(isnan(y[i]))
+            location[i] = 0;
+    }
 //    fprintf(stderr, "Location calculated:\n");
 //    outputVector(std::cerr , location);
 //    fprintf(stderr, "\n");
@@ -173,7 +191,7 @@ void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme,
 
     //going to distribute all the state variables the same even if they are
     //in different sections
-    for(int i = 0 ; i< SIMUL_STATES ; i++) {
+    for(size_t i = 0 ; i< SIMUL_STATES ; i++) {
         fillme[indexof(V_T, i)] = gsl_ran_gamma(rng, k_sigma[indexof(V_T,0)], 
                     theta_mu[indexof(V_T,0)]);
         fillme[indexof(Q_T, i)] = gsl_ran_gamma(rng, k_sigma[indexof(Q_T,0)], 
@@ -189,9 +207,6 @@ void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme,
 //TODO make some of these non-gaussian
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
 {
-    boost::mpi::communicator world;
-    const unsigned int rank = world.rank();
-
     aux::vector mean(SYSTEM_SIZE);
     aux::symmetric_matrix cov = aux::zero_matrix(SYSTEM_SIZE);
     
@@ -229,9 +244,6 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
             const aux::vector mean)
 {
-    boost::mpi::communicator world;
-    const unsigned int rank = world.rank();
-
     aux::symmetric_matrix cov = aux::zero_matrix(SYSTEM_SIZE);
     
     //set the variances for all the variables
@@ -254,9 +266,6 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
             const aux::symmetric_matrix cov)
 {
-    boost::mpi::communicator world;
-    const unsigned int rank = world.rank();
-
     aux::vector mean(SYSTEM_SIZE);
     
     //set the averages of the variables
@@ -355,6 +364,26 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
     gsl_rng_free(rng);
 }
 
+//return weight modified?
+bool BoldModel::reweight(aux::vector& checkme, double& weightout)
+{
+    size_t count;
+    for(unsigned int j = 0 ; j < checkme.size() ; j++) {
+        //only S_T is allowed to be negative
+        if(indexof(S_T, count) == j) {
+            count++;
+        } else if(checkme[j] < 0) {
+            aux::vector placeholder(checkme.size());
+            for(unsigned int i = 0 ; i<checkme.size() ; i++)
+                placeholder[i] = 1;
+            weightout = 0.0;
+            checkme = placeholder;
+            return true;
+        } 
+    }
+    return false;
+}
+
 void outputVector(std::ostream& out, aux::vector mat) {
   unsigned int i;
   for (i = 0; i < mat.size(); i++) {
@@ -371,3 +400,4 @@ void outputMatrix(std::ostream& out, aux::matrix mat) {
     out << std::endl;
   }
 }
+

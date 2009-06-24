@@ -43,8 +43,12 @@ public:
      *
      * @param N The kernel density norm.
      * @param K The kernel density kernel.
+     * @param model the model that this resampling is being done on.
+     * TODO change BoldModel to a base class (this would require modifying the base
+     * class to include reweight)
      */
-    RegularizedParticleResamplerMod(const NT& N, const KT& K);
+    RegularizedParticleResamplerMod(const NT& N, const KT& K, 
+                BoldModel* model);
 
     /**
      * Destructor.
@@ -84,6 +88,11 @@ private:
      */
     KT K;
 
+    /**
+     * Used for reality check purposes.
+     */
+    BoldModel* model;
+
 };
 
 //#include "../aux/KernelDensityMixturePdf.hpp"
@@ -91,7 +100,9 @@ private:
 
 template <class NT, class KT>
 RegularizedParticleResamplerMod<NT,KT>::RegularizedParticleResamplerMod(
-            const NT& N, const KT& K) : N(N), K(K) 
+            const NT& N, const KT& K, 
+            BoldModel* model) : 
+            N(N), K(K), model(model)
 {
   //
 }
@@ -169,17 +180,7 @@ RegularizedParticleResamplerMod<NT, KT>::resample(indii::ml::aux::DiracMixturePd
         noalias(x) = p.get(i) + prod(sd, K.sample() * N.sample(
                     p.getDimensions()));
         weight = p.getWeight(i);
-        //if the particle is not S_T and is negative, make its
-        //weight 0
-        for(unsigned int j = 0 ; j < p.getDimensions() ; j++) {
-            if((j < BoldModel::THETA_SIZE + BoldModel::S_T 
-                        || (j - BoldModel::THETA_SIZE - BoldModel::S_T)%4 != 0) 
-                        && x[j] < 0) {
-                weight = 0.0;
-                x = placeholder;
-                break;
-            } 
-        }
+        if(model != NULL) model->reweight(x, weight);
         r.add(x, weight);
     }
 

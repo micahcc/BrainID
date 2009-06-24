@@ -24,9 +24,8 @@ typedef itk::ImageSliceIteratorWithIndex< Image4DType > SliceIterator4D;
 typedef itk::ImageLinearIteratorWithIndex< Image4DType > PixelIterator4D;
 typedef itk::ImageLinearIteratorWithIndex< Image3DType > PixelIterator3D;
 
-//Each SectionType struct contains an integer label and a list of SliceIterators
-//as well a pointer to the original image, just for completeness (whats 8 bytes 
-//among friends)
+//Each SectionType struct contains an integer label
+//and an iterator that moves forward in time
 struct SectionType{
     int label;
     PixelIterator4D point;
