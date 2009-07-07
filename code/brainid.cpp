@@ -157,7 +157,9 @@ int main(int argc, char* argv[])
     ofstream nullout("/dev/null");
 
     vul_arg<unsigned> a_num_particles("-p", "Number of particles.", 30000);
-    vul_arg< vcl_vector<string> > a_seriesfile("-ts", "2D timeseries file");
+    vul_arg< vcl_vector<string> > a_seriesfiles("-tsv", "2D timeseries files (one"
+                " per section");
+    vul_arg< string > a_seriesfile("-ts", "2D timeseries file", "");
     vul_arg<unsigned> a_divider("-div", "Intermediate Steps between samples.", 64);
     vul_arg<string> a_stimfile("-stim", "file containing \"<time> <value>\""
                 "pairs which give the time at which input changed", "");
@@ -190,13 +192,6 @@ int main(int argc, char* argv[])
     ImageReaderType::Pointer reader;
     itk::ImageLinearIteratorWithIndex<Image4DType> iter;
     Image4DType::Pointer measInput;
-
-    BoldModel model(a_expweight(), a_avgweight());
-
-    aux::DiracMixturePdf x0(model.getStateSize());
-    
-    /* Full Distribution */
-    aux::DiracMixturePdf tmpX(model.getStateSize());
 
     if(rank == 0) {
         
@@ -331,6 +326,14 @@ int main(int argc, char* argv[])
 
     boost::mpi::broadcast(world, sampletime, 0);
     boost::mpi::broadcast(world, meassize, 0);
+    
+    BoldModel model(a_expweight(), a_avgweight());
+
+    aux::DiracMixturePdf x0(model.getStateSize());
+    
+    /* Full Distribution */
+    aux::DiracMixturePdf tmpX(model.getStateSize());
+
 
     /* Simulation Section */
     aux::DiracMixturePdf distr(model.getStateSize());

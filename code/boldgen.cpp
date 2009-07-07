@@ -128,18 +128,25 @@ int main (int argc, char** argv)
 
     vul_arg<string> a_boldfile("-bf", "boldfile to write to (image)", "");
     vul_arg<double> a_outstep("-ot", "How often to sample", 2);
-    vul_arg<double> a_simstep("-st", "Step size for sim, smaller is more accurate", .001);
+    vul_arg<double> a_simstep("-st", "Step size for sim, smaller is more accurate",
+                .001);
     vul_arg<double> a_stoptime("-end", "What time to end at", 600);
     vul_arg<unsigned> a_series("-n", "Number of brain regions to simulate", 1);
     vul_arg<string> a_statefile("-sf", "file to write out state data to", "");
     vul_arg<string> a_stimfile("-istim", "file to read in stimuli from", "");
     vul_arg<bool> a_randstim("-randstim", "create a random stimulus", false);
-    vul_arg<string> a_randstim_file("-rstimfile", "where to write to, for stim generation", "");
-    vul_arg<double> a_randstim_t("-rstimt", "time between changes, for stim generation", 4);
-    vul_arg<double> a_randstim_p("-rstimp", "probability of high stimulus, for stim generation", .5);
-    vul_arg<double> a_noise_snr("-snr", "SNR of Gaussian Noise to apply to bold signal", 0);
-    vul_arg<string> a_paramfile("-X0file", "File with initial conditions for simulation", "");
-    vul_arg< vcl_vector<double> > a_params("-X0", "Inital conditions for simulation");
+    vul_arg<string> a_randstim_file("-rstimfile", "where to write to, for "
+                " stim generation", "");
+    vul_arg<double> a_randstim_t("-rstimt", "time between changes, for stim "
+                "generation", 4);
+    vul_arg<double> a_randstim_p("-rstimp", "probability of high stimulus, for "
+                "stim generation", .5);
+    vul_arg<double> a_noise_snr("-snr", "SNR of Gaussian Noise to apply to bold"
+                " signal", 0);
+    vul_arg<string> a_paramfile("-X0file", "File with initial conditions for "
+                "simulation", "");
+    vul_arg< vcl_vector<double> > a_params("-X0", "Inital conditions for "
+                "simulation");
 
     vul_arg_parse(argc,argv);
 
