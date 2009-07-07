@@ -191,9 +191,12 @@ int main(int argc, char* argv[])
     
     ImageReaderType::Pointer reader;
     itk::ImageLinearIteratorWithIndex<Image4DType> iter;
-    Image4DType::Pointer measInput;
+    Image4DType::Pointer measInput, measOutput, stateOutput, covOutput, partOutput;
+
+    int meassize = 0;
 
     if(rank == 0) {
+        meassize = measInput->GetRequestedRegion().GetSize()[SERIESDIM];
         
         /* Open up the input */
         reader = ImageReaderType::New();
@@ -222,6 +225,25 @@ int main(int argc, char* argv[])
         }
         cout << left << setw(20) << "TR" << ": " << sampletime << endl;
     
+        //BOLD
+        measOutput = Image4DType::New();
+        init4DImage(measOutput , meassize,
+                1, 1, measInput->GetRequestedRegion().GetSize()[3]);
+        measOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
+
+    }
+    
+    boost::mpi::broadcast(world, meassize, 0);
+    BoldModel model(a_expweight(), a_avgweight(), meassize);
+    
+    /* Full Distribution */
+    aux::DiracMixturePdf tmpX(model.getStateSize());
+    
+    if(rank == 0) {
+        
+        /////////////////////////////////////////////////////////////////////
+        // Particles Setup
+        /////////////////////////////////////////////////////////////////////
         /* Generate Prior */
         if(!a_serialifile().empty()) {
             std::ifstream serialin(a_serialifile().c_str(), std::ios::binary);
@@ -240,44 +262,11 @@ int main(int argc, char* argv[])
 //            outputMatrix(*out, tmp);
 //            *out << endl;
         }
-    
-    }
         
-    boost::mpi::broadcast(world, tmpX, 0);
 
-    /* Divide Initial Distribution among nodes */
-    for(size_t i = rank ; i < a_num_particles() ; i+= size) {
-        x0.add(tmpX.get(i));
-    }
-
-    /* Create the filter */
-    indii::ml::filter::ParticleFilter<double> filter(&model, x0);
-  
-    /* create resamplers */
-    /* Normal resampler, used to eliminate particles */
-    indii::ml::filter::StratifiedParticleResampler resampler(a_num_particles());
-
-    /* Regularized Resample */
-    aux::Almost2Norm norm;
-    aux::AlmostGaussianKernel kernel(model.getStateSize(), 1);
-    RegularizedParticleResamplerMod< aux::Almost2Norm, 
-                aux::AlmostGaussianKernel > resampler_reg(norm, kernel, &model);
-
-
-    Image4DType::Pointer measOutput, stateOutput, covOutput, partOutput;
-
-    int meassize = 0;
-
-    /////////////////////////////////////////////////////////////////////
-    // output setup 
-    /////////////////////////////////////////////////////////////////////
-    if(rank == 0) {
-        //BOLD
-        measOutput = Image4DType::New();
-        init4DImage(measOutput , measInput->GetRequestedRegion().GetSize()[0],
-                1, 1, measInput->GetRequestedRegion().GetSize()[3]);
-        measOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
-
+        /////////////////////////////////////////////////////////////////////
+        // output setup 
+        /////////////////////////////////////////////////////////////////////
         //STATE
         stateOutput = Image4DType::New();
         init4DImage(stateOutput, 1, model.getStateSize(), 1, 
@@ -321,18 +310,32 @@ int main(int argc, char* argv[])
         itk::EncapsulateMetaData(partOutput->GetMetaDataDictionary(),
                     "Dim0", std::string("time"));
 #endif //partout
-        meassize = measInput->GetRequestedRegion().GetSize()[0];
+    
     }
 
+    boost::mpi::broadcast(world, tmpX, 0);
     boost::mpi::broadcast(world, sampletime, 0);
-    boost::mpi::broadcast(world, meassize, 0);
     
-    BoldModel model(a_expweight(), a_avgweight());
-
     aux::DiracMixturePdf x0(model.getStateSize());
-    
-    /* Full Distribution */
-    aux::DiracMixturePdf tmpX(model.getStateSize());
+
+    /* Divide Initial Distribution among nodes */
+    for(size_t i = rank ; i < a_num_particles() ; i+= size) {
+        x0.add(tmpX.get(i));
+    }
+
+    /* Create the filter */
+    indii::ml::filter::ParticleFilter<double> filter(&model, x0);
+  
+    /* create resamplers */
+    /* Normal resampler, used to eliminate particles */
+    indii::ml::filter::StratifiedParticleResampler resampler(a_num_particles());
+
+    /* Regularized Resample */
+    aux::Almost2Norm norm;
+    aux::AlmostGaussianKernel kernel(model.getStateSize(), 1);
+    RegularizedParticleResamplerMod< aux::Almost2Norm, 
+                aux::AlmostGaussianKernel > resampler_reg(norm, kernel, &model);
+
 
 
     /* Simulation Section */

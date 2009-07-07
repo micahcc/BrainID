@@ -202,7 +202,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
     aux::symmetric_matrix cov = aux::zero_matrix(STATE_SIZE);
     
     //set the averages of the variables
-    for(unsigned int ii = 0 ; ii < segments.size() ; ii++) {
+    for(unsigned int ii = 0 ; ii < SIMUL_STATES; ii++) {
         mean[indexof(TAU_S, ii)] = 4.98;
         mean[indexof(TAU_F, ii)] = 8.31;
         mean[indexof(EPSILON, ii)] = 0.069;
@@ -238,7 +238,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
 {
     aux::symmetric_matrix cov = aux::zero_matrix(STATE_SIZE);
     
-    for(unsigned int ii = 0 ; ii < segments.size() ; ii++) {
+    for(unsigned int ii = 0 ; ii < SIMUL_STATES ; ii++) {
         //set the variances for all the variables
         cov(indexof(TAU_S  ,ii), indexof(TAU_S  ,ii)) = 4*1.07*1.07;
         cov(indexof(TAU_F  ,ii), indexof(TAU_F  ,ii)) = 4*1.51*1.51;
@@ -262,7 +262,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
 {
     aux::vector mean(STATE_SIZE);
     
-    for(unsigned int ii = 0 ; ii < segments.size() ; ii++) {
+    for(unsigned int ii = 0 ; ii < SIMUL_STATES ; ii++) {
     //set the averages of the variables
         mean[indexof(TAU_S, ii)] = 4.98;
         mean[indexof(TAU_F, ii)] = 8.31;
@@ -289,8 +289,8 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
     const unsigned int rank = world.rank();
 
     int count = 0;
-    double k_sigma[GVAR_SIZE+LVAR_SIZE]; 
-    double theta_mu[GVAR_SIZE+LVAR_SIZE];
+    double k_sigma[STATE_SIZE]; 
+    double theta_mu[STATE_SIZE];
     for(unsigned int i = 0 ; i < getStateSize() ; i++) {
         if(indexof(S_T, count) == i) {
             count++;
