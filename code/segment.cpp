@@ -36,13 +36,19 @@ bool compare_lt(SectionType first, SectionType second)
 //with iterators for the member voxels.
 int segment(const Image4DType::Pointer fmri_img, 
             const Image3DType::Pointer label_img,
+            const Image3DType::Pointer mask_img,
             std::list< SectionType >& voxels)
 {
     SectionType section; //will hold the label and iterator
     PixelIterator3D labelmap_it( label_img, label_img->GetRequestedRegion() );
+    PixelIterator3D mask_it;
+    if(mask_img.IsNotNull())
+        mask_it = PixelIterator3D(mask_img, mask_img->GetRequestedRegion());
+    
     Image4DType::PointType phys_fmri; //stores a 4D point
     Image3DType::PointType phys_3D;   //stores a 3D point
     Image3DType::IndexType labelmap_index; //the index matching the fmri physical index
+    Image3DType::IndexType mask_index; //the index matching the fmri physical index
     PixelIterator4D fmri_it( fmri_img, fmri_img->GetRequestedRegion() );
     PixelIterator4D time_it( fmri_img, fmri_img->GetRequestedRegion() );
   
@@ -74,20 +80,26 @@ int segment(const Image4DType::Pointer fmri_img,
 #endif //DEBUG
             //check to see if that phsyical point in the fmri image is in the
             //label image
-            if(label_img->TransformPhysicalPointToIndex(phys_3D, labelmap_index)) {
+            if(label_img->TransformPhysicalPointToIndex(phys_3D, labelmap_index) &&
+                        ( mask_img.IsNull() || mask_img->TransformPhysicalPointToIndex
+                        (phys_3D, mask_index)) ) {
 #ifdef DEBUG
-                fprintf(stderr, "%li %li %li -> %li %li %li : %li\n", fmri_it.GetIndex()[0],
-                        fmri_it.GetIndex()[1], fmri_it.GetIndex()[2], labelmap_index[0],
-                        labelmap_index[1], labelmap_index[2], labelmap_it.Get());
+                fprintf(stderr, "%li %li %li -> %li %li %li : %li\n", 
+                            fmri_it.GetIndex()[0], fmri_it.GetIndex()[1], 
+                            fmri_it.GetIndex()[2], labelmap_index[0], 
+                            labelmap_index[1], labelmap_index[2], labelmap_it.Get());
 #endif //DEBUG
 
                 labelmap_it.SetIndex(labelmap_index);
-                if( labelmap_it.Get() != 0) {
+                if(mask_img.IsNotNull()) 
+                    mask_it.SetIndex(mask_index);
+                
+                if(labelmap_it.Get() != 0 && (mask_img.IsNull() || mask_it.Get() != 0)) {
                     section.label = labelmap_it.Get();
                     section.point = fmri_it;
                     section.point.SetDirection(3); //step forward in time
                     voxels.push_front(section);
-                }
+                } 
             }
             ++fmri_it;
         }
@@ -137,6 +149,8 @@ Image4DType::Pointer read_dicom(std::string directory)
     std::vector<std::string>::const_iterator seriesItr=seriesUID.begin();
     std::vector<std::string>::const_iterator seriesEnd=seriesUID.end();
     
+    Image4DType::SpacingType space4;
+
     //reorder the input based on temporal number.
     while (seriesItr!=seriesEnd)
     {
@@ -155,35 +169,45 @@ Image4DType::Pointer read_dicom(std::string directory)
         tmp_reader->ReleaseDataFlagOn();
 
         tmp_reader->Update();
-        tmp_reader->GetOutput()->SetMetaDataDictionary(dicomIO->GetMetaDataDictionary());
+        tmp_reader->GetOutput()->SetMetaDataDictionary(
+                    dicomIO->GetMetaDataDictionary());
     
-        itk::MetaDataDictionary& dict = tmp_reader->GetOutput()->GetMetaDataDictionary();
+        itk::MetaDataDictionary& dict = 
+                    tmp_reader->GetOutput()->GetMetaDataDictionary();
         
         std::string value;
         dicomIO->GetValueFromTag("0020|0100", value);
         printf("Temporal Number: %s\n", value.c_str());
+        
+        reader[atoi(value.c_str())-1] = tmp_reader;
 
         dicomIO->GetValueFromTag("0018|0080", value);
         itk::EncapsulateMetaData<double>(dict, "TemporalResolution", 
                     atof(value.c_str())/1000.);
+    
+        space4[0] = reader[0]->GetOutput()->GetSpacing()[0];
+        space4[1] = reader[0]->GetOutput()->GetSpacing()[1];
+        space4[2] = reader[0]->GetOutput()->GetSpacing()[2];
+        space4[3] = atof(value.c_str())/1000.;
         
-        reader[atoi(value.c_str())-1] = tmp_reader;
-
         ++seriesItr;
     }
         
     // connect each series to elevation filter
-    for(unsigned int ii=0 ; ii<seriesUID.size() ; ii++) {
-        elevateFilter->SetInput(ii,reader[ii]->GetOutput());
+    // skip the first two times
+    for(unsigned int ii=0 ; ii<seriesUID.size()-2; ii++) {
+        elevateFilter->SetInput(ii,reader[ii+2]->GetOutput());
     }
+        
 
     //now elevateFilter can be used just like any other reader
     elevateFilter->Update();
     
     //create image readers
     Image4DType::Pointer fmri_img = elevateFilter->GetOutput();
-    fmri_img->CopyInformation(reader[0]->GetOutput());
+//    fmri_img->CopyInformation(reader[0]->GetOutput());
     fmri_img->Update();
+    fmri_img->SetSpacing(space4);
 
     delete[] reader;
     return fmri_img;

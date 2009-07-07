@@ -7,6 +7,7 @@
 #include <gsl/gsl_randist.h>
 #include <iostream>
 #include <iomanip>
+#include <vector>
 
 //State Consists of Two or More Sections:
 //Theta
@@ -23,6 +24,12 @@
 //9+4*i+2 - s_t
 //9+4*i+3 - f_t
 
+typedef struct 
+{
+    unsigned int index; //start index in state variable
+    std::vector< unsigned int > slice_index; //start index of slice variables
+} SectionDesc;
+
 namespace aux = indii::ml::aux;
 
 void outputVector(std::ostream& out, aux::vector vec);
@@ -35,7 +42,7 @@ public:
     BoldModel(bool weightf = false, bool tweight = false, size_t sections = 1,
                 aux::vector u = aux::zero_vector(1));
 
-    virtual unsigned int getStateSize() { return SYSTEM_SIZE; };
+    virtual unsigned int getStateSize() { return STATE_SIZE; };
     unsigned int getStimSize() { return INPUT_SIZE; };
     virtual unsigned int getMeasurementSize() { return MEAS_SIZE; };
 
@@ -60,13 +67,11 @@ public:
     //going to hack around that and set it directly
     void setinput(aux::vector& in) { input = in; };
     
-    enum WeightF { NORM = 0, EXP = 1, HYP = 2} ;
-    
-    int weightf;
-    double tweight;
-
     bool reweight(aux::vector& checkme, double& weight);
     
+    //these are recurring in the state array, so V_T could be at 0,4,...16,20...
+    enum StateName { TAU_0=0 , ALPHA=1, E_0=2, V_0=3, TAU_S=4, TAU_F=5, 
+                EPSILON=6, V_T=7, Q_T=8, S_T=9, F_T =10};
 private:
     //the standard deviations for the parameters theta, which are
     //theoretically constant for the whole volume
@@ -77,7 +82,8 @@ private:
 
     //goes to the index of the given state
     inline size_t indexof(int name, int index){
-        return THETA_SIZE + index*STATE_SIZE + name;
+        if(name < (int)GVAR_SIZE) return name;
+        else return index*LVAR_SIZE + name;
     };
 
     void generate_component(gsl_rng* rng, aux::vector& fillme, 
@@ -86,11 +92,13 @@ private:
     //Internal Constants
     static const double A1 = 3.4;
     static const double A2 = 1.0;
-    //these are at the beginning of the state array so this assigns the indices
-    enum Theta { TAU_0=0 , ALPHA=1, E_0=2, V_0=3};
 
-    //these are recurring in the state array, so V_T could be at 0,4,...16,20...
-    enum StateVar {TAU_S=0, TAU_F=1, EPSILON=2, V_T=3, Q_T=4, S_T=5, F_T =6};
+    //Weighting
+    enum WeightF { NORM = 0, EXP = 1, HYP = 2} ;
+    
+    int weightf;
+    double tweight;
+
 
     //variance to apply to 
     double var_e;
@@ -98,13 +106,15 @@ private:
 //    double small_g;
     
     //Constants
-    const unsigned int THETA_SIZE;
-    const unsigned int STATE_SIZE;
+    const unsigned int GVAR_SIZE;
+    const unsigned int LVAR_SIZE;
     const unsigned int SIMUL_STATES;
-    const unsigned int SYSTEM_SIZE;
+    const unsigned int STATE_SIZE;
 
     const unsigned int MEAS_SIZE;
     const unsigned int INPUT_SIZE;
+
+    std::vector< SectionDesc > segments;
 };
 
 #endif

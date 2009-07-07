@@ -10,7 +10,7 @@
 using namespace std;
 
 typedef float ImagePixelType;
-typedef itk::Image< ImagePixelType,  4 > Image4DType;
+typedef itk::OrientedImage< ImagePixelType,  4 > Image4DType;
 typedef itk::ImageFileReader< Image4DType >  ImageReaderType;
 
 int main (int argc, char** argv)
@@ -38,30 +38,67 @@ int main (int argc, char** argv)
         string tmps;
         int tmpi;
         unsigned int tmpu;
+        long tmpl;
         size_t tmpz;
         if(dict[keys[i]]->GetMetaDataObjectTypeInfo() == typeid(tmpd)) {
-            itk::ExposeMetaData<double>(dict, keys[i], tmpd);
+            itk::ExposeMetaData(dict, keys[i], tmpd);
             cout << keys[i] << " -> " << tmpd << endl;
         } else if(dict[keys[i]]->GetMetaDataObjectTypeInfo() == typeid(tmpf)) {
-            itk::ExposeMetaData<float>(dict, keys[i], tmpf);
+            itk::ExposeMetaData(dict, keys[i], tmpf);
             cout << keys[i] << " -> " << tmpf << endl;
         } else if(dict[keys[i]]->GetMetaDataObjectTypeInfo() == typeid(tmps)) {
-            itk::ExposeMetaData<string>(dict, keys[i], tmps);
+            itk::ExposeMetaData(dict, keys[i], tmps);
             cout << keys[i] << " -> " << tmps << endl;
         } else if(dict[keys[i]]->GetMetaDataObjectTypeInfo() == typeid(tmpi)) {
-            itk::ExposeMetaData<int>(dict, keys[i], tmpi);
+            itk::ExposeMetaData(dict, keys[i], tmpi);
             cout << keys[i] << " -> " << tmpi << endl;
         } else if(dict[keys[i]]->GetMetaDataObjectTypeInfo() == typeid(tmpu)) {
-            itk::ExposeMetaData<unsigned int>(dict, keys[i], tmpu);
+            itk::ExposeMetaData(dict, keys[i], tmpu);
             cout << keys[i] << " -> " << tmpu << endl;
         } else if(dict[keys[i]]->GetMetaDataObjectTypeInfo() == typeid(tmpz)) {
-            itk::ExposeMetaData<size_t>(dict, keys[i], tmpz);
+            itk::ExposeMetaData(dict, keys[i], tmpz);
             cout << keys[i] << " -> " << tmpz << endl;
+        } else if(dict[keys[i]]->GetMetaDataObjectTypeInfo() == typeid(tmpl)) {
+            itk::ExposeMetaData(dict, keys[i], tmpl);
+            cout << keys[i] << " -> " << tmpl << endl;
         } else {
-            cout << "Other" << endl;
+            cout << "Type unhandled:" << dict[keys[i]]->GetMetaDataObjectTypeName()
+                        << endl;
         }
     }
+
+    fprintf(stderr, "Size: \n");
+    fprintf(stderr, "%lu,", image->GetRequestedRegion().GetSize()[0]);
+    fprintf(stderr, "%lu,", image->GetRequestedRegion().GetSize()[1]);
+    fprintf(stderr, "%lu,", image->GetRequestedRegion().GetSize()[2]);
+    fprintf(stderr, "\n");
     
+    fprintf(stderr, "Index: \n");
+    fprintf(stderr, "%li,", image->GetRequestedRegion().GetIndex()[0]);
+    fprintf(stderr, "%li,", image->GetRequestedRegion().GetIndex()[1]);
+    fprintf(stderr, "%li,", image->GetRequestedRegion().GetIndex()[2]);
+    fprintf(stderr, "\n");
+    
+    fprintf(stderr, "Spacing: \n");
+    fprintf(stderr, "%f ", image->GetSpacing()[0]);
+    fprintf(stderr, "%f ", image->GetSpacing()[1]);
+    fprintf(stderr, "%f ", image->GetSpacing()[2]);
+    fprintf(stderr, "\n");
+    
+    fprintf(stderr, "Orientation\n");
+    for(int ii = 0 ; ii < 3 ; ii++) {
+        for(int jj = 0 ; jj < 3 ; jj++) {
+            fprintf(stderr, "%f ", image->GetDirection()(jj,ii));
+        }
+    }
+    fprintf(stderr, "\n");
+
+    fprintf(stderr, "Origin\n");
+    for(int ii = 0 ; ii < 3 ; ii++)  {
+        fprintf(stderr, "%f ", image->GetOrigin()[ii]);
+    }
+    fprintf(stderr, "\n");
+
     return 0;
 }
 

@@ -37,7 +37,8 @@ struct SectionType{
 //with iterators for the member voxels.
 int segment(const Image4DType::Pointer fmri_img, 
             const Image3DType::Pointer label_img,
-            std::list<SectionType>& voxels);
+            const Image3DType::Pointer mask_img,
+            std::list< SectionType >& voxels);
 //should be called when you are done using voxels_list
 
 Image4DType::Pointer read_dicom(std::string directory);

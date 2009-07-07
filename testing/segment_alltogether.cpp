@@ -38,8 +38,15 @@ int main(int argc, char** argv)
     Image3DType::Pointer labelmap_img = labelmap_read->GetOutput();
     labelmap_img->Update();
 
+    //label index
+    itk::ImageFileReader<Image3DType>::Pointer mask_read = 
+                itk::ImageFileReader<Image3DType>::New();
+    mask_read->SetFileName( argv[3] );
+    Image3DType::Pointer mask_img = mask_read->GetOutput();
+    mask_img->Update();
+
     std::list< SectionType > active_voxels;
-    segment(fmri_img, labelmap_img, active_voxels);
+    segment(fmri_img, labelmap_img, mask_img, active_voxels);
 
     //test
     fprintf(stderr, "showing all active pixels\n");
@@ -100,7 +107,7 @@ int main(int argc, char** argv)
         list_it++;
     }
 
-    writer->SetFileName(argv[3]);  
+    writer->SetFileName(argv[4]);  
     writer->SetInput(outputImage);
     writer->Update();
 }

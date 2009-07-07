@@ -13,6 +13,9 @@
      the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR 
      PURPOSE.  See the above copyright notices for more information.
 
+  Modified By: Micah Chambers
+               Virginia Tech
+  Places with additions are labeled with MOD!
 =========================================================================*/
 
 #include "modNiftiImageIO.h"
@@ -1178,6 +1181,7 @@ modNiftiImageIO
   EncapsulateMetaData<std::string>(this->GetMetaDataDictionary(),
                                    ITK_FileNotes,description);
 
+  //MOD!
   //Import Extended Header fields
   nifti1_extension* extent = this->m_NiftiImage->ext_list;
   for(int ii=0 ; ii<this->m_NiftiImage->num_ext ; ii++) {
@@ -1212,7 +1216,7 @@ inline mat44 mat44_transpose(mat44 in)
 }
 }
 
-
+//MOD!
 //bufflen needs to be at least 18 bytes
 int _writekey(MetaDataDictionary& dict, std::string key,
             unsigned char* buffer, size_t bufflen)
@@ -1610,6 +1614,7 @@ modNiftiImageIO
   this->m_NiftiImage->scl_inter = 0.0f;
   this->SetNIfTIOrientationFromImageIO(this->GetNumberOfDimensions(),this->GetNumberOfDimensions()); //TODO: Note both arguments are the same, no need to distinguish between them.
 
+  //MOD!
   //Write tags to nifti header
   //tag is of arbitrary length
   //data should be in ascii

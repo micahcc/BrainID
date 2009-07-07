@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 {
     // check arguments
     if(argc != 4) {
-        printf("Usage: %s <4D fmri dir> <labels> <output>", argv[0]);
+        printf("Usage: %s <4D fmri dir> <labels> <mask> <output>", argv[0]);
         return EXIT_FAILURE;
     }
     
@@ -37,9 +37,16 @@ int main(int argc, char** argv)
     labelmap_read->SetFileName( argv[2] );
     Image3DType::Pointer labelmap_img = labelmap_read->GetOutput();
     labelmap_img->Update();
+    
+    //label index
+    itk::ImageFileReader<Image3DType>::Pointer mask_read = 
+                itk::ImageFileReader<Image3DType>::New();
+    mask_read->SetFileName( argv[3] );
+    Image3DType::Pointer mask_img = mask_read->GetOutput();
+    mask_img->Update();
 
     std::list< SectionType > active_voxels;
-    segment(fmri_img, labelmap_img, active_voxels);
+    segment(fmri_img, labelmap_img, mask_img, active_voxels);
 
 
     fprintf(stderr, "Writing out every section, from active voxel list\n");
@@ -80,7 +87,7 @@ int main(int argc, char** argv)
     while(list_it != active_voxels.end()) {
         if(prev_label != list_it->label) {
             os.str("");
-            os << list_it->label << argv[3] << ".nii.gz";
+            os << list_it->label << argv[4] << ".nii.gz";
             fprintf(stderr, "writing: %s\n", os.str().c_str());
             writer->SetFileName( os.str() );  
             writer->SetInput(outputImage);

@@ -160,7 +160,7 @@ int main (int argc, char** argv)
     itk::EncapsulateMetaData<double>(dict, "TemporalResolution", a_outstep());
     itk::EncapsulateMetaData<unsigned int>(dict, "NumSections", a_series());
     itk::EncapsulateMetaData<string>(dict, "Dim3", "time");
-    itk::EncapsulateMetaData<string>(dict, "Dim0", "series");
+    itk::EncapsulateMetaData<string>(dict, "Dim0", "slices");
     //fill in mapping of Section Index to number section number i+5
     for(size_t i=0 ; i<a_series() ; i++ ) {
         ostringstream oss;
@@ -251,17 +251,17 @@ int main (int argc, char** argv)
         aux::symmetric_matrix cov = aux::zero_matrix(model.getStateSize());
         
         //set the variances for all the variables
-        cov(0,0) = 1.07*1.07;
-        cov(1,1) = 1.51*1.51;
-        cov(2,2) = 0.014*.014;
-        cov(3,3) = 1.5*1.5;
-        cov(4,4) = .004*.004;
-        cov(5,5) = .072*.072;
-        cov(6,6) = .6e-2*.6e-2;
-        cov(7,7) = .1;
-        cov(8,8) = .1;
-        cov(9,9) = .1;
-        cov(10,10) = .1;
+        cov(0,0) = 1.07*1.07;  //tau_s
+        cov(1,1) = 1.51*1.51;  //tau_f
+        cov(2,2) = 0.014*.014; //epsilon
+        cov(3,3) = 1.5*1.5;    //tau_0
+        cov(4,4) = .004*.004;  //alpha
+        cov(5,5) = .072*.072;  //E_0
+        cov(6,6) = .6e-2*.6e-2;//V_0
+        cov(7,7) = .1;         //v_t
+        cov(8,8) = .1;         //q_t
+        cov(9,9) = .1;         //s_t
+        cov(10,10) = .1;       //f_t
 
         model.generatePrior(x0, 10000, cov);
         systemstate = x0.sample();

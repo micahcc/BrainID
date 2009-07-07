@@ -48,6 +48,9 @@ typedef itk::Image< ImagePixelType,  4 > Image4DType;
 typedef itk::ImageFileReader< Image4DType >  ImageReaderType;
 typedef itk::ImageFileWriter< Image4DType >  WriterType;
 
+#define TIMEDIM 3
+#define SERIESDIM 0
+
 //write a vector to a dimension of an image
 void writeVector(Image4DType::Pointer out, int dir, const aux::vector& input, 
             Image4DType::IndexType start)
@@ -214,7 +217,7 @@ int main(int argc, char* argv[])
         
         /* Create a model */
         string str;
-        itk::ExposeMetaData<double>(measInput->GetMetaDataDictionary(), 
+        itk::ExposeMetaData(measInput->GetMetaDataDictionary(), 
                     "TemporalResolution", sampletime);
         cout << sampletime << endl;;
         if(sampletime == 0) {
@@ -285,14 +288,14 @@ int main(int argc, char* argv[])
         init4DImage(stateOutput, 1, model.getStateSize(), 1, 
                 measInput->GetRequestedRegion().GetSize()[3]);
         stateOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
-        itk::EncapsulateMetaData<std::string>(stateOutput->GetMetaDataDictionary(),
-                    "Dim0", "unused");
-        itk::EncapsulateMetaData<std::string>(stateOutput->GetMetaDataDictionary(),
-                    "Dim1", "systemmean");
-        itk::EncapsulateMetaData<std::string>(stateOutput->GetMetaDataDictionary(),
-                    "Dim2", "unused");
-        itk::EncapsulateMetaData<std::string>(stateOutput->GetMetaDataDictionary(),
-                    "Dim0", "time");
+        itk::EncapsulateMetaData(stateOutput->GetMetaDataDictionary(),
+                    "Dim0", std::string("unused"));
+        itk::EncapsulateMetaData(stateOutput->GetMetaDataDictionary(),
+                    "Dim1", std::string("systemmean"));
+        itk::EncapsulateMetaData(stateOutput->GetMetaDataDictionary(),
+                    "Dim2", std::string("unused"));
+        itk::EncapsulateMetaData(stateOutput->GetMetaDataDictionary(),
+                    "Dim0", std::string("time"));
 
         //COVARIANCE
         covOutput = Image4DType::New();
@@ -300,33 +303,34 @@ int main(int argc, char* argv[])
                 model.getStateSize(), model.getStateSize(), 
                 measInput->GetRequestedRegion().GetSize()[3]);
         covOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
-        itk::EncapsulateMetaData<std::string>(covOutput->GetMetaDataDictionary(),
-                    "Dim0", "unused");
-        itk::EncapsulateMetaData<std::string>(covOutput->GetMetaDataDictionary(),
-                    "Dim1", "systemcov");
-        itk::EncapsulateMetaData<std::string>(covOutput->GetMetaDataDictionary(),
-                    "Dim2", "unusedcov");
-        itk::EncapsulateMetaData<std::string>(covOutput->GetMetaDataDictionary(),
-                    "Dim0", "time");
+        itk::EncapsulateMetaData(covOutput->GetMetaDataDictionary(),
+                    "Dim0", std::string("unused"));
+        itk::EncapsulateMetaData(covOutput->GetMetaDataDictionary(),
+                    "Dim1", std::string("cov"));
+        itk::EncapsulateMetaData(covOutput->GetMetaDataDictionary(),
+                    "Dim2", std::string("cov"));
+        itk::EncapsulateMetaData(covOutput->GetMetaDataDictionary(),
+                    "Dim0", std::string("time"));
 #ifdef PARTOUT
         //PARTICLES
         partOutput = Image4DType::New();
         init4DImage(partOutput, 1,  model.getStateSize(), a_num_particles(),
                 measInput->GetRequestedRegion().GetSize()[3]*a_divider());
         partOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
-        itk::EncapsulateMetaData<std::string>(partOutput->GetMetaDataDictionary(),
-                    "Dim0", "unused");
-        itk::EncapsulateMetaData<std::string>(partOutput->GetMetaDataDictionary(),
-                    "Dim1", "systemval");
-        itk::EncapsulateMetaData<std::string>(partOutput->GetMetaDataDictionary(),
-                    "Dim2", "particle");
-        itk::EncapsulateMetaData<std::string>(partOutput->GetMetaDataDictionary(),
-                    "Dim0", "time");
+        itk::EncapsulateMetaData(partOutput->GetMetaDataDictionary(),
+                    "Dim0", std::string("unused"));
+        itk::EncapsulateMetaData(partOutput->GetMetaDataDictionary(),
+                    "Dim1", std::string("systemval"));
+        itk::EncapsulateMetaData(partOutput->GetMetaDataDictionary(),
+                    "Dim2", std::string("particle"));
+        itk::EncapsulateMetaData(partOutput->GetMetaDataDictionary(),
+                    "Dim0", std::string("time"));
 #endif //partout
         meassize = measInput->GetRequestedRegion().GetSize()[0];
     }
 
     boost::mpi::broadcast(world, sampletime, 0);
+    boost::mpi::broadcast(world, meassize, 0);
 
     /* Simulation Section */
     aux::DiracMixturePdf distr(model.getStateSize());
@@ -372,6 +376,8 @@ int main(int argc, char* argv[])
                 cout << "Measuring at " <<  disctime/a_divider() << endl;
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 readVector(measInput, 0, meas, index);
+                outputVector(std::cerr, meas);
+                cerr << endl;
                 ++iter;
                 done = iter.IsAtEndOfLine();
             }
