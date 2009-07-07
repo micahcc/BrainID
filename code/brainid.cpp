@@ -169,8 +169,8 @@ int main(int argc, char* argv[])
     vul_arg<bool> a_avgweight("-avgweight", "Average weights rather than multiply", false);
     vul_arg<double> a_resampness("-r", "Ratio of total particles that the ESS must "
                                "reach for the filter to resample. Ex .8 Ex2. .34", .5);
-    vul_arg<string> a_boldfile("-bo", "Where to put bold image file", "bold.nii.gz");
-    vul_arg<string> a_statefile("-so", "Where to put state image file","state.nii.gz");
+    vul_arg<string> a_boldfile("-yo", "Where to put bold image file", "bold.nii.gz");
+    vul_arg<string> a_statefile("-xo", "Where to put state image file","state.nii.gz");
     vul_arg<string> a_covfile("-co", "Where to put covariance image file", "");
 
     vul_arg_parse(argc, argv);
@@ -196,15 +196,15 @@ int main(int argc, char* argv[])
     int meassize = 0;
 
     if(rank == 0) {
-        meassize = measInput->GetRequestedRegion().GetSize()[SERIESDIM];
         
         /* Open up the input */
         reader = ImageReaderType::New();
         reader->SetImageIO(itk::modNiftiImageIO::New());
         cout << a_stimfile() << endl;;
-        reader->SetFileName( a_stimfile() );
+        reader->SetFileName( a_seriesfile() );
         reader->Update();
         measInput = reader->GetOutput();
+        meassize = measInput->GetRequestedRegion().GetSize()[SERIESDIM];
         
         /* Create the iterator, to move forward in time for a particlular section */
         iter = itk::ImageLinearIteratorWithIndex<Image4DType>(measInput, 
@@ -382,8 +382,9 @@ int main(int argc, char* argv[])
                 cout << "Measuring at " <<  disctime/a_divider() << endl;
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 readVector(measInput, 0, meas, index);
-                outputVector(std::cerr, meas);
-                cerr << endl;
+                std::cout << "Read Measurement:" << std::endl;
+                outputVector(std::cout, meas);
+                std::cout << endl;
                 ++iter;
                 done = iter.IsAtEndOfLine();
             }

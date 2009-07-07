@@ -258,17 +258,17 @@ int main (int argc, char** argv)
         aux::symmetric_matrix cov = aux::zero_matrix(model.getStateSize());
         
         //set the variances for all the variables
-        cov(0,0) = 1.07*1.07;  //tau_s
-        cov(1,1) = 1.51*1.51;  //tau_f
-        cov(2,2) = 0.014*.014; //epsilon
-        cov(3,3) = 1.5*1.5;    //tau_0
-        cov(4,4) = .004*.004;  //alpha
-        cov(5,5) = .072*.072;  //E_0
-        cov(6,6) = .6e-2*.6e-2;//V_0
-        cov(7,7) = .1;         //v_t
-        cov(8,8) = .1;         //q_t
-        cov(9,9) = .1;         //s_t
-        cov(10,10) = .1;       //f_t
+        cov(model.TAU_S,   model.TAU_S) = 1.07*1.07;  //tau_s
+        cov(model.TAU_F,   model.TAU_F) = 1.51*1.51;  //tau_f
+        cov(model.EPSILON, model.EPSILON) = 0.014*.014; //epsilon
+        cov(model.TAU_0,   model.TAU_0) = 1.5*1.5;    //tau_0
+        cov(model.ALPHA,   model.ALPHA) = .004*.004;  //alpha
+        cov(model.E_0,     model.E_0) = .072*.072;  //E_0
+        cov(model.V_0,     model.V_0) = .6e-2*.6e-2;//V_0
+        cov(model.V_T,     model.V_T) = .1;         //v_t
+        cov(model.Q_T,     model.Q_T) = .1;         //q_t
+        cov(model.S_T,     model.S_T) = .1;         //s_t
+        cov(model.F_T,     model.F_T) = .1;       //f_t
 
         model.generatePrior(x0, 10000, cov);
         systemstate = x0.sample();
@@ -288,8 +288,6 @@ int main (int argc, char** argv)
     outputVector(cout, systemstate);
     cout << endl;
 
-    exit(0);
-
     double sample = 0;
     int count = 0;
     double realt = 0;
@@ -307,7 +305,7 @@ int main (int argc, char** argv)
     //first try to open the input file
     if(!a_stimfile().empty()) {
         fin.open(a_stimfile().c_str());
-        if(fin.is_open()) {
+        if(!fin.is_open()) {
             fprintf(stderr, "Error bad input file for stimulus\n");
             exit(-1);
         }
@@ -315,7 +313,7 @@ int main (int argc, char** argv)
     //if there is no input then open the output randstim
     } else if(!a_randstim_file().empty())  {
         fout.open(a_randstim_file().c_str());
-        if(fout.is_open()) {
+        if(!fout.is_open()) {
             fprintf(stderr, "Error bad output file for stimulus: %s\n",
                         a_randstim_file().c_str());
             exit(-2);
@@ -369,6 +367,10 @@ int main (int argc, char** argv)
 
     if(a_noise_snr() != 0)
         add_noise(measImage, a_noise_snr(), rng, a_series());
+    
+    if(fout.is_open()) {
+        fout.close();
+    }
     
     if(!a_boldfile().empty()) {
         writer->SetFileName(a_boldfile());  

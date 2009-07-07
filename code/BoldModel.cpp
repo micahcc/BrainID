@@ -185,8 +185,9 @@ void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme,
     for(size_t i = 0 ; i< STATE_SIZE; i++) {
         if(indexof(S_T, count) == i) {
             //for S_t draw from a gaussian
-            fillme[indexof(S_T, count)] = gsl_ran_gaussian(rng, k_sigma[indexof(S_T,i)])+
-                        theta_mu[indexof(S_T,i)];
+            fillme[indexof(S_T, count)] = 
+                        gsl_ran_gaussian(rng, k_sigma[indexof(S_T,count)])+
+                        theta_mu[indexof(S_T,count)];
             count++;
         } else {
             //draw from the gama, assume independence between the variables
@@ -261,7 +262,6 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
             const aux::symmetric_matrix cov)
 {
     aux::vector mean(STATE_SIZE);
-    
     for(unsigned int ii = 0 ; ii < SIMUL_STATES ; ii++) {
     //set the averages of the variables
         mean[indexof(TAU_S, ii)] = 4.98;
