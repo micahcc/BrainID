@@ -497,13 +497,13 @@ int main(int argc, char* argv[])
             //for instance if all the particles go to an unreasonable value like 
             //inf/nan/neg
             if(isnan(ess) || isinf(ess)) {
-                *out << "Total Weight: " << filter.getFilteredState().getTotalWeight()
+                *out << "Total Weight: " << filter.getFilteredState().getDistributedTotalWeight()
                             << endl;
                 aux::vector weights = filter.getFilteredState().getWeights();
                 outputVector(*out, weights);
                 exit(-5);
             } else {
-                double totalweight = filter.getFilteredState().getTotalWeight();
+                double totalweight = filter.getFilteredState().getDistributedTotalWeight();
                 *out << "Total Weight: " << totalweight << endl;
                 if(totalweight >= 1e20 || totalweight <= 1e-20) {
                     filter.getFilteredState().distributedNormalise();
