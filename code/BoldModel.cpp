@@ -215,18 +215,18 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
         mean[indexof(F_T,ii)]= 1;
         
         //set the variances for all the variables
-        cov(indexof(TAU_S  ,ii), indexof(TAU_S  ,ii)) = 4*1.07*1.07;
-        cov(indexof(TAU_F  ,ii), indexof(TAU_F  ,ii)) = 4*1.51*1.51;
-        cov(indexof(EPSILON,ii), indexof(EPSILON,ii)) = 4*0.014*.014;
-        cov(indexof(TAU_0  ,ii), indexof(TAU_0  ,ii)) = 4*1.5*1.5;
-        cov(indexof(ALPHA  ,ii), indexof(ALPHA  ,ii)) = 4*.004*.004;
-        cov(indexof(E_0    ,ii), indexof(E_0    ,ii)) = 4*.072*.072;
-        cov(indexof(V_0    ,ii), indexof(V_0    ,ii)) = 4*.6e-2*.6e-2;
+        cov(indexof(TAU_S  ,ii), indexof(TAU_S  ,ii)) = 9*1.07*1.07;
+        cov(indexof(TAU_F  ,ii), indexof(TAU_F  ,ii)) = 9*1.51*1.51;
+        cov(indexof(EPSILON,ii), indexof(EPSILON,ii)) = 9*0.014*.014;
+        cov(indexof(TAU_0  ,ii), indexof(TAU_0  ,ii)) = 9*1.5*1.5;
+        cov(indexof(ALPHA  ,ii), indexof(ALPHA  ,ii)) = 9*.004*.004;
+        cov(indexof(E_0    ,ii), indexof(E_0    ,ii)) = 9*.072*.072;
+        cov(indexof(V_0    ,ii), indexof(V_0    ,ii)) = 9*.6e-2*.6e-2;
 
-        cov(indexof(V_T,ii), indexof(V_T,ii)) = .5;
-        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = .5;
-        cov(indexof(S_T,ii), indexof(S_T,ii)) = .5;
-        cov(indexof(F_T,ii), indexof(F_T,ii)) = .5;
+        cov(indexof(V_T,ii), indexof(V_T,ii)) = 2;
+        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = 2;
+        cov(indexof(S_T,ii), indexof(S_T,ii)) = 2;
+        cov(indexof(F_T,ii), indexof(F_T,ii)) = 2;
     }
     generatePrior(x0, samples, mean, cov);
 }
@@ -237,19 +237,19 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
     aux::symmetric_matrix cov = aux::zero_matrix(STATE_SIZE);
     
     for(unsigned int ii = 0 ; ii < SIMUL_STATES ; ii++) {
-        //set the variances for all the variables
-        cov(indexof(TAU_S  ,ii), indexof(TAU_S  ,ii)) = 4*1.07*1.07;
-        cov(indexof(TAU_F  ,ii), indexof(TAU_F  ,ii)) = 4*1.51*1.51;
-        cov(indexof(EPSILON,ii), indexof(EPSILON,ii)) = 4*0.014*.014;
-        cov(indexof(TAU_0  ,ii), indexof(TAU_0  ,ii)) = 4*1.5*1.5;
-        cov(indexof(ALPHA  ,ii), indexof(ALPHA  ,ii)) = 4*.004*.004;
-        cov(indexof(E_0    ,ii), indexof(E_0    ,ii)) = 4*.072*.072;
-        cov(indexof(V_0    ,ii), indexof(V_0    ,ii)) = 4*.6e-2*.6e-2;
+        //set the variances for all the variables to 3*sigma
+        cov(indexof(TAU_S  ,ii), indexof(TAU_S  ,ii)) = 9*1.07*1.07;
+        cov(indexof(TAU_F  ,ii), indexof(TAU_F  ,ii)) = 9*1.51*1.51;
+        cov(indexof(EPSILON,ii), indexof(EPSILON,ii)) = 9*0.014*.014;
+        cov(indexof(TAU_0  ,ii), indexof(TAU_0  ,ii)) = 9*1.5*1.5;
+        cov(indexof(ALPHA  ,ii), indexof(ALPHA  ,ii)) = 9*.004*.004;
+        cov(indexof(E_0    ,ii), indexof(E_0    ,ii)) = 9*.072*.072;
+        cov(indexof(V_0    ,ii), indexof(V_0    ,ii)) = 9*.6e-2*.6e-2;
 
-        cov(indexof(V_T,ii), indexof(V_T,ii)) = .5;
-        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = .5;
-        cov(indexof(S_T,ii), indexof(S_T,ii)) = .5;
-        cov(indexof(F_T,ii), indexof(F_T,ii)) = .5;
+        cov(indexof(V_T,ii), indexof(V_T,ii)) = 2;
+        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = 2;
+        cov(indexof(S_T,ii), indexof(S_T,ii)) = 2;
+        cov(indexof(F_T,ii), indexof(F_T,ii)) = 2;
     }
     
     generatePrior(x0, samples, mean, cov);
@@ -318,12 +318,9 @@ bool BoldModel::reweight(aux::vector& checkme, double& weightout)
         if(indexof(S_T, count) == j) {
             count++;
         } else if(checkme[j] < 0) {
-            fprintf(stderr, "Fixing negative parameter: %u\n", j);
-            aux::vector placeholder(checkme.size());
-            for(unsigned int i = 0 ; i<checkme.size() ; i++)
-                placeholder[i] = 1;
+//            for(unsigned int i = 0 ; i<checkme.size() ; i++)
+//                checkme[i] = 1;
             weightout = 0.0;
-            checkme = placeholder;
             return true;
         } 
     }

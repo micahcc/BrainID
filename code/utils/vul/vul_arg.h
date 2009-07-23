@@ -116,6 +116,9 @@ void vul_arg_include(vul_arg_info_list& l);
 //: Print all args, and usage messages.
 void vul_arg_display_usage_and_exit(char const* msg = 0);
 
+//: Print all args, and usage messages.
+void vul_arg_display_usage(char const* msg);
+
 //: parse command-line arguments
 template <class T>
 class vul_arg : public vul_arg_base

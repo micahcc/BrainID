@@ -62,6 +62,12 @@ void vul_arg_display_usage_and_exit(char const* msg)
   vul_arg_base::display_usage_and_exit(msg);
 }
 
+//: Print all args, and usage messages.
+void vul_arg_display_usage(char const* msg)
+{
+  vul_arg_base::display_usage(msg);
+}
+
 
 //: Returns true if arg was set on the command line.
 bool vul_arg_base::set() const
@@ -307,8 +313,8 @@ void vul_arg_info_list::parse(int& argc, char **& argv, bool warn_about_unrecogn
   // 2. Just take from the list to fill the non-option arguments
   my_argv = argv + 1;
   int num_satisfied = 0;
-  for (unsigned int i = 0; i < args_.size(); ++i)
-    if (args_[i]->option_.empty())
+  for (unsigned int i = 0; i < args_.size(); ++i) {
+    if (args_[i]->option_.empty()) {
       if (*my_argv) {
         done_once[i] = true;
         int advance = args_[i]->parse(my_argv);
@@ -322,6 +328,8 @@ void vul_arg_info_list::parse(int& argc, char **& argv, bool warn_about_unrecogn
                  << " not supplied\n\n";
         vcl_exit(1);
       }
+    }
+  }
 
 
   // 3. Move my_argv down to first unused arg, and reset argc

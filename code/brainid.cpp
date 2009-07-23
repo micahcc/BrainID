@@ -51,6 +51,70 @@ typedef itk::ImageFileWriter< Image4DType >  WriterType;
 #define TIMEDIM 3
 #define SERIESDIM 0
 
+void gatherToNode(unsigned int dest, aux::DiracMixturePdf& input) {
+  boost::mpi::communicator world;
+  unsigned int rank = world.rank();
+  unsigned int size = world.size();
+  
+  assert(dest < size);
+
+  std::vector< std::vector< DiracPdf > > xsFull;
+  std::vector< aux::vector > wsFull;
+
+  unsigned int initialSize = input.getDistributedSize();
+  aux::vector initialMu = input.getDistributedExpectation();
+  aux::matrix initialCov = input.getDistributedCovariance();
+
+  /* if rank is the destination then receive from all the other nodes */
+  if(rank == dest) {
+    /* Receive from each other node */
+    boost::mpi::gather(world, input.getAll(), xsFull, dest); 
+    boost::mpi::gather(world, input.getWeights(), wsFull, dest); 
+
+    for(unsigned int ii=0 ; ii < size ; ii++) {
+      if(ii != rank) {
+        for (unsigned int jj = 0; jj < xsFull[ii].size(); jj++) {
+          input.add( (xsFull[ii])[jj] , (wsFull[ii])(jj) );
+        }
+      }
+    }
+  
+  /* if rank is not the destination then send to the destination */
+  } else {
+    boost::mpi::gather(world, input.getAll(), dest); 
+    boost::mpi::gather(world, input.getWeights(), dest); 
+    input.clear();
+  }
+  
+  unsigned int endSize = input.getDistributedSize();
+  aux::vector endMu = input.getDistributedExpectation();
+  aux::matrix endCov = input.getDistributedCovariance();
+  
+  /* post-conditions */
+//  if(rank == 0) {
+//    cout << "Start Size: " << initialSize << " EndSize: " 
+//                << endSize << endl;
+//    cout << "Initial Mu: " << endl;
+//    outputVector(cout, initialMu);
+//    cout << "End Mu: " << endl;
+//    outputVector(cout, endMu);;
+//    cout << "Local Mu: " << endl;
+//    outputVector(cout, input.getExpectation());;
+//    
+//    cout << "Initial Cov: " << endl;
+//    outputMatrix(cout, initialCov);
+//    cout << "End Cov: " << endl;
+//    outputMatrix(cout, endCov);;
+//    cout << "Local Cov: " << endl;
+//    outputMatrix(cout, input.getCovariance());;
+//    cout << endl;
+//  }
+  assert (initialSize == endSize);
+  assert (initialMu == endMu);
+  assert (initialCov == endCov);
+}
+
+
 //write a vector to a dimension of an image
 void writeVector(Image4DType::Pointer out, int dir, const aux::vector& input, 
             Image4DType::IndexType start)
@@ -101,7 +165,7 @@ void writeMatrix(Image4DType::Pointer out, int dir1, int dir2,
 }
 
 //read dimension of image into a vector
-void readVector(const Image4DType::Pointer in, int dir, aux::vector& input, 
+int readVector(const Image4DType::Pointer in, int dir, aux::vector& input, 
             Image4DType::IndexType start)
 {
     itk::ImageLinearConstIteratorWithIndex<Image4DType> 
@@ -109,12 +173,24 @@ void readVector(const Image4DType::Pointer in, int dir, aux::vector& input,
     it.SetDirection(dir);
     it.SetIndex(start);
 
+    if((unsigned int)start[0] >= in->GetRequestedRegion().GetSize()[0] || 
+                (unsigned int)start[1] >= in->GetRequestedRegion().GetSize()[1] || 
+                (unsigned int)start[2] >= in->GetRequestedRegion().GetSize()[2] || 
+                (unsigned int)start[3] >= in->GetRequestedRegion().GetSize()[3]) {
+        return -1;
+    }
+
     size_t i;
     for(i = 0 ; i < input.size() && !it.IsAtEndOfLine() ; i++) {
         input[i] = it.Get();
     }
 
-    assert(i==input.size());
+    if((unsigned int)start[TIMEDIM]+1 >= 
+                in->GetRequestedRegion().GetSize()[TIMEDIM]) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 /* init4DImage 
@@ -155,6 +231,7 @@ int main(int argc, char* argv[])
 
     ostream* out;
     ofstream nullout("/dev/null");
+    ofstream logout;
 
     vul_arg<unsigned> a_num_particles("-p", "Number of particles.", 30000);
     vul_arg< vcl_vector<string> > a_seriesfiles("-tsv", "2D timeseries files (one"
@@ -163,31 +240,49 @@ int main(int argc, char* argv[])
     vul_arg<unsigned> a_divider("-div", "Intermediate Steps between samples.", 64);
     vul_arg<string> a_stimfile("-stim", "file containing \"<time> <value>\""
                 "pairs which give the time at which input changed", "");
+    vul_arg<double> a_starttime("-tstart", "Initial time", 0);
+    vul_arg<double> a_stoptime("-tstop", "Stop time", 0);
     vul_arg<string> a_serialofile("-so", "Where to put a serial output file", "");
     vul_arg<string> a_serialifile("-si", "Where to find a serial input file", "");
-    vul_arg<bool> a_expweight("-expweight", "Use exponential weighting function", false);
-    vul_arg<bool> a_avgweight("-avgweight", "Average weights rather than multiply", false);
-    vul_arg<double> a_resampness("-r", "Ratio of total particles that the ESS must "
-                               "reach for the filter to resample. Ex .8 Ex2. .34", .5);
-    vul_arg<string> a_boldfile("-yo", "Where to put bold image file", "bold.nii.gz");
-    vul_arg<string> a_statefile("-xo", "Where to put state image file","state.nii.gz");
+    vul_arg<bool> a_expweight("-expweight", "Use exponential weighting function",
+                false);
+    vul_arg<bool> a_avgweight("-avgweight", "Average weights rather than multiply",
+                false);
+    vul_arg<double> a_resampratio("-rr", "Ratio of total particles below which ESS "
+                "must reach for the filter to resample. Ex .8 Ex2. .34", 0);
+    vul_arg<unsigned int> a_resampnum("-rn", "Absolute ESS below which to resample"
+                , 100);
+    vul_arg<string> a_boldfile("-yo", "Where to put bold image file", "");
+    vul_arg<string> a_statefile("-xo", "Where to put state image file",
+                "");
     vul_arg<string> a_covfile("-co", "Where to put covariance image file", "");
-        
-    if(rank == 0) {
-        for(int i = 0 ; i < argc ; i++ ) {
-            cout << argv[i] << " ";
-        }
-        cout << endl;
-    }
-
+    
+    vul_arg<string> a_logfile("-log", "Where to log to (default stdout)", "");
+    
     vul_arg_parse(argc, argv);
-
     
     if(rank == 0) {
-        out = &cout;
+        if(!a_logfile().empty()) {
+            logout.open(a_logfile().c_str());
+            if(!logout.is_open()) {
+                cerr << "Warning: could not open logfile: " << a_logfile() << endl;
+                out = &cout;
+            } else {
+                out = &logout;
+            }
+        } else {
+            out = &cout;
+        }
     } else {
         out = &nullout;
     }
+        
+    if(rank == 0) {
+        vul_arg_display_usage("No Warning, just echoing");
+    }
+
+
+    
 
     ///////////////////////////////////////////////////////////////////////////////
     //Done Parsing, starting main part of code
@@ -209,7 +304,7 @@ int main(int argc, char* argv[])
         /* Open up the input */
         reader = ImageReaderType::New();
         reader->SetImageIO(itk::modNiftiImageIO::New());
-        cout << a_stimfile() << endl;;
+        *out << a_stimfile() << endl;;
         reader->SetFileName( a_seriesfile() );
         reader->Update();
         measInput = reader->GetOutput();
@@ -218,7 +313,7 @@ int main(int argc, char* argv[])
         /* Create the iterator, to move forward in time for a particlular section */
         iter = itk::ImageLinearIteratorWithIndex<Image4DType>(measInput, 
                     measInput->GetRequestedRegion());
-        iter.SetDirection(3);
+        iter.SetDirection(TIMEDIM);
         Image4DType::IndexType index = {{0, 0, 0, 0}};
         iter.SetIndex(index);
         
@@ -226,13 +321,13 @@ int main(int argc, char* argv[])
         string str;
         itk::ExposeMetaData(measInput->GetMetaDataDictionary(), 
                     "TemporalResolution", sampletime);
-        cout << sampletime << endl;;
+        *out << sampletime << endl;;
         if(sampletime == 0) {
-            cout << "Image Had Invalid Temporal Resolution!" << endl;
-            cout << "Using 2 seconds!" << endl;
+            *out << "Image Had Invalid Temporal Resolution!" << endl;
+            *out << "Using 2 seconds!" << endl;
             sampletime=2;
         }
-        cout << left << setw(20) << "TR" << ": " << sampletime << endl;
+        *out << left << setw(20) << "TR" << ": " << sampletime << endl;
     
         //BOLD
         measOutput = Image4DType::New();
@@ -255,11 +350,12 @@ int main(int argc, char* argv[])
         /////////////////////////////////////////////////////////////////////
         /* Generate Prior */
         if(!a_serialifile().empty()) {
+            *out << "Reading from: " << a_serialifile() << endl;
             std::ifstream serialin(a_serialifile().c_str(), std::ios::binary);
             boost::archive::binary_iarchive inArchive(serialin);
             inArchive >> tmpX;
             if(a_num_particles() != tmpX.getSize())
-                cout << "Number of particles changed to " << tmpX.getSize();
+                *out << "Number of particles changed to " << tmpX.getSize();
             a_num_particles() = tmpX.getSize();
 //        } else if(cheating) {
 //            model.generatePrior(tmpX, a_num_particles(), cheat);
@@ -271,7 +367,7 @@ int main(int argc, char* argv[])
 //            outputMatrix(*out, tmp);
 //            *out << endl;
         }
-        
+    
 
         /////////////////////////////////////////////////////////////////////
         // output setup 
@@ -322,18 +418,29 @@ int main(int argc, char* argv[])
     
     }
 
-    boost::mpi::broadcast(world, tmpX, 0);
+    //todo use distribute function from mixturepdf
     boost::mpi::broadcast(world, sampletime, 0);
+    boost::mpi::broadcast(world, a_num_particles(), 0);
+
+    tmpX.redistributeBySize();
     
-    aux::DiracMixturePdf x0(model.getStateSize());
-
-    /* Divide Initial Distribution among nodes */
-    for(size_t i = rank ; i < a_num_particles() ; i+= size) {
-        x0.add(tmpX.get(i));
-    }
-
     /* Create the filter */
-    indii::ml::filter::ParticleFilter<double> filter(&model, x0);
+    indii::ml::filter::ParticleFilter<double> filter(&model, tmpX);
+    
+
+    /* Output the intial parameters */
+    aux::vector mu(model.getStateSize());
+    aux::symmetric_matrix cov(model.getStateSize());
+    mu = filter.getFilteredState().getDistributedExpectation();
+    cov = filter.getFilteredState().getDistributedCovariance();
+    *out << "Start Mu : " << endl;
+    outputVector(*out, mu);
+    *out << endl;
+
+    *out << "Start Cov : " << endl;
+    outputMatrix(*out, cov);
+    *out << endl;
+        
   
     /* create resamplers */
     /* Normal resampler, used to eliminate particles */
@@ -346,24 +453,41 @@ int main(int argc, char* argv[])
                 aux::AlmostGaussianKernel > resampler_reg(norm, kernel, &model);
 
 
-
     /* Simulation Section */
-    aux::DiracMixturePdf distr(model.getStateSize());
     aux::vector input(1);
     aux::vector meas(meassize);
-    aux::vector mu(model.getStateSize());
-    aux::symmetric_matrix cov(model.getStateSize());
     input[0] = 0;
     double nextinput;
     int disctime = 0;
     bool done = false;
     int tmp = 0;
+    int status = 0;
     if(rank == 0 && !a_stimfile().empty()) {
         fin.open(a_stimfile().c_str());
         fin >> nextinput;
     }
 
-    while(!done) {
+    /* 
+     * Fast Forward in time to start time
+     */
+    while(disctime*sampletime/a_divider() < a_starttime()) {
+        *out << "FAST FORWARD: t= " << disctime*sampletime/a_divider() << ", " 
+                    << endl;
+        if(rank == 0 && !fin.eof() && disctime*sampletime/a_divider() 
+                    >= nextinput) {
+            fin >> input[0];
+            fin >> nextinput;
+            *out << "New input: " << input[0] << endl;
+        }
+        disctime++;
+    }
+
+    /* 
+     * Run the particle filter either until we reach a predetermined end
+     * time, or until we are done processing measurements.
+     */
+    while(!done && (a_stoptime() == 0 || disctime*sampletime/a_divider() 
+                < a_stoptime()) ) {
 #ifdef PARTOUT
         if( rank == 0 && !partfile.empty() ) {
             const std::vector<aux::DiracPdf>& particles = 
@@ -380,7 +504,7 @@ int main(int argc, char* argv[])
         if(rank == 0 && !fin.eof() && disctime*sampletime/a_divider() >= nextinput) {
             fin >> input[0];
             fin >> nextinput;
-            cout << "New input: " << input[0] << endl;
+            *out << "New input: " << input[0] << endl;
         }
 
         boost::mpi::broadcast(world, input, 0);
@@ -389,14 +513,21 @@ int main(int argc, char* argv[])
         if(disctime%a_divider() == 0) { //time for update!
             //acquire the latest measurement
             if(rank == 0) {
-                cout << "Measuring at " <<  disctime/a_divider() << endl;
+                *out << "Measuring at " <<  disctime/a_divider() << endl;
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
-                readVector(measInput, 0, meas, index);
-                std::cout << "Read Measurement:" << std::endl;
-                outputVector(std::cout, meas);
-                std::cout << endl;
-                ++iter;
-                done = iter.IsAtEndOfLine();
+                status = readVector(measInput, 0, meas, index);
+                if(status == -1) {
+                    *out << "Oops, overshot, this usually happens when start time"
+                                << " is greater than the total time. You may want"
+                                << " to check the dimensions of the input "
+                                << "timeseries." << endl;
+                    break;
+                } else if (status == 1) {
+                    done = true;
+                }
+                *out << "Read Measurement:" << std::endl;
+                outputVector(*out, meas);
+                *out << endl;
             }
 
             //send meas and done to other nodes
@@ -413,42 +544,57 @@ int main(int argc, char* argv[])
             //for instance if all the particles go to an unreasonable value like 
             //inf/nan/neg
             if(isnan(ess) || isinf(ess)) {
-                cerr << "Total Weight: " << filter.getFilteredState().getTotalWeight()
+                *out << "Total Weight: " << filter.getFilteredState().getTotalWeight()
                             << endl;
                 aux::vector weights = filter.getFilteredState().getWeights();
-                outputVector(cerr, weights);
+                outputVector(*out, weights);
                 exit(-5);
 //            } else {
-//                cerr << "Total Weight: " << 
+//                *out << "Total Weight: " << 
 //                        filter.getFilteredState().getTotalWeight() << endl;
 //                aux::vector weights = filter.getFilteredState().getWeights();
-//                outputVector(cerr, weights);
+//                outputVector(*out, weights);
             }
 
             //time to resample
-            if(ess < a_num_particles()*a_resampness()) {
+            if(ess < a_num_particles()*a_resampratio() || ess < a_resampnum()) {
                 *out << endl << " ESS: " << ess << ", Deterministic Resampling" 
                             << endl;
                 filter.resample(&resampler);
                 
                 *out << " ESS: " << ess << ", Regularized Resampling" << endl << endl;
                 filter.resample(&resampler_reg);
-            } else
+            } else {
                 *out << endl << " ESS: " << ess << ", No Resampling Necessary!" 
                             << endl;
+            }
         
-            /* Get state */
-            distr = filter.getFilteredState();
-            mu = distr.getDistributedExpectation();
-            cov = distr.getDistributedCovariance();
-            if( rank == 0 ) {
-                /* output measurement */
-                
-                //save states in an image
+            /* Save output - but only if there is somewhere to ouptput to. Not
+             * outputing anything can lead to serious time savings 
+             * */
+
+            if( !a_statefile().empty() ) {
+                *out << "writing: " << a_statefile() << endl;
+                mu = filter.getFilteredState().getDistributedExpectation();
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
-                writeVector(measOutput, 0, model.measure(mu), index);
-                writeVector(stateOutput, 1, mu, index);
-                writeMatrix(covOutput, 1, 2, cov, index);
+                if(rank == 0)
+                    writeVector(stateOutput, 1, mu, index);
+            }
+
+            if( !a_covfile().empty() ) {
+                *out << "writing: " << a_covfile() << endl;
+                cov = filter.getFilteredState().getDistributedCovariance();
+                Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
+                if(rank == 0)
+                    writeMatrix(covOutput, 1, 2, cov, index);
+            }
+
+            if( !a_boldfile().empty() ) {
+                *out << "writing: " << a_boldfile() << endl;
+                Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
+                mu = filter.getFilteredState().getDistributedExpectation();
+                if(rank == 0) 
+                    writeVector(measOutput, 0, model.measure(mu), index);
             }
 
         } else { //no update available, just step update states
@@ -460,15 +606,44 @@ int main(int argc, char* argv[])
         tmp = disctime;
         boost::mpi::broadcast(world, disctime, 0);
         if(tmp != disctime) {
-            cerr << "ERROR ranks have gotten out of sync at " << disctime << endl;
+            *out << "ERROR ranks have gotten out of sync at " << disctime << endl;
             exit(-1);
         }
         disctime++;
     }
-    printf("Index at end: %ld %ld \n", iter.GetIndex()[0], iter.GetIndex()[1]);
 
+    *out << "Index at end: "<< iter.GetIndex()[0] << "," << iter.GetIndex()[1] << endl;
+    *out << "End time: "<< disctime*sampletime/a_divider() << endl;
+                
+    mu = filter.getFilteredState().getDistributedExpectation();
+    cov = filter.getFilteredState().getDistributedCovariance();
 
-    x0 = filter.getFilteredState();
+    *out << "End Mu parameters: " << endl;
+    outputVector(*out, mu);
+    *out << endl;
+    
+    *out << "End Cov parameters: " << endl;
+    outputMatrix(*out, cov);
+    *out << endl;
+           
+//    {
+//        aux::vector weights = filter.getFilteredState().getWeights();
+//        *out << "End Maximum Likelihood: " << endl;
+//        double max = 0;
+//        int maxloc = 0;
+//        for(unsigned int ii=0; ii<weights.size() ; ii++ ){
+//            if(weights[ii] > max){
+//                max = weights[ii];
+//                maxloc = ii;
+//            }
+//        }
+//        outputVector(*out, filter.GetFilteredState(().get(maxloc)));
+//        *out << endl;
+//    }
+
+//    tmpX = filter.getFilteredState();
+    gatherToNode(0, filter.getFilteredState());
+
     if( rank == 0 ) {
         WriterType::Pointer writer = WriterType::New();
         writer->SetImageIO(itk::modNiftiImageIO::New());
@@ -476,7 +651,8 @@ int main(int argc, char* argv[])
         if(!a_serialofile().empty()) {
             std::ofstream serialout(a_serialofile().c_str(), std::ios::binary);
             boost::archive::binary_oarchive outArchive(serialout);
-            outArchive << x0;
+            outArchive << filter.getFilteredState();
+
         }
 
         if(!a_boldfile().empty()) {
@@ -497,6 +673,7 @@ int main(int argc, char* argv[])
             writer->Update();
         }
     }
+
 
   return 0;
 

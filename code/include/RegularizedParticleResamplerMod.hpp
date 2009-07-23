@@ -132,6 +132,8 @@ template <class NT, class KT>
 indii::ml::aux::DiracMixturePdf 
 RegularizedParticleResamplerMod<NT, KT>::resample(indii::ml::aux::DiracMixturePdf& p)
 {
+    boost::mpi::communicator world;
+    const unsigned int rank = world.rank();
     namespace aux = indii::ml::aux;
     namespace ublas = boost::numeric::ublas;
     namespace lapack = boost::numeric::bindings::lapack;
@@ -139,9 +141,6 @@ RegularizedParticleResamplerMod<NT, KT>::resample(indii::ml::aux::DiracMixturePd
     aux::DiracMixturePdf r(p.getDimensions());
     aux::vector x(p.getDimensions());
     double weight = 0;
-    aux::vector placeholder(p.getDimensions());
-    for(unsigned int i = 0 ; i<p.getDimensions() ; i++)
-        placeholder[i] = 1;
 
     /* standardise particles */
     aux::matrix sd(p.getDistributedCovariance());
@@ -151,12 +150,33 @@ RegularizedParticleResamplerMod<NT, KT>::resample(indii::ml::aux::DiracMixturePd
 //    std::cout << std::endl << std::endl;;
     int err = lapack::syev('V', 'U', sd, diag_v);
     assert(err == 0);
+    bool nonreal = false;
 
     for(unsigned int i = 0 ; i<diag_v.size() ; i++) {
         if(diag_v(i) < 0) {
-            diag_v(i) = -diag_v(i);
-            std::cerr << "Fixing diagnal matrix to prevent non-real solution" 
-                        << std::endl;
+            nonreal = true;
+            diag_v(i) = 0;
+            if(rank == 0) {
+                std::cout << "Fixing diagnal matrix to prevent non-real solution"
+                            << std::endl <<  "Covariance:" << std::endl;
+                outputMatrix(std::cout, p.getDistributedCovariance());
+                std::cout << std::endl << "Q:" << std::endl;
+                outputMatrix(std::cout, sd);
+                std::cout << std::endl << "D" << std::endl;
+                outputVector(std::cout, diag_v);
+                std::cout << std::endl << "Q*D*QT" << std::endl;
+                ublas::diagonal_matrix<double, ublas::column_major, 
+                            ublas::unbounded_array<double> > diag_dm(diag_v.size(), 
+                            diag_v.data());
+                aux::matrix diag_m(diag_dm);
+                aux::matrix tmp = prod(sd,diag_dm);
+                tmp = prod(tmp, sd);
+                outputMatrix(std::cout, tmp);
+                std::cout << std::endl << std::endl;;
+                for (size_t jj = 0; jj < p.getSize(); jj++) {
+                  std::cout << p.getWeight(jj) << " " << p.get(jj) << std::endl;
+                }
+            }
         }
     }
     diag_v = element_sqrt(diag_v);
@@ -175,14 +195,22 @@ RegularizedParticleResamplerMod<NT, KT>::resample(indii::ml::aux::DiracMixturePd
 //    tmp = prod(sd, sd);
 //    std::cout << "This matrix should be equal to the first one printed" << std::endl;
 //    outputMatrix(std::cout, tmp);
-
+    size_t badcount = 0;
     /* rebuild distribution with kernel noise */
     for (unsigned int i = 0; i < p.getSize(); i++) {
         noalias(x) = p.get(i) + prod(sd, K.sample() * N.sample(
                     p.getDimensions()));
         weight = p.getWeight(i);
-        if(model != NULL) model->reweight(x, weight);
+        if(model != NULL) {
+            if(model->reweight(x, weight))
+                badcount++;
+            
+        }
         r.add(x, weight);
+    }
+    if(badcount != 0) {
+        std::cerr << "Reweighted " << badcount << "/" << p.getSize() << "particles"
+                    << std::endl;
     }
 
     return r;
