@@ -107,8 +107,8 @@ int BoldModel::transition(aux::vector& dustin,
                     - (dustin[f_t] - 1.) / dustin[indexof(TAU_F,ii)];
         dustin[s_t] += dot3*delta_t;
 
-        if(isnan(dustin[s_t]) || isinf(dustin[s_t]) || dustin[s_t] < 0) {
-            dustin[s_t] = 1;
+        if(isnan(dustin[s_t]) || isinf(dustin[s_t])) {
+            dustin[s_t] = 0;
             return -3;
         }
        
