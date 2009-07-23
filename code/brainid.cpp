@@ -59,7 +59,7 @@ void gatherToNode(unsigned int dest, aux::DiracMixturePdf& input) {
   std::vector< std::vector< DiracPdf > > xsFull;
   std::vector< aux::vector > wsFull;
 
-//  unsigned int initialSize = input.getDistributedSize();
+  unsigned int initialSize = input.getDistributedSize();
   aux::vector initialMu = input.getDistributedExpectation();
   aux::matrix initialCov = input.getDistributedCovariance();
 
@@ -84,7 +84,7 @@ void gatherToNode(unsigned int dest, aux::DiracMixturePdf& input) {
     input.clear();
   }
   
-//  unsigned int endSize = input.getDistributedSize();
+  unsigned int endSize = input.getDistributedSize();
   aux::vector endMu = input.getDistributedExpectation();
   aux::matrix endCov = input.getDistributedCovariance();
   
@@ -515,7 +515,7 @@ int main(int argc, char* argv[])
             //time to resample
             if(ess < a_num_particles()*a_resampratio() || ess < a_resampnum()) {
                 cov = filter.getFilteredState().getDistributedCovariance();
-                *out << endl << " ESS: " << ess << ", Deterministic Resampling" 
+                *out << endl << " ESS: " << ess << ", Stratified Resampling" 
                             << endl;
                 *out << "Covariance prior to resampling" << endl;
                 outputMatrix(*out, cov);
