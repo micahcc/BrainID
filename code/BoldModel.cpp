@@ -9,7 +9,7 @@
 #include <ctime>
 #include <iomanip>
 
-#define EXPONENTIAL .4
+#define EXPONENTIAL .2
 
 BoldModel::BoldModel(bool expweight, bool avgweight, size_t sections, aux::vector u) :
             GVAR_SIZE(4), LVAR_SIZE(7), SIMUL_STATES(sections), 
@@ -138,9 +138,7 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
     //of the program, so no need to calculate over and over
     static aux::symmetric_matrix cov(1);
     cov(0,0) = 1;
-#ifndef EXPONENTIAL
     static aux::GaussianPdf rng(aux::zero_vector(MEAS_SIZE), cov);
-#endif 
     aux::vector location(MEAS_SIZE);
 //    fprintf(stderr, "Actual:\n");
 //    outputVector(std::cerr, y);
@@ -165,12 +163,11 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
 //    fprintf(stderr, "\n");
 //    fprintf(stderr, "Weight calculated: %e\n", rng.densityAt(location));
 //    return out;
-#ifdef EXPONENTIAL
-//  use exponential distribution with mean = lambda = .01
-    return gsl_ran_exponential_pdf(fabs(location(0)), EXPONENTIAL);
-#else
-    return rng.densityAt(location);
-#endif
+    if(weightf == EXP) {
+        return gsl_ran_exponential_pdf(aux::norm< 2 >(location), EXPONENTIAL);
+    } else {
+        return rng.densityAt(location);
+    }
 }
 
 
@@ -315,12 +312,13 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
 //return weight modified?
 bool BoldModel::reweight(aux::vector& checkme, double& weightout)
 {
-    size_t count;
+    size_t count = 0;
     for(unsigned int j = 0 ; j < checkme.size() ; j++) {
         //only S_T is allowed to be negative
         if(indexof(S_T, count) == j) {
             count++;
         } else if(checkme[j] < 0) {
+            fprintf(stderr, "Fixing negative parameter: %u\n", j);
             aux::vector placeholder(checkme.size());
             for(unsigned int i = 0 ; i<checkme.size() ; i++)
                 placeholder[i] = 1;

@@ -126,6 +126,11 @@ void writeSections4D(std::list< SectionType >& active_voxels, std::string prefix
     //put all the time iterators back to 0
     resetVoxels(active_voxels);
     
+    Image4DType::SpacingType space4;
+    space4[0] = 1.0;
+    space4[1] = 1.0;
+    space4[2] = 1.0;
+    
 //    {
 //    double tmp;
 //    itk::ExposeMetaData<double>(dic, "TemporalResolution", tmp);
@@ -160,12 +165,13 @@ void writeSections4D(std::list< SectionType >& active_voxels, std::string prefix
                             label, im) ); //section, dictionary
                 imageout_list.back()->GetMetaDataDictionary()["TemporalResolution"] =
                             dic["TemporalResolution"];
-//                {
-//                double tmp;
-//                itk::ExposeMetaData<double>(imageout_list.back()->GetMetaDataDictionary()
-//                            , "TemporalResolution", tmp);
-//                fprintf(stderr, "res: %f\n", tmp);
-//                }
+                {
+                    double tmp;
+                    itk::ExposeMetaData(imageout_list.back()->GetMetaDataDictionary()
+                                , "TemporalResolution", tmp);
+                    space4[3] = tmp;
+                    imageout_list.back()->SetSpacing(space4);
+                }
                 image_it = imageout_list.end();
                 image_it--;
 
@@ -231,8 +237,21 @@ void writeTimeseries(std::list< SectionType >& active_voxels,
     out_region.SetIndex(out_index);
     timeseries_out->SetRegions( out_region );
     timeseries_out->Allocate();
+
+    //set image information
     timeseries_out->GetMetaDataDictionary()["TemporalResolution"] 
                 = dict["TemporalResolution"];
+    {
+        Image4DType::SpacingType space4;
+        space4[0] = 1.0;
+        space4[1] = 1.0;
+        space4[2] = 1.0;
+        double tmp;
+        itk::ExposeMetaData(timeseries_out->GetMetaDataDictionary()
+                    , "TemporalResolution", tmp);
+        space4[3] = tmp;
+        timeseries_out->SetSpacing(space4);
+    }
     
     //put all the time iterators back to 0
     resetVoxels(active_voxels);
@@ -314,6 +333,10 @@ void writeSectionsTimeseries(std::list< SectionType >& active_voxels,
     double sum;
     size_t count;
     std::ostringstream oss;
+    Image4DType::SpacingType space4;
+    space4[0] = 1.0;
+    space4[1] = 1.0;
+    space4[2] = 1.0;
     
     std::list< ImageTimeSeries::Pointer > timeseries_out;
     
@@ -402,6 +425,13 @@ void writeSectionsTimeseries(std::list< SectionType >& active_voxels,
                             label, slicecount[slicecount_i]) ); //section, slice
                 timeseries_out.back()->GetMetaDataDictionary()["TemporalResolution"]
                             = dict["TemporalResolution"];
+                {
+                    double tmp;
+                    itk::ExposeMetaData(timeseries_out.back()->GetMetaDataDictionary()
+                                , "TemporalResolution", tmp);
+                    space4[3] = tmp;
+                    timeseries_out.back()->SetSpacing(space4);
+                }
                 image_it = timeseries_out.end();
                 image_it--;
             }
@@ -501,13 +531,11 @@ void writeVolume(Image4DType::Pointer input, Image3DType::Pointer labels,
     Image3DType::IndexType out_index;
     Image3DType::SizeType out_size;
 
-    out_size[0] = input->GetRequestedRegion().GetSize()[0];
-    out_size[1] = input->GetRequestedRegion().GetSize()[1];
-    out_size[2] = input->GetRequestedRegion().GetSize()[2];
+    for(int i = 0 ; i < 4 ; i++) 
+        out_size[i] = input->GetRequestedRegion().GetSize()[i];
     
-    out_index[0] = input->GetRequestedRegion().GetIndex()[0];
-    out_index[1] = input->GetRequestedRegion().GetIndex()[1];
-    out_index[2] = input->GetRequestedRegion().GetIndex()[2];
+    for(int i = 0 ; i < 4 ; i++) 
+        out_index[i] = input->GetRequestedRegion().GetIndex()[i];
     
     out_region.SetSize(out_size);
     out_region.SetIndex(out_index);
@@ -521,9 +549,8 @@ void writeVolume(Image4DType::Pointer input, Image3DType::Pointer labels,
     out_it.GoToBegin();
 
     Image3DType::SpacingType space;
-    space[0] = input->GetSpacing()[0];
-    space[1] = input->GetSpacing()[1];
-    space[2] = input->GetSpacing()[2];
+    for( int i = 0 ; i < 4 ; i++ )
+        space[i] = input->GetSpacing()[i];
     
     Image3DType::DirectionType direc = labels->GetDirection();
 //    direc(0, 0) = input->GetDirection()(0, 0);

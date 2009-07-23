@@ -172,8 +172,17 @@ int main(int argc, char* argv[])
     vul_arg<string> a_boldfile("-yo", "Where to put bold image file", "bold.nii.gz");
     vul_arg<string> a_statefile("-xo", "Where to put state image file","state.nii.gz");
     vul_arg<string> a_covfile("-co", "Where to put covariance image file", "");
+        
+    if(rank == 0) {
+        for(int i = 0 ; i < argc ; i++ ) {
+            cout << argv[i] << " ";
+        }
+        cout << endl;
+    }
 
     vul_arg_parse(argc, argv);
+
+    
     if(rank == 0) {
         out = &cout;
     } else {
@@ -363,19 +372,20 @@ int main(int argc, char* argv[])
         }
 #endif //PARTOUT
         
+        /* time for update */
+        *out << "t= " << disctime*sampletime/a_divider() << ", ";
+        
         //TODO maybe this should be split up to prevent ranks from having
         //to move in lock-step
         if(rank == 0 && !fin.eof() && disctime*sampletime/a_divider() >= nextinput) {
             fin >> input[0];
             fin >> nextinput;
+            cout << "New input: " << input[0] << endl;
         }
 
         boost::mpi::broadcast(world, input, 0);
         model.setinput(input);
 
-        /* time for update */
-        *out << "t= " << disctime*sampletime/a_divider() << ", ";
-        
         if(disctime%a_divider() == 0) { //time for update!
             //acquire the latest measurement
             if(rank == 0) {
@@ -403,25 +413,29 @@ int main(int argc, char* argv[])
             //for instance if all the particles go to an unreasonable value like 
             //inf/nan/neg
             if(isnan(ess) || isinf(ess)) {
-                cerr << "Total Weight: " << filter.getFilteredState().getTotalWeight() << endl;
+                cerr << "Total Weight: " << filter.getFilteredState().getTotalWeight()
+                            << endl;
                 aux::vector weights = filter.getFilteredState().getWeights();
                 outputVector(cerr, weights);
                 exit(-5);
 //            } else {
-//                cerr << "Total Weight: " << filter.getFilteredState().getTotalWeight() << endl;
+//                cerr << "Total Weight: " << 
+//                        filter.getFilteredState().getTotalWeight() << endl;
 //                aux::vector weights = filter.getFilteredState().getWeights();
 //                outputVector(cerr, weights);
             }
 
             //time to resample
             if(ess < a_num_particles()*a_resampness()) {
-                *out << endl << " ESS: " << ess << ", Deterministic Resampling" << endl;
+                *out << endl << " ESS: " << ess << ", Deterministic Resampling" 
+                            << endl;
                 filter.resample(&resampler);
                 
                 *out << " ESS: " << ess << ", Regularized Resampling" << endl << endl;
                 filter.resample(&resampler_reg);
             } else
-                *out << endl << " ESS: " << ess << ", No Resampling Necessary!" << endl;
+                *out << endl << " ESS: " << ess << ", No Resampling Necessary!" 
+                            << endl;
         
             /* Get state */
             distr = filter.getFilteredState();
