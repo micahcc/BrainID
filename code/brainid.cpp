@@ -59,7 +59,7 @@ void gatherToNode(unsigned int dest, aux::DiracMixturePdf& input) {
   std::vector< std::vector< DiracPdf > > xsFull;
   std::vector< aux::vector > wsFull;
 
-  unsigned int initialSize = input.getDistributedSize();
+//  unsigned int initialSize = input.getDistributedSize();
   aux::vector initialMu = input.getDistributedExpectation();
   aux::matrix initialCov = input.getDistributedCovariance();
 
@@ -84,7 +84,7 @@ void gatherToNode(unsigned int dest, aux::DiracMixturePdf& input) {
     input.clear();
   }
   
-  unsigned int endSize = input.getDistributedSize();
+//  unsigned int endSize = input.getDistributedSize();
   aux::vector endMu = input.getDistributedExpectation();
   aux::matrix endCov = input.getDistributedCovariance();
   
@@ -271,7 +271,7 @@ int main(int argc, char* argv[])
     }
     
     boost::mpi::broadcast(world, meassize, 0);
-    BoldModel model(a_expweight(), a_avgweight(), a_weightvar(), meassize);
+    BoldModel model(a_expweight(), a_avgweight(), meassize, a_weightvar());
     
     /* Full Distribution */
     aux::DiracMixturePdf tmpX(model.getStateSize());
@@ -475,7 +475,7 @@ int main(int argc, char* argv[])
                                 << " is greater than the total time. You may want"
                                 << " to check the dimensions of the input "
                                 << "timeseries." << endl;
-                    return -1;
+                    exit(-7);
                 } else if (status == 1) {
                     done = true;
                 }
@@ -502,18 +502,29 @@ int main(int argc, char* argv[])
                 aux::vector weights = filter.getFilteredState().getWeights();
                 outputVector(*out, weights);
                 exit(-5);
-//            } else {
-//                *out << "Total Weight: " << 
-//                        filter.getFilteredState().getTotalWeight() << endl;
+            } else {
+                double totalweight = filter.getFilteredState().getTotalWeight();
+                *out << "Total Weight: " << totalweight << endl;
+                if(totalweight >= 1e20 || totalweight <= 1e-20) {
+                    filter.getFilteredState().distributedNormalise();
+                }
 //                aux::vector weights = filter.getFilteredState().getWeights();
 //                outputVector(*out, weights);
             }
 
             //time to resample
             if(ess < a_num_particles()*a_resampratio() || ess < a_resampnum()) {
+                cov = filter.getFilteredState().getDistributedCovariance();
                 *out << endl << " ESS: " << ess << ", Deterministic Resampling" 
                             << endl;
+                *out << "Covariance prior to resampling" << endl;
+                outputMatrix(*out, cov);
+                *out << endl;
                 filter.resample(&resampler);
+                cov = filter.getFilteredState().getDistributedCovariance();
+                *out << "Covariance after to resampling" << endl;
+                outputMatrix(*out, cov);
+                *out << endl;
                 
                 *out << " ESS: " << ess << ", Regularized Resampling" << endl << endl;
                 filter.resample(&resampler_reg);

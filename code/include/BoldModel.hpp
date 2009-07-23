@@ -37,7 +37,7 @@ class BoldModel : public indii::ml::filter::ParticleFilterModel<double>
 public:
     ~BoldModel();
     BoldModel(bool weightf = false, bool tweight = false,
-                double var = 3.92e-6, size_t sections = 1,
+                size_t sections = 1, double var = 3.92e-6,
                 aux::vector u = aux::zero_vector(1));
 
     virtual unsigned int getStateSize() { return STATE_SIZE; };
@@ -75,7 +75,8 @@ private:
     //the standard deviations for the parameters theta, which are
     //theoretically constant for the whole volume
 //    aux::vector theta_sigmas;
-    
+    aux::vector getdefault();
+
     //storage for the current input
     aux::vector input;
 

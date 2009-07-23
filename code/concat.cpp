@@ -24,11 +24,11 @@ int main(int argc, char* argv[])
         exit(2);
     }
 
-    itk::ImageFileReader< itk::OrientedImage< double, 4> >::Pointer  reader = 
-                itk::ImageFileReader< itk::OrientedImage< double, 4> >::New();
-    reader->SetImageIO(itk::modNiftiImageIO::New());
     std::vector< itk::OrientedImage< double, 4>::Pointer > images;
     for(int ii = 2 ; ii < argc ; ii++) {
+        itk::ImageFileReader< itk::OrientedImage< double, 4> >::Pointer  reader = 
+                    itk::ImageFileReader< itk::OrientedImage< double, 4> >::New();
+        reader->SetImageIO(itk::modNiftiImageIO::New());
         printf("%i: %s\n", ii-2, argv[ii]);
         reader->SetFileName( argv[ii] );
         reader->Update();

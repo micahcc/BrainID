@@ -185,8 +185,8 @@ typename itk::OrientedImage< T, 4 >::Pointer prune(
     typedef itk::OrientedImage< T, 4>  ImageType;
     
     /* Check sizes */
-    if(stop >= in->GetRequestedRegion().GetSize()[dir]) 
-        stop = in->GetRequestedRegion().GetSize()[dir]-1;
+    if(stop >= (int)in->GetRequestedRegion().GetSize()[dir]) 
+        stop = (int)in->GetRequestedRegion().GetSize()[dir]-1;
     
     if(start < 0)
         start = 0;

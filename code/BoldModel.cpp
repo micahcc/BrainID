@@ -12,8 +12,8 @@
 #define EXPONENTIAL_VAR .2
 #define GAUSSIAN_VAR .2
 
-BoldModel::BoldModel(bool expweight, bool avgweight, double var, 
-            size_t sections, aux::vector u) : 
+BoldModel::BoldModel(bool expweight, bool avgweight, size_t sections, double var,
+            aux::vector u) : 
 
             GVAR_SIZE(4), LVAR_SIZE(7), SIMUL_STATES(sections), 
             STATE_SIZE(GVAR_SIZE+LVAR_SIZE*SIMUL_STATES), MEAS_SIZE(SIMUL_STATES),
@@ -47,6 +47,27 @@ BoldModel::~BoldModel()
 
 }
 
+aux::vector BoldModel::getdefault()
+{
+    aux::vector fillme(STATE_SIZE);
+    //set the averages of the variables
+    for(unsigned int ii = 0 ; ii < SIMUL_STATES; ii++) {
+        fillme[indexof(TAU_S, ii)] = 4.98;
+        fillme[indexof(TAU_F, ii)] = 8.31;
+        fillme[indexof(EPSILON, ii)] = 0.069;
+        fillme[indexof(TAU_0, ii)] = 8.38;
+        fillme[indexof(ALPHA, ii)] = .189;
+        fillme[indexof(E_0, ii)] = .635;
+        fillme[indexof(V_0, ii)] = 1.49e-2;
+
+        fillme[indexof(V_T,ii)] = 1;
+        fillme[indexof(Q_T,ii)] = 1;
+        fillme[indexof(S_T,ii)] = 0;
+        fillme[indexof(F_T,ii)]= 1;
+    }
+    return fillme;
+}
+
 //TODO, I would like to modify these functions so that the vector s
 //will just be modified in place, which would reduce the amount of copying
 //necessary. This might not work though, because Particle Filter likes to
@@ -63,6 +84,7 @@ int BoldModel::transition(aux::vector& s,
 int BoldModel::transition(aux::vector& dustin,
         const double time, const double delta_t, const aux::vector& u_t)
 {
+    static aux::vector defaultvector = getdefault();
 //    std::cerr  <<"Printing input state" << std::endl;
 //    outputVector(std::cerr, dustin);
 //    std::cerr << std::endl;
@@ -84,7 +106,7 @@ int BoldModel::transition(aux::vector& dustin,
         dustin[v_t] += dot1*delta_t;
         
         if(isnan(dustin[v_t]) || isinf(dustin[v_t]) || dustin[v_t] < 0) {
-            dustin[v_t] = 1;
+            dustin = defaultvector;
             return -1;
         }
 
@@ -99,7 +121,7 @@ int BoldModel::transition(aux::vector& dustin,
         dustin[q_t] += dot2*delta_t;
         
         if(isnan(dustin[q_t]) || isinf(dustin[q_t]) || dustin[q_t] < 0) {
-            dustin[q_t] = 1;
+            dustin = defaultvector;
             return -2;
         }
 
@@ -111,7 +133,7 @@ int BoldModel::transition(aux::vector& dustin,
         dustin[s_t] += dot3*delta_t;
 
         if(isnan(dustin[s_t]) || isinf(dustin[s_t])) {
-            dustin[s_t] = 0;
+            dustin = defaultvector;
             return -3;
         }
        
@@ -120,7 +142,7 @@ int BoldModel::transition(aux::vector& dustin,
         dustin[f_t] += dustin[s_t]*delta_t;
         
         if(dustin[f_t] < 0 || isnan(dustin[f_t]) || isinf(dustin[f_t]) ) {
-            dustin[f_t] = 1;
+            dustin = defaultvector;
             return -4;
         }
     }
@@ -319,6 +341,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
 //return weight modified?
 bool BoldModel::reweight(aux::vector& checkme, double& weightout)
 {
+    static aux::vector defaultvector = getdefault();
     size_t count = 0;
     for(unsigned int j = 0 ; j < checkme.size() ; j++) {
         //only S_T is allowed to be negative
@@ -328,6 +351,7 @@ bool BoldModel::reweight(aux::vector& checkme, double& weightout)
 //            for(unsigned int i = 0 ; i<checkme.size() ; i++)
 //                checkme[i] = 1;
             weightout = 0.0;
+            checkme = defaultvector;
             return true;
         } 
     }
