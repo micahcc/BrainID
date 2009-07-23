@@ -22,6 +22,7 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 
+#include "tools.h"
 #include "modNiftiImageIO.h"
 #include "BoldModel.hpp"
 #include "RegularizedParticleResamplerMod.hpp"
@@ -42,14 +43,11 @@ using namespace std;
 //namespace opts = boost::program_options;
 namespace aux = indii::ml::aux;
 
-/* Typedefs */
 typedef double ImagePixelType;
-typedef itk::Image< ImagePixelType,  4 > Image4DType;
+typedef itk::OrientedImage< ImagePixelType,  4 > Image4DType;
 typedef itk::ImageFileReader< Image4DType >  ImageReaderType;
 typedef itk::ImageFileWriter< Image4DType >  WriterType;
 
-#define TIMEDIM 3
-#define SERIESDIM 0
 
 void gatherToNode(unsigned int dest, aux::DiracMixturePdf& input) {
   boost::mpi::communicator world;
@@ -110,28 +108,10 @@ void gatherToNode(unsigned int dest, aux::DiracMixturePdf& input) {
 //    cout << endl;
 //  }
   assert (initialSize == endSize);
-  assert (initialMu == endMu);
-  assert (initialCov == endCov);
+//  assert (initialMu == endMu);
+//  assert (initialCov == endCov);
 }
 
-
-//write a vector to a dimension of an image
-void writeVector(Image4DType::Pointer out, int dir, const aux::vector& input, 
-            Image4DType::IndexType start)
-{
-    itk::ImageLinearIteratorWithIndex<Image4DType> 
-                it(out, out->GetRequestedRegion());
-    it.SetDirection(dir);
-    it.SetIndex(start);
-
-    size_t i;
-    for(i = 0 ; i < input.size() && !it.IsAtEndOfLine() ; i++) {
-        it.Set(input[i]);
-        ++it;
-    }
-
-    assert(i==input.size() && it.IsAtEndOfLine());
-}
 
 //write particles out to a dimesion of an image
 void writeParticles(Image4DType::Pointer out, 
@@ -141,55 +121,7 @@ void writeParticles(Image4DType::Pointer out,
     
     for(size_t i = 0 ; i<elems.size() ; i++) {
         pos[2] = i;
-        writeVector(out, 1, elems[i].getExpectation(), pos);
-    }
-}
-
-//dir1 should be the first matrix dimension, dir2 the second
-void writeMatrix(Image4DType::Pointer out, int dir1, int dir2, 
-            const aux::matrix& input, Image4DType::IndexType start)
-{
-    itk::ImageSliceIteratorWithIndex< Image4DType > 
-                it(out, out->GetRequestedRegion());
-    it.SetFirstDirection(dir1);
-    it.SetSecondDirection(dir2);
-    
-    it.SetIndex(start);
-
-    for(size_t j = 0 ; j < input.size2() && !it.IsAtEndOfSlice() ; j++) {
-        for(size_t i = 0 ; i < input.size1() && !it.IsAtEndOfLine() ; i++) {
-            it.Set(input(i,j));
-        }
-        it.NextLine();
-    }
-}
-
-//read dimension of image into a vector
-int readVector(const Image4DType::Pointer in, int dir, aux::vector& input, 
-            Image4DType::IndexType start)
-{
-    itk::ImageLinearConstIteratorWithIndex<Image4DType> 
-                it(in, in->GetRequestedRegion());
-    it.SetDirection(dir);
-    it.SetIndex(start);
-
-    if((unsigned int)start[0] >= in->GetRequestedRegion().GetSize()[0] || 
-                (unsigned int)start[1] >= in->GetRequestedRegion().GetSize()[1] || 
-                (unsigned int)start[2] >= in->GetRequestedRegion().GetSize()[2] || 
-                (unsigned int)start[3] >= in->GetRequestedRegion().GetSize()[3]) {
-        return -1;
-    }
-
-    size_t i;
-    for(i = 0 ; i < input.size() && !it.IsAtEndOfLine() ; i++) {
-        input[i] = it.Get();
-    }
-
-    if((unsigned int)start[TIMEDIM]+1 >= 
-                in->GetRequestedRegion().GetSize()[TIMEDIM]) {
-        return 1;
-    } else {
-        return 0;
+        writeVector<double>(out, 1, elems[i].getExpectation(), pos);
     }
 }
 
@@ -250,6 +182,8 @@ int main(int argc, char* argv[])
                 false);
     vul_arg<double> a_resampratio("-rr", "Ratio of total particles below which ESS "
                 "must reach for the filter to resample. Ex .8 Ex2. .34", 0);
+    vul_arg<double> a_weightvar("-weightvar", "Variance of weighting function", 
+                3.92e-6);
     vul_arg<unsigned int> a_resampnum("-rn", "Absolute ESS below which to resample"
                 , 100);
     vul_arg<string> a_boldfile("-yo", "Where to put bold image file", "");
@@ -282,8 +216,6 @@ int main(int argc, char* argv[])
     }
 
 
-    
-
     ///////////////////////////////////////////////////////////////////////////////
     //Done Parsing, starting main part of code
     ///////////////////////////////////////////////////////////////////////////////
@@ -298,9 +230,10 @@ int main(int argc, char* argv[])
     Image4DType::Pointer measInput, measOutput, stateOutput, covOutput, partOutput;
 
     int meassize = 0;
+    int startlocation = -1;
+    int endlocation = -1;
 
     if(rank == 0) {
-        
         /* Open up the input */
         reader = ImageReaderType::New();
         reader->SetImageIO(itk::modNiftiImageIO::New());
@@ -338,7 +271,7 @@ int main(int argc, char* argv[])
     }
     
     boost::mpi::broadcast(world, meassize, 0);
-    BoldModel model(a_expweight(), a_avgweight(), meassize);
+    BoldModel model(a_expweight(), a_avgweight(), a_weightvar(), meassize);
     
     /* Full Distribution */
     aux::DiracMixturePdf tmpX(model.getStateSize());
@@ -354,14 +287,20 @@ int main(int argc, char* argv[])
             std::ifstream serialin(a_serialifile().c_str(), std::ios::binary);
             boost::archive::binary_iarchive inArchive(serialin);
             inArchive >> tmpX;
-            if(a_num_particles() != tmpX.getSize())
-                *out << "Number of particles changed to " << tmpX.getSize();
-            a_num_particles() = tmpX.getSize();
+            if(a_num_particles() != tmpX.getSize()) {
+                *out << "Number of particles changed to " << a_num_particles();
+                *out << ", redrawing from distribution" << endl;
+                aux::DiracMixturePdf tmpX2(model.getStateSize());
+                for(size_t i=0 ; i<a_num_particles() ; i++) {
+                    tmpX2.add(tmpX.sample(), 1.0);
+                }
+                tmpX = tmpX2;
+            }
 //        } else if(cheating) {
 //            model.generatePrior(tmpX, a_num_particles(), cheat);
         } else {
             *out << "Generating prior" << endl;
-            model.generatePrior(tmpX, a_num_particles());
+            model.generatePrior(tmpX, a_num_particles(), 9); //3*sigma, squared
 //            aux::matrix tmp = tmpX.getDistributedCovariance();
 //            *out << "Covariance: " << endl;
 //            outputMatrix(*out, tmp);
@@ -426,7 +365,6 @@ int main(int argc, char* argv[])
     
     /* Create the filter */
     indii::ml::filter::ParticleFilter<double> filter(&model, tmpX);
-    
 
     /* Output the intial parameters */
     aux::vector mu(model.getStateSize());
@@ -464,6 +402,10 @@ int main(int argc, char* argv[])
     int status = 0;
     if(rank == 0 && !a_stimfile().empty()) {
         fin.open(a_stimfile().c_str());
+        if(!fin.is_open()) {
+            *out << "Failed to open file " << a_stimfile() << endl;
+            return -1;
+        }
         fin >> nextinput;
     }
 
@@ -471,14 +413,18 @@ int main(int argc, char* argv[])
      * Fast Forward in time to start time
      */
     while(disctime*sampletime/a_divider() < a_starttime()) {
-        *out << "FAST FORWARD: t= " << disctime*sampletime/a_divider() << ", " 
-                    << endl;
         if(rank == 0 && !fin.eof() && disctime*sampletime/a_divider() 
                     >= nextinput) {
+            *out << "FAST FORWARD: t= " << disctime*sampletime/a_divider() << ", " 
+                        << endl;
             fin >> input[0];
             fin >> nextinput;
-            *out << "New input: " << input[0] << endl;
+            *out << "New input: " << input[0] << " Next at: " << nextinput << endl;
         }
+        /* Inform the filter of the current time, this needs to be the last
+         * time that the previous program would have used, so set it before
+         * disctime++ */
+        filter.setTime(disctime*sampletime/a_divider());
         disctime++;
     }
 
@@ -504,28 +450,35 @@ int main(int argc, char* argv[])
         if(rank == 0 && !fin.eof() && disctime*sampletime/a_divider() >= nextinput) {
             fin >> input[0];
             fin >> nextinput;
-            *out << "New input: " << input[0] << endl;
+            *out << "New input: " << input[0] << " Next at: " << nextinput << endl;
         }
 
         boost::mpi::broadcast(world, input, 0);
         model.setinput(input);
 
         if(disctime%a_divider() == 0) { //time for update!
+
+            /* Used to cut out all but the relevent parts of the output
+             * images at the end. The reason that this is necessary is that,
+             * depending on the timestep, the length of the output length may not
+             * be predictable without actually looping through. */
+            if(startlocation == -1) startlocation = disctime/a_divider();
+            endlocation = disctime/a_divider();
+            
             //acquire the latest measurement
             if(rank == 0) {
                 *out << "Measuring at " <<  disctime/a_divider() << endl;
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
-                status = readVector(measInput, 0, meas, index);
+                status = readVector<double>(measInput, 0, meas, index);
                 if(status == -1) {
                     *out << "Oops, overshot, this usually happens when start time"
                                 << " is greater than the total time. You may want"
                                 << " to check the dimensions of the input "
                                 << "timeseries." << endl;
-                    break;
+                    return -1;
                 } else if (status == 1) {
                     done = true;
                 }
-                *out << "Read Measurement:" << std::endl;
                 outputVector(*out, meas);
                 *out << endl;
             }
@@ -578,7 +531,7 @@ int main(int argc, char* argv[])
                 mu = filter.getFilteredState().getDistributedExpectation();
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 if(rank == 0)
-                    writeVector(stateOutput, 1, mu, index);
+                    writeVector<double>(stateOutput, 1, mu, index);
             }
 
             if( !a_covfile().empty() ) {
@@ -586,7 +539,7 @@ int main(int argc, char* argv[])
                 cov = filter.getFilteredState().getDistributedCovariance();
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 if(rank == 0)
-                    writeMatrix(covOutput, 1, 2, cov, index);
+                    writeMatrix<double>(covOutput, 1, 2, cov, index);
             }
 
             if( !a_boldfile().empty() ) {
@@ -594,7 +547,7 @@ int main(int argc, char* argv[])
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 mu = filter.getFilteredState().getDistributedExpectation();
                 if(rank == 0) 
-                    writeVector(measOutput, 0, model.measure(mu), index);
+                    writeVector<double>(measOutput, 0, model.measure(mu), index);
             }
 
         } else { //no update available, just step update states
@@ -655,21 +608,27 @@ int main(int argc, char* argv[])
 
         }
 
+        /* Bold */
         if(!a_boldfile().empty()) {
             writer->SetFileName(a_boldfile());  
-            writer->SetInput(measOutput);
+            writer->SetInput(prune<double>(measOutput, TIMEDIM, startlocation, 
+                        endlocation));
             writer->Update();
         }
 
+        /* State */
         if(!a_statefile().empty()) {
             writer->SetFileName(a_statefile());  
-            writer->SetInput(stateOutput);
+            writer->SetInput(prune<double>(stateOutput, TIMEDIM, startlocation, 
+                        endlocation));
             writer->Update();
         }
         
+        /* Covariance */
         if(!a_covfile().empty()) {
             writer->SetFileName(a_covfile());  
-            writer->SetInput(covOutput);
+            writer->SetInput(prune<double>(covOutput, TIMEDIM, startlocation, 
+                        endlocation));
             writer->Update();
         }
     }

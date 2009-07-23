@@ -154,7 +154,9 @@ RegularizedParticleResamplerMod<NT, KT>::resample(indii::ml::aux::DiracMixturePd
     for(unsigned int i = 0 ; i<diag_v.size() ; i++) {
         if(diag_v(i) < 0) {
             std::cerr << "ERROR diagnal matrix gives non-real solution" << std::endl;
-            exit(-1);
+            //outputMatrix(std::cerr, p.getDistributedCovariance());
+            //exit(-1);
+            diag_v(i) = 0;
         }
     }
 

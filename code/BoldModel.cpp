@@ -9,17 +9,20 @@
 #include <ctime>
 #include <iomanip>
 
-#define EXPONENTIAL .2
+#define EXPONENTIAL_VAR .2
+#define GAUSSIAN_VAR .2
 
-BoldModel::BoldModel(bool expweight, bool avgweight, size_t sections, aux::vector u) :
+BoldModel::BoldModel(bool expweight, bool avgweight, double var, 
+            size_t sections, aux::vector u) : 
+
             GVAR_SIZE(4), LVAR_SIZE(7), SIMUL_STATES(sections), 
             STATE_SIZE(GVAR_SIZE+LVAR_SIZE*SIMUL_STATES), MEAS_SIZE(SIMUL_STATES),
-            INPUT_SIZE(1), segments(sections)
+            INPUT_SIZE(1)//, segments(sections)
 {
-    //determines the layout of the state variables
-    for(unsigned int i = 0 ; i<segments.size() ; i++) {
-        segments[i].index = i*7;
-    }
+//    //determines the layout of the state variables
+//    for(unsigned int i = 0 ; i<segments.size() ; i++) {
+//        segments[i].index = i*7;
+//    }
 
     //this is only a problem if the user put in a bad vector
     //in which case the u will be overwritten with 0's
@@ -28,8 +31,8 @@ BoldModel::BoldModel(bool expweight, bool avgweight, size_t sections, aux::vecto
     else 
         this->input = u;
     
-    var_e = 3.92e-6;
-    sigma_e = sqrt(var_e);
+    this->var_e = var;
+    this->sigma_e = sqrt(var);
 
     if(expweight) 
         this->weightf = EXP;;
@@ -143,9 +146,6 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
 {
     //these are really constant throughout the execution
     //of the program, so no need to calculate over and over
-    static aux::symmetric_matrix cov(1);
-    cov(0,0) = 1;
-    static aux::GaussianPdf rng(aux::zero_vector(MEAS_SIZE), cov);
     aux::vector location(MEAS_SIZE);
 //    fprintf(stderr, "Actual:\n");
 //    outputVector(std::cerr, y);
@@ -160,7 +160,7 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
     //from y[i] = NaN1 elements to 0, thus eleminating them from the 
     //density calculation. The effectively ignores them for weighting
     //purposes, thus ignoring terms that received no update in this step.
-    location = (y-measure(s))/sigma_e;
+    location = y-measure(s);
     for(size_t i = 0 ; i < y.size() ; i++) {
         if(isnan(y[i]))
             location[i] = 0;
@@ -171,9 +171,9 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
 //    fprintf(stderr, "Weight calculated: %e\n", rng.densityAt(location));
 //    return out;
     if(weightf == EXP) {
-        return gsl_ran_exponential_pdf(aux::norm< 2 >(location), EXPONENTIAL);
+        return gsl_ran_exponential_pdf(aux::norm< 2 >(location), sigma_e);
     } else {
-        return rng.densityAt(location);
+        return gsl_ran_gaussian_pdf(aux::norm< 2 >(location), sigma_e);
     }
 }
 
@@ -201,7 +201,7 @@ void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme,
 }
 
 //TODO make some of these non-gaussian
-void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
+void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, double varwidth)
 {
     aux::vector mean(STATE_SIZE);
     aux::symmetric_matrix cov = aux::zero_matrix(STATE_SIZE);
@@ -222,41 +222,41 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples)
         mean[indexof(F_T,ii)]= 1;
         
         //set the variances for all the variables
-        cov(indexof(TAU_S  ,ii), indexof(TAU_S  ,ii)) = 9*1.07*1.07;
-        cov(indexof(TAU_F  ,ii), indexof(TAU_F  ,ii)) = 9*1.51*1.51;
-        cov(indexof(EPSILON,ii), indexof(EPSILON,ii)) = 9*0.014*.014;
-        cov(indexof(TAU_0  ,ii), indexof(TAU_0  ,ii)) = 9*1.5*1.5;
-        cov(indexof(ALPHA  ,ii), indexof(ALPHA  ,ii)) = 9*.004*.004;
-        cov(indexof(E_0    ,ii), indexof(E_0    ,ii)) = 9*.072*.072;
-        cov(indexof(V_0    ,ii), indexof(V_0    ,ii)) = 9*.6e-2*.6e-2;
+        cov(indexof(TAU_S  ,ii), indexof(TAU_S  ,ii)) = varwidth*1.07*1.07;
+        cov(indexof(TAU_F  ,ii), indexof(TAU_F  ,ii)) = varwidth*1.51*1.51;
+        cov(indexof(EPSILON,ii), indexof(EPSILON,ii)) = varwidth*0.014*.014;
+        cov(indexof(TAU_0  ,ii), indexof(TAU_0  ,ii)) = varwidth*1.5*1.5;
+        cov(indexof(ALPHA  ,ii), indexof(ALPHA  ,ii)) = varwidth*.004*.004;
+        cov(indexof(E_0    ,ii), indexof(E_0    ,ii)) = varwidth*.072*.072;
+        cov(indexof(V_0    ,ii), indexof(V_0    ,ii)) = varwidth*.6e-2*.6e-2;
 
-        cov(indexof(V_T,ii), indexof(V_T,ii)) = 2;
-        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = 2;
-        cov(indexof(S_T,ii), indexof(S_T,ii)) = 2;
-        cov(indexof(F_T,ii), indexof(F_T,ii)) = 2;
+        cov(indexof(V_T,ii), indexof(V_T,ii)) = varwidth*.2;
+        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = varwidth*.2;
+        cov(indexof(S_T,ii), indexof(S_T,ii)) = varwidth*.6;
+        cov(indexof(F_T,ii), indexof(F_T,ii)) = varwidth*1;
     }
     generatePrior(x0, samples, mean, cov);
 }
 
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
-            const aux::vector mean)
+            const aux::vector mean, double varwidth)
 {
     aux::symmetric_matrix cov = aux::zero_matrix(STATE_SIZE);
     
     for(unsigned int ii = 0 ; ii < SIMUL_STATES ; ii++) {
         //set the variances for all the variables to 3*sigma
-        cov(indexof(TAU_S  ,ii), indexof(TAU_S  ,ii)) = 9*1.07*1.07;
-        cov(indexof(TAU_F  ,ii), indexof(TAU_F  ,ii)) = 9*1.51*1.51;
-        cov(indexof(EPSILON,ii), indexof(EPSILON,ii)) = 9*0.014*.014;
-        cov(indexof(TAU_0  ,ii), indexof(TAU_0  ,ii)) = 9*1.5*1.5;
-        cov(indexof(ALPHA  ,ii), indexof(ALPHA  ,ii)) = 9*.004*.004;
-        cov(indexof(E_0    ,ii), indexof(E_0    ,ii)) = 9*.072*.072;
-        cov(indexof(V_0    ,ii), indexof(V_0    ,ii)) = 9*.6e-2*.6e-2;
+        cov(indexof(TAU_S  ,ii), indexof(TAU_S  ,ii)) = varwidth*1.07*1.07;
+        cov(indexof(TAU_F  ,ii), indexof(TAU_F  ,ii)) = varwidth*1.51*1.51;
+        cov(indexof(EPSILON,ii), indexof(EPSILON,ii)) = varwidth*0.014*.014;
+        cov(indexof(TAU_0  ,ii), indexof(TAU_0  ,ii)) = varwidth*1.5*1.5;
+        cov(indexof(ALPHA  ,ii), indexof(ALPHA  ,ii)) = varwidth*.004*.004;
+        cov(indexof(E_0    ,ii), indexof(E_0    ,ii)) = varwidth*.072*.072;
+        cov(indexof(V_0    ,ii), indexof(V_0    ,ii)) = varwidth*.6e-2*.6e-2;
 
-        cov(indexof(V_T,ii), indexof(V_T,ii)) = 2;
-        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = 2;
-        cov(indexof(S_T,ii), indexof(S_T,ii)) = 2;
-        cov(indexof(F_T,ii), indexof(F_T,ii)) = 2;
+        cov(indexof(V_T,ii), indexof(V_T,ii)) = varwidth*.2;
+        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = varwidth*.2;
+        cov(indexof(S_T,ii), indexof(S_T,ii)) = varwidth*.6;
+        cov(indexof(F_T,ii), indexof(F_T,ii)) = varwidth*1;
     }
     
     generatePrior(x0, samples, mean, cov);
@@ -314,7 +314,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
         x0.add(comp, 1.0);
     }
     gsl_rng_free(rng);
-    }
+}
 
 //return weight modified?
 bool BoldModel::reweight(aux::vector& checkme, double& weightout)
@@ -332,22 +332,5 @@ bool BoldModel::reweight(aux::vector& checkme, double& weightout)
         } 
     }
     return false;
-}
-
-void outputVector(std::ostream& out, aux::vector mat) {
-  unsigned int i;
-  for (i = 0; i < mat.size(); i++) {
-      out << std::setw(15) << mat(i);
-  }
-}
-
-void outputMatrix(std::ostream& out, aux::matrix mat) {
-  unsigned int i, j;
-  for (j = 0; j < mat.size2(); j++) {
-    for (i = 0; i < mat.size1(); i++) {
-      out << std::setw(15) << mat(i,j);
-    }
-    out << std::endl;
-  }
 }
 

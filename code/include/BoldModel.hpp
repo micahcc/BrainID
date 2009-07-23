@@ -32,14 +32,12 @@ typedef struct
 
 namespace aux = indii::ml::aux;
 
-void outputVector(std::ostream& out, aux::vector vec);
-void outputMatrix(std::ostream& out, aux::matrix mat);
-
 class BoldModel : public indii::ml::filter::ParticleFilterModel<double>
 {
 public:
     ~BoldModel();
-    BoldModel(bool weightf = false, bool tweight = false, size_t sections = 1,
+    BoldModel(bool weightf = false, bool tweight = false,
+                double var = 3.92e-6, size_t sections = 1,
                 aux::vector u = aux::zero_vector(1));
 
     virtual unsigned int getStateSize() { return STATE_SIZE; };
@@ -56,8 +54,9 @@ public:
     //acquire the weight of the particle based on the input
     double weight(const aux::vector& s, const aux::vector& y);
 
-    void generatePrior(aux::DiracMixturePdf&, int);
-    void generatePrior(aux::DiracMixturePdf& x0, int samples, const aux::vector mean);
+    void generatePrior(aux::DiracMixturePdf&, int, double scale = 1);
+    void generatePrior(aux::DiracMixturePdf& x0, int samples, const aux::vector mean,
+          double scale = 1);
     void generatePrior(aux::DiracMixturePdf& x0, int samples, 
                 const aux::symmetric_matrix cov);
     void generatePrior(aux::DiracMixturePdf& x0, int samples, const aux::vector mean,
@@ -114,7 +113,7 @@ private:
     const unsigned int MEAS_SIZE;
     const unsigned int INPUT_SIZE;
 
-    std::vector< SectionDesc > segments;
+//    std::vector< SectionDesc > segments;
 };
 
 #endif

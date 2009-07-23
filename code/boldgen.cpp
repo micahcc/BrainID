@@ -11,6 +11,7 @@
 #include <vcl_list.h>
 
 #include "modNiftiImageIO.h"
+#include "tools.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,6 +56,8 @@ void init4DImage(Image4DType::Pointer& out, size_t xlen, size_t ylen,
 
 //dir1 should be the direction of several separate series
 //dir2 should be the direction that you want to get rms of
+//RMS for a non-zero mean signal is 
+//sqrt(mu^2+sigma^2)
 void get_rms(Image4DType::Pointer in, size_t dir1, size_t dir2, 
             vector<double>& out, int series)
 {
@@ -66,20 +69,40 @@ void get_rms(Image4DType::Pointer in, size_t dir1, size_t dir2,
     iter.SetSecondDirection(dir2);
     iter.GoToBegin();
 
-    //sum of squares
+    int numelements = in->GetRequestedRegion().GetSize()[dir2];
+
+    vector<double> mean(out.size(), 0);
+    /* get average */
     while(!iter.IsAtEndOfSlice()) {
         size_t ii=0;
         while(!iter.IsAtEndOfLine()) {
-            out[ii] += pow(iter.Get(),2);
+            mean[ii] += iter.Get();
             ii++;
             ++iter;
         }
         iter.NextLine();
     }
+    for(size_t ii= 0 ; ii<mean.size() ; ii++)
+        mean[ii] /= numelements;
 
-    //root mean
-    for(size_t i = 0 ; i < out.size() ; i++) {
-        out[i] = sqrt(out[i]/in->GetRequestedRegion().GetSize()[dir2]);
+    /* variance */
+    iter.GoToBegin();
+    while(!iter.IsAtEndOfSlice()) {
+        size_t ii=0;
+        while(!iter.IsAtEndOfLine()) {
+            out[ii] += pow(iter.Get()-mean[ii],2);
+            ii++;
+            ++iter;
+        }
+        iter.NextLine();
+    }
+    for(size_t ii= 0 ; ii<out.size() ; ii++)
+        out[ii] /= numelements;
+
+
+    //sqrt(mu^2 + var)
+    for(size_t ii = 0 ; ii < out.size() ; ii++) {
+        out[ii] = sqrt(pow(mean[ii], 2) + out[ii]);
     }
 }
 
@@ -102,11 +125,14 @@ void add_noise(Image4DType::Pointer in, double snr, gsl_rng* rng, int series)
     iter.GoToBegin();
     while(!iter.IsAtEndOfSlice()) {
         size_t ii=0;
+        //move through series'
         while(!iter.IsAtEndOfLine()) {
             iter.Value() += gsl_ran_gaussian(rng, rms[ii]/sqrt(snr));
+            //change series
             ++iter;
-            ii++;
+            ii++; 
         }
+        //move through time
         iter.NextLine();
     }
     
@@ -253,24 +279,7 @@ int main (int argc, char** argv)
     } else {
         cout << "Using random values for init/theta" << endl;
         aux::DiracMixturePdf x0(model.getStateSize());
-
-        aux::vector mean(model.getStateSize());
-        aux::symmetric_matrix cov = aux::zero_matrix(model.getStateSize());
-        
-        //set the variances for all the variables
-        cov(model.TAU_S,   model.TAU_S) = 1.07*1.07;  //tau_s
-        cov(model.TAU_F,   model.TAU_F) = 1.51*1.51;  //tau_f
-        cov(model.EPSILON, model.EPSILON) = 0.014*.014; //epsilon
-        cov(model.TAU_0,   model.TAU_0) = 1.5*1.5;    //tau_0
-        cov(model.ALPHA,   model.ALPHA) = .004*.004;  //alpha
-        cov(model.E_0,     model.E_0) = .072*.072;  //E_0
-        cov(model.V_0,     model.V_0) = .6e-2*.6e-2;//V_0
-        cov(model.V_T,     model.V_T) = .1;         //v_t
-        cov(model.Q_T,     model.Q_T) = .1;         //q_t
-        cov(model.S_T,     model.S_T) = .1;         //s_t
-        cov(model.F_T,     model.F_T) = .1;       //f_t
-
-        model.generatePrior(x0, 10000, cov);
+        model.generatePrior(x0, 10000);
         systemstate = x0.sample();
 
 #ifdef ZEROSTART
@@ -288,7 +297,7 @@ int main (int argc, char** argv)
     outputVector(cout, systemstate);
     cout << endl;
 
-    double sample = 0;
+    int sample = 0;
     int count = 0;
     double realt = 0;
     double prev = 0;
@@ -341,26 +350,15 @@ int main (int argc, char** argv)
         //TODO add noise to simulation
         
         //check to see if it is time to sample
-        if(count == (int)sample) {
-            while(!meas_it.IsAtEndOfLine()) {
-                
-                //save states in an image
-                state_it.SetIndex(meas_it.GetIndex());
-                
-                int j = 0;
-                while(!state_it.IsAtEndOfLine()){
-                    state_it.Set(systemstate[j++]);
-                    ++state_it;
-                }
-                
-                meas_it.Value() = model.measure(systemstate)[0];
-                ++meas_it;
-            }
-
-            meas_it.NextLine();
+        if(realt > sample*a_outstep()) {
+//            fprintf(stderr, "Sample: %i, Time: %f\n", sample, sample*a_outstep());
+            Image4DType::IndexType index = {{ 0, 0, 0, 0 }};
+            index[TIME_DIR] = sample;
+            writeVector<double>(measImage, SERIES_DIR, model.measure(systemstate),
+                        index);
+            writeVector<double>(outState, PARAM_DIR, systemstate, index);
             
-            //TODO should use an absolute value here to prevent error
-            sample += (a_outstep()/a_simstep());
+            sample++;;
         }
         
     }

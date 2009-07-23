@@ -37,7 +37,15 @@ ADD_EXECUTABLE(printtags printtags.cpp)
 ADD_EXECUTABLE(copyorigin copy.cpp)
 ADD_EXECUTABLE(fmri_timeseries fmri_timeseries.cpp)
 ADD_EXECUTABLE(boldgen boldgen.cpp)
+ADD_EXECUTABLE(concatinate concat.cpp)
+ADD_EXECUTABLE(prune prune.cpp)
 
+TARGET_LINK_LIBRARIES(prune modNiftiImageIO 
+    ITKAlgorithms ITKBasicFilters
+    ITKCommon ITKIO )
+TARGET_LINK_LIBRARIES(concatinate modNiftiImageIO 
+    ITKAlgorithms ITKBasicFilters
+    ITKCommon ITKIO )
 TARGET_LINK_LIBRARIES(fmri_timeseries modNiftiImageIO segment 
     ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO itkvnl itkvcl vullib)
