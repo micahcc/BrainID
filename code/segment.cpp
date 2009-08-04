@@ -94,7 +94,8 @@ int segment(const Image4DType::Pointer fmri_img,
                 if(mask_img.IsNotNull()) 
                     mask_it.SetIndex(mask_index);
                 
-                if(labelmap_it.Get() != 0 && (mask_img.IsNull() || mask_it.Get() != 0)) {
+                if(labelmap_it.Get() != 0 && (mask_img.IsNull() || 
+                            mask_it.Get() != 0)) {
                     section.label = labelmap_it.Get();
                     section.point = fmri_it;
                     section.point.SetDirection(3); //step forward in time
@@ -125,7 +126,7 @@ int segment(const Image4DType::Pointer fmri_img,
 
 //Reads a dicom directory then returns a pointer to the image
 //does some of this memory need to be freed??
-Image4DType::Pointer read_dicom(std::string directory)
+Image4DType::Pointer read_dicom(std::string directory, double skip)
 {
     // create elevation filter
     itk::NaryElevateImageFilter<Image3DType, Image4DType>::Pointer elevateFilter
@@ -151,6 +152,7 @@ Image4DType::Pointer read_dicom(std::string directory)
     
     Image4DType::SpacingType space4;
 
+    double temporalres = 2;
     //reorder the input based on temporal number.
     while (seriesItr!=seriesEnd)
     {
@@ -182,8 +184,8 @@ Image4DType::Pointer read_dicom(std::string directory)
         reader[atoi(value.c_str())-1] = tmp_reader;
 
         dicomIO->GetValueFromTag("0018|0080", value);
-        itk::EncapsulateMetaData<double>(dict, "TemporalResolution", 
-                    atof(value.c_str())/1000.);
+        temporalres = atof(value.c_str())/1000.;
+        itk::EncapsulateMetaData(dict, "TemporalResolution", temporalres);
     
         space4[0] = reader[0]->GetOutput()->GetSpacing()[0];
         space4[1] = reader[0]->GetOutput()->GetSpacing()[1];
@@ -195,11 +197,12 @@ Image4DType::Pointer read_dicom(std::string directory)
         
     // connect each series to elevation filter
     // skip the first two times
-    for(unsigned int ii=0 ; ii<seriesUID.size()-2; ii++) {
-        elevateFilter->SetInput(ii,reader[ii+2]->GetOutput());
+    for(unsigned int ii=0; ii<seriesUID.size(); ii++) {
+        if(ii*temporalres >= skip) {
+            elevateFilter->PushBackInput(reader[ii]->GetOutput());
+        }
     }
         
-
     //now elevateFilter can be used just like any other reader
     elevateFilter->Update();
     

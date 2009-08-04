@@ -660,7 +660,7 @@ int main( int argc, char **argv )
     
     vul_arg<string> a_fmridir(0 ,"Directory with fmri timeseries");
     vul_arg<string> a_labels(0 ,"Labelmap image");
-
+    vul_arg<double> a_skip("-skip" ,"Amount of time to skip at the beginning", 0.);
     vul_arg<string> a_mask("-m", "Greymatter mask", "");
     vul_arg<string> a_volume("-v", "Name to save volume at t=10 to", "");
     vul_arg<string> a_fullout("-c", "Cloned output of fmri timeseries", "");
@@ -673,7 +673,7 @@ int main( int argc, char **argv )
     vul_arg_parse(argc, argv);
     
     fprintf(stderr, "Reading Dicom Directory: %s...\n", a_fmridir().c_str());
-    Image4DType::Pointer fmri_img = read_dicom(a_fmridir());
+    Image4DType::Pointer fmri_img = read_dicom(a_fmridir(), a_skip());
     fprintf(stderr, "Done reading\n");
     
     if(!a_fullout().empty()) {

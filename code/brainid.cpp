@@ -172,6 +172,11 @@ int main(int argc, char* argv[])
     vul_arg<unsigned> a_divider("-div", "Intermediate Steps between samples.", 64);
     vul_arg<string> a_stimfile("-stim", "file containing \"<time> <value>\""
                 "pairs which give the time at which input changed", "");
+    vul_arg<bool> a_runto("-runtostart", "Run (as opposed to juumping) to start time"
+                " if you are loading from serial you will want to skip, if "
+                "you removed data from the beginnig of the fmri timeseries, it"
+                " MAY be better to run since it could give more state knowledge",
+                false);
     vul_arg<double> a_starttime("-tstart", "Initial time", 0);
     vul_arg<double> a_stoptime("-tstop", "Stop time", 0);
     vul_arg<string> a_serialofile("-so", "Where to put a serial output file", "");
@@ -390,13 +395,13 @@ int main(int argc, char* argv[])
     RegularizedParticleResamplerMod< aux::Almost2Norm, 
                 aux::AlmostGaussianKernel > resampler_reg(norm, kernel, &model);
 
-
     /* Simulation Section */
     aux::vector input(1);
     aux::vector meas(meassize);
     input[0] = 0;
     double nextinput;
     int disctime = 0;
+    double conttime = 0;
     bool done = false;
     int tmp = 0;
     int status = 0;
@@ -410,9 +415,10 @@ int main(int argc, char* argv[])
     }
 
     /* 
-     * Fast Forward in time to start time
+     * Fast Forward in time to start time if we are supposed to skip
+     * to the first time (otherwise continue to main loop)
      */
-    while(disctime*sampletime/a_divider() < a_starttime()) {
+    while(!a_runto() && disctime*sampletime/a_divider() < a_starttime()) {
         if(rank == 0 && !fin.eof() && disctime*sampletime/a_divider() 
                     >= nextinput) {
             *out << "FAST FORWARD: t= " << disctime*sampletime/a_divider() << ", " 
@@ -442,12 +448,12 @@ int main(int argc, char* argv[])
         }
 #endif //PARTOUT
         
-        /* time for update */
-        *out << "t= " << disctime*sampletime/a_divider() << ", ";
+        /* time */
+        conttime = disctime*sampletime/a_divider();
+        *out << "t= " << conttime << ", ";
         
-        //TODO maybe this should be split up to prevent ranks from having
-        //to move in lock-step
-        if(rank == 0 && !fin.eof() && disctime*sampletime/a_divider() >= nextinput) {
+        /* Grab New Input if there is any*/
+        if(rank == 0 && !fin.eof() && conttime >= nextinput) {
             fin >> input[0];
             fin >> nextinput;
             *out << "New input: " << input[0] << " Next at: " << nextinput << endl;
@@ -456,7 +462,8 @@ int main(int argc, char* argv[])
         boost::mpi::broadcast(world, input, 0);
         model.setinput(input);
 
-        if(disctime%a_divider() == 0) { //time for update!
+        /* Check to see if it is time to update */
+        if(disctime%a_divider() == 0 && (!a_runto() || conttime > a_starttime())) { 
 
             /* Used to cut out all but the relevent parts of the output
              * images at the end. The reason that this is necessary is that,
@@ -497,13 +504,15 @@ int main(int argc, char* argv[])
             //for instance if all the particles go to an unreasonable value like 
             //inf/nan/neg
             if(isnan(ess) || isinf(ess)) {
-                *out << "Total Weight: " << filter.getFilteredState().getDistributedTotalWeight()
+                *out << "Total Weight: "
+                            << filter.getFilteredState().getDistributedTotalWeight()
                             << endl;
                 aux::vector weights = filter.getFilteredState().getWeights();
                 outputVector(*out, weights);
                 exit(-5);
             } else {
-                double totalweight = filter.getFilteredState().getDistributedTotalWeight();
+                double totalweight = 
+                            filter.getFilteredState().getDistributedTotalWeight();
                 *out << "Total Weight: " << totalweight << endl;
                 if(totalweight >= 1e20 || totalweight <= 1e-20) {
                     filter.getFilteredState().distributedNormalise();

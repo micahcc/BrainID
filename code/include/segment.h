@@ -41,6 +41,6 @@ int segment(const Image4DType::Pointer fmri_img,
             std::list< SectionType >& voxels);
 //should be called when you are done using voxels_list
 
-Image4DType::Pointer read_dicom(std::string directory);
+Image4DType::Pointer read_dicom(std::string directory, double skip = 0);
 
 #endif
