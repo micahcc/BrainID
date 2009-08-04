@@ -384,7 +384,11 @@ int main(int argc, char* argv[])
      * Fast Forward in time to start time if we are supposed to skip
      * to the first time (otherwise continue to main loop)
      */
-    while(disctime*sampletime/a_divider() <= a_starttime()) {
+    *out << " " <<  disctime << " " <<  sampletime << " " <<  a_divider()
+                << " " <<  disctime*sampletime/a_divider() << " " 
+                <<  (disctime*sampletime/a_divider() <= a_starttime()) <<  endl;
+    while(disctime*sampletime/a_divider() < a_starttime()) {
+        *out << ".";
         if(rank == 0 && !fin.eof() && disctime*sampletime/a_divider() 
                     >= nextinput) {
             *out << "FAST FORWARD: t= " << disctime*sampletime/a_divider() << ", " 
@@ -429,7 +433,7 @@ int main(int argc, char* argv[])
         model.setinput(input);
 
         /* Check to see if it is time to update */
-        if(disctime%a_divider() == 0 && conttime > a_starttime()) { 
+        if(disctime%a_divider() == 0 && conttime >= a_starttime()) { 
 
             /* Used to cut out all but the relevent parts of the output
              * images at the end. The reason that this is necessary is that,
