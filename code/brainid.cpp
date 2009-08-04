@@ -200,7 +200,7 @@ int main(int argc, char* argv[])
 
     std::ifstream fin;
 
-    double sampletime = 0;
+    double sampletime = 2;
     
     ImageReaderType::Pointer reader;
     itk::ImageLinearIteratorWithIndex<Image4DType> iter;
@@ -209,7 +209,6 @@ int main(int argc, char* argv[])
     int meassize = 0;
     int startlocation = -1;
     int endlocation = -1;
-    double offset;
 
     if(rank == 0) {
         /* Open up the input */
@@ -239,12 +238,6 @@ int main(int argc, char* argv[])
             sampletime=2;
         }
         *out << left << setw(20) << "TR" << ": " << sampletime << endl;
-
-        itk::ExposeMetaData(measInput->GetMetaDataDictionary(), "offset", offset);
-        *out << "Offset: " << offset << endl;
-        if(offset != 0) {
-            *out << "WARNING offset not yet implemented" << endl;
-        }
     
         //BOLD
         measOutput = Image4DType::New();
@@ -391,7 +384,7 @@ int main(int argc, char* argv[])
      * Fast Forward in time to start time if we are supposed to skip
      * to the first time (otherwise continue to main loop)
      */
-    while(disctime*sampletime/a_divider() < a_starttime()) {
+    while(disctime*sampletime/a_divider() <= a_starttime()) {
         if(rank == 0 && !fin.eof() && disctime*sampletime/a_divider() 
                     >= nextinput) {
             *out << "FAST FORWARD: t= " << disctime*sampletime/a_divider() << ", " 
