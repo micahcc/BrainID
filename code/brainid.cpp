@@ -151,18 +151,11 @@ int main(int argc, char* argv[])
     vul_arg<unsigned> a_divider("-div", "Intermediate Steps between samples.", 64);
     vul_arg<string> a_stimfile("-stim", "file containing \"<time> <value>\""
                 "pairs which give the time at which input changed", "");
-    vul_arg<bool> a_runto("-runtostart", "Run (as opposed to juumping) to start time"
-                " if you are loading from serial you will want to skip, if "
-                "you removed data from the beginnig of the fmri timeseries, it"
-                " MAY be better to run since it could give more state knowledge",
-                false);
     vul_arg<double> a_starttime("-tstart", "Initial time", 0);
     vul_arg<double> a_stoptime("-tstop", "Stop time", 0);
     vul_arg<string> a_serialofile("-so", "Where to put a serial output file", "");
     vul_arg<string> a_serialifile("-si", "Where to find a serial input file", "");
     vul_arg<bool> a_expweight("-expweight", "Use exponential weighting function",
-                false);
-    vul_arg<bool> a_avgweight("-avgweight", "Average weights rather than multiply",
                 false);
     vul_arg<double> a_resampratio("-rr", "Ratio of total particles below which ESS "
                 "must reach for the filter to resample. Ex .8 Ex2. .34", 0);
@@ -207,7 +200,7 @@ int main(int argc, char* argv[])
 
     std::ifstream fin;
 
-    double sampletime = 2;
+    double sampletime = 0;
     
     ImageReaderType::Pointer reader;
     itk::ImageLinearIteratorWithIndex<Image4DType> iter;
@@ -216,6 +209,7 @@ int main(int argc, char* argv[])
     int meassize = 0;
     int startlocation = -1;
     int endlocation = -1;
+    double offset;
 
     if(rank == 0) {
         /* Open up the input */
@@ -237,8 +231,7 @@ int main(int argc, char* argv[])
         
         /* Create a model */
         string str;
-        itk::ExposeMetaData(measInput->GetMetaDataDictionary(), 
-                    "TemporalResolution", sampletime);
+        sampletime = measInput->GetSpacing()[TIMEDIM];
         *out << sampletime << endl;;
         if(sampletime == 0) {
             *out << "Image Had Invalid Temporal Resolution!" << endl;
@@ -246,6 +239,12 @@ int main(int argc, char* argv[])
             sampletime=2;
         }
         *out << left << setw(20) << "TR" << ": " << sampletime << endl;
+
+        itk::ExposeMetaData(measInput->GetMetaDataDictionary(), "offset", offset);
+        *out << "Offset: " << offset << endl;
+        if(offset != 0) {
+            *out << "WARNING offset not yet implemented" << endl;
+        }
     
         //BOLD
         measOutput = Image4DType::New();
@@ -256,7 +255,7 @@ int main(int argc, char* argv[])
     }
     
     boost::mpi::broadcast(world, meassize, 0);
-    BoldModel model(a_expweight(), a_avgweight(), meassize, a_weightvar());
+    BoldModel model(a_expweight(), meassize, a_weightvar());
     
     /* Full Distribution */
     aux::DiracMixturePdf tmpX(model.getStateSize());
@@ -392,7 +391,7 @@ int main(int argc, char* argv[])
      * Fast Forward in time to start time if we are supposed to skip
      * to the first time (otherwise continue to main loop)
      */
-    while(!a_runto() && disctime*sampletime/a_divider() < a_starttime()) {
+    while(disctime*sampletime/a_divider() < a_starttime()) {
         if(rank == 0 && !fin.eof() && disctime*sampletime/a_divider() 
                     >= nextinput) {
             *out << "FAST FORWARD: t= " << disctime*sampletime/a_divider() << ", " 
@@ -437,7 +436,7 @@ int main(int argc, char* argv[])
         model.setinput(input);
 
         /* Check to see if it is time to update */
-        if(disctime%a_divider() == 0 && (!a_runto() || conttime > a_starttime())) { 
+        if(disctime%a_divider() == 0 && conttime > a_starttime()) { 
 
             /* Used to cut out all but the relevent parts of the output
              * images at the end. The reason that this is necessary is that,

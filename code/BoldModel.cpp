@@ -12,7 +12,7 @@
 #define EXPONENTIAL_VAR .2
 #define GAUSSIAN_VAR .2
 
-BoldModel::BoldModel(bool expweight, bool avgweight, size_t sections, double var,
+BoldModel::BoldModel(bool expweight, size_t sections, double var,
             aux::vector u) : 
 
             GVAR_SIZE(4), LVAR_SIZE(7), SIMUL_STATES(sections), 
@@ -36,9 +36,6 @@ BoldModel::BoldModel(bool expweight, bool avgweight, size_t sections, double var
 
     if(expweight) 
         this->weightf = EXP;;
-
-    if(avgweight)
-        this->tweight = 5;
 
 }
 

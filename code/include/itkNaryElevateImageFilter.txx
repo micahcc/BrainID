@@ -135,12 +135,12 @@ GenerateOutputInformation()
 
   std::list<double> list;
 
-  double firstdate;
-  double firsttime;
+  double firstdate = 0;
+  double firsttime = 0;
 
-  int firsthour;
-  int firstminutes;
-  double firstseconds;
+  int firsthour = 0;
+  int firstminutes = 0;
+  double firstseconds = 0;
 
   bool dontusedict=false;
 

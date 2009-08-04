@@ -36,7 +36,7 @@ class BoldModel : public indii::ml::filter::ParticleFilterModel<double>
 {
 public:
     ~BoldModel();
-    BoldModel(bool weightf = false, bool tweight = false,
+    BoldModel(bool weightf = false,
                 size_t sections = 1, double var = 3.92e-6,
                 aux::vector u = aux::zero_vector(1));
 
@@ -97,8 +97,6 @@ private:
     enum WeightF { NORM = 0, EXP = 1, HYP = 2} ;
     
     int weightf;
-    double tweight;
-
 
     //variance to apply to 
     double var_e;

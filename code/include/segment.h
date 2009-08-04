@@ -14,13 +14,14 @@
 
 //standard libraries
 #include <vector>
+#include <list>
 
 // declare images
 typedef double DataType;
 typedef itk::OrientedImage<DataType, 3> Image3DType;
 typedef itk::OrientedImage<DataType, 4> Image4DType;
 
-typedef short LabelType;
+typedef int LabelType;
 typedef itk::OrientedImage<LabelType, 3> Label3DType;
 typedef itk::OrientedImage<LabelType, 4> Label4DType;
 
@@ -35,23 +36,41 @@ struct SectionType{
     PixelIterator4D point;
 } ;
 
+Image4DType::Pointer summ(const Image4DType::Pointer fmri_img, 
+            const Label3DType::Pointer labelmap, std::list<LabelType>& sections);
+
 /* Normalizes by the averaging each voxel over time */
-Image4DType::Pointer normalizeByVoxel(const Image4DType::Pointer fmri_img);
+Image4DType::Pointer normalizeByVoxel(const Image4DType::Pointer fmri_img,
+            const Label3DType::Pointer labelmap);
 
 /* Normalizes by the averaging all the voxels in the mask/label */
 Image4DType::Pointer normalizeByGlobal(const Image4DType::Pointer fmri_img,
             const Label3DType::Pointer labelmap);
 
-/* Normalizes by the averaging all the voxels in the mask/label */
-Image4DType::Pointer normalizeByRegion(const Image4DType::Pointer fmri_img,
-            const Label3DType::Pointer labelmap);
+/* Normalizes each region separately */
+Image4DType::Pointer summRegionNorm(const Image4DType::Pointer fmri_img,
+            const Label3DType::Pointer labelmap, std::list<LabelType>& sections);
 
-std::vector< Image4DType::Pointer > splitByRegion(const Image4DType::Pointer fmri_img,
-            const Label3DType::Pointer labelmap);
+/* Normalizes each region by the global average */
+Image4DType::Pointer summGlobalNorm(const Image4DType::Pointer fmri_img,
+            const Label3DType::Pointer labelmap, std::list<LabelType>& sections);
 
-Image4DType::Pointer applymask(const Image4DType::Pointer fmri_img, 
-            const Label3DType::Pointer mask_img);
+Image4DType::Pointer splitByRegion(const Image4DType::Pointer fmri_img,
+            const Label3DType::Pointer labelmap, int label);
 
 Image4DType::Pointer read_dicom(std::string directory, double skip = 0);
 
+double get_average(const Image4DType::Pointer fmri_img, 
+        const Label3DType::Pointer labelmap);
+
+Image3DType::Pointer get_average(const Image4DType::Pointer fmri_img);
+Image3DType::Pointer extract(Image4DType::Pointer input, size_t index);
+
+void removeMissing(std::list<LabelType>& ref, std::list<LabelType>& mod);
+std::list<LabelType> getlabels(Label3DType::Pointer labelmap);
+
+template<class T, unsigned int SIZE1, class U, unsigned int SIZE2>
+typename itk::OrientedImage<T, SIZE1>::Pointer applymask(
+            typename itk::OrientedImage<T, SIZE1>::Pointer input, 
+            typename itk::OrientedImage<U, SIZE2>::Pointer mask);
 #endif
