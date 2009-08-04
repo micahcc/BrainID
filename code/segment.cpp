@@ -4,16 +4,50 @@
 //standard libraries
 #include <ctime>
 #include <cstdio>
-#include <list>
 #include <sstream>
+#include <iomanip>
 
 #include <itkGDCMImageIO.h>
 #include <itkGDCMSeriesFileNames.h>
 #include <itkImageSeriesReader.h>
 #include <itkMetaDataDictionary.h>
 #include <itkNaryElevateImageFilter.h>
+#include <itkMaskImageFilter.h>
 
 #include "segment.h"
+//#include <itkLabelStatisticsImageFilterMod.h>
+#include <itkLabelStatisticsImageFilter.h>
+
+#include <itkSubtractConstantFromImageFilter.h>
+#include <itkDivideByConstantImageFilter.h>
+#include <itkNaryAddImageFilter.h>
+#include <itkAddImageFilter.h>
+#include <itkExtractImageFilter.h>
+#include <itkSubtractImageFilter.h>
+#include <itkDivideImageFilter.h>
+#include <itkDivideByConstantImageFilter.h>
+#include <itkMultiplyByConstantImageFilter.h>
+#include <itkBinaryThresholdImageFilter.h>
+
+typedef itk::AddImageFilter< Image3DType > AddF;
+typedef itk::MultiplyByConstantImageFilter< Image3DType, double, Image3DType > ScaleF;
+typedef itk::BinaryThresholdImageFilter<Label3DType, Label3DType> ThreshF;
+//typedef itk::LabelStatisticsImageFilterMod<Image3DType, Label3DType> StatF3D;
+typedef itk::LabelStatisticsImageFilter<Image3DType, Label3DType> StatF3D;
+
+typedef itk::MaskImageFilter<Image4DType, Label4DType, Image4DType> MaskF;
+//typedef itk::LabelStatisticsImageFilterMod<Image4DType, Label4DType> StatF4D;
+typedef itk::LabelStatisticsImageFilter<Image4DType, Label4DType> StatF4D;
+typedef itk::ExtractImageFilter<Image4DType, Image3DType> ExtF;
+typedef itk::NaryAddImageFilter< Image3DType, Image3DType > AddNF;
+typedef itk::SubtractImageFilter< Image4DType > SubF;
+typedef itk::SubtractConstantFromImageFilter< Image4DType, double, 
+            Image4DType > SubCF;
+typedef itk::DivideImageFilter< Image4DType, Image4DType, Image4DType > DivF;
+typedef itk::DivideByConstantImageFilter< Image4DType, double, Image4DType > DivCF;
+
+const int TIMEDIM = 3;
+const int SECTIONDIM = 0;
 
 //sort first by increasing label, then by increasing time
 //then by increasing slice, then by dim[1] then dim[0]
@@ -30,99 +64,260 @@ bool compare_lt(SectionType first, SectionType second)
     return false;
 }
 
-//sort_voxels fills the list given with new SectionType structs, each of 
-//which represents a label from the labelmap image. It then finds each
-//member voxel of each label and fills the list in the SectionType
-//with iterators for the member voxels.
-int segment(const Image4DType::Pointer fmri_img, 
-            const Image3DType::Pointer label_img,
-            const Image3DType::Pointer mask_img,
-            std::list< SectionType >& voxels)
+Image4DType::Pointer initTimeSeries(size_t tlen, int sections)
 {
-    SectionType section; //will hold the label and iterator
-    PixelIterator3D labelmap_it( label_img, label_img->GetRequestedRegion() );
-    PixelIterator3D mask_it;
-    if(mask_img.IsNotNull())
-        mask_it = PixelIterator3D(mask_img, mask_img->GetRequestedRegion());
+    //create a 4D output image of appropriate size.
+    Image4DType::Pointer outputImage = Image4DType::New();
+
+    Image4DType::RegionType out_region;
+    Image4DType::IndexType out_index = {{0,0,0,0}};
+    Image4DType::SizeType out_size = {{1, 1, 1, 1}};
     
-    Image4DType::PointType phys_fmri; //stores a 4D point
-    Image3DType::PointType phys_3D;   //stores a 3D point
-    Image3DType::IndexType labelmap_index; //the index matching the fmri physical index
-    Image3DType::IndexType mask_index; //the index matching the fmri physical index
-    PixelIterator4D fmri_it( fmri_img, fmri_img->GetRequestedRegion() );
-    PixelIterator4D time_it( fmri_img, fmri_img->GetRequestedRegion() );
-  
-    //move in the slowest direction, and start at the beginning
-    fmri_it.SetDirection(0);
-    fmri_it.SetIndex(fmri_img->GetRequestedRegion().GetIndex());
-   
-    //timeit skips the entire 3D image, pointing at the first
-    //voxel in the 3D image at for every time point, thus by
-    //iterating you are pointing at the first point in the second
-    //time step. The place we want to stop at
-    time_it.SetDirection(3);
-    time_it.SetIndex(fmri_img->GetRequestedRegion().GetIndex());
-    ++time_it;
+    out_size[SECTIONDIM] = sections;
+    out_size[TIMEDIM] = tlen;
+    fprintf(stderr, " numsection : %lu\n", out_size[SECTIONDIM]);
+    fprintf(stderr, " tlen       : %lu\n", out_size[TIMEDIM]);
+    
+    out_region.SetSize(out_size);
+    out_region.SetIndex(out_index);
 
+    outputImage->SetRegions( out_region );
+    outputImage->Allocate();
+    itk::EncapsulateMetaData(outputImage->GetMetaDataDictionary(), "Dim3", 
+                std::string("time"));
+    itk::EncapsulateMetaData(outputImage->GetMetaDataDictionary(), "Dim0", 
+                std::string("section"));
+    return outputImage;
+}
 
-    //only iterate through the first time
-    while(fmri_it != time_it) {
-        while(!fmri_it.IsAtEndOfLine()) {
-            //get the 4D point in the fmri image and then cut it to the first 3
-            //Dimensions
-            fmri_img->TransformIndexToPhysicalPoint( fmri_it.GetIndex(), phys_fmri);
-            phys_3D[0] = phys_fmri[0];
-            phys_3D[1] = phys_fmri[1];
-            phys_3D[2] = phys_fmri[2];
+template <typename T>
+typename itk::OrientedImage<T,4>::Pointer stretch(
+            typename itk::OrientedImage<T,3>::Pointer in, int length)
+{
+    typedef typename itk::OrientedImage<T,3> I3D;
+    typedef typename itk::OrientedImage<T,4> I4D;
+    typedef typename itk::NaryElevateImageFilter< I3D, I4D > NaryF;
+    
+    typename NaryF::Pointer elevateFilter = NaryF::New();
+//    typename itk::NaryElevateImageFilter< typename itk::OrientedImage<T,3>, 
+//                typename itk::OrientedImage<T,4> >::Pointer elevateFilter =
+//                itk::NaryElevateImageFilter < typename itk::OrientedImage<T,3>, 
+//                typename itk::OrientedImage<T,4> >::New(); 
+    for(int i=0; i < length ; i++)
+        elevateFilter->PushBackInput(in);
+    elevateFilter->Update();
+    elevateFilter->GetOutput()->CopyInformation(in);
+    elevateFilter->GetOutput()->SetMetaDataDictionary(in->GetMetaDataDictionary());
+    return elevateFilter->GetOutput();
+}
 
-#ifdef DEBUG
-            printf("Pixel at: %f %f %f", phys_3D[0], phys_3D[1], phys_3D[2]);
-#endif //DEBUG
-            //check to see if that phsyical point in the fmri image is in the
-            //label image
-            if(label_img->TransformPhysicalPointToIndex(phys_3D, labelmap_index) &&
-                        ( mask_img.IsNull() || mask_img->TransformPhysicalPointToIndex
-                        (phys_3D, mask_index)) ) {
-#ifdef DEBUG
-                fprintf(stderr, "%li %li %li -> %li %li %li : %li\n", 
-                            fmri_it.GetIndex()[0], fmri_it.GetIndex()[1], 
-                            fmri_it.GetIndex()[2], labelmap_index[0], 
-                            labelmap_index[1], labelmap_index[2], labelmap_it.Get());
-#endif //DEBUG
-
-                labelmap_it.SetIndex(labelmap_index);
-                if(mask_img.IsNotNull()) 
-                    mask_it.SetIndex(mask_index);
-                
-                if(labelmap_it.Get() != 0 && (mask_img.IsNull() || 
-                            mask_it.Get() != 0)) {
-                    section.label = labelmap_it.Get();
-                    section.point = fmri_it;
-                    section.point.SetDirection(3); //step forward in time
-                    voxels.push_front(section);
-                } 
-            }
-            ++fmri_it;
-        }
-        fmri_it.NextLine();
+Image4DType::Pointer normalizeByVoxel(const Image4DType::Pointer fmri_img)
+{
+    /* Extract Filter, will remove the 4th dimension (time) */
+    ExtF::Pointer extract;
+    Image4DType::RegionType region = fmri_img->GetRequestedRegion();
+    region.SetSize(3, 0);
+    
+    /* Used to zero out the addfilter */
+    Image3DType::Pointer zero = Image3DType::New();
+    Image3DType::RegionType region3d;
+    for(int i=0 ; i < 3 ; i++)
+        region3d.SetSize(i, region.GetSize(i));
+    for(int i=0 ; i < 3 ; i++)
+        region3d.SetIndex(i, region.GetIndex(i));
+    zero->SetRequestedRegion(region3d);
+    zero->Allocate();
+    zero->FillBuffer(0);
+    
+    /* Initialize the Addition */
+    AddF::Pointer add = AddF::New();
+    add->GraftOutput(zero);
+    add->SetInput2(add->GetOutput());
+    
+    /* Calculate Sum of Images */
+    for(size_t ii = 0 ; ii < fmri_img->GetRequestedRegion().GetSize()[3] ; ii++) {
+        region.SetIndex(3, ii);
+        extract = ExtF::New();
+        extract->SetInput(fmri_img);
+        extract->SetExtractionRegion(region);
+        add->SetInput1(extract->GetOutput());
+        add->Update();
     }
 
-    fprintf(stderr, "Finished loading input, sorting %lu nodes\n", voxels.size());
-    voxels.sort(compare_lt);
-    std::list<SectionType>::iterator it = voxels.begin();
-    int prev_label = 0;
-    int label_count = 0;
-    while(it != voxels.end()) {
-//        fprintf(stderr, "label: %d, prev_label: %i\n", it->label, prev_label);
-        if(it->label != prev_label) {
-            prev_label = it->label;
-            label_count++;
-            fprintf(stderr, "CHANGE %d\n", prev_label);
-        }
-        it++;
+    /* Calculate Average of Images */
+    ScaleF::Pointer scale = ScaleF::New();
+    scale->SetInput(add->GetOutput());
+    scale->SetConstant(1./fmri_img->GetRequestedRegion().GetSize()[3]);
+    scale->Update();
+
+    /* Rescale (fmri - avg)/avg*/
+    Image4DType::Pointer avg4d = stretch<DataType>(scale->GetOutput(), 
+                fmri_img->GetRequestedRegion().GetSize()[3]);
+    SubF::Pointer sub = SubF::New();
+    DivF::Pointer div = DivF::New();
+    sub->SetInput1(fmri_img);
+    sub->SetInput2(avg4d);
+    div->SetInput1(sub->GetOutput());
+    div->SetInput2(avg4d);
+    div->Update();
+    
+    div->GetOutput()->CopyInformation(extract->GetOutput());
+    div->GetOutput()->SetMetaDataDictionary(
+                extract->GetOutput()->GetMetaDataDictionary() );
+    return div->GetOutput();
+}
+
+Image4DType::Pointer normalizeByGlobal(const Image4DType::Pointer fmri_img,
+            const Label3DType::Pointer label_img)
+{
+    ThreshF::Pointer thresh = ThreshF::New();
+    StatF4D::Pointer stats = StatF4D::New();
+
+    thresh->SetLowerThreshold(0);
+    thresh->SetUpperThreshold(0);
+    thresh->SetInsideValue(0);
+    thresh->SetOutsideValue(1);
+    thresh->SetInput(label_img);
+    thresh->Update();
+
+    Label4DType::Pointer mask = stretch<LabelType>(thresh->GetOutput(), 
+                fmri_img->GetRequestedRegion().GetSize()[3]);
+    stats->SetLabelInput(mask);
+    stats->SetInput(fmri_img);
+    stats->Update();
+    
+    double mean = stats->GetMean(1);
+    
+    SubCF::Pointer sub = SubCF::New();
+    DivCF::Pointer div = DivCF::New();
+    sub->SetConstant(mean);
+    sub->SetInput(fmri_img);
+
+    div->SetConstant(mean);
+    div->SetInput(sub->GetOutput());
+    div->Update();
+    
+    div->GetOutput()->CopyInformation(fmri_img);
+    div->GetOutput()->SetMetaDataDictionary(fmri_img->GetMetaDataDictionary());
+    return div->GetOutput();
+}
+
+Image4DType::Pointer normalizeByRegion(const Image4DType::Pointer fmri_img,
+            const Label3DType::Pointer labelmap)
+{
+    std::ostringstream oss;
+
+    /* Convert labelmap to 4D and then use it to get stats */
+    Label4DType::Pointer labelmap4d = stretch<LabelType>(labelmap, 
+                fmri_img->GetRequestedRegion().GetSize()[3]);
+    StatF4D::Pointer totalstats = StatF4D::New();
+    totalstats->SetLabelInput(labelmap4d);
+    totalstats->SetInput(fmri_img);
+    totalstats->Update();
+
+    Image4DType::Pointer output = initTimeSeries(
+                fmri_img->GetRequestedRegion().GetSize()[3],
+                totalstats->GetNumberOfLabels());
+    
+    /* Extract Filter, will remove the 4th dimension (time) */
+    ExtF::Pointer extract;
+    Image4DType::RegionType region = fmri_img->GetRequestedRegion();
+    region.SetSize(3, 0);
+    
+    /* Calculate the average for each label at each timepoint */
+    StatF3D::Pointer stats = StatF3D::New();
+    stats->SetLabelInput(labelmap);
+
+    /* Setup mapping of labels to indexes, and go ahead and add the first
+     * time step to the output image
+     */
+    region.SetIndex(3,0);
+    extract = ExtF::New();
+    extract->SetInput(fmri_img);
+    extract->SetExtractionRegion(region);
+    
+    stats->SetInput(extract->GetOutput());
+    stats->Update();
+
+    double result = 0;
+    int label = 0;
+    int index = 0;
+    Image4DType::IndexType fullindex = {{index, 0, 0, 0}};
+    
+//    StatF3D::MapIterator it = stats->begin();
+//    while(it != stats->end()) {
+//        label = it->first;
+//        if(label != 0) {
+//            /* Map the section to the index */
+//            oss.str("");
+//            oss << "section:" << std::setfill('0') << std::setw(5) << label;
+//            itk::EncapsulateMetaData(output->GetMetaDataDictionary(), oss.str(),
+//                        index);
+//            
+//            /* Map the index to the section */
+//            oss.str("");
+//            oss << "index:" << std::setfill('0') << std::setw(5) << index;
+//            itk::EncapsulateMetaData(output->GetMetaDataDictionary(), oss.str(),
+//                        label);
+//            
+//            /* Fill in the data in the output */
+//            result = (stats->GetMean(label)-totalstats->GetMean(label))/
+//                        totalstats->GetMean(label);
+//            fullindex[SECTIONDIM] = index;
+//            output->SetPixel( fullindex, result);
+//            index++;
+//        }
+//    }
+    
+    /* For the rest of the timesteps the index/sections are already mapped */
+    for(size_t ii = 1 ; ii < fmri_img->GetRequestedRegion().GetSize()[3] ; ii++) {
+        region.SetIndex(3, ii);
+        extract = ExtF::New();
+        extract->SetInput(fmri_img);
+        extract->SetExtractionRegion(region);
+        
+        stats->SetInput(extract->GetOutput());
+        stats->Update();
+            
+        fullindex[TIMEDIM] = ii;
+
+        /* Write out the normalized value of each label */
+//        StatF3D::MapIterator it = stats->begin();
+//        while(it != stats->end()) {
+//            label = it->first;
+//            if(label != 0) {
+//                oss.str("");
+//                oss << "section:" << std::setfill('0') << std::setw(5) << label;
+//                itk::ExposeMetaData(output->GetMetaDataDictionary(), oss.str(),
+//                            index);
+//            
+//                /* Fill in the data in the output */
+//                result = (stats->GetMean(label)-totalstats->GetMean(label))/
+//                        totalstats->GetMean(label);
+//                fullindex[SECTIONDIM] = index;
+//                output->SetPixel(fullindex, result);
+//            }
+//        }
+        
     }
-    return label_count;
-};
+
+    return output;
+}
+
+Image4DType::Pointer applymask(const Image4DType::Pointer fmri_img, 
+            const Label3DType::Pointer mask_img)
+{
+    Label4DType::Pointer mask_img4d = stretch<LabelType>(mask_img, 
+                fmri_img->GetRequestedRegion().GetSize()[3]);
+
+    itk::MaskImageFilter<Image4DType, Label4DType, Image4DType>::Pointer mask =
+                itk::MaskImageFilter<Image4DType, Label4DType, Image4DType>::New();
+    mask->SetInput1(fmri_img);
+    mask->SetInput2(mask_img4d);
+    mask->Update();
+
+    return mask->GetOutput();
+}
 
 //Reads a dicom directory then returns a pointer to the image
 //does some of this memory need to be freed??
@@ -151,6 +346,8 @@ Image4DType::Pointer read_dicom(std::string directory, double skip)
     std::vector<std::string>::const_iterator seriesEnd=seriesUID.end();
     
     Image4DType::SpacingType space4;
+    Image4DType::DirectionType direc; //c = labels->GetDirection();
+    Image4DType::PointType origin; //c = labels->GetDirection();
 
     double temporalres = 2;
     //reorder the input based on temporal number.
@@ -187,19 +384,30 @@ Image4DType::Pointer read_dicom(std::string directory, double skip)
         temporalres = atof(value.c_str())/1000.;
         itk::EncapsulateMetaData(dict, "TemporalResolution", temporalres);
     
-        space4[0] = reader[0]->GetOutput()->GetSpacing()[0];
-        space4[1] = reader[0]->GetOutput()->GetSpacing()[1];
-        space4[2] = reader[0]->GetOutput()->GetSpacing()[2];
-        space4[3] = atof(value.c_str())/1000.;
-        
         ++seriesItr;
     }
+
+    for(int ii = 0 ; ii < 3 ; ii++)
+        space4[ii] = reader[0]->GetOutput()->GetSpacing()[ii];
+    space4[3] = temporalres;
+
+    for(int ii = 0 ; ii<4 ; ii++) {
+        for( int jj=0; jj<4 ; jj++) {
+            if(ii == 3 || jj == 3) 
+                direc(ii, jj) = 0;
+            else
+                direc(ii, jj) = reader[0]->GetOutput()->GetDirection()(ii, jj);
+        }
+    }
+    direc(3, 3) = 1;
         
     // connect each series to elevation filter
     // skip the first two times
     for(unsigned int ii=0; ii<seriesUID.size(); ii++) {
         if(ii*temporalres >= skip) {
             elevateFilter->PushBackInput(reader[ii]->GetOutput());
+        } else {
+            fprintf(stderr, "Skipping: %i, %f\n", ii, ii*temporalres);
         }
     }
         
@@ -209,9 +417,10 @@ Image4DType::Pointer read_dicom(std::string directory, double skip)
     //create image readers
     Image4DType::Pointer fmri_img = elevateFilter->GetOutput();
 //    fmri_img->CopyInformation(reader[0]->GetOutput());
-    fmri_img->Update();
+    fmri_img->SetDirection(direc);
     fmri_img->SetSpacing(space4);
-
+    fmri_img->Update();
+    
     delete[] reader;
     return fmri_img;
 };

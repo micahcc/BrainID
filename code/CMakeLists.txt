@@ -47,7 +47,7 @@ TARGET_LINK_LIBRARIES(concatinate modNiftiImageIO
     ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO )
 TARGET_LINK_LIBRARIES(fmri_timeseries modNiftiImageIO segment 
-    ITKAlgorithms ITKBasicFilters
+    ITKAlgorithms ITKBasicFilters 
     ITKCommon ITKIO itkvnl itkvcl vullib)
 TARGET_LINK_LIBRARIES(unbias ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
 TARGET_LINK_LIBRARIES(printtags modNiftiImageIO ITKAlgorithms 

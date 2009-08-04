@@ -88,28 +88,7 @@ void gatherToNode(unsigned int dest, aux::DiracMixturePdf& input) {
   aux::vector endMu = input.getDistributedExpectation();
   aux::matrix endCov = input.getDistributedCovariance();
   
-  /* post-conditions */
-//  if(rank == 0) {
-//    cout << "Start Size: " << initialSize << " EndSize: " 
-//                << endSize << endl;
-//    cout << "Initial Mu: " << endl;
-//    outputVector(cout, initialMu);
-//    cout << "End Mu: " << endl;
-//    outputVector(cout, endMu);;
-//    cout << "Local Mu: " << endl;
-//    outputVector(cout, input.getExpectation());;
-//    
-//    cout << "Initial Cov: " << endl;
-//    outputMatrix(cout, initialCov);
-//    cout << "End Cov: " << endl;
-//    outputMatrix(cout, endCov);;
-//    cout << "Local Cov: " << endl;
-//    outputMatrix(cout, input.getCovariance());;
-//    cout << endl;
-//  }
   assert (initialSize == endSize);
-//  assert (initialMu == endMu);
-//  assert (initialCov == endCov);
 }
 
 
@@ -247,6 +226,7 @@ int main(int argc, char* argv[])
         reader->Update();
         measInput = reader->GetOutput();
         meassize = measInput->GetRequestedRegion().GetSize()[SERIESDIM];
+        fprintf(stderr, "seriesdim: %d\n", meassize);
         
         /* Create the iterator, to move forward in time for a particlular section */
         iter = itk::ImageLinearIteratorWithIndex<Image4DType>(measInput, 
@@ -270,7 +250,7 @@ int main(int argc, char* argv[])
         //BOLD
         measOutput = Image4DType::New();
         init4DImage(measOutput , meassize,
-                1, 1, measInput->GetRequestedRegion().GetSize()[3]);
+                1, 1, measInput->GetRequestedRegion().GetSize()[TIMEDIM]);
         measOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
 
     }
@@ -301,15 +281,9 @@ int main(int argc, char* argv[])
                 }
                 tmpX = tmpX2;
             }
-//        } else if(cheating) {
-//            model.generatePrior(tmpX, a_num_particles(), cheat);
         } else {
             *out << "Generating prior" << endl;
             model.generatePrior(tmpX, a_num_particles(), 9); //3*sigma, squared
-//            aux::matrix tmp = tmpX.getDistributedCovariance();
-//            *out << "Covariance: " << endl;
-//            outputMatrix(*out, tmp);
-//            *out << endl;
         }
     
 
@@ -507,18 +481,18 @@ int main(int argc, char* argv[])
                 *out << "Total Weight: "
                             << filter.getFilteredState().getDistributedTotalWeight()
                             << endl;
-                aux::vector weights = filter.getFilteredState().getWeights();
-                outputVector(*out, weights);
                 exit(-5);
             } else {
+                /* Because of the weighting functions, sometimes the total weight
+                 * can get extremely high, thus this drops it back down if the
+                 * total weight gets too high 
+                 */
                 double totalweight = 
                             filter.getFilteredState().getDistributedTotalWeight();
                 *out << "Total Weight: " << totalweight << endl;
                 if(totalweight >= 1e20 || totalweight <= 1e-20) {
                     filter.getFilteredState().distributedNormalise();
                 }
-//                aux::vector weights = filter.getFilteredState().getWeights();
-//                outputVector(*out, weights);
             }
 
             //time to resample

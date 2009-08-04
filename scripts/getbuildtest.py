@@ -321,7 +321,7 @@ os.chdir(topdir)
 ###########################
 # ITK
 ###########################
-itk_install_dir = cmakeinst(depdir, depprefix, "itk", ITK_URL, ("-DBUILD_TESTING=OFF", "-DBUILD_EXAMPLES=OFF"))
+itk_install_dir = cmakeinst(depdir, depprefix, "itk", ITK_URL, ("-DITK_USE_REVIEW=ON", "-DBUILD_TESTING=OFF", "-DBUILD_EXAMPLES=OFF"))
 os.environ["PATH"] = join(itk_install_dir, "bin") + ":"+ os.environ["PATH"]
 if not join(itk_install_dir, "bin") in prof_bin:
     prof_bin += [join(itk_install_dir, "bin")];

@@ -203,22 +203,23 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
 //Note that k_sigma contains std. deviation OR k and theta_mu contains either
 //mean or theta depending on the distribution
 void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme, 
-            const double k_sigma[], const double theta_mu[]) 
+            const double* k_sigma, const double* theta_mu) 
 {
     //going to distribute all the state variables the same even if they are
     //in different sections
-    int count = 0;
+//    int count = 0;
     for(size_t i = 0 ; i< STATE_SIZE; i++) {
-        if(indexof(S_T, count) == i) {
-            //for S_t draw from a gaussian
-            fillme[indexof(S_T, count)] = 
-                        gsl_ran_gaussian(rng, k_sigma[indexof(S_T,count)])+
-                        theta_mu[indexof(S_T,count)];
-            count++;
-        } else {
-            //draw from the gama, assume independence between the variables
-            fillme[i] = gsl_ran_gamma(rng, k_sigma[i], theta_mu[i]);
-        }
+            fillme[i] = gsl_ran_gaussian(rng, k_sigma[i])+ theta_mu[i];
+//        if(indexof(S_T, count) == i) {
+//            //for S_t draw from a gaussian
+//            fillme[indexof(S_T, count)] = 
+//                        gsl_ran_gaussian(rng, k_sigma[indexof(S_T,count)])+
+//                        theta_mu[indexof(S_T,count)];
+//            count++;
+//        } else {
+//            //draw from the gama, assume independence between the variables
+//            fillme[i] = gsl_ran_chisq(rng, 2*k_sigma[i]);
+//        }
     }
 }
 
@@ -314,18 +315,18 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
 
-    int count = 0;
+//    int count = 0;
     double k_sigma[STATE_SIZE]; 
     double theta_mu[STATE_SIZE];
     for(unsigned int i = 0 ; i < getStateSize() ; i++) {
-        if(indexof(S_T, count) == i) {
-            count++;
+//        if(indexof(S_T, count) == i) {
+//            count++;
             theta_mu[i] = mean(i);
             k_sigma[i] = sqrt(cov(i,i));
-        } else {
-            theta_mu[i] = cov(i,i)/mean(i);
-            k_sigma[i] = mean[i]/theta_mu[i];
-        }
+//        } else {
+//            theta_mu[i] = cov(i,i)/mean(i);
+//            k_sigma[i] = mean[i]/theta_mu[i];
+//        }
     }
     
     gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);

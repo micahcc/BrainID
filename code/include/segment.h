@@ -13,12 +13,16 @@
 #include <itkImageSliceIteratorWithIndex.h>
 
 //standard libraries
-#include <list>
+#include <vector>
 
 // declare images
-typedef signed short PixelType;
-typedef itk::OrientedImage<PixelType, 3> Image3DType;
-typedef itk::OrientedImage<PixelType, 4> Image4DType;
+typedef double DataType;
+typedef itk::OrientedImage<DataType, 3> Image3DType;
+typedef itk::OrientedImage<DataType, 4> Image4DType;
+
+typedef short LabelType;
+typedef itk::OrientedImage<LabelType, 3> Label3DType;
+typedef itk::OrientedImage<LabelType, 4> Label4DType;
 
 typedef itk::ImageSliceIteratorWithIndex< Image4DType > SliceIterator4D;
 typedef itk::ImageLinearIteratorWithIndex< Image4DType > PixelIterator4D;
@@ -31,15 +35,22 @@ struct SectionType{
     PixelIterator4D point;
 } ;
 
-//sort_voxels fills the list given with new SectionType structs, each of 
-//which represents a label from the labelmap image. It then finds each
-//member voxel of each label and fills the list in the SectionType
-//with iterators for the member voxels.
-int segment(const Image4DType::Pointer fmri_img, 
-            const Image3DType::Pointer label_img,
-            const Image3DType::Pointer mask_img,
-            std::list< SectionType >& voxels);
-//should be called when you are done using voxels_list
+/* Normalizes by the averaging each voxel over time */
+Image4DType::Pointer normalizeByVoxel(const Image4DType::Pointer fmri_img);
+
+/* Normalizes by the averaging all the voxels in the mask/label */
+Image4DType::Pointer normalizeByGlobal(const Image4DType::Pointer fmri_img,
+            const Label3DType::Pointer labelmap);
+
+/* Normalizes by the averaging all the voxels in the mask/label */
+Image4DType::Pointer normalizeByRegion(const Image4DType::Pointer fmri_img,
+            const Label3DType::Pointer labelmap);
+
+std::vector< Image4DType::Pointer > splitByRegion(const Image4DType::Pointer fmri_img,
+            const Label3DType::Pointer labelmap);
+
+Image4DType::Pointer applymask(const Image4DType::Pointer fmri_img, 
+            const Label3DType::Pointer mask_img);
 
 Image4DType::Pointer read_dicom(std::string directory, double skip = 0);
 
