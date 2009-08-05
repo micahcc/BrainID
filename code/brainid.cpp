@@ -151,7 +151,6 @@ int main(int argc, char* argv[])
     vul_arg<unsigned> a_divider("-div", "Intermediate Steps between samples.", 64);
     vul_arg<string> a_stimfile("-stim", "file containing \"<time> <value>\""
                 "pairs which give the time at which input changed", "");
-    vul_arg<double> a_starttime("-tstart", "Initial time", 0);
     vul_arg<double> a_stoptime("-tstop", "Stop time", 0);
     vul_arg<string> a_serialofile("-so", "Where to put a serial output file", "");
     vul_arg<string> a_serialifile("-si", "Where to find a serial input file", "");
@@ -250,38 +249,40 @@ int main(int argc, char* argv[])
     boost::mpi::broadcast(world, meassize, 0);
     BoldModel model(a_expweight(), meassize, a_weightvar());
     
-    /* Full Distribution */
+    /////////////////////////////////////////////////////////////////////
+    // Particles Setup
+    /////////////////////////////////////////////////////////////////////
+    /* Create the filter */
     aux::DiracMixturePdf tmpX(model.getStateSize());
+    indii::ml::filter::ParticleFilter<double> filter(&model, tmpX);
     
     if(rank == 0) {
-        
-        /////////////////////////////////////////////////////////////////////
-        // Particles Setup
-        /////////////////////////////////////////////////////////////////////
-        /* Generate Prior */
         if(!a_serialifile().empty()) {
             *out << "Reading from: " << a_serialifile() << endl;
             std::ifstream serialin(a_serialifile().c_str(), std::ios::binary);
             boost::archive::binary_iarchive inArchive(serialin);
-            inArchive >> tmpX;
-            if(a_num_particles() != tmpX.getSize()) {
+            inArchive >> filter;
+            if(a_num_particles() != filter.getFilteredState().getSize()) {
                 *out << "Number of particles changed to " << a_num_particles();
-                *out << ", redrawing from distribution" << endl;
-                aux::DiracMixturePdf tmpX2(model.getStateSize());
-                for(size_t i=0 ; i<a_num_particles() ; i++) {
-                    tmpX2.add(tmpX.sample(), 1.0);
-                }
-                tmpX = tmpX2;
+                *out << "WARNING this is not yet implemented" << endl;
+//                aux::DiracMixturePdf tmpX2(model.getStateSize());
+//                for(size_t i=0 ; i<a_num_particles() ; i++) {
+//                    tmpX2.add(tmpX.sample(), 1.0);
+//                }
+//                tmpX = tmpX2;
             }
         } else {
             *out << "Generating prior" << endl;
-            model.generatePrior(tmpX, a_num_particles(), 9); //3*sigma, squared
+            model.generatePrior(filter.getFilteredState(), a_num_particles(), 9); //3*sigma, squared
         }
+    }
     
-
-        /////////////////////////////////////////////////////////////////////
-        // output setup 
-        /////////////////////////////////////////////////////////////////////
+    filter.getFilteredState().redistributeBySize(); 
+    
+    /////////////////////////////////////////////////////////////////////
+    // output setup 
+    /////////////////////////////////////////////////////////////////////
+    if(rank == 0) {
         //STATE
         stateOutput = Image4DType::New();
         init4DImage(stateOutput, 1, model.getStateSize(), 1, 
@@ -332,25 +333,18 @@ int main(int argc, char* argv[])
     boost::mpi::broadcast(world, sampletime, 0);
     boost::mpi::broadcast(world, a_num_particles(), 0);
 
-    tmpX.redistributeBySize();
-    
-    /* Create the filter */
-    indii::ml::filter::ParticleFilter<double> filter(&model, tmpX);
-
     /* Output the intial parameters */
-    aux::vector mu(model.getStateSize());
-    aux::symmetric_matrix cov(model.getStateSize());
-    mu = filter.getFilteredState().getDistributedExpectation();
-    cov = filter.getFilteredState().getDistributedCovariance();
     *out << "Start Mu : " << endl;
-    outputVector(*out, mu);
+    outputVector(*out, filter.getFilteredState().getDistributedExpectation());
     *out << endl;
 
     *out << "Start Cov : " << endl;
-    outputMatrix(*out, cov);
+    outputMatrix(*out, filter.getFilteredState().getDistributedCovariance());
     *out << endl;
-        
-  
+    
+    *out << "Size: " <<  filter.getFilteredState().getSize();
+    *out << "Time: " <<  filter.getTime();
+    
     /* create resamplers */
     /* Normal resampler, used to eliminate particles */
     indii::ml::filter::StratifiedParticleResampler resampler(a_num_particles());
@@ -369,7 +363,6 @@ int main(int argc, char* argv[])
     int disctime = 0;
     double conttime = 0;
     bool done = false;
-    int tmp = 0;
     int status = 0;
     if(rank == 0 && !a_stimfile().empty()) {
         fin.open(a_stimfile().c_str());
@@ -380,36 +373,31 @@ int main(int argc, char* argv[])
         fin >> nextinput;
     }
 
-    /* 
-     * Fast Forward in time to start time if we are supposed to skip
-     * to the first time (otherwise continue to main loop)
-     */
-    *out << " " <<  disctime << " " <<  sampletime << " " <<  a_divider()
-                << " " <<  disctime*sampletime/a_divider() << " " 
-                <<  (disctime*sampletime/a_divider() <= a_starttime()) <<  endl;
-    while(disctime*sampletime/a_divider() < a_starttime()) {
+    while(disctime*sampletime/a_divider() < filter.getTime()) {
         *out << ".";
         if(rank == 0 && !fin.eof() && disctime*sampletime/a_divider() 
                     >= nextinput) {
-            *out << "FAST FORWARD: t= " << disctime*sampletime/a_divider() << ", " 
-                        << endl;
             fin >> input[0];
             fin >> nextinput;
-            *out << "New input: " << input[0] << " Next at: " << nextinput << endl;
+            *out << "Time: " << disctime*sampletime/a_divider() << 
+                        ", Input: " << input[0] << ", Next: " 
+                        << nextinput << endl;
         }
-        /* Inform the filter of the current time, this needs to be the last
-         * time that the previous program would have used, so set it before
-         * disctime++ */
-        filter.setTime(disctime*sampletime/a_divider());
         disctime++;
     }
+    boost::mpi::broadcast(world, input, 0);
+    model.setinput(input);
 
     /* 
      * Run the particle filter either until we reach a predetermined end
      * time, or until we are done processing measurements.
      */
     while(!done && (a_stoptime() == 0 || disctime*sampletime/a_divider() 
-                < a_stoptime()) ) {
+                    <= a_stoptime()) ) {
+        /* time */
+        conttime = disctime*sampletime/a_divider();
+        *out << "t= " << conttime << ", ";
+        
 #ifdef PARTOUT
         if( rank == 0 && !partfile.empty() ) {
             const std::vector<aux::DiracPdf>& particles = 
@@ -418,26 +406,21 @@ int main(int argc, char* argv[])
         }
 #endif //PARTOUT
         
-        /* time */
-        conttime = disctime*sampletime/a_divider();
-        *out << "t= " << conttime << ", ";
-        
         /* Grab New Input if there is any*/
         if(rank == 0 && !fin.eof() && conttime >= nextinput) {
             fin >> input[0];
             fin >> nextinput;
             *out << "New input: " << input[0] << " Next at: " << nextinput << endl;
         }
-
         boost::mpi::broadcast(world, input, 0);
         model.setinput(input);
 
         /* Check to see if it is time to update */
-        if(disctime%a_divider() == 0 && conttime >= a_starttime()) { 
+        if(disctime%a_divider() == 0) { 
 
             /* Used to cut out all but the relevent parts of the output
              * images at the end. The reason that this is necessary is that,
-             * depending on the timestep, the length of the output length may not
+             * depending on the timestep, the length of the output may not
              * be predictable without actually looping through. */
             if(startlocation == -1) startlocation = disctime/a_divider();
             endlocation = disctime/a_divider();
@@ -493,16 +476,16 @@ int main(int argc, char* argv[])
 
             //time to resample
             if(ess < a_num_particles()*a_resampratio() || ess < a_resampnum()) {
-                cov = filter.getFilteredState().getDistributedCovariance();
                 *out << endl << " ESS: " << ess << ", Stratified Resampling" 
                             << endl;
                 *out << "Covariance prior to resampling" << endl;
-                outputMatrix(*out, cov);
+                outputMatrix(*out, filter.getFilteredState().
+                            getDistributedCovariance());
                 *out << endl;
                 filter.resample(&resampler);
-                cov = filter.getFilteredState().getDistributedCovariance();
                 *out << "Covariance after to resampling" << endl;
-                outputMatrix(*out, cov);
+                outputMatrix(*out, filter.getFilteredState().
+                            getDistributedCovariance());
                 *out << endl;
                 
                 *out << " ESS: " << ess << ", Regularized Resampling" << endl << endl;
@@ -518,26 +501,28 @@ int main(int argc, char* argv[])
 
             if( !a_statefile().empty() ) {
                 *out << "writing: " << a_statefile() << endl;
-                mu = filter.getFilteredState().getDistributedExpectation();
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 if(rank == 0)
-                    writeVector<double>(stateOutput, 1, mu, index);
+                    writeVector<double>(stateOutput, 1, filter.getFilteredState().
+                                getDistributedExpectation(), index);
             }
 
             if( !a_covfile().empty() ) {
                 *out << "writing: " << a_covfile() << endl;
-                cov = filter.getFilteredState().getDistributedCovariance();
+                
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 if(rank == 0)
-                    writeMatrix<double>(covOutput, 1, 2, cov, index);
+                    writeMatrix<double>(covOutput, 1, 2, filter.getFilteredState().
+                                getDistributedCovariance(), index);
             }
 
             if( !a_boldfile().empty() ) {
                 *out << "writing: " << a_boldfile() << endl;
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
-                mu = filter.getFilteredState().getDistributedExpectation();
                 if(rank == 0) 
-                    writeVector<double>(measOutput, 0, model.measure(mu), index);
+                    writeVector<double>(measOutput, 0, 
+                                model.measure( filter.getFilteredState().
+                                getDistributedExpectation() ), index);
             }
 
         } else { //no update available, just step update states
@@ -546,27 +531,19 @@ int main(int argc, char* argv[])
    
        
         /* Update Time, disctime */
-        tmp = disctime;
-        boost::mpi::broadcast(world, disctime, 0);
-        if(tmp != disctime) {
-            *out << "ERROR ranks have gotten out of sync at " << disctime << endl;
-            exit(-1);
-        }
         disctime++;
     }
 
     *out << "Index at end: "<< iter.GetIndex()[0] << "," << iter.GetIndex()[1] << endl;
     *out << "End time: "<< disctime*sampletime/a_divider() << endl;
                 
-    mu = filter.getFilteredState().getDistributedExpectation();
-    cov = filter.getFilteredState().getDistributedCovariance();
 
     *out << "End Mu parameters: " << endl;
-    outputVector(*out, mu);
+    outputVector(*out, filter.getFilteredState().getDistributedExpectation());
     *out << endl;
     
     *out << "End Cov parameters: " << endl;
-    outputMatrix(*out, cov);
+    outputMatrix(*out, filter.getFilteredState().getDistributedCovariance());
     *out << endl;
            
 //    {

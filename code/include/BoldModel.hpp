@@ -95,7 +95,6 @@ private:
 
     //Weighting
     enum WeightF { NORM = 0, EXP = 1, HYP = 2} ;
-    
     int weightf;
 
     //variance to apply to 
@@ -111,8 +110,7 @@ private:
 
     const unsigned int MEAS_SIZE;
     const unsigned int INPUT_SIZE;
-
-//    std::vector< SectionDesc > segments;
+    
 };
 
 #endif
