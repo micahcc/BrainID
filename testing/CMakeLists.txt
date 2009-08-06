@@ -21,12 +21,16 @@ endif(COMMAND cmake_policy)
 
 add_executable(particle_test particle_test.cpp)
 add_executable(serialize serialize.cpp)
+add_executable(dictionary dictionary.cpp)
 
 ADD_EXECUTABLE(segment_alltogether segment_alltogether.cpp)
 ADD_EXECUTABLE(segment_sections segment_sections.cpp)
 ADD_EXECUTABLE(segment_times segment_times.cpp)
 
-TARGET_LINK_LIBRARIES(serialize boost_serialization mpi boost_serialization 
+TARGET_LINK_LIBRARIES(dictionary 
+    ITKAlgorithms ITKBasicFilters
+    ITKCommon ITKIO modNiftiImageIO)
+TARGET_LINK_LIBRARIES(serialize boost_serialization mpi 
     boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO mpi gslcblas gsl gfortran blas lapack dysii)
 TARGET_LINK_LIBRARIES(particle_test mpi boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters

@@ -145,7 +145,11 @@ int main( int argc, char **argv )
 
         itk::ImageFileWriter< Image4DType >::Pointer writer = 
                     itk::ImageFileWriter< Image4DType >::New();
+        unsigned int offset = 0;
+        itk::ExposeMetaData(timeseries->GetMetaDataDictionary(), "offset", offset);
+        fprintf(stderr, "Offset: %u", offset);
         writer->SetInput(timeseries);
+        writer->SetImageIO(itk::modNiftiImageIO::New());
         writer->SetFileName(a_timeseries());
         writer->Update();
         fprintf(stderr, "Done.\n");

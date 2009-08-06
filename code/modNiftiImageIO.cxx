@@ -746,48 +746,69 @@ void _readkey(MetaDataDictionary& dict, std::string key,
   if(buffer[1] > 255) {
     throw(std::string("Error suspicous data length in modNiftiImage::readkey"));
   }
+  
+  typedef struct {
+    char label;
+    unsigned char length;
+  } head;
+  head* in = (head*)buffer;
 
-  switch((char)buffer[0]) {
-    case 'F':
-        if(buffer[1] == 4) {
-            itk::EncapsulateMetaData<float>(dict, key, *(float*)&buffer[2]);
-        } else if (buffer[1] == 8) {
-            itk::EncapsulateMetaData<double>(dict, key, *(double*)&buffer[2]);
 #ifdef QUAD
-        } else if (buffer[1] == 16) {
-            itk::EncapsulateMetaData<quad>(dict, key, *(quad*)&buffer[2]);
+  quad         tmpq;
+#endif //QUAD
+  double       tmpd;
+  float        tmpf;
+  int          tmpi;
+  unsigned int tmpu;
+  long long int tmpll;
+  long long unsigned int tmpllu;
+  unsigned short tmpus;
+  short tmpsi;
+
+  switch(in->label) {
+    case 'F':
+        if(in->length == 4) {
+            memcpy(&tmpf, &buffer[2], in->length);
+            itk::EncapsulateMetaData(dict, key, tmpf);
+        } else if (in->length == 8) {
+            memcpy(&tmpd, &buffer[2], in->length);
+            itk::EncapsulateMetaData(dict, key, tmpd);
+#ifdef QUAD
+        } else if (in->length == 16) {
+            memcpy(&tmpq, &buffer[2], in->length);
+            itk::EncapsulateMetaData(dict, key, tmpq);
 #endif //QUAD
         }
     break;
     case 'U':
-        if(buffer[1] == 2) {
-            itk::EncapsulateMetaData<unsigned short>(dict, key, 
-                        *(unsigned short*)&buffer[2]);
-        } else if (buffer[1] == 4) {
-            itk::EncapsulateMetaData<unsigned long>(dict, key, 
-                        *(unsigned long*)&buffer[2]);
-        } else if (buffer[1] == 8) {
-            itk::EncapsulateMetaData<unsigned long long>(dict, key, 
-                        *(unsigned long long*)&buffer[2]);
+        if(in->length == 2) {
+            memcpy(&tmpus, &buffer[2], in->length);
+            itk::EncapsulateMetaData(dict, key, tmpus);
+        } else if (in->length == 4) {
+            memcpy(&tmpu, &buffer[2], in->length);
+            itk::EncapsulateMetaData(dict, key, tmpu);
+        } else if (in->length == 8) {
+            memcpy(&tmpllu, &buffer[2], in->length);
+            itk::EncapsulateMetaData(dict, key, tmpllu);
         }
     break;
     case 'S':
-        if(buffer[1] == 2) {
-            itk::EncapsulateMetaData<short>(dict, key, 
-                        *(short*)&buffer[2]);
-        } else if (buffer[1] == 4) {
-            itk::EncapsulateMetaData<long>(dict, key, 
-                        *(long*)&buffer[2]);
-        } else if (buffer[1] == 8) {
-            itk::EncapsulateMetaData<long long>(dict, key, 
-                        *(long long*)&buffer[2]);
+        if(in->length == 2) {
+            memcpy(&tmpsi, &buffer[2], in->length);
+            itk::EncapsulateMetaData(dict, key, tmpsi);
+        } else if (in->length == 4) {
+            memcpy(&tmpi, &buffer[2], in->length);
+            itk::EncapsulateMetaData(dict, key, tmpi);
+        } else if (in->length == 8) {
+            memcpy(&tmpll, &buffer[2], in->length);
+            itk::EncapsulateMetaData(dict, key, tmpll);
         }
     break;
     case 'C':
     {
-        char* tmps = new char[buffer[1]+1]; //one extra for \0
-        memcpy(tmps, &buffer[2], buffer[1]);
-        tmps[buffer[1]] = 0;
+        char* tmps = new char[in->length+1]; //one extra for \0
+        memcpy(tmps, &buffer[2], in->length);
+        tmps[in->length] = 0;
         itk::EncapsulateMetaData<std::string>(dict, key,
                     std::string(tmps));
         delete[] tmps;

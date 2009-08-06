@@ -199,7 +199,8 @@ int main(int argc, char* argv[])
 
     std::ifstream fin;
 
-    double sampletime = 2;
+    double sampletime = 0;
+    unsigned int offset = 0;
     
     ImageReaderType::Pointer reader;
     itk::ImageLinearIteratorWithIndex<Image4DType> iter;
@@ -237,6 +238,9 @@ int main(int argc, char* argv[])
             sampletime=2;
         }
         *out << left << setw(20) << "TR" << ": " << sampletime << endl;
+        
+        itk::ExposeMetaData(measInput->GetMetaDataDictionary(), "offset", offset);
+        *out << left << setw(20) << "Offset" << ": " << offset << endl;
     
         //BOLD
         measOutput = Image4DType::New();
@@ -342,8 +346,8 @@ int main(int argc, char* argv[])
     outputMatrix(*out, filter.getFilteredState().getDistributedCovariance());
     *out << endl;
     
-    *out << "Size: " <<  filter.getFilteredState().getSize();
-    *out << "Time: " <<  filter.getTime();
+    *out << "Size: " <<  filter.getFilteredState().getSize() << endl;
+    *out << "Time: " <<  filter.getTime() << endl;
     
     /* create resamplers */
     /* Normal resampler, used to eliminate particles */
@@ -360,7 +364,7 @@ int main(int argc, char* argv[])
     aux::vector meas(meassize);
     input[0] = 0;
     double nextinput;
-    int disctime = 0;
+    int disctime = -a_divider()*offset;
     double conttime = 0;
     bool done = false;
     int status = 0;
@@ -371,6 +375,7 @@ int main(int argc, char* argv[])
             return -1;
         }
         fin >> nextinput;
+        nextinput -= offset*a_divider();
     }
 
     while(disctime*sampletime/a_divider() < filter.getTime()) {
@@ -379,6 +384,7 @@ int main(int argc, char* argv[])
                     >= nextinput) {
             fin >> input[0];
             fin >> nextinput;
+            nextinput -= offset*a_divider();
             *out << "Time: " << disctime*sampletime/a_divider() << 
                         ", Input: " << input[0] << ", Next: " 
                         << nextinput << endl;
@@ -410,6 +416,7 @@ int main(int argc, char* argv[])
         if(rank == 0 && !fin.eof() && conttime >= nextinput) {
             fin >> input[0];
             fin >> nextinput;
+            nextinput -= offset*a_divider();
             *out << "New input: " << input[0] << " Next at: " << nextinput << endl;
         }
         boost::mpi::broadcast(world, input, 0);

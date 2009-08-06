@@ -241,6 +241,8 @@ Image4DType::Pointer initTimeSeries(Image4DType::Pointer fmri_img, int sections)
                 std::string("time"));
     itk::EncapsulateMetaData(outputImage->GetMetaDataDictionary(), "Dim0", 
                 std::string("section"));
+    outputImage->CopyInformation(fmri_img);
+
     return outputImage;
 }
 
@@ -806,13 +808,13 @@ Image4DType::Pointer read_dicom(std::string directory, double skip)
         
     // connect each series to elevation filter
     // skip the first two times
-    double offset = 0;
+    unsigned int offset = 0;
     for(unsigned int ii=0; ii<seriesUID.size(); ii++) {
         if(ii*temporalres >= skip) {
             elevateFilter->PushBackInput(reader[ii]->GetOutput());
         } else {
             fprintf(stderr, "Skipping: %i, %f\n", ii, ii*temporalres);
-            offset = (ii+1)*temporalres;
+            offset = (ii+1);
         }
     }
         
