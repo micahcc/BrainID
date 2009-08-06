@@ -219,7 +219,7 @@ int main(int argc, char* argv[])
         reader->Update();
         measInput = reader->GetOutput();
         meassize = measInput->GetRequestedRegion().GetSize()[SERIESDIM];
-        fprintf(stderr, "seriesdim: %d\n", meassize);
+//        fprintf(stderr, "seriesdim: %d\n", meassize);
         
         /* Create the iterator, to move forward in time for a particlular section */
         iter = itk::ImageLinearIteratorWithIndex<Image4DType>(measInput, 
@@ -375,7 +375,7 @@ int main(int argc, char* argv[])
             return -1;
         }
         fin >> nextinput;
-        nextinput -= offset*a_divider();
+        nextinput -= offset*sampletime;
     }
 
     while(disctime*sampletime/a_divider() < filter.getTime()) {
@@ -384,7 +384,7 @@ int main(int argc, char* argv[])
                     >= nextinput) {
             fin >> input[0];
             fin >> nextinput;
-            nextinput -= offset*a_divider();
+            nextinput -= offset*sampletime;
             *out << "Time: " << disctime*sampletime/a_divider() << 
                         ", Input: " << input[0] << ", Next: " 
                         << nextinput << endl;
@@ -416,7 +416,7 @@ int main(int argc, char* argv[])
         if(rank == 0 && !fin.eof() && conttime >= nextinput) {
             fin >> input[0];
             fin >> nextinput;
-            nextinput -= offset*a_divider();
+            nextinput -= offset*sampletime;
             *out << "New input: " << input[0] << " Next at: " << nextinput << endl;
         }
         boost::mpi::broadcast(world, input, 0);
