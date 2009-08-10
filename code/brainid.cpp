@@ -275,13 +275,23 @@ int main(int argc, char* argv[])
 //                }
 //                tmpX = tmpX2;
             }
-        } else {
-            *out << "Generating prior" << endl;
-            model.generatePrior(filter.getFilteredState(), a_num_particles(), 9); //3*sigma, squared
         }
     }
-    
+
+    /* If the filter wasn't loaded from serial, generate*/
+    if(a_serialifile().empty()) {
+        *out << "Generating prior" << endl;
+        int localparticles = a_num_particles()/size;
+        //give excess to last rank
+        if(rank == (size-1))
+            localparticles = a_num_particles()-localparticles*(size-1);
+        model.generatePrior(filter.getFilteredState(), localparticles, 4); //3*sigma, squared
+    }
+
+    /* Redistribute - doesn't cost anything if distrib. was already fine */
+    *out << "Redistributing" << endl;
     filter.getFilteredState().redistributeBySize(); 
+    
     
     /////////////////////////////////////////////////////////////////////
     // output setup 
@@ -362,6 +372,8 @@ int main(int argc, char* argv[])
     /* Simulation Section */
     aux::vector input(1);
     aux::vector meas(meassize);
+    aux::vector mu;
+    aux::symmetric_matrix cov;
     input[0] = 0;
     double nextinput;
     int disctime = -a_divider()*offset;
@@ -485,15 +497,15 @@ int main(int argc, char* argv[])
             if(ess < a_num_particles()*a_resampratio() || ess < a_resampnum()) {
                 *out << endl << " ESS: " << ess << ", Stratified Resampling" 
                             << endl;
-                *out << "Covariance prior to resampling" << endl;
-                outputMatrix(*out, filter.getFilteredState().
-                            getDistributedCovariance());
-                *out << endl;
+//                *out << "Covariance prior to resampling" << endl;
+//                outputMatrix(*out, filter.getFilteredState().
+//                            getDistributedCovariance());
+//                *out << endl;
                 filter.resample(&resampler);
-                *out << "Covariance after to resampling" << endl;
-                outputMatrix(*out, filter.getFilteredState().
-                            getDistributedCovariance());
-                *out << endl;
+//                *out << "Covariance after to resampling" << endl;
+//                outputMatrix(*out, filter.getFilteredState().
+//                            getDistributedCovariance());
+//                *out << endl;
                 
                 *out << " ESS: " << ess << ", Regularized Resampling" << endl << endl;
                 filter.resample(&resampler_reg);
@@ -505,13 +517,14 @@ int main(int argc, char* argv[])
             /* Save output - but only if there is somewhere to ouptput to. Not
              * outputing anything can lead to serious time savings 
              * */
-
+            
+            mu = filter.getFilteredState().getDistributedExpectation();
+            cov = filter.getFilteredState().getDistributedCovariance();
             if( !a_statefile().empty() ) {
                 *out << "writing: " << a_statefile() << endl;
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 if(rank == 0)
-                    writeVector<double>(stateOutput, 1, filter.getFilteredState().
-                                getDistributedExpectation(), index);
+                    writeVector<double>(stateOutput, 1, mu , index);
             }
 
             if( !a_covfile().empty() ) {
@@ -519,17 +532,14 @@ int main(int argc, char* argv[])
                 
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 if(rank == 0)
-                    writeMatrix<double>(covOutput, 1, 2, filter.getFilteredState().
-                                getDistributedCovariance(), index);
+                    writeMatrix<double>(covOutput, 1, 2, cov, index);
             }
 
             if( !a_boldfile().empty() ) {
                 *out << "writing: " << a_boldfile() << endl;
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 if(rank == 0) 
-                    writeVector<double>(measOutput, 0, 
-                                model.measure( filter.getFilteredState().
-                                getDistributedExpectation() ), index);
+                    writeVector<double>(measOutput, 0, model.measure(mu), index);
             }
 
         } else { //no update available, just step update states
@@ -578,7 +588,7 @@ int main(int argc, char* argv[])
         if(!a_serialofile().empty()) {
             std::ofstream serialout(a_serialofile().c_str(), std::ios::binary);
             boost::archive::binary_oarchive outArchive(serialout);
-            outArchive << filter.getFilteredState();
+            outArchive << filter;
 
         }
 
