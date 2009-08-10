@@ -13,6 +13,7 @@
 #include "modNiftiImageIO.h"
 
 #include <sstream>
+#include <iostream>
 
 #include <vcl_list.h>
 #include <vul/vul_arg.h>
@@ -57,6 +58,7 @@ int main( int argc, char **argv )
     
     /* Output related */
     vul_arg<string> a_fullout("-c", "Cloned output of fmri timeseries", "");
+    vul_arg<string> a_filtered("-f", "Filtered/Normalized bold 4D Image", "");
     vul_arg<string> a_volume("-v", "Name to save volume at t=10 to", "");
     vul_arg<string> a_timeseries("-t", "Timeseries file, sections X time", "");
     vul_arg<string> a_regionprefix("-rp", "Region file prefix, with each full"
@@ -67,8 +69,16 @@ int main( int argc, char **argv )
     /* TODO, compare the list of actual labels with list of input labels */
     
     vul_arg_parse(argc, argv);
-
+    
     ostringstream oss;
+
+    if(!a_filtered().empty()) {
+        fprintf(stderr, "!empty\n");
+    }
+    
+    if(!a_timeseries().empty()) {
+        fprintf(stderr, "!empty\n");
+    }
     
     fprintf(stderr, "Reading Dicom Directory: %s...\n", a_fmridir().c_str());
     Image4DType::Pointer fmri_img = read_dicom(a_fmridir(), a_skip());
@@ -142,7 +152,20 @@ int main( int argc, char **argv )
         fprintf(stderr, "Done\n");
 //    }
        
+    cout << "filtered " <<  a_filtered() << " " << a_filtered().empty() << endl;
+    if(!a_filtered().empty()) {
+        fprintf(stderr, "Writing Filtered Image\n");
 
+        itk::ImageFileWriter< Image4DType >::Pointer writer = 
+                    itk::ImageFileWriter< Image4DType >::New();
+        writer->SetInput(fmri_img);
+        writer->SetImageIO(itk::modNiftiImageIO::New());
+        writer->SetFileName(a_filtered());
+        writer->Update();
+        fprintf(stderr, "Done.\n");
+    }
+
+    cout << "time " <<  a_timeseries() << " " << a_timeseries().empty() << endl;
     if(!a_timeseries().empty()) {
         fprintf(stderr, "Writing Time Image\n");
 
