@@ -41,7 +41,7 @@ Image4DType::Pointer summ(const Image4DType::Pointer fmri_img,
 
 /* Normalizes by the averaging each voxel over time */
 Image4DType::Pointer normalizeByVoxel(const Image4DType::Pointer fmri_img,
-            const Label3DType::Pointer labelmap);
+            const Label3DType::Pointer labelmap, int regions);
 
 /* Normalizes by the averaging all the voxels in the mask/label */
 Image4DType::Pointer normalizeByGlobal(const Image4DType::Pointer fmri_img,

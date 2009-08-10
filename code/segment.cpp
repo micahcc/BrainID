@@ -30,6 +30,8 @@
 #include <itkMultiplyByConstantImageFilter.h>
 #include <itkBinaryThresholdImageFilter.h>
 
+#include <gsl/gsl_spline.h>
+
 typedef itk::AddImageFilter< Image3DType > AddF;
 typedef itk::MultiplyByConstantImageFilter< Image3DType, double, Image3DType > ScaleF;
 typedef itk::BinaryThresholdImageFilter<Label3DType, Label3DType> ThreshF;
@@ -283,9 +285,119 @@ typename itk::OrientedImage<T,4>::Pointer stretch(
     return elevateFilter->GetOutput();
 }
 
-Image4DType::Pointer normalizeByVoxel(const Image4DType::Pointer fmri_img,
-            const Label3DType::Pointer mask)
+int detrend(Image4DType::Pointer fmri_img, Image4DType::IndexType index, int regions)
 {
+    gsl_interp_accel *acc = gsl_interp_accel_alloc();
+    gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, regions+2);
+
+    for(int i = 0 ; i < 4 ; i++) {
+        fprintf(stderr, "%zu ", index[i]);
+    }
+    fprintf(stderr, "\n");
+
+    /* Go to index and start at time 0 at that voxel*/
+    itk::ImageLinearIteratorWithIndex< Image4DType > fmri_it;
+    fmri_it.SetDirection(3);
+    fmri_it.SetIndex(index);
+
+    double averages[regions+2];
+    int counts[regions+2];
+    int starts[regions];
+
+    int length = fmri_img->GetRequestedRegion().GetSize()[3];
+    double rsize = length / regions;
+    for(int i = 0 ; i < regions ; i++) {
+        starts[i] = rsize*i;
+    }
+    
+    int region = 0;
+    for(fmri_it.GoToBeginOfLine(); !fmri_it.IsAtEndOfLine(); ++fmri_it) {
+        /* Figure out Region */
+        if(fmri_it.GetIndex()[3] < length/(regions*2)) {
+            averages[0] += fmri_it.Get();
+            counts[0]++;
+        } else if(fmri_it.GetIndex()[3] > (length - length/(regions*2))) {
+            averages[regions+1] += fmri_it.Get();
+            counts[regions+1]++;
+        }
+
+        /* Check to see if the index is for the last region(since there is no)
+         * start for the region after that */
+        if(fmri_it.GetIndex()[3] > starts[regions-1]) {
+            averages[regions] += fmri_it.Get();
+            counts[regions]++;
+        /* Check to see if the index is for the next region and
+         * if that is the case, then add the data to the next region
+         * and iterate the region count*/
+        } else if(fmri_it.GetIndex()[3] > starts[region+1]) {
+            averages[region+2] += fmri_it.Get();
+            counts[region+2]++;
+            region++;
+        /* Otherwise, just go with the current region */
+        } else {
+            averages[region+1] += fmri_it.Get();
+            counts[region+1]++;
+        }
+    }
+
+    double xpos[regions+2];
+    xpos[0] = 0;
+    xpos[regions+1] = length-1;;
+    xpos[regions] = (length + starts[regions-1])/2;
+
+    gsl_spline_init(spline, xpos, averages, regions+2);
+    for(fmri_it.GoToBeginOfLine(); !fmri_it.IsAtEndOfLine(); ++fmri_it) {
+        fmri_it.Set(gsl_spline_eval(spline, fmri_it.GetIndex()[3], acc));
+    }
+
+    for(int i = 1 ; i < regions ; i ++){
+        xpos[i] = (starts[i+1] + starts[i])/2;
+    }
+
+    for(int i = 0 ; i  < regions+2 ; i++) {
+        fprintf(stderr, "%i Average: %f Count: %i, pos: %f\n", i, averages[i], 
+                    counts[i], xpos[i]);
+    }
+    for(int i = 0 ; i  < regions ; i++) {
+        fprintf(stderr, "%i Starts: %i\n", i, starts[i]);
+    }
+    return 0;
+}
+
+Image4DType::Pointer normalizeByVoxel(const Image4DType::Pointer fmri_img,
+            const Label3DType::Pointer mask, int regions)
+{
+    /* Fmri Iterators */
+    itk::ImageLinearIteratorWithIndex< Image4DType > fmri_it;
+    fmri_it.SetDirection(0);
+    
+    itk::ImageLinearIteratorWithIndex< Image4DType > fmri_stop;
+    fmri_stop.SetDirection(3);
+    fmri_stop.GoToBegin();
+    ++fmri_stop;
+    
+    itk::ImageLinearIteratorWithIndex< Label3DType > mask_it;
+
+    Image4DType::PointType point4;
+    Label3DType::IndexType index3;
+    Label3DType::PointType point3;
+    
+    for(fmri_it.GoToBegin(); fmri_it != fmri_stop ; fmri_it.NextLine()) {
+        for( ; !fmri_it.IsAtEndOfLine(); ++fmri_it) {
+
+            /* Change 4D Index in fmri Image to 3d in mask, which have spacing */
+            fmri_img->TransformIndexToPhysicalPoint(fmri_it.GetIndex(), point4);
+            for(int i = 0 ; i < 3 ; i++) point3[i] = point4[i];
+            mask->TransformPhysicalPointToIndex(point3, index3);
+            mask_it.SetIndex(index3);
+
+            /* Re-write time series based on spline detrending */
+            if(mask_it.Get() != 0) {
+                detrend(fmri_img, fmri_it.GetIndex(), regions);
+            }
+        }
+    }
+    
     Image3DType::Pointer average = get_average(fmri_img);
     double globalmean = get_average(fmri_img, mask);
     /* Rescale (fmri - avg)/avg*/
@@ -293,11 +405,8 @@ Image4DType::Pointer normalizeByVoxel(const Image4DType::Pointer fmri_img,
                 fmri_img->GetRequestedRegion().GetSize()[3]);
     avg4d->CopyInformation(fmri_img);
     
-    SubF::Pointer sub = SubF::New();
     DivCF::Pointer div = DivCF::New();
-    sub->SetInput1(fmri_img);
-    sub->SetInput2(avg4d);
-    div->SetInput(sub->GetOutput());
+    div->SetInput(fmri_img);
     div->SetConstant(globalmean);
     div->Update();
     

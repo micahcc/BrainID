@@ -49,6 +49,9 @@ int main( int argc, char **argv )
     
     /* Processing */
     vul_arg<double> a_skip("-skip" ,"Amount of time to skip at the beginning", 0.);
+    vul_arg<unsigned int> a_spline("-spline" ,"Number of regions to use with spline"
+                " detrending, this is the number of knots minus 2, since a beginning"
+                " knot and ending knot are also used", 3.);
 //    vul_arg<bool> a_globalnorm("-gn", "Normalize globaly by all Greymatter"
 //                " voxels (as opposed by section and voxel)", true);
     
@@ -132,7 +135,7 @@ int main( int argc, char **argv )
 //        fprintf(stderr, "Done\n");
 //    } else {
         fprintf(stderr, "Normalizing by voxel...\n");
-        fmri_img = normalizeByVoxel(fmri_img, mask_img);
+        fmri_img = normalizeByVoxel(fmri_img, mask_img, a_spline());
         fprintf(stderr, "Done\n");
         fprintf(stderr, "Generating Timeseries with average over Region...\n");
         timeseries = summ(fmri_img, labelmap_img, a_sections());
