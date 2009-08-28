@@ -84,9 +84,6 @@ int BoldModel::transition(aux::vector& dustin,
         const double time, const double delta_t, const aux::vector& u_t)
 {
     static aux::vector defaultvector = getdefault();
-//    std::cerr  <<"Printing input state" << std::endl;
-//    outputVector(std::cerr, dustin);
-//    std::cerr << std::endl;
     double dot1, dot2, dot3;
     double tmpA, tmpB;
 
@@ -146,9 +143,6 @@ int BoldModel::transition(aux::vector& dustin,
        
     }
         
-//    std::cerr  <<"Printing Output state" << std::endl;
-//    outputVector(std::cerr, dustin);
-//    std::cerr << std::endl;
     return 0;
 }
 
