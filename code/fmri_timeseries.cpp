@@ -72,14 +72,6 @@ int main( int argc, char **argv )
     
     ostringstream oss;
 
-    if(!a_filtered().empty()) {
-        fprintf(stderr, "!empty\n");
-    }
-    
-    if(!a_timeseries().empty()) {
-        fprintf(stderr, "!empty\n");
-    }
-    
     fprintf(stderr, "Reading Dicom Directory: %s...\n", a_fmridir().c_str());
     Image4DType::Pointer fmri_img = read_dicom(a_fmridir(), a_skip());
     fprintf(stderr, "Done reading\n");
@@ -134,6 +126,9 @@ int main( int argc, char **argv )
     maskf->SetInput2(mask_img);
     maskf->Update();
     labelmap_img = maskf->GetOutput();
+
+    fprintf(stderr, "Applying mask to fmri image...\n");
+    fmri_img = applymask<DataType, 4, LabelType, 3>(fmri_img, mask_img);
 
     Image4DType::Pointer timeseries;
 //    if(a_globalnorm()) {

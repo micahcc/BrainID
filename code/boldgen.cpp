@@ -82,8 +82,9 @@ void get_rms(Image4DType::Pointer in, size_t dir1, size_t dir2,
         }
         iter.NextLine();
     }
-    for(size_t ii= 0 ; ii<mean.size() ; ii++)
+    for(size_t ii= 0 ; ii<mean.size() ; ii++) {
         mean[ii] /= numelements;
+    }
 
     /* variance */
     iter.GoToBegin();
@@ -176,7 +177,7 @@ int main (int argc, char** argv)
 
     vul_arg_parse(argc,argv);
 
-    BoldModel model(false, false, a_series());
+    BoldModel model(false, a_series());
     
     //create a 4D output image of appropriate size.
     itk::ImageFileWriter< Image4DType >::Pointer writer = 
@@ -202,6 +203,10 @@ int main (int argc, char** argv)
         itk::EncapsulateMetaData<unsigned int>(dict, oss.str(), i+5);
     }
     measImage->SetMetaDataDictionary(dict);
+    Image4DType::SpacingType space4;
+    for(int i = 0 ; i < 4 ; i++) space4[i] = 1;
+    space4[TIME_DIR] = a_outstep();
+    measImage->SetSpacing(space4);
 
     //initialize first line in t direction to hold the section number
     
@@ -346,7 +351,11 @@ int main (int argc, char** argv)
             nextinput += a_randstim_t();
         }
 
-        model.transition(systemstate, realt, realt-prev, input);
+        int returnv;
+        if((returnv = model.transition(systemstate, realt, realt-prev, input)) != 0) {
+            cout << returnv;
+            exit(returnv);
+        }
         //TODO add noise to simulation
         
         //check to see if it is time to sample
