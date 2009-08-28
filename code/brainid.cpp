@@ -48,7 +48,7 @@ typedef itk::OrientedImage< ImagePixelType,  4 > Image4DType;
 typedef itk::ImageFileReader< Image4DType >  ImageReaderType;
 typedef itk::ImageFileWriter< Image4DType >  WriterType;
 
-
+/* Gathers all the elements of the DiracMixturePdf to the local node */
 void gatherToNode(unsigned int dest, aux::DiracMixturePdf& input) {
   boost::mpi::communicator world;
   unsigned int rank = world.rank();
@@ -135,6 +135,7 @@ void init4DImage(Image4DType::Pointer& out, size_t xlen, size_t ylen,
 /* Main Function */
 int main(int argc, char* argv[])
 {
+    /* Initialize mpi */
     boost::mpi::environment env(argc, argv);
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
@@ -497,18 +498,20 @@ int main(int argc, char* argv[])
             if(ess < a_num_particles()*a_resampratio() || ess < a_resampnum()) {
                 *out << endl << " ESS: " << ess << ", Stratified Resampling" 
                             << endl;
-//                *out << "Covariance prior to resampling" << endl;
-//                outputMatrix(*out, filter.getFilteredState().
-//                            getDistributedCovariance());
-//                *out << endl;
+                cov = filter.getFilteredState().getDistributedCovariance();
+                *out << "Covariance prior to resampling" << endl;
+                outputMatrix(*out, filter.getFilteredState().
+                            getDistributedCovariance());
+                *out << endl;
                 filter.resample(&resampler);
-//                *out << "Covariance after to resampling" << endl;
-//                outputMatrix(*out, filter.getFilteredState().
-//                            getDistributedCovariance());
-//                *out << endl;
+                *out << "Covariance after to resampling" << endl;
+                outputMatrix(*out, filter.getFilteredState().
+                            getDistributedCovariance());
+                *out << endl;
                 
                 *out << " ESS: " << ess << ", Regularized Resampling" << endl << endl;
-                filter.resample(&resampler_reg);
+                filter.setFilteredState(resampler_reg.
+                            resample(filter.getFilteredState(), cov) );
             } else {
                 *out << endl << " ESS: " << ess << ", No Resampling Necessary!" 
                             << endl;
@@ -586,6 +589,7 @@ int main(int argc, char* argv[])
         writer->SetImageIO(itk::modNiftiImageIO::New());
         //serialize
         if(!a_serialofile().empty()) {
+            *out << "Writing serial output" << endl;
             std::ofstream serialout(a_serialofile().c_str(), std::ios::binary);
             boost::archive::binary_oarchive outArchive(serialout);
             outArchive << filter;
@@ -594,6 +598,7 @@ int main(int argc, char* argv[])
 
         /* Bold */
         if(!a_boldfile().empty()) {
+            *out << "Writing Bold output" << endl;
             writer->SetFileName(a_boldfile());  
             writer->SetInput(prune<double>(measOutput, TIMEDIM, startlocation, 
                         endlocation));
@@ -602,6 +607,7 @@ int main(int argc, char* argv[])
 
         /* State */
         if(!a_statefile().empty()) {
+            *out << "Writing State output" << endl;
             writer->SetFileName(a_statefile());  
             writer->SetInput(prune<double>(stateOutput, TIMEDIM, startlocation, 
                         endlocation));
@@ -610,6 +616,7 @@ int main(int argc, char* argv[])
         
         /* Covariance */
         if(!a_covfile().empty()) {
+            *out << "Writing Covariance output" << endl;
             writer->SetFileName(a_covfile());  
             writer->SetInput(prune<double>(covOutput, TIMEDIM, startlocation, 
                         endlocation));

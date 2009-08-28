@@ -286,7 +286,86 @@ typename itk::OrientedImage<T,4>::Pointer stretch(
     return elevateFilter->GetOutput();
 }
 
-int detrend(const Image4DType::Pointer fmri_img, Image4DType::IndexType index, 
+/* Returns:
+ * -1 if before is the lowest
+ *  0 if current is the lowest or current ties for lowest
+ *  1 if after is the lowest 
+ */
+int min(int before, int current, int after) {
+    if(before < current) {
+        if(before < after) {
+            return -1;
+        } else { //before >= after 
+            return 1;
+        }
+    } else { //before >= current
+        if( current <= after) {
+            return 0;
+        } else { //current > after 
+            return 1;
+        }
+    }
+}
+
+int detrend_lmin(const Image4DType::Pointer fmri_img, Image4DType::IndexType index, 
+            int ties, Image4DType::Pointer output)
+{
+    gsl_interp_accel *acc = gsl_interp_accel_alloc();
+    gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, ties);
+
+    /* Go to index and start at time 0 at that voxel*/
+    itk::ImageLinearConstIteratorWithIndex< Image4DType > 
+                fmri_it(fmri_img, fmri_img->GetRequestedRegion());
+    fmri_it.SetDirection(3);
+    fmri_it.SetIndex(index);
+
+    Image4DType::IndexType beforeindex = index;
+    Image4DType::IndexType afterindex = index;
+    Image4DType::IndexType tmpindex = index;
+
+    double levels[ties];
+    double xpos[ties];
+    int positions[ties];
+
+    int length = fmri_img->GetRequestedRegion().GetSize()[3];
+    positions[0] = 0;
+    positions[ties-1] = length-1;
+    for(int i = 1 ; i < ties-1 ; i++) {
+        positions[i] = positions[i-1] + (length - positions[i-1])/(ties-i);
+    }
+
+    for(int i = 0 ; i < ties ; i++) {
+        int dir = 0;
+        do{
+            beforeindex[3] = (positions[i] == 0) ? positions[i] : positions[i]-1;
+            afterindex[3] = (positions[i] == length-1) ? positions[i] : positions[i]+1;
+            tmpindex[3] = positions[i];
+
+            dir = min(fmri_img->GetPixel(beforeindex), fmri_img->GetPixel(tmpindex),
+                        fmri_img->GetPixel(afterindex));
+            positions[i] += dir;
+        } while( dir != 0 );
+    }
+    
+    for(int i = 0 ; i < ties ; i++) {
+        tmpindex[3] = positions[i];
+        levels[i] = fmri_img->GetPixel(tmpindex);
+        xpos[i] = positions[i];
+    }
+
+    itk::ImageLinearIteratorWithIndex< Image4DType > 
+                out_it(output, output->GetRequestedRegion());
+    out_it.SetDirection(3);
+    out_it.SetIndex(index);
+    gsl_spline_init(spline, xpos, levels, ties);
+    for(out_it.GoToBeginOfLine(); !out_it.IsAtEndOfLine(); ++out_it) {
+        out_it.Set(gsl_spline_eval(spline, out_it.GetIndex()[3], acc));
+    }
+
+    return 0;
+}
+
+int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType index, 
             int regions, Image4DType::Pointer output)
 {
     gsl_interp_accel *acc = gsl_interp_accel_alloc();
@@ -415,7 +494,7 @@ Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img,
 
             /* Re-write time series based on spline detrending */
             if(mask_it.Get() != 0) {
-                detrend(fmri_img, fmri_it.GetIndex(), sections, outimage);
+                detrend_avg(fmri_img, fmri_it.GetIndex(), sections, outimage);
             }
         }
     }

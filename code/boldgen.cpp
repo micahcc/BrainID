@@ -153,7 +153,8 @@ int main (int argc, char** argv)
     fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
     srand(1333);
 
-    vul_arg<string> a_boldfile("-bf", "boldfile to write to (image)", "");
+    vul_arg<string> a_boldfile("-bf", "boldfile to write to (image) - boldfine with noise"
+                " will be the same name but with \"noise-\" prefixed", "");
     vul_arg<double> a_outstep("-ot", "How often to sample", 2);
     vul_arg<double> a_simstep("-st", "Step size for sim, smaller is more accurate",
                 .001);
@@ -371,18 +372,26 @@ int main (int argc, char** argv)
         }
         
     }
-
-    if(a_noise_snr() != 0)
-        add_noise(measImage, a_noise_snr(), rng, a_series());
-    
-    if(fout.is_open()) {
-        fout.close();
-    }
     
     if(!a_boldfile().empty()) {
         writer->SetFileName(a_boldfile());  
         writer->SetInput(measImage);
         writer->Update();
+    }
+
+    if(fout.is_open()) {
+        fout.close();
+    }
+    
+    if(a_noise_snr() != 0) {
+        add_noise(measImage, a_noise_snr(), rng, a_series());
+        if(!a_boldfile().empty()) {
+            ostringstream oss("");
+            oss << "noise-" << a_boldfile();
+            writer->SetFileName(oss.str());  
+            writer->SetInput(measImage);
+            writer->Update();
+        }
     }
     
     if(!a_statefile().empty()) {

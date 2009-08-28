@@ -36,6 +36,8 @@ struct SectionType{
     PixelIterator4D point;
 } ;
 
+enum { AVERAGES, LOCALMIN, LOCALMAX };
+
 Image4DType::Pointer summ(const Image4DType::Pointer fmri_img, 
             const Label3DType::Pointer labelmap, std::list<LabelType>& sections);
 
