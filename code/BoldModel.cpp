@@ -12,6 +12,8 @@
 #define EXPONENTIAL_VAR .2
 #define GAUSSIAN_VAR .2
 
+#include <iostream>
+
 BoldModel::BoldModel(bool expweight, size_t sections, double var,
             aux::vector u) : 
 
@@ -100,12 +102,6 @@ int BoldModel::transition(aux::vector& dustin,
         dot1 = (  ( dustin[f_t] - 
                     pow(dustin[v_t], 1./dustin[indexof(ALPHA, ii)]) ) / 
                     dustin[indexof(TAU_0,ii)]  );
-        dustin[v_t] += dot1*delta_t;
-        
-        if(isnan(dustin[v_t]) || isinf(dustin[v_t]) || dustin[v_t] < 0) {
-            dustin = defaultvector;
-            return -1;
-        }
 
         // Normalized Deoxyhaemoglobin Content
         //Q_t* = \frac{1}{tau_0} * (\frac{f_t}{E_0} * (1- (1-E_0)^{1/f_t}) - 
@@ -115,37 +111,43 @@ int BoldModel::transition(aux::vector& dustin,
         tmpB = dustin[q_t] / 
                     pow(dustin[v_t], 1.-1./dustin[indexof(ALPHA,ii)]);
         dot2 =  ( tmpA - tmpB )/dustin[indexof(TAU_0,ii)];
-        dustin[q_t] += dot2*delta_t;
-        
-        if(isnan(dustin[q_t]) || isinf(dustin[q_t]) || dustin[q_t] < 0) {
-            dustin = defaultvector;
-            return -2;
-        }
 
         // Second Derivative of Cerebral Blood Flow
         //S_t* = \epsilon*u_t - 1/\tau_s * s_t - 1/\tau_f * (f_t - 1)
         dot3 = u_t[0]*dustin[indexof(EPSILON, ii)] 
                     - dustin[s_t]/dustin[indexof(TAU_S, ii)]
                     - (dustin[f_t] - 1.) / dustin[indexof(TAU_F,ii)];
-        dustin[s_t] += dot3*delta_t;
+        // Normalized Cerebral Blood Flow
+        //f_t* = s_t;
+        dustin[f_t] += dustin[s_t]*delta_t;
+        if(dustin[f_t] < 0 || isnan(dustin[f_t]) || isinf(dustin[f_t]) ) {
+            dustin = defaultvector;
+            return -4;
+        }
 
+        /* Update the others based on their gradient */
+        dustin[v_t] += dot1*delta_t;
+        if(isnan(dustin[v_t]) || isinf(dustin[v_t]) || dustin[v_t] < 0) {
+            dustin = defaultvector;
+            return -1;
+        }
+        
+        dustin[q_t] += dot2*delta_t;
+        if(isnan(dustin[q_t]) || isinf(dustin[q_t]) || dustin[q_t] < 0) {
+            dustin = defaultvector;
+            return -2;
+        }
+        
+        dustin[s_t] += dot3*delta_t;
         if(isnan(dustin[s_t]) || isinf(dustin[s_t])) {
             dustin = defaultvector;
             return -3;
         }
        
-        // Normalized Cerebral Blood Flow
-        //f_t* = s_t;
-        dustin[f_t] += dustin[s_t]*delta_t;
-        
-        if(dustin[f_t] < 0 || isnan(dustin[f_t]) || isinf(dustin[f_t]) ) {
-            dustin = defaultvector;
-            return -4;
-        }
     }
         
 //    std::cerr  <<"Printing Output state" << std::endl;
-//    outputVector(std::cerr, dustout);
+//    outputVector(std::cerr, dustin);
 //    std::cerr << std::endl;
     return 0;
 }
