@@ -219,24 +219,11 @@ void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme,
 //TODO make some of these non-gaussian
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, double varwidth)
 {
-    aux::vector mean(STATE_SIZE);
+    aux::vector mean = getdefault();
     aux::symmetric_matrix cov = aux::zero_matrix(STATE_SIZE);
     
     //set the averages of the variables
     for(unsigned int ii = 0 ; ii < SIMUL_STATES; ii++) {
-        mean[indexof(TAU_S, ii)] = 4.98;
-        mean[indexof(TAU_F, ii)] = 8.31;
-        mean[indexof(EPSILON, ii)] = 0.069;
-        mean[indexof(TAU_0, ii)] = 8.38;
-        mean[indexof(ALPHA, ii)] = .189;
-        mean[indexof(E_0, ii)] = .635;
-        mean[indexof(V_0, ii)] = 1.49e-2;
-
-        mean[indexof(V_T,ii)] = 1;
-        mean[indexof(Q_T,ii)] = 1;
-        mean[indexof(S_T,ii)] = 0;
-        mean[indexof(F_T,ii)]= 1;
-        
         //set the variances for all the variables
         cov(indexof(TAU_S  ,ii), indexof(TAU_S  ,ii)) = varwidth*1.07*1.07;
         cov(indexof(TAU_F  ,ii), indexof(TAU_F  ,ii)) = varwidth*1.51*1.51;
@@ -248,8 +235,8 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, double varw
 
         cov(indexof(V_T,ii), indexof(V_T,ii)) = varwidth*.2;
         cov(indexof(Q_T,ii), indexof(Q_T,ii)) = varwidth*.2;
-        cov(indexof(S_T,ii), indexof(S_T,ii)) = varwidth*.6;
-        cov(indexof(F_T,ii), indexof(F_T,ii)) = varwidth*1;
+        cov(indexof(S_T,ii), indexof(S_T,ii)) = varwidth*.2;
+        cov(indexof(F_T,ii), indexof(F_T,ii)) = varwidth*.2;
     }
     generatePrior(x0, samples, mean, cov);
 }
@@ -271,8 +258,8 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
 
         cov(indexof(V_T,ii), indexof(V_T,ii)) = varwidth*.2;
         cov(indexof(Q_T,ii), indexof(Q_T,ii)) = varwidth*.2;
-        cov(indexof(S_T,ii), indexof(S_T,ii)) = varwidth*.6;
-        cov(indexof(F_T,ii), indexof(F_T,ii)) = varwidth*1;
+        cov(indexof(S_T,ii), indexof(S_T,ii)) = varwidth*.2;
+        cov(indexof(F_T,ii), indexof(F_T,ii)) = varwidth*.2;
     }
     
     generatePrior(x0, samples, mean, cov);
@@ -281,23 +268,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
             const aux::symmetric_matrix cov)
 {
-    aux::vector mean(STATE_SIZE);
-    for(unsigned int ii = 0 ; ii < SIMUL_STATES ; ii++) {
-    //set the averages of the variables
-        mean[indexof(TAU_S, ii)] = 4.98;
-        mean[indexof(TAU_F, ii)] = 8.31;
-        mean[indexof(EPSILON, ii)] = 0.069;
-        mean[indexof(TAU_0, ii)] = 8.38;
-        mean[indexof(ALPHA, ii)] = .189;
-        mean[indexof(E_0, ii)] = .635;
-        mean[indexof(V_0, ii)] = 1.49e-2;
-
-        mean[indexof(V_T,ii)] = 1;
-        mean[indexof(Q_T,ii)] = 1;
-        mean[indexof(S_T,ii)] = 0;
-        mean[indexof(F_T,ii)]= 1;
-    }
-
+    aux::vector mean = getdefault();
     generatePrior(x0, samples, mean, cov);
 }
 

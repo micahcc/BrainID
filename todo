@@ -2,6 +2,9 @@ Todo List:
 -Preprocessing
 -Generate version.h from subversion/git, then add version information to all nifti files and 
   anything else output.
+-Deal with weiner process
+-Save histogram.
+-Should the covariance be given for every measurement diemnsion?
 
 Potential improvements
 -Maybe assumptions should be made about the starting location of the 4

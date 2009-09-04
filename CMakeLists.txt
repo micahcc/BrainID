@@ -35,4 +35,18 @@ FIND_LIBRARY(MPI_LIBRARY_DIRS NAMES mpi PATH /usr/lib)
 find_path(GSL_INCLUDE_DIRS gsl/gsl_errno.h)
 FIND_LIBRARY(GSL_LIBRARY_DIRS NAMES gsl PATH /usr/lib) 
 
+#if(EXISTS ${brainid_SOURCE_DIR}/.git)
+#    set(ARGS svn info)
+#    execute_process( COMMAND git ${ARGS} OUTPUT_VARIABLE VERSION)
+#else(EXISTS ${brainid_SOURCE_DIR}/.git)
+#    set(ARGS info)
+#    execute_process( COMMAND svn ${ARGS} OUTPUT_VARIABLE VERSION)
+#endif(EXISTS ${brainid_SOURCE_DIR}/.git)
+#
+#string(REGEX MATCH "Revision: [0-9]*" VERSION2 ${VERSION})
+#string(REGEX MATCH "[0-9]+" VERSION ${VERSION2})
+#message("${VERSION}")
+#
+#add_definitions(-DVERSION="${VERSION}")
+
 SUBDIRS(code/utils code testing)

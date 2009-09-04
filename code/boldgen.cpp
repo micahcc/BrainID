@@ -1,3 +1,6 @@
+
+#include "version.h"
+
 #include "itkOrientedImage.h"
 #include "itkImageFileWriter.h"
 #include "itkImageLinearIteratorWithIndex.h"
@@ -49,6 +52,8 @@ void init4DImage(Image4DType::Pointer& out, size_t xlen, size_t ylen,
     
     out_region.SetSize(out_size);
     out_region.SetIndex(out_index);
+
+    itk::EncapsulateMetaData(out->GetMetaDataDictionary(), "VERSION", VERSION);
     
     out->SetRegions( out_region );
     out->Allocate();
@@ -181,9 +186,6 @@ int main (int argc, char** argv)
     BoldModel model(false, a_series());
     
     //create a 4D output image of appropriate size.
-    itk::ImageFileWriter< Image4DType >::Pointer writer = 
-        itk::ImageFileWriter< Image4DType >::New();
-    writer->SetImageIO(itk::modNiftiImageIO::New());
     Image4DType::Pointer measImage = Image4DType::New();
     
     //TODO deal with add error in double which could cause less or more
@@ -374,6 +376,9 @@ int main (int argc, char** argv)
     }
     
     if(!a_boldfile().empty()) {
+        itk::ImageFileWriter< Image4DType >::Pointer writer = 
+            itk::ImageFileWriter< Image4DType >::New();
+        writer->SetImageIO(itk::modNiftiImageIO::New());
         writer->SetFileName(a_boldfile());  
         writer->SetInput(measImage);
         writer->Update();
@@ -386,6 +391,9 @@ int main (int argc, char** argv)
     if(a_noise_snr() != 0) {
         add_noise(measImage, a_noise_snr(), rng, a_series());
         if(!a_boldfile().empty()) {
+            itk::ImageFileWriter< Image4DType >::Pointer writer = 
+                itk::ImageFileWriter< Image4DType >::New();
+            writer->SetImageIO(itk::modNiftiImageIO::New());
             ostringstream oss("");
             oss << "noise-" << a_boldfile();
             writer->SetFileName(oss.str());  
@@ -395,6 +403,9 @@ int main (int argc, char** argv)
     }
     
     if(!a_statefile().empty()) {
+        itk::ImageFileWriter< Image4DType >::Pointer writer = 
+            itk::ImageFileWriter< Image4DType >::New();
+        writer->SetImageIO(itk::modNiftiImageIO::New());
         writer->SetFileName(a_statefile());  
         writer->SetInput(outState);
         writer->Update();

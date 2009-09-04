@@ -3,6 +3,8 @@
 //NeuroImage 40 (2008) p. 504-514
 //by Leigh A. Johnston, Eugene Duff, Iven Mareels, and Gary F. Egan
 
+#include "version.h"
+
 #include <itkOrientedImage.h>
 #include <itkImageFileWriter.h>
 #include <itkImageFileReader.h>
@@ -286,7 +288,7 @@ int main(int argc, char* argv[])
         //give excess to last rank
         if(rank == (size-1))
             localparticles = a_num_particles()-localparticles*(size-1);
-        model.generatePrior(filter.getFilteredState(), localparticles, 4); //3*sigma, squared
+        model.generatePrior(filter.getFilteredState(), localparticles, 3); //3*sigma, squared
     }
 
     /* Redistribute - doesn't cost anything if distrib. was already fine */
