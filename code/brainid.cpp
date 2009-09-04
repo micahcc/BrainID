@@ -292,6 +292,13 @@ int main(int argc, char* argv[])
     /* Redistribute - doesn't cost anything if distrib. was already fine */
     *out << "Redistributing" << endl;
     filter.getFilteredState().redistributeBySize(); 
+
+    /* Spread the time around */
+    {
+    double tmp = filter.getTime();
+    boost::mpi::broadcast(world, tmp, 0);
+    filter.setTime(tmp);
+    }
     
     
     /////////////////////////////////////////////////////////////////////
@@ -391,7 +398,7 @@ int main(int argc, char* argv[])
         nextinput -= offset*sampletime;
     }
 
-    while(disctime*sampletime/a_divider() < filter.getTime()) {
+    while(disctime*sampletime/a_divider() <= filter.getTime()) {
         *out << ".";
         if(rank == 0 && !fin.eof() && disctime*sampletime/a_divider() 
                     >= nextinput) {
@@ -468,7 +475,7 @@ int main(int argc, char* argv[])
             boost::mpi::broadcast(world, done, 0);
             
             //step forward in time, with measurement
-            filter.filter(disctime*sampletime/a_divider(), meas);
+            filter.filter(conttime, meas);
 
             //check to see if resampling is necessary
             double ess = filter.getFilteredState().calculateDistributedEss();
@@ -546,7 +553,7 @@ int main(int argc, char* argv[])
             }
 
         } else { //no update available, just step update states
-            filter.filter(disctime*sampletime/a_divider());
+            filter.filter(conttime);
         }
    
        
