@@ -1,55 +1,13 @@
 Todo List:
--Thinner, stimuli
--Look at variances
 -Preprocessing
--Use maybe faster sampling.
--Derive an fmri sequence to optimally extract the bold system parameters, may want to 
- apply maths to the problem. See sloppy models.
--Need to add nifti data to boldgen and fmri_timeseries to define time parameters as well
- as some other misc data.
--Normalize timeseries based on the total average, not just for each section.
--Perform tests to compare estimation of parameters using the average from a section
-as compared to estimation of parameters for all the voxels in the section, with each
-voxel as a state.
-
--Fix rounding errors on MSE calculations
--Look at using an ODE solver between time points
--Try bernouli process for input.
+-Generate version.h from subversion/git, then add version information to all nifti files and 
+  anything else output.
 
 Potential improvements
--for parameters that are "constant" it might be worth looking at the overall
-mean squared error over the entire sequence up to the current time 
-for weighting. This would be O(N^2)
-but we are already at O(PN) and typically P is vastly larger than N.
-    *Cons
-    -Increased complexity
-    -Technically previous states should be carried into the current state
-    through the multiplication of the previous weight with the current one
-
 -Maybe assumptions should be made about the starting location of the 4
 mobile variables. Resting state maybe?
 
--Maybe somehow treat "const" parameters differently, limit their movement, assume
-no noise in them maybe?
-
 -Maybe try settling out to different levels of stimuli.
 
--Hyperbolic weighting? Thus as you get infinitesimally closer to the real value you
- get weighted infinitely higher. Maybe that is a bad idea, since a right answer could
- be stumbled upon, but have completely different parameters and still shouldn't be 
- considered "good"
-
 -Do a measure of gaussianity on the particles.
-    -Look at Most likely instead instead of average
-
--Try shrinking timestep sizes.
-
--Look at the output after 1, 2 etc sample times.
-
-
-**Implemented, unrun**
--Cheating, to test the algorithm, give it the solution to ensure it will recognize
- a correct answer.
--exponential weighting
-
-**Implemented, results**
+-Look at Most likely instead instead of average

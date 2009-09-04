@@ -398,7 +398,7 @@ int main(int argc, char* argv[])
         nextinput -= offset*sampletime;
     }
 
-    while(disctime*sampletime/a_divider() <= filter.getTime()) {
+    while(disctime*sampletime/a_divider() < filter.getTime()) {
         *out << ".";
         if(rank == 0 && !fin.eof() && disctime*sampletime/a_divider() 
                     >= nextinput) {
@@ -419,7 +419,7 @@ int main(int argc, char* argv[])
      * time, or until we are done processing measurements.
      */
     while(!done && (a_stoptime() == 0 || disctime*sampletime/a_divider() 
-                    <= a_stoptime()) ) {
+                    < a_stoptime()) ) {
         /* time */
         conttime = disctime*sampletime/a_divider();
         *out << "t= " << conttime << ", ";
