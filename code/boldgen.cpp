@@ -53,7 +53,8 @@ void init4DImage(Image4DType::Pointer& out, size_t xlen, size_t ylen,
     out_region.SetSize(out_size);
     out_region.SetIndex(out_index);
 
-    itk::EncapsulateMetaData(out->GetMetaDataDictionary(), "VERSION", VERSION);
+    itk::EncapsulateMetaData<string>(out->GetMetaDataDictionary(), "VERSION", 
+                BRAINID_VERSION);
     
     out->SetRegions( out_region );
     out->Allocate();
