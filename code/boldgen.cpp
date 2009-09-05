@@ -59,58 +59,6 @@ void init4DImage(Image4DType::Pointer& out, size_t xlen, size_t ylen,
     out->Allocate();
 }
 
-//dir1 should be the direction of several separate series
-//dir2 should be the direction that you want to get rms of
-//RMS for a non-zero mean signal is 
-//sqrt(mu^2+sigma^2)
-void get_rms(Image4DType::Pointer in, size_t dir1, size_t dir2, 
-            vector<double>& out, int series)
-{
-    out.assign(in->GetRequestedRegion().GetSize()[dir1], 0);
-    
-    itk::ImageSliceIteratorWithIndex<Image4DType> 
-                iter(in, in->GetRequestedRegion());
-    iter.SetFirstDirection(dir1);
-    iter.SetSecondDirection(dir2);
-    iter.GoToBegin();
-
-    int numelements = in->GetRequestedRegion().GetSize()[dir2];
-
-    vector<double> mean(out.size(), 0);
-    /* get average */
-    while(!iter.IsAtEndOfSlice()) {
-        size_t ii=0;
-        while(!iter.IsAtEndOfLine()) {
-            mean[ii] += iter.Get();
-            ii++;
-            ++iter;
-        }
-        iter.NextLine();
-    }
-    for(size_t ii= 0 ; ii<mean.size() ; ii++) {
-        mean[ii] /= numelements;
-    }
-
-    /* variance */
-    iter.GoToBegin();
-    while(!iter.IsAtEndOfSlice()) {
-        size_t ii=0;
-        while(!iter.IsAtEndOfLine()) {
-            out[ii] += pow(iter.Get()-mean[ii],2);
-            ii++;
-            ++iter;
-        }
-        iter.NextLine();
-    }
-    for(size_t ii= 0 ; ii<out.size() ; ii++)
-        out[ii] /= numelements;
-
-
-    //sqrt(mu^2 + var)
-    for(size_t ii = 0 ; ii < out.size() ; ii++) {
-        out[ii] = sqrt(pow(mean[ii], 2) + out[ii]);
-    }
-}
 
 void add_noise(Image4DType::Pointer in, double snr, gsl_rng* rng, int series) 
 {
@@ -123,7 +71,7 @@ void add_noise(Image4DType::Pointer in, double snr, gsl_rng* rng, int series)
     vector<double> rms(series, 0);
 
     //calculate rms of image over time
-    get_rms(in, SERIES_DIR, TIME_DIR, rms, series);
+    get_rms(in, SERIES_DIR, TIME_DIR, rms);
     for(size_t ii= 0 ; ii<rms.size() ; ii++) {
         cout << "RMS: " << ii << ":" << rms[ii] << endl;
     }
@@ -142,7 +90,7 @@ void add_noise(Image4DType::Pointer in, double snr, gsl_rng* rng, int series)
         iter.NextLine();
     }
     
-    get_rms(in, SERIES_DIR, TIME_DIR, rms, series);
+    get_rms(in, SERIES_DIR, TIME_DIR, rms);
     for(size_t ii= 0 ; ii<rms.size() ; ii++) {
         cout << "RMS: " << ii << " " << rms[ii] << endl;
     }
@@ -183,7 +131,7 @@ int main (int argc, char** argv)
 
     vul_arg_parse(argc,argv);
 
-    BoldModel model(false, a_series());
+    BoldModel model(indii::ml::aux::zero_vector(1), false, a_series());
     
     //create a 4D output image of appropriate size.
     Image4DType::Pointer measImage = Image4DType::New();

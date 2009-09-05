@@ -14,10 +14,9 @@
 
 #include <iostream>
 
-BoldModel::BoldModel(bool expweight, size_t sections, double var,
+BoldModel::BoldModel(aux::vector stddev, bool expweight, size_t sections,
             aux::vector u) : 
-
-            GVAR_SIZE(4), LVAR_SIZE(7), SIMUL_STATES(sections), 
+            GVAR_SIZE(4), LVAR_SIZE(7), SIMUL_STATES(sections), sigma(stddev),
             STATE_SIZE(GVAR_SIZE+LVAR_SIZE*SIMUL_STATES), MEAS_SIZE(SIMUL_STATES),
             INPUT_SIZE(1)//, segments(sections)
 {
@@ -33,9 +32,6 @@ BoldModel::BoldModel(bool expweight, size_t sections, double var,
     else 
         this->input = u;
     
-    this->var_e = var;
-    this->sigma_e = sqrt(var);
-
     if(expweight) 
         this->weightf = EXP;;
 
@@ -177,19 +173,25 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
     //purposes, thus ignoring terms that received no update in this step.
     location = y-measure(s);
     for(size_t i = 0 ; i < y.size() ; i++) {
-        if(isnan(y[i]))
+        if(isnan(y[i])) {
+	    std::cerr << "Warning y had NAN in BoldMode.cpp" << std::endl;
             location[i] = 0;
+	}
     }
 //    fprintf(stderr, "Location calculated:\n");
 //    outputVector(std::cerr , location);
 //    fprintf(stderr, "\n");
 //    fprintf(stderr, "Weight calculated: %e\n", rng.densityAt(location));
 //    return out;
+    double weight = 1;
     if(weightf == EXP) {
-        return gsl_ran_exponential_pdf(aux::norm< 2 >(location), sigma_e);
+    	for(int i = 0 ; i < MEAS_SIZE ; i++)
+            weight *= gsl_ran_exponential_pdf(location(i), sigma(i));
     } else {
-        return gsl_ran_gaussian_pdf(aux::norm< 2 >(location), sigma_e);
+    	for(int i = 0 ; i < MEAS_SIZE ; i++)
+            weight *= gsl_ran_gaussian_pdf(location(i), sigma(i));
     }
+    return weight;
 }
 
 

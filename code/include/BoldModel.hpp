@@ -36,8 +36,8 @@ class BoldModel : public indii::ml::filter::ParticleFilterModel<double>
 {
 public:
     ~BoldModel();
-    BoldModel(bool weightf = false,
-                size_t sections = 1, double var = 3.92e-6,
+    BoldModel(aux::vector stddev, bool weightf = false,
+                size_t sections = 1,
                 aux::vector u = aux::zero_vector(1));
 
     virtual unsigned int getStateSize() { return STATE_SIZE; };
@@ -98,9 +98,8 @@ private:
     int weightf;
 
     //variance to apply to 
-    double var_e;
-    double sigma_e;
-//    double small_g;
+    double wscale;
+    aux::vector sigma;
     
     //Constants
     const unsigned int GVAR_SIZE;

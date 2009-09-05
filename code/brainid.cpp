@@ -254,7 +254,10 @@ int main(int argc, char* argv[])
     }
     
     boost::mpi::broadcast(world, meassize, 0);
-    BoldModel model(a_expweight(), meassize, a_weightvar());
+
+    aux::vector stddev(meassize);
+    get_rms(measInput, SERIESDIM, TIMEDIM, stddev);
+    BoldModel model(a_weightvar()*stddev, a_expweight(), meassize);
     
     /////////////////////////////////////////////////////////////////////
     // Particles Setup

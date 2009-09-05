@@ -176,6 +176,62 @@ typename itk::OrientedImage< T, 4 >::Pointer concat(
     return newout;
 };
 
+//dir1 should be the direction of several separate series
+//dir2 should be the direction that you want to get rms of
+//RMS for a non-zero mean signal is 
+//sqrt(mu^2+sigma^2)
+template <typename vector>
+void get_rms(itk::OrientedImage<double,4>::Pointer in, size_t dir1, size_t dir2, 
+            vector& out)
+{
+    for(int i = 0 ; i < out.size() ; i++) {
+        out[i] = 0;
+    }
+    
+    itk::ImageSliceIteratorWithIndex<itk::OrientedImage<double,4> > 
+                iter(in, in->GetRequestedRegion());
+    iter.SetFirstDirection(dir1);
+    iter.SetSecondDirection(dir2);
+    iter.GoToBegin();
+
+    int numelements = in->GetRequestedRegion().GetSize()[dir2];
+
+    std::vector<double> mean(out.size(), 0);
+    /* get average */
+    while(!iter.IsAtEndOfSlice()) {
+        size_t ii=0;
+        while(!iter.IsAtEndOfLine()) {
+            mean[ii] += iter.Get();
+            ii++;
+            ++iter;
+        }
+        iter.NextLine();
+    }
+    for(size_t ii= 0 ; ii<mean.size() ; ii++) {
+        mean[ii] /= numelements;
+    }
+
+    /* variance */
+    iter.GoToBegin();
+    while(!iter.IsAtEndOfSlice()) {
+        size_t ii=0;
+        while(!iter.IsAtEndOfLine()) {
+            out[ii] += pow(iter.Get()-mean[ii],2);
+            ii++;
+            ++iter;
+        }
+        iter.NextLine();
+    }
+    for(size_t ii= 0 ; ii<out.size() ; ii++)
+        out[ii] /= numelements;
+
+
+    //sqrt(mu^2 + var)
+    for(size_t ii = 0 ; ii < out.size() ; ii++) {
+        out[ii] = sqrt(pow(mean[ii], 2) + out[ii]);
+    }
+}
+
 /* Removes all but the indices between start and stop, inclusive */
 template <class T>
 typename itk::OrientedImage< T, 4 >::Pointer prune(
