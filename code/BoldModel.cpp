@@ -35,32 +35,27 @@ BoldModel::BoldModel(aux::vector stddev, bool expweight, size_t sections,
     if(expweight) 
         this->weightf = EXP;;
 
+    defaultstate.resize(STATE_SIZE, false);
+    //set the averages of the variables
+    for(unsigned int ii = 0 ; ii < SIMUL_STATES; ii++) {
+        defaultstate[indexof(TAU_S, ii)] = 4.98;
+        defaultstate[indexof(TAU_F, ii)] = 8.31;
+        defaultstate[indexof(EPSILON, ii)] = 0.069;
+        defaultstate[indexof(TAU_0, ii)] = 8.38;
+        defaultstate[indexof(ALPHA, ii)] = .189;
+        defaultstate[indexof(E_0, ii)] = .635;
+        defaultstate[indexof(V_0, ii)] = 1.49e-2;
+
+        defaultstate[indexof(V_T,ii)] = 1;
+        defaultstate[indexof(Q_T,ii)] = 1;
+        defaultstate[indexof(S_T,ii)] = 0;
+        defaultstate[indexof(F_T,ii)]= 1;
+    }
 }
 
 BoldModel::~BoldModel()
 {
 
-}
-
-aux::vector BoldModel::getdefault()
-{
-    aux::vector fillme(STATE_SIZE);
-    //set the averages of the variables
-    for(unsigned int ii = 0 ; ii < SIMUL_STATES; ii++) {
-        fillme[indexof(TAU_S, ii)] = 4.98;
-        fillme[indexof(TAU_F, ii)] = 8.31;
-        fillme[indexof(EPSILON, ii)] = 0.069;
-        fillme[indexof(TAU_0, ii)] = 8.38;
-        fillme[indexof(ALPHA, ii)] = .189;
-        fillme[indexof(E_0, ii)] = .635;
-        fillme[indexof(V_0, ii)] = 1.49e-2;
-
-        fillme[indexof(V_T,ii)] = 1;
-        fillme[indexof(Q_T,ii)] = 1;
-        fillme[indexof(S_T,ii)] = 0;
-        fillme[indexof(F_T,ii)]= 1;
-    }
-    return fillme;
 }
 
 //TODO, I would like to modify these functions so that the vector s
@@ -146,7 +141,6 @@ aux::vector BoldModel::measure(const aux::vector& s)
 {
     aux::vector y(MEAS_SIZE);
     for(size_t i = 0 ; i < MEAS_SIZE ; i++) {
-        
         y[i] = s[indexof(V_0, i)] * 
                 ( A1 * ( 1 - s[indexof(Q_T,i)]) - A2 * (1 - s[indexof(V_T,i)]));
     }
@@ -305,7 +299,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
     gsl_rng_free(rng);
 }
 
-//return weight modified?
+//return (weight modified)
 bool BoldModel::reweight(aux::vector& checkme, double& weightout)
 {
     static aux::vector defaultvector = getdefault();

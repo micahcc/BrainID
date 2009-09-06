@@ -1,3 +1,5 @@
+#!/usr/bin/python
+import sys
 import pylab as P
 from nifti import *
 
@@ -11,11 +13,12 @@ from nifti import *
 #grid(True)
 #show()
 
-truebold = image.NiftiImage('simseries')
-truestat = image.NiftiImage('simstate')
+truebold = image.NiftiImage(sys.argv[1] . 'bold')
+truestat = image.NiftiImage(sys.argv[1] . 'state')
 
-estbold = image.NiftiImage('bold')
-eststat = image.NiftiImage('state')
+estbold = image.NiftiImage(sys.argv[2] . 'bold')
+eststat = image.NiftiImage(sys.argv[2] . 'state')
+estcov = image.NiftiImage(sys.argv[2] . 'cov')
 
 line1= P.plot(truebold.data[:, 0,0,0])
 line2 = P.plot(estbold.data[:, 0,0,0])

@@ -71,19 +71,23 @@ public:
     //these are recurring in the state array, so V_T could be at 0,4,...16,20...
     enum StateName { TAU_0=0 , ALPHA=1, E_0=2, V_0=3, TAU_S=4, TAU_F=5, 
                 EPSILON=6, V_T=7, Q_T=8, S_T=9, F_T =10};
+
+    const aux::vector& getdefault() { return defaultstate; };
+    void setdefault(aux::vector def) { defaultstate = def; };
 private:
     //the standard deviations for the parameters theta, which are
     //theoretically constant for the whole volume
 //    aux::vector theta_sigmas;
-    aux::vector getdefault();
+    
+    /* Default values for state, known to be stable */
+    aux::vector defaultstate;
 
     //storage for the current input
     aux::vector input;
 
     //goes to the index of the given state
     inline size_t indexof(int name, int index){
-        if(name < (int)GVAR_SIZE) return name;
-        else return index*LVAR_SIZE + name;
+        return (name < (int)GVAR_SIZE) ? name : index*LVAR_SIZE + name;
     };
 
     void generate_component(gsl_rng* rng, aux::vector& fillme, 

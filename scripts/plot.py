@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import pylab as P
 import sys
 from nifti import *

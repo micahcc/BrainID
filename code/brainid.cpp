@@ -248,8 +248,10 @@ int main(int argc, char* argv[])
         //BOLD
         measOutput = Image4DType::New();
         init4DImage(measOutput , meassize,
-                1, 1, measInput->GetRequestedRegion().GetSize()[TIMEDIM]);
+                1, 2, measInput->GetRequestedRegion().GetSize()[TIMEDIM]);
         measOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
+        itk::EncapsulateMetaData(measOutput->GetMetaDataDictionary(),
+                    "Dim2", std::string("variance"));
 
     }
     
@@ -312,7 +314,7 @@ int main(int argc, char* argv[])
     if(rank == 0) {
         //STATE
         stateOutput = Image4DType::New();
-        init4DImage(stateOutput, 1, model.getStateSize(), 1, 
+        init4DImage(stateOutput, 1, model.getStateSize(), 2, 
                 measInput->GetRequestedRegion().GetSize()[3]);
         stateOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
         itk::EncapsulateMetaData(stateOutput->GetMetaDataDictionary(),
@@ -320,7 +322,7 @@ int main(int argc, char* argv[])
         itk::EncapsulateMetaData(stateOutput->GetMetaDataDictionary(),
                     "Dim1", std::string("systemmean"));
         itk::EncapsulateMetaData(stateOutput->GetMetaDataDictionary(),
-                    "Dim2", std::string("unused"));
+                    "Dim2", std::string("variance"));
         itk::EncapsulateMetaData(stateOutput->GetMetaDataDictionary(),
                     "Dim0", std::string("time"));
 
@@ -538,13 +540,21 @@ int main(int argc, char* argv[])
             if( !a_statefile().empty() ) {
                 *out << "writing: " << a_statefile() << endl;
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
-                if(rank == 0)
+                if(rank == 0) {
+                    /* Write estimated state */
                     writeVector<double>(stateOutput, 1, mu , index);
+                    
+                    /* Write estimated Variance*/
+                    aux::vector variance(cov.size1());
+                    for(int i = 0 ; i < variance.size() ; i++)
+                        variance[i] = cov(i,i);
+                    index = {{0, 0, 1, disctime/a_divider()}};
+                    writeVector<double>(stateOutput, 1, variance , index);
+                }
             }
 
             if( !a_covfile().empty() ) {
                 *out << "writing: " << a_covfile() << endl;
-                
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 if(rank == 0)
                     writeMatrix<double>(covOutput, 1, 2, cov, index);
