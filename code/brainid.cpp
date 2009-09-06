@@ -548,7 +548,7 @@ int main(int argc, char* argv[])
                     aux::vector variance(cov.size1());
                     for(int i = 0 ; i < variance.size() ; i++)
                         variance[i] = cov(i,i);
-                    index = {{0, 0, 1, disctime/a_divider()}};
+                    index[2];
                     writeVector<double>(stateOutput, 1, variance , index);
                 }
             }
