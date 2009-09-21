@@ -1,4 +1,5 @@
 #!/usr/bin/python
+
 import pylab as P
 import sys
 from nifti import *
@@ -17,11 +18,15 @@ images = list();
 for arg in sys.argv[1:]:
     images.append(image.NiftiImage(arg))
 
-for nifti in images:
-    print nifti.filename
-    P.plot(nifti.data[:, 0,0,0])
+leg = []
 
-P.legend(sys.argv[1:])
+for nifti in images:
+    print nifti
+    for iter in range(0,nifti.extent[0]):
+        P.plot(nifti.data[:, 0,0,iter])
+        leg = leg + [nifti.filename+":"+str(iter)]
+#P.legend(sys.argv[1:])
+P.legend(leg)
 
 P.show()
 #

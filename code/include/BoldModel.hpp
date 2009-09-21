@@ -102,7 +102,6 @@ private:
     int weightf;
 
     //variance to apply to 
-    double wscale;
     aux::vector sigma;
     
     //Constants

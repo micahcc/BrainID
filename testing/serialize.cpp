@@ -18,8 +18,8 @@ int main(int argc, char* argv[])
 {
     boost::mpi::environment env(argc, argv);
     boost::mpi::communicator world;
-    const unsigned int rank = world.rank();
-    const unsigned int size = world.size();
+//    const unsigned int rank = world.rank();
+//    const unsigned int size = world.size();
     BoldModel model(indii::ml::aux::zero_vector(1), false);
     indii::ml::aux::vector startmu(model.getStateSize());
     indii::ml::aux::symmetric_matrix startcov(model.getStateSize());

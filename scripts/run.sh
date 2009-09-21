@@ -1,27 +1,30 @@
 #!/bin/bash
-mkdir "run$1"
-STIM="stim.in"
-SERIES="simseries.nii.gz"
-PARTICLES=60000
-cp  ../../code/* "run$1"
-cp  ../../code/include/* "run$1"
-cp "$SERIES" "run$1"
-cp "$0" "run$1"
-cp "$STIM" "run$1"
-cp sim*out "run$1"
-cp plotout.m "run$1"
-cp simall.sh "run$1"
-cd "run$1"
-PROCESSES=4
-#if [[ $1 != 1 ]]
-#then
-#    pwd
-#    echo time mpirun -c $PROCESSES ../brainid -t "$SERIES" -s "$STIM" --serialout distribution.serial --serialin distribution.serial -p "$PARTICLES"
-#    time mpirun -c $PROCESSES ../brainid -t "$SERIES" -s "$STIM" --serialout distribution.serial --serialin ../distribution.serial -p "$PARTICLES"
-#else
-    echo time mpirun -c $PROCESSES ../brainid -d 128 -t "$SERIES" -s "$STIM" --serialout distribution.serial -p "$PARTICLES"
-    time mpirun -c $PROCESSES ../brainid -d 128 -t "$SERIES" -s "$STIM" --serialout distribution.serial -p "$PARTICLES"
-#fi
-#rm "../distribution.serial"
-#ln -s "$(pwd)/distribution.serial" "../distribution.serial"
-cd ../
+
+BREAK=4
+STOP=`printf '%04d' 100`
+START=`printf '%04d' 0`
+DIV=1024
+WEIGHT=1
+PARTICLES=200000
+EXPWEIGHT=1
+time mpirun -c 4  ../../brainid -tstop $STOP -log brainid$START.log \
+            -ts noise-bold.nii.gz -div $DIV -stim stimuli -p $PARTICLES \
+            -so $STOP.serial -weightvar $WEIGHT -expweight $EXPWEIGHT \
+            -yo particle-bold-$START.nii.gz -xo particle-state-$START.nii.gz
+
+../../concatinate particle-bold.nii.gz particle-bold-*
+../../concatinate particle-state.nii.gz particle-state-*
+../plotout.py --prefix "out$START"
+for i in `seq 1 $BREAK`; do
+    STOP=`printf '%04d' $(( (i+1)*100 ))`
+    START=`printf '%04d' $(( i*100 ))`
+    time mpirun -c 4  ../../brainid -tstop $STOP -log brainid$START.log \
+                -ts noise-bold.nii.gz -div $DIV -stim stimuli -p $PARTICLES \
+                -si $START.serial -so $STOP.serial -weightvar $WEIGHT -expweight $EXPWEIGHT \
+                -yo particle-bold-$START.nii.gz -xo particle-state-$START.nii.gz -weightvar $WEIGHT
+    rm particle-bold.nii.gz
+    rm particle-state.nii.gz
+    ../../concatinate particle-bold.nii.gz particle-bold-*
+    ../../concatinate particle-state.nii.gz particle-state-*
+    ../plotout.py --prefix "out$START"
+done

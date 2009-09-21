@@ -14,8 +14,10 @@
 #include <itkImageSliceIteratorWithIndex.h>
 
 /* Typedefs */
-#define TIMEDIM 3
 #define SERIESDIM 0
+#define PARAMDIM 1
+#define VARDIM 2
+#define TIMEDIM 3
 
 void outputVector(std::ostream& out, indii::ml::aux::vector mat) 
 {
@@ -184,7 +186,7 @@ template <typename vector>
 void get_rms(itk::OrientedImage<double,4>::Pointer in, size_t dir1, size_t dir2, 
             vector& out)
 {
-    for(int i = 0 ; i < out.size() ; i++) {
+    for(unsigned int i = 0 ; i < out.size() ; i++) {
         out[i] = 0;
     }
     

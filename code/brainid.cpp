@@ -50,6 +50,19 @@ typedef itk::OrientedImage< ImagePixelType,  4 > Image4DType;
 typedef itk::ImageFileReader< Image4DType >  ImageReaderType;
 typedef itk::ImageFileWriter< Image4DType >  WriterType;
 
+aux::vector getMeasVariance(aux::DiracMixturePdf& input, BoldModel& model)
+{
+    boost::mpi::communicator world;
+    aux::vector mean = model.measure(input.getDistributedExpectation());
+    aux::vector var(mean.size());
+    for(unsigned int i = 0 ; i < input.getSize() ; i++) {
+        var += aux::scalar_pow(model.measure(input.get(i)) - mean, 2)*
+                    input.getWeight(i);
+    }
+    return boost::mpi::all_reduce(world, var, std::plus<aux::vector>())
+                / input.getDistributedTotalWeight();
+}
+
 /* Gathers all the elements of the DiracMixturePdf to the local node */
 void gatherToNode(unsigned int dest, aux::DiracMixturePdf& input) {
   boost::mpi::communicator world;
@@ -109,24 +122,17 @@ void writeParticles(Image4DType::Pointer out,
 /* init4DImage 
  * sets the ROI for a new image and then calls allocate
  */
-void init4DImage(Image4DType::Pointer& out, size_t xlen, size_t ylen, 
-            size_t zlen, size_t tlen)
+void init4DImage(Image4DType::Pointer& out, Image4DType::SizeType size)
 {
     Image4DType::RegionType out_region;
     Image4DType::IndexType out_index;
-    Image4DType::SizeType out_size;
 
-    out_size[0] = xlen;
-    out_size[1] = ylen;
-    out_size[2] = zlen;
-    out_size[3] = tlen; 
-    
     out_index[0] = 0;
     out_index[1] = 0;
     out_index[2] = 0;
     out_index[3] = 0;
     
-    out_region.SetSize(out_size);
+    out_region.SetSize(size);
     out_region.SetIndex(out_index);
     
     out->SetRegions( out_region );
@@ -168,7 +174,9 @@ int main(int argc, char* argv[])
     vul_arg<string> a_boldfile("-yo", "Where to put bold image file", "");
     vul_arg<string> a_statefile("-xo", "Where to put state image file",
                 "");
+#ifdef COVOUTPUT
     vul_arg<string> a_covfile("-co", "Where to put covariance image file", "");
+#endif //COVOUTPUT
     
     vul_arg<string> a_logfile("-log", "Where to log to (default stdout)", "");
     
@@ -212,6 +220,8 @@ int main(int argc, char* argv[])
     int meassize = 0;
     int startlocation = -1;
     int endlocation = -1;
+    
+    aux::vector rms;
 
     if(rank == 0) {
         /* Open up the input */
@@ -222,14 +232,27 @@ int main(int argc, char* argv[])
         reader->Update();
         measInput = reader->GetOutput();
         meassize = measInput->GetRequestedRegion().GetSize()[SERIESDIM];
+
+        /* For now, weighting is static but later it might not be */
+        rms = aux::zero_vector(meassize);
+        get_rms(measInput, SERIESDIM, TIMEDIM, rms);
+        double avg = 0;
+        for(int i = 0 ; i < rms.size() ;i++)
+            avg += rms(i);
+        avg/=rms.size();
+        for(int i = 0 ; i < rms.size() ; i++)
+            rms(i) = avg;
+//        *out << "RMS: " << std::endl;
+//        outputVector(*out << endl, rms);
+//        *out << endl;
 //        fprintf(stderr, "seriesdim: %d\n", meassize);
         
         /* Create the iterator, to move forward in time for a particlular section */
-        iter = itk::ImageLinearIteratorWithIndex<Image4DType>(measInput, 
-                    measInput->GetRequestedRegion());
-        iter.SetDirection(TIMEDIM);
-        Image4DType::IndexType index = {{0, 0, 0, 0}};
-        iter.SetIndex(index);
+//        iter = itk::ImageLinearIteratorWithIndex<Image4DType>(measInput, 
+//                    measInput->GetRequestedRegion());
+//        iter.SetDirection(TIMEDIM);
+//        Image4DType::IndexType index = {{0, 0, 0, 0}};
+//        iter.SetIndex(index);
         
         /* Create a model */
         string str;
@@ -244,22 +267,13 @@ int main(int argc, char* argv[])
         
         itk::ExposeMetaData(measInput->GetMetaDataDictionary(), "offset", offset);
         *out << left << setw(20) << "Offset" << ": " << offset << endl;
-    
-        //BOLD
-        measOutput = Image4DType::New();
-        init4DImage(measOutput , meassize,
-                1, 2, measInput->GetRequestedRegion().GetSize()[TIMEDIM]);
-        measOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
-        itk::EncapsulateMetaData(measOutput->GetMetaDataDictionary(),
-                    "Dim2", std::string("variance"));
 
     }
     
     boost::mpi::broadcast(world, meassize, 0);
+    boost::mpi::broadcast(world, rms, 0);
 
-    aux::vector stddev(meassize);
-    get_rms(measInput, SERIESDIM, TIMEDIM, stddev);
-    BoldModel model(a_weightvar()*stddev, a_expweight(), meassize);
+    BoldModel model(a_weightvar()*rms, a_expweight(), meassize);
     
     /////////////////////////////////////////////////////////////////////
     // Particles Setup
@@ -293,7 +307,7 @@ int main(int argc, char* argv[])
         //give excess to last rank
         if(rank == (size-1))
             localparticles = a_num_particles()-localparticles*(size-1);
-        model.generatePrior(filter.getFilteredState(), localparticles, 3); //3*sigma, squared
+        model.generatePrior(filter.getFilteredState(), localparticles, 4); //3*sigma, squared
     }
 
     /* Redistribute - doesn't cost anything if distrib. was already fine */
@@ -312,25 +326,47 @@ int main(int argc, char* argv[])
     // output setup 
     /////////////////////////////////////////////////////////////////////
     if(rank == 0) {
+        Image4DType::SizeType size = measInput->GetRequestedRegion().GetSize();
+
+        //BOLD
+        measOutput = Image4DType::New();
+        size[SERIESDIM] = meassize;
+        size[VARDIM] = 2;
+        size[PARAMDIM] = 1;
+        init4DImage(measOutput , size);
+        measOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
+        itk::EncapsulateMetaData(measOutput->GetMetaDataDictionary(),
+                    "Dim0", std::string("sections"));
+        itk::EncapsulateMetaData(measOutput->GetMetaDataDictionary(),
+                    "Dim1", std::string("unused"));
+        itk::EncapsulateMetaData(measOutput->GetMetaDataDictionary(),
+                    "Dim2", std::string("variance"));
+        itk::EncapsulateMetaData(measOutput->GetMetaDataDictionary(),
+                    "Dim3", std::string("time"));
+        
         //STATE
+        size[SERIESDIM] = 1;
+        size[VARDIM] = 2;
+        size[PARAMDIM] = model.getStateSize();
         stateOutput = Image4DType::New();
-        init4DImage(stateOutput, 1, model.getStateSize(), 2, 
-                measInput->GetRequestedRegion().GetSize()[3]);
+        init4DImage(stateOutput, size);
         stateOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
         itk::EncapsulateMetaData(stateOutput->GetMetaDataDictionary(),
                     "Dim0", std::string("unused"));
         itk::EncapsulateMetaData(stateOutput->GetMetaDataDictionary(),
-                    "Dim1", std::string("systemmean"));
+                    "Dim1", std::string("parameters"));
         itk::EncapsulateMetaData(stateOutput->GetMetaDataDictionary(),
                     "Dim2", std::string("variance"));
         itk::EncapsulateMetaData(stateOutput->GetMetaDataDictionary(),
-                    "Dim0", std::string("time"));
+                    "Dim3", std::string("time"));
 
+#ifdef COVOUTPUT
         //COVARIANCE
+        size[SERIESDIM] = 1;
+        size[VARDIM] = model.getStateSize();
+        size[PARAMDIM] = model.getStateSize();
         covOutput = Image4DType::New();
-        init4DImage(covOutput, 1, 
-                model.getStateSize(), model.getStateSize(), 
-                measInput->GetRequestedRegion().GetSize()[3]);
+        init4DImage(covOutput, size);
         covOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
         itk::EncapsulateMetaData(covOutput->GetMetaDataDictionary(),
                     "Dim0", std::string("unused"));
@@ -339,21 +375,25 @@ int main(int argc, char* argv[])
         itk::EncapsulateMetaData(covOutput->GetMetaDataDictionary(),
                     "Dim2", std::string("cov"));
         itk::EncapsulateMetaData(covOutput->GetMetaDataDictionary(),
-                    "Dim0", std::string("time"));
+                    "Dim3", std::string("time"));
+#endif //COVOUTPUT
+
 #ifdef PARTOUT
         //PARTICLES
+        size[SERIESDIM] = 1;
+        size[VARDIM] = a_num_particles();
+        size[PARAMDIM] = model.getStateSize();
         partOutput = Image4DType::New();
-        init4DImage(partOutput, 1,  model.getStateSize(), a_num_particles(),
-                measInput->GetRequestedRegion().GetSize()[3]*a_divider());
+        init4DImage(partOutput, size);
         partOutput->SetMetaDataDictionary(measInput->GetMetaDataDictionary());
         itk::EncapsulateMetaData(partOutput->GetMetaDataDictionary(),
                     "Dim0", std::string("unused"));
         itk::EncapsulateMetaData(partOutput->GetMetaDataDictionary(),
-                    "Dim1", std::string("systemval"));
+                    "Dim1", std::string("parameters"));
         itk::EncapsulateMetaData(partOutput->GetMetaDataDictionary(),
                     "Dim2", std::string("particle"));
         itk::EncapsulateMetaData(partOutput->GetMetaDataDictionary(),
-                    "Dim0", std::string("time"));
+                    "Dim3", std::string("time"));
 #endif //partout
     
     }
@@ -363,13 +403,13 @@ int main(int argc, char* argv[])
     boost::mpi::broadcast(world, a_num_particles(), 0);
 
     /* Output the intial parameters */
-    *out << "Start Mu : " << endl;
-    outputVector(*out, filter.getFilteredState().getDistributedExpectation());
-    *out << endl;
-
-    *out << "Start Cov : " << endl;
-    outputMatrix(*out, filter.getFilteredState().getDistributedCovariance());
-    *out << endl;
+//    *out << "Start Mu : " << endl;
+//    outputVector(*out, filter.getFilteredState().getDistributedExpectation());
+//    *out << endl;
+//
+//    *out << "Start Cov : " << endl;
+//    outputMatrix(*out, filter.getFilteredState().getDistributedCovariance());
+//    *out << endl;
     
     *out << "Size: " <<  filter.getFilteredState().getSize() << endl;
     *out << "Time: " <<  filter.getTime() << endl;
@@ -482,6 +522,17 @@ int main(int argc, char* argv[])
             boost::mpi::broadcast(world, done, 0);
             
             //step forward in time, with measurement
+            aux::vector variance = getMeasVariance(filter.getFilteredState(), model);
+            mu = filter.getFilteredState().getDistributedExpectation();
+            if(rank == 0) {
+                /* Write Expected Value */
+                *out << "Pre filter mu:" << std::endl;
+                outputVector(*out, model.measure(mu));
+                
+                /* Write estimated Variance*/
+                *out << std::endl << "Pre filter var:" << std::endl;
+                outputVector(*out, variance);
+            }
             filter.filter(conttime, meas);
 
             //check to see if resampling is necessary
@@ -491,7 +542,7 @@ int main(int argc, char* argv[])
             //for instance if all the particles go to an unreasonable value like 
             //inf/nan/neg
             if(isnan(ess) || isinf(ess)) {
-                *out << "Total Weight: "
+                *out << std::endl << "Total Weight: "
                             << filter.getFilteredState().getDistributedTotalWeight()
                             << endl;
                 exit(-5);
@@ -513,15 +564,15 @@ int main(int argc, char* argv[])
                 *out << endl << " ESS: " << ess << ", Stratified Resampling" 
                             << endl;
                 cov = filter.getFilteredState().getDistributedCovariance();
-                *out << "Covariance prior to resampling" << endl;
-                outputMatrix(*out, filter.getFilteredState().
-                            getDistributedCovariance());
-                *out << endl;
+//                *out << "Covariance prior to resampling" << endl;
+//                outputMatrix(*out, filter.getFilteredState().
+//                            getDistributedCovariance());
+//                *out << endl;
                 filter.resample(&resampler);
-                *out << "Covariance after to resampling" << endl;
-                outputMatrix(*out, filter.getFilteredState().
-                            getDistributedCovariance());
-                *out << endl;
+//                *out << "Covariance after to resampling" << endl;
+//                outputMatrix(*out, filter.getFilteredState().
+//                            getDistributedCovariance());
+//                *out << endl;
                 
                 *out << " ESS: " << ess << ", Regularized Resampling" << endl << endl;
                 filter.setFilteredState(resampler_reg.
@@ -538,33 +589,47 @@ int main(int argc, char* argv[])
             mu = filter.getFilteredState().getDistributedExpectation();
             cov = filter.getFilteredState().getDistributedCovariance();
             if( !a_statefile().empty() ) {
-                *out << "writing: " << a_statefile() << endl;
+                *out << "saving: " << a_statefile() << endl;
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 if(rank == 0) {
                     /* Write estimated state */
-                    writeVector<double>(stateOutput, 1, mu , index);
+                    writeVector<double>(stateOutput, PARAMDIM, mu , index);
                     
                     /* Write estimated Variance*/
                     aux::vector variance(cov.size1());
-                    for(int i = 0 ; i < variance.size() ; i++)
+                    for(unsigned int i = 0 ; i < variance.size() ; i++)
                         variance[i] = cov(i,i);
-                    index[2];
-                    writeVector<double>(stateOutput, 1, variance , index);
+                    index[VARDIM] = 1;
+                    writeVector<double>(stateOutput, PARAMDIM, variance , index);
                 }
             }
 
+#ifdef COVOUTPUT
             if( !a_covfile().empty() ) {
-                *out << "writing: " << a_covfile() << endl;
+                *out << "saving: " << a_covfile() << endl;
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 if(rank == 0)
-                    writeMatrix<double>(covOutput, 1, 2, cov, index);
+                    writeMatrix<double>(covOutput, PARAMDIM, VARDIM, cov, index);
             }
+#endif //COVOUTPUT
 
+            /* Calculate Variance in bold, then write out the bold mean/variance */
             if( !a_boldfile().empty() ) {
-                *out << "writing: " << a_boldfile() << endl;
+                *out << "saving: " << a_boldfile() << endl;
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
-                if(rank == 0) 
-                    writeVector<double>(measOutput, 0, model.measure(mu), index);
+                
+                aux::vector variance = getMeasVariance(
+                            filter.getFilteredState(), model);
+                if(rank == 0) {
+                    /* Write Expected Value */
+                    writeVector<double>(measOutput, SERIESDIM, model.measure(mu), index);
+                    
+                    index[VARDIM] = 1;
+                    /* Write estimated Variance*/
+                    *out << std::endl << "Post filter var:" << std::endl;
+                    outputVector(*out, variance);
+                    writeVector<double>(measOutput, SERIESDIM, variance , index);
+                }
             }
 
         } else { //no update available, just step update states
@@ -576,17 +641,17 @@ int main(int argc, char* argv[])
         disctime++;
     }
 
-    *out << "Index at end: "<< iter.GetIndex()[0] << "," << iter.GetIndex()[1] << endl;
+//    *out << "Index at end: "<< iter.GetIndex()[0] << "," << iter.GetIndex()[1] << endl;
     *out << "End time: "<< disctime*sampletime/a_divider() << endl;
                 
 
-    *out << "End Mu parameters: " << endl;
-    outputVector(*out, filter.getFilteredState().getDistributedExpectation());
-    *out << endl;
-    
-    *out << "End Cov parameters: " << endl;
-    outputMatrix(*out, filter.getFilteredState().getDistributedCovariance());
-    *out << endl;
+//    *out << "End Mu parameters: " << endl;
+//    outputVector(*out, filter.getFilteredState().getDistributedExpectation());
+//    *out << endl;
+//    
+//    *out << "End Cov parameters: " << endl;
+//    outputMatrix(*out, filter.getFilteredState().getDistributedCovariance());
+//    *out << endl;
            
 //    {
 //        aux::vector weights = filter.getFilteredState().getWeights();
@@ -635,7 +700,8 @@ int main(int argc, char* argv[])
                         endlocation));
             writer->Update();
         }
-        
+
+#ifdef COVOUTPUT
         /* Covariance */
         if(!a_covfile().empty()) {
             *out << "Writing Covariance output" << endl;
@@ -644,6 +710,7 @@ int main(int argc, char* argv[])
                         endlocation));
             writer->Update();
         }
+#endif //COVOUTPUT
     }
 
 
