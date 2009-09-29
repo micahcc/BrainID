@@ -290,14 +290,3 @@ typename itk::OrientedImage< T, 4 >::Pointer prune(
     return newout;
 };
 
-class Stimulus
-{
-
-public:
-    Stimulus(std::string filename = "");
-  
-    double at(double time);
-
-private:
-
-}
