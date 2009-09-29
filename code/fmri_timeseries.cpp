@@ -58,6 +58,7 @@ int main( int argc, char **argv )
     
     /* Output related */
     vul_arg<string> a_fullout("-c", "Cloned output of fmri timeseries", "");
+    vul_arg<string> a_maskout("-om", "Masked bold 4D Image", "");
     vul_arg<string> a_filtered("-f", "Filtered/Normalized bold 4D Image", "");
     vul_arg<string> a_volume("-v", "Name to save volume at t=10 to", "");
     vul_arg<string> a_timeseries("-t", "Timeseries file, sections X time", "");
@@ -129,6 +130,15 @@ int main( int argc, char **argv )
 
     fprintf(stderr, "Applying mask to fmri image...\n");
     fmri_img = applymask<DataType, 4, LabelType, 3>(fmri_img, mask_img);
+
+    if(!a_maskout().empty()) {
+        itk::ImageFileWriter< Image4DType >::Pointer writer = 
+                    itk::ImageFileWriter< Image4DType >::New();
+        writer->SetInput(fmri_img);
+        writer->SetImageIO(itk::modNiftiImageIO::New());
+        writer->SetFileName(a_maskout());
+        writer->Update();
+    }
 
     Image4DType::Pointer timeseries;
 //    if(a_globalnorm()) {
