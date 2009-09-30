@@ -289,4 +289,3 @@ typename itk::OrientedImage< T, 4 >::Pointer prune(
 
     return newout;
 };
-

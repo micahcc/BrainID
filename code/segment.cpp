@@ -689,6 +689,53 @@ Image4DType::Pointer summGlobalNorm(const Image4DType::Pointer fmri_img,
 }
 
 Image4DType::Pointer summ(const Image4DType::Pointer fmri_img,
+            std::list<int>& voxels)
+{
+    std::ostringstream oss;
+    std::list<Image4DType::IndexType> positions;
+    Image4DType::IndexType pos;
+    for(std::list<int>::iterator it = voxels.begin() ; 
+                    it != voxels.end();) {
+        pos[0] = *it;
+        it++;
+        pos[1] = *it;
+        it++;
+        pos[2] = *it;
+        it++;
+        pos[3] = 0;
+        positions.push_back(pos);
+    }
+
+    //initialize output
+    Image4DType::Pointer output = initTimeSeries(fmri_img, positions.size());
+
+    Image4DType::IndexType inindex;
+    Image4DType::IndexType outindex = {{0, 0, 0, 0}};
+    
+    for(size_t ii = 0 ; ii < fmri_img->GetRequestedRegion().GetSize()[3] ; ii++) {
+        /* Write out the normalized value of each label */
+        int jj = 0;
+        for(std::list<Image4DType::IndexType>::iterator it = positions.begin() ; 
+                        it != positions.end(); it++) {
+            inindex = *it;
+            inindex[TIMEDIM] = ii;
+
+            outindex[0] = jj;
+            outindex[TIMEDIM] = ii;
+            
+            /* Fill in the data in the output */
+            fprintf(stderr, "%lu %lu %lu %lu -> %lu %lu %lu %lu\n", inindex[0], inindex[1],
+                        inindex[2], inindex[3], outindex[0], outindex[1], 
+                        outindex[2], outindex[3]);
+            output->SetPixel(outindex, fmri_img->GetPixel(inindex));
+            jj++;
+        }
+    }
+
+    return output;
+}
+
+Image4DType::Pointer summ(const Image4DType::Pointer fmri_img,
             const Label3DType::Pointer labelmap, std::list<LabelType>& labels)
 {
     std::ostringstream oss;

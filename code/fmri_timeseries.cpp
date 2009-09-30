@@ -66,6 +66,7 @@ int main( int argc, char **argv )
                 " region from the input in a separet 4D file. x X y x Z X time", "");
     vul_arg< vcl_list<LabelType> > a_sections("-sections", "Sections to read from"
                 " none = all");
+    vul_arg< vcl_list<int> > a_pos("-pos", "3D coordinates of regions to output");
 
     /* TODO, compare the list of actual labels with list of input labels */
     
@@ -140,22 +141,9 @@ int main( int argc, char **argv )
         writer->Update();
     }
 
-    Image4DType::Pointer timeseries;
-//    if(a_globalnorm()) {
-//        fprintf(stderr, "Normalizing by Global GM level...\n");
-//        fmri_img = normalizeByGlobal(fmri_img, labelmap_img);
-//        fprintf(stderr, "Done\n");
-//        fprintf(stderr, "Generating Timeseries...\n");
-//        timeseries = summ(fmri_img, labelmap_img, a_sections());
-//        fprintf(stderr, "Done\n");
-//    } else {
-        fprintf(stderr, "Normalizing by voxel...\n");
-        fmri_img = normalizeByVoxel(fmri_img, mask_img, a_spline());
-        fprintf(stderr, "Done\n");
-        fprintf(stderr, "Generating Timeseries with average over Region...\n");
-        timeseries = summ(fmri_img, labelmap_img, a_sections());
-        fprintf(stderr, "Done\n");
-//    }
+    fprintf(stderr, "Normalizing by voxel...\n");
+    fmri_img = normalizeByVoxel(fmri_img, mask_img, a_spline());
+    fprintf(stderr, "Done\n");
        
     cout << "filtered " <<  a_filtered() << " " << a_filtered().empty() << endl;
     if(!a_filtered().empty()) {
@@ -169,6 +157,15 @@ int main( int argc, char **argv )
         writer->Update();
         fprintf(stderr, "Done.\n");
     }
+        
+    Image4DType::Pointer timeseries;
+    fprintf(stderr, "Generating Timeseries...\n");
+    if(!a_pos().empty()) {
+        timeseries = summ(fmri_img, a_pos());
+    } else {
+        timeseries = summ(fmri_img, labelmap_img, a_sections());
+    }
+    fprintf(stderr, "Done\n");
 
     cout << "time " <<  a_timeseries() << " " << a_timeseries().empty() << endl;
     if(!a_timeseries().empty()) {

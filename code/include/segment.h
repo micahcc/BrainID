@@ -41,6 +41,9 @@ enum { AVERAGES, LOCALMIN, LOCALMAX };
 Image4DType::Pointer summ(const Image4DType::Pointer fmri_img, 
             const Label3DType::Pointer labelmap, std::list<LabelType>& sections);
 
+Image4DType::Pointer summ(const Image4DType::Pointer fmri_img,
+            std::list<int>& voxels);
+
 /* Normalizes by the averaging each voxel over time */
 Image4DType::Pointer normalizeByVoxel(const Image4DType::Pointer fmri_img,
             const Label3DType::Pointer labelmap, int regions);
