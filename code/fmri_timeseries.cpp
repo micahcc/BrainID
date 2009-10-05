@@ -8,7 +8,6 @@
 #include "segment.h"
 
 #include <itkMaskImageFilter.h>
-#include <itkImageFileReader.h>
 #include <itkStatisticsImageFilter.h>
 #include "modNiftiImageIO.h"
 
@@ -18,9 +17,6 @@
 #include <vcl_list.h>
 #include <vul/vul_arg.h>
 
-#define TIMEDIM 3
-#define SLICEDIM 1
-#define SECTIONDIM 0
 typedef itk::OrientedImage<double, 4> ImageTimeSeries;
 
 using namespace std;

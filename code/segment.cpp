@@ -49,9 +49,6 @@ typedef itk::SubtractConstantFromImageFilter< Image4DType, double,
 typedef itk::DivideImageFilter< Image4DType, Image4DType, Image4DType > DivF;
 typedef itk::DivideByConstantImageFilter< Image4DType, double, Image4DType > DivCF;
 
-const int TIMEDIM = 3;
-const int SECTIONDIM = 0;
-
 //sort first by increasing label, then by increasing time
 //then by increasing slice, then by dim[1] then dim[0]
 //bool compare_lt(SectionType first, SectionType second)
@@ -457,8 +454,7 @@ int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType inde
     return 0;
 }
 
-Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img,
-            const Label3DType::Pointer mask, int sections)
+Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img, int sections)
 {
     Image4DType::Pointer outimage = Image4DType::New();
     outimage->SetRegions(fmri_img->GetRequestedRegion());
@@ -476,26 +472,9 @@ Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img,
     fmri_stop.GoToBegin();
     ++fmri_stop;
     
-    itk::ImageLinearIteratorWithIndex< Label3DType > 
-        mask_it(mask, mask->GetRequestedRegion());
-
-    Image4DType::PointType point4;
-    Label3DType::IndexType index3;
-    Label3DType::PointType point3;
-    
     for(fmri_it.GoToBegin(); fmri_it != fmri_stop ; fmri_it.NextLine()) {
         for( ; !fmri_it.IsAtEndOfLine(); ++fmri_it) {
-
-            /* Change 4D Index in fmri Image to 3d in mask, which have spacing */
-            fmri_img->TransformIndexToPhysicalPoint(fmri_it.GetIndex(), point4);
-            for(int i = 0 ; i < 3 ; i++) point3[i] = point4[i];
-            mask->TransformPhysicalPointToIndex(point3, index3);
-            mask_it.SetIndex(index3);
-
-            /* Re-write time series based on spline detrending */
-            if(mask_it.Get() != 0) {
-                detrend_avg(fmri_img, fmri_it.GetIndex(), sections, outimage);
-            }
+            detrend_avg(fmri_img, fmri_it.GetIndex(), sections, outimage);
         }
     }
 
@@ -507,7 +486,7 @@ Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img,
 Image4DType::Pointer normalizeByVoxel(const Image4DType::Pointer fmri_img,
             const Label3DType::Pointer mask, int regions)
 {
-    Image4DType::Pointer spline = getspline(fmri_img, mask, regions);
+    Image4DType::Pointer spline = getspline(fmri_img, regions);
     
     itk::ImageFileWriter< Image4DType >::Pointer writer = 
                 itk::ImageFileWriter< Image4DType >::New();
@@ -825,11 +804,13 @@ typename itk::OrientedImage<T, SIZE1>::Pointer applymask(
             typename itk::OrientedImage<T, SIZE1>::Pointer input, 
             typename itk::OrientedImage<U, SIZE2>::Pointer mask)
 {
+    /* Make Copy For Output */
     typedef itk::CastImageFilter< itk::OrientedImage<T, SIZE1>, 
                 itk::OrientedImage<T, SIZE1> > CastF;
     typename CastF::Pointer cast = CastF::New();
     cast->SetInput(input);
     cast->Update();
+
     typename itk::OrientedImage<T, SIZE1>::Pointer recast = cast->GetOutput();
                 
     typename itk::OrientedImage<U, SIZE2>::IndexType maskindex;

@@ -42,6 +42,9 @@ ADD_EXECUTABLE(fmri_timeseries fmri_timeseries.cpp)
 ADD_EXECUTABLE(boldgen boldgen.cpp)
 ADD_EXECUTABLE(concatinate concat.cpp)
 ADD_EXECUTABLE(prune prune.cpp)
+ADD_EXECUTABLE(readdicom readdicom.cpp)
+ADD_EXECUTABLE(makespline makespline.cpp)
+ADD_EXECUTABLE(applymask applymask.cpp)
 
 TARGET_LINK_LIBRARIES(prune modNiftiImageIO 
     ITKAlgorithms ITKBasicFilters
@@ -64,3 +67,13 @@ TARGET_LINK_LIBRARIES(brainid gfortran blas modNiftiImageIO lapack mpi
 TARGET_LINK_LIBRARIES(boldgen gfortran blas lapack modNiftiImageIO boost_mpi 
     BoldModel ITKAlgorithms ITKBasicFilters 
     ITKCommon ITKIO gslcblas gsl mpi dysii itkvnl itkvcl vullib)
+
+TARGET_LINK_LIBRARIES(readdicom modNiftiImageIO segment 
+    ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
+    itkvcl vullib)
+TARGET_LINK_LIBRARIES(makespline modNiftiImageIO segment 
+    ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
+    itkvcl vullib)
+TARGET_LINK_LIBRARIES(applymask modNiftiImageIO segment 
+    ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
+    itkvcl vullib)

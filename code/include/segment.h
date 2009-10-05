@@ -16,6 +16,10 @@
 #include <vector>
 #include <list>
 
+#define TIMEDIM 3
+#define SLICEDIM 1
+#define SECTIONDIM 0
+
 // declare images
 typedef double DataType;
 typedef itk::OrientedImage<DataType, 3> Image3DType;
@@ -67,6 +71,8 @@ Image4DType::Pointer read_dicom(std::string directory, double skip = 0);
 
 double get_average(const Image4DType::Pointer fmri_img, 
         const Label3DType::Pointer labelmap);
+
+Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img, int sections);
 
 Image3DType::Pointer get_average(const Image4DType::Pointer fmri_img);
 Image3DType::Pointer extract(Image4DType::Pointer input, size_t index);
