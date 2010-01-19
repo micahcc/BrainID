@@ -277,15 +277,17 @@ int main (int argc, char** argv)
         }
         fin >> nextinput;
     //if there is no input then open the output randstim
-    } else if(!a_randstim_file().empty())  {
-        fout.open(a_randstim_file().c_str());
-        if(!fout.is_open()) {
-            fprintf(stderr, "Error bad output file for stimulus: %s\n",
-                        a_randstim_file().c_str());
-            exit(-2);
+    } else if(a_randstim()) {
+        if(!a_randstim_file().empty())  {
+            fout.open(a_randstim_file().c_str());
+            if(!fout.is_open()) {
+                fprintf(stderr, "Error bad output file for stimulus: %s\n",
+                            a_randstim_file().c_str());
+                exit(-2);
+            }
         }
         input[0] = (double)rand()/RAND_MAX < a_randstim_p();
-        fout << 0 << " " << input[0] << endl;
+        if(fout.is_open()) fout << 0 << " " << input[0] << endl;
         nextinput = a_randstim_t();
     }
 
@@ -297,9 +299,9 @@ int main (int argc, char** argv)
         if(fin.is_open() && !fin.eof() && realt >= nextinput) {
             fin >> input[0];
             fin >> nextinput;
-        } else if(fout.is_open() && realt >= nextinput) {
+        } else if(a_randstim() && realt >= nextinput) {
             input[0] = (double)rand()/RAND_MAX < a_randstim_p();
-            fout << nextinput << " " << input[0] << endl;
+            if(fout.is_open()) fout << nextinput << " " << input[0] << endl;
             nextinput += a_randstim_t();
         }
 

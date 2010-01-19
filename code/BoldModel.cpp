@@ -223,6 +223,29 @@ void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme,
         }
     }
 }
+    
+//approximated the variance by assuming V_0 is a constant, rather than
+//random, because the variance of V_0 is actually pretty small
+aux::vector BoldModel::estMeasVar(aux::DiracMixturePdf& in)
+{
+    boost::mpi::communicator world;
+    aux::vector var(MEAS_SIZE);
+    aux::matrix cov = in.getDistributedCovariance();
+    aux::vector exp = in.getDistributedExpectation();
+    double v0sqr = 0;
+    for(unsigned int i = 0 ; i < var.size() ; i++) {
+        v0sqr = exp[indexof(V_0, i)] * exp[indexof(V_0, i)];
+        var[i] = A1*A1*v0sqr*cov(indexof(Q_T, i), indexof(Q_T, i))+ 
+                    A2*A2*v0sqr*cov(indexof(V_T, i), indexof(V_T, i))-
+                    2*A1*A2*v0sqr*cov(indexof(V_T, i), indexof(Q_T, i));
+    }
+    return var;
+}
+
+aux::vector BoldModel::estMeasMean(aux::DiracMixturePdf& in)
+{
+    return measure(in.getDistributedExpectation());
+}
 
 //TODO make some of these non-gaussian
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, double varwidth)
@@ -241,10 +264,10 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, double varw
         cov(indexof(E_0    ,ii), indexof(E_0    ,ii)) = varwidth*.072*.072;
         cov(indexof(V_0    ,ii), indexof(V_0    ,ii)) = varwidth*.6e-2*.6e-2;
 
-        cov(indexof(V_T,ii), indexof(V_T,ii)) = varwidth*.01;
-        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = varwidth*.01;
-        cov(indexof(S_T,ii), indexof(S_T,ii)) = varwidth*.01;
-        cov(indexof(F_T,ii), indexof(F_T,ii)) = varwidth*.01;
+        cov(indexof(V_T,ii), indexof(V_T,ii)) = varwidth*.0001;
+        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = varwidth*.0001;
+        cov(indexof(S_T,ii), indexof(S_T,ii)) = varwidth*.0001;
+        cov(indexof(F_T,ii), indexof(F_T,ii)) = varwidth*.0001;
     }
     generatePrior(x0, samples, mean, cov);
 }
@@ -264,10 +287,11 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
         cov(indexof(E_0    ,ii), indexof(E_0    ,ii)) = varwidth*.072*.072;
         cov(indexof(V_0    ,ii), indexof(V_0    ,ii)) = varwidth*.6e-2*.6e-2;
 
-        cov(indexof(V_T,ii), indexof(V_T,ii)) = varwidth*.01;
-        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = varwidth*.01;
-        cov(indexof(S_T,ii), indexof(S_T,ii)) = varwidth*.01;
-        cov(indexof(F_T,ii), indexof(F_T,ii)) = varwidth*.01;
+        //Assume they start at 0
+        cov(indexof(V_T,ii), indexof(V_T,ii)) = varwidth*.0001;
+        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = varwidth*.0001;
+        cov(indexof(S_T,ii), indexof(S_T,ii)) = varwidth*.0001;
+        cov(indexof(F_T,ii), indexof(F_T,ii)) = varwidth*.0001;
     }
     
     generatePrior(x0, samples, mean, cov);
@@ -301,7 +325,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
         }
     }
     
-    gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);
+    gsl_rng* rng = gsl_rng_alloc(gsl_rng_ran3);
     gsl_rng_set(rng, (int)((time(NULL)*(rank+11))/71.));
     aux::vector comp(STATE_SIZE);
     for(int i = 0 ; i < samples; i ++) {

@@ -15,7 +15,6 @@
 
 #include "vnl/algo/vnl_fft_1d.h"
 #include <itkCastImageFilter.h>
-#include <itkExtractImageFilter.h>
 #include <itkImageLinearIteratorWithIndex.h>
 #include <itkImageSliceIteratorWithIndex.h>
 #include <itkMultiplyByConstantImageFilter.h>

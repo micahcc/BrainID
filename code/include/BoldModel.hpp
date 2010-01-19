@@ -74,6 +74,15 @@ public:
 
     const aux::vector& getdefault() { return defaultstate; };
     void setdefault(aux::vector def) { defaultstate = def; };
+
+    aux::vector estMeasVar(aux::DiracMixturePdf& in);
+    aux::vector estMeasMean(aux::DiracMixturePdf& in);
+
+    //goes to the index of the given state
+    inline size_t indexof(int name, int index){
+        return (name < (int)GVAR_SIZE) ? name : index*LVAR_SIZE + name;
+    };
+
 private:
     //the standard deviations for the parameters theta, which are
     //theoretically constant for the whole volume
@@ -85,17 +94,8 @@ private:
     //storage for the current input
     aux::vector input;
 
-    //goes to the index of the given state
-    inline size_t indexof(int name, int index){
-        return (name < (int)GVAR_SIZE) ? name : index*LVAR_SIZE + name;
-    };
-
     void generate_component(gsl_rng* rng, aux::vector& fillme, 
                 const double k_sigma[], const double theta_mu[]);
-
-    //Internal Constants
-    static const double A1 = 3.4;
-    static const double A2 = 1.0;
 
     //Weighting
     enum WeightF { NORM = 0, EXP = 1, HYP = 2} ;
@@ -113,6 +113,9 @@ private:
     const unsigned int MEAS_SIZE;
     const unsigned int INPUT_SIZE;
     
+    //Internal Constants
+    static const double A1 = 3.4;
+    static const double A2 = 1.0;
 };
 
 #endif

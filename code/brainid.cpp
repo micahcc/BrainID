@@ -50,18 +50,6 @@ typedef itk::OrientedImage< ImagePixelType,  4 > Image4DType;
 typedef itk::ImageFileReader< Image4DType >  ImageReaderType;
 typedef itk::ImageFileWriter< Image4DType >  WriterType;
 
-aux::vector getMeasVariance(aux::DiracMixturePdf& input, BoldModel& model)
-{
-    boost::mpi::communicator world;
-    aux::vector mean = model.measure(input.getDistributedExpectation());
-    aux::vector var(mean.size());
-    for(unsigned int i = 0 ; i < input.getSize() ; i++) {
-        var += aux::scalar_pow(model.measure(input.get(i)) - mean, 2)*
-                    input.getWeight(i);
-    }
-    return boost::mpi::all_reduce(world, var, std::plus<aux::vector>())
-                / input.getDistributedTotalWeight();
-}
 
 /* Gathers all the elements of the DiracMixturePdf to the local node */
 void gatherToNode(unsigned int dest, aux::DiracMixturePdf& input) {
@@ -167,8 +155,7 @@ int main(int argc, char* argv[])
                 false);
     vul_arg<double> a_resampratio("-rr", "Ratio of total particles below which ESS "
                 "must reach for the filter to resample. Ex .8 Ex2. .34", 0);
-    vul_arg<double> a_weightvar("-weightvar", "Variance of weighting function", 
-                3.92e-6);
+    vul_arg<double> a_weightvar("-weightvar", "Variance of weighting function", 1);
     vul_arg<unsigned int> a_resampnum("-rn", "Absolute ESS below which to resample"
                 , 100);
     vul_arg<string> a_boldfile("-yo", "Where to put bold image file", "");
@@ -427,8 +414,10 @@ int main(int argc, char* argv[])
     /* Simulation Section */
     aux::vector input(1);
     aux::vector meas(meassize);
-    aux::vector mu;
-    aux::symmetric_matrix cov;
+    aux::vector statemu;
+    aux::vector measmu;
+    aux::vector measvar;
+    aux::symmetric_matrix statecov;
     input[0] = 0;
     double nextinput;
     int disctime = -a_divider()*offset;
@@ -522,16 +511,17 @@ int main(int argc, char* argv[])
             boost::mpi::broadcast(world, done, 0);
             
             //step forward in time, with measurement
-            aux::vector variance = getMeasVariance(filter.getFilteredState(), model);
-            mu = filter.getFilteredState().getDistributedExpectation();
+            //aux::vector variance = getMeasVariance(filter.getFilteredState(), model);
+            //mu = filter.getFilteredState().getDistributedExpectation();
             if(rank == 0) {
                 /* Write Expected Value */
-                *out << "Pre filter mu:" << std::endl;
-                outputVector(*out, model.measure(mu));
+                //*out << "Pre filter mu:" << std::endl;
+                //This is just an approximation of the mean, not the actual
+                //outputVector(*out, model.measure(mu));
                 
                 /* Write estimated Variance*/
-                *out << std::endl << "Pre filter var:" << std::endl;
-                outputVector(*out, variance);
+                //*out << std::endl << "Pre filter var:" << std::endl;
+                //outputVector(*out, variance);
             }
             filter.filter(conttime, meas);
 
@@ -563,7 +553,7 @@ int main(int argc, char* argv[])
             if(ess < a_num_particles()*a_resampratio() || ess < a_resampnum()) {
                 *out << endl << " ESS: " << ess << ", Stratified Resampling" 
                             << endl;
-                cov = filter.getFilteredState().getDistributedCovariance();
+                statecov = filter.getFilteredState().getDistributedCovariance();
 //                *out << "Covariance prior to resampling" << endl;
 //                outputMatrix(*out, filter.getFilteredState().
 //                            getDistributedCovariance());
@@ -576,7 +566,7 @@ int main(int argc, char* argv[])
                 
                 *out << " ESS: " << ess << ", Regularized Resampling" << endl << endl;
                 filter.setFilteredState(resampler_reg.
-                            resample(filter.getFilteredState(), cov) );
+                            resample(filter.getFilteredState(), statecov) );
             } else {
                 *out << endl << " ESS: " << ess << ", No Resampling Necessary!" 
                             << endl;
@@ -586,19 +576,21 @@ int main(int argc, char* argv[])
              * outputing anything can lead to serious time savings 
              * */
             
-            mu = filter.getFilteredState().getDistributedExpectation();
-            cov = filter.getFilteredState().getDistributedCovariance();
+            statemu = filter.getFilteredState().getDistributedExpectation();
+            statecov = filter.getFilteredState().getDistributedCovariance();
+            measvar = model.estMeasVar(filter.getFilteredState());
+            measmu = model.estMeasMean(filter.getFilteredState());
             if( !a_statefile().empty() ) {
-                *out << "saving: " << a_statefile() << endl;
+                *out << "filling: " << a_statefile() << endl;
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 if(rank == 0) {
                     /* Write estimated state */
-                    writeVector<double>(stateOutput, PARAMDIM, mu , index);
+                    writeVector<double>(stateOutput, PARAMDIM, statemu, index);
                     
                     /* Write estimated Variance*/
-                    aux::vector variance(cov.size1());
+                    aux::vector variance(statecov.size1());
                     for(unsigned int i = 0 ; i < variance.size() ; i++)
-                        variance[i] = cov(i,i);
+                        variance[i] = statecov(i,i);
                     index[VARDIM] = 1;
                     writeVector<double>(stateOutput, PARAMDIM, variance , index);
                 }
@@ -609,26 +601,24 @@ int main(int argc, char* argv[])
                 *out << "saving: " << a_covfile() << endl;
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 if(rank == 0)
-                    writeMatrix<double>(covOutput, PARAMDIM, VARDIM, cov, index);
+                    writeMatrix<double>(covOutput, PARAMDIM, VARDIM, statecov, index);
             }
 #endif //COVOUTPUT
 
             /* Calculate Variance in bold, then write out the bold mean/variance */
             if( !a_boldfile().empty() ) {
-                *out << "saving: " << a_boldfile() << endl;
+                *out << "filling: " << a_boldfile() << endl;
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 
-                aux::vector variance = getMeasVariance(
-                            filter.getFilteredState(), model);
                 if(rank == 0) {
                     /* Write Expected Value */
-                    writeVector<double>(measOutput, SERIESDIM, model.measure(mu), index);
+                    writeVector<double>(measOutput, SERIESDIM, measmu, index);
                     
                     index[VARDIM] = 1;
                     /* Write estimated Variance*/
                     *out << std::endl << "Post filter var:" << std::endl;
-                    outputVector(*out, variance);
-                    writeVector<double>(measOutput, SERIESDIM, variance , index);
+                    outputVector(*out, measvar);
+                    writeVector<double>(measOutput, SERIESDIM, measvar, index);
                 }
             }
 
