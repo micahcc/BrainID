@@ -13,12 +13,12 @@
 #include <iostream>
 #include <iomanip>
 
+#include "vnl/algo/vnl_fft_1d.h"
 #include <itkCastImageFilter.h>
+#include <itkExtractImageFilter.h>
 #include <itkImageLinearIteratorWithIndex.h>
 #include <itkImageSliceIteratorWithIndex.h>
 #include <itkMultiplyByConstantImageFilter.h>
-
-#include <gsl/gsl_fft_real.h>
 
 /* Typedefs */
 #define SERIESDIM 0
@@ -26,23 +26,65 @@
 #define VARDIM 2
 #define TIMEDIM 3
 
-void outputVector(std::ostream& out, indii::ml::aux::vector mat) 
-{
-  unsigned int i;
-  for (i = 0; i < mat.size(); i++) {
-      out << std::setw(15) << mat(i);
-  }
-};
+void outputVector(std::ostream& out, indii::ml::aux::vector mat);
+void outputMatrix(std::ostream& out, indii::ml::aux::matrix mat);
+itk::OrientedImage<double, 4>::Pointer fft_image(
+            itk::OrientedImage<double,4>::Pointer inimg);
 
-void outputMatrix(std::ostream& out, indii::ml::aux::matrix mat) 
+//dir1 should be the direction of several separate series
+//dir2 should be the direction that you want to get rms of
+//RMS for a non-zero mean signal is 
+//sqrt(mu^2+sigma^2)
+template<class vector>
+void get_rms(itk::OrientedImage<double,4>::Pointer in, size_t dir1, size_t dir2, 
+            vector& out)
 {
-  unsigned int i, j;
-  for (j = 0; j < mat.size2(); j++) {
-    for (i = 0; i < mat.size1(); i++) {
-      out << std::setw(15) << mat(i,j);
+    for(unsigned int i = 0 ; i < out.size() ; i++) {
+        out[i] = 0;
     }
-    out << std::endl;
-  }
+    
+    itk::ImageSliceIteratorWithIndex<itk::OrientedImage<double,4> > 
+                iter(in, in->GetRequestedRegion());
+    iter.SetFirstDirection(dir1);
+    iter.SetSecondDirection(dir2);
+    iter.GoToBegin();
+
+    int numelements = in->GetRequestedRegion().GetSize()[dir2];
+
+    std::vector<double> mean(out.size(), 0);
+    /* get average */
+    while(!iter.IsAtEndOfSlice()) {
+        size_t ii=0;
+        while(!iter.IsAtEndOfLine()) {
+            mean[ii] += iter.Get();
+            ii++;
+            ++iter;
+        }
+        iter.NextLine();
+    }
+    for(size_t ii= 0 ; ii<mean.size() ; ii++) {
+        mean[ii] /= numelements;
+    }
+
+    /* variance */
+    iter.GoToBegin();
+    while(!iter.IsAtEndOfSlice()) {
+        size_t ii=0;
+        while(!iter.IsAtEndOfLine()) {
+            out[ii] += pow(iter.Get()-mean[ii],2);
+            ii++;
+            ++iter;
+        }
+        iter.NextLine();
+    }
+    for(size_t ii= 0 ; ii<out.size() ; ii++)
+        out[ii] /= numelements;
+
+
+    //sqrt(mu^2 + var)
+    for(size_t ii = 0 ; ii < out.size() ; ii++) {
+        out[ii] = sqrt(pow(mean[ii], 2) + out[ii]);
+    }
 };
 
 
@@ -185,62 +227,6 @@ typename itk::OrientedImage< T, 4 >::Pointer concat(
     return newout;
 };
 
-//dir1 should be the direction of several separate series
-//dir2 should be the direction that you want to get rms of
-//RMS for a non-zero mean signal is 
-//sqrt(mu^2+sigma^2)
-template <typename vector>
-void get_rms(itk::OrientedImage<double,4>::Pointer in, size_t dir1, size_t dir2, 
-            vector& out)
-{
-    for(unsigned int i = 0 ; i < out.size() ; i++) {
-        out[i] = 0;
-    }
-    
-    itk::ImageSliceIteratorWithIndex<itk::OrientedImage<double,4> > 
-                iter(in, in->GetRequestedRegion());
-    iter.SetFirstDirection(dir1);
-    iter.SetSecondDirection(dir2);
-    iter.GoToBegin();
-
-    int numelements = in->GetRequestedRegion().GetSize()[dir2];
-
-    std::vector<double> mean(out.size(), 0);
-    /* get average */
-    while(!iter.IsAtEndOfSlice()) {
-        size_t ii=0;
-        while(!iter.IsAtEndOfLine()) {
-            mean[ii] += iter.Get();
-            ii++;
-            ++iter;
-        }
-        iter.NextLine();
-    }
-    for(size_t ii= 0 ; ii<mean.size() ; ii++) {
-        mean[ii] /= numelements;
-    }
-
-    /* variance */
-    iter.GoToBegin();
-    while(!iter.IsAtEndOfSlice()) {
-        size_t ii=0;
-        while(!iter.IsAtEndOfLine()) {
-            out[ii] += pow(iter.Get()-mean[ii],2);
-            ii++;
-            ++iter;
-        }
-        iter.NextLine();
-    }
-    for(size_t ii= 0 ; ii<out.size() ; ii++)
-        out[ii] /= numelements;
-
-
-    //sqrt(mu^2 + var)
-    for(size_t ii = 0 ; ii < out.size() ; ii++) {
-        out[ii] = sqrt(pow(mean[ii], 2) + out[ii]);
-    }
-}
-
 /* Removes all but the indices between start and stop, inclusive */
 template <class T>
 typename itk::OrientedImage< T, 4 >::Pointer prune(
@@ -296,63 +282,6 @@ typename itk::OrientedImage< T, 4 >::Pointer prune(
 
     return newout;
 };
-
-//dir1 should be the direction of several separate series
-//dir2 should be the direction that you want to get rms of
-//RMS for a non-zero mean signal is 
-//sqrt(mu^2+sigma^2)
-itk::OrientedImage<double, 4>::Pointer fft_image(
-            itk::OrientedImage<double,4>::Pointer inimg)
-{
-    int numelements = inimg->GetRequestedRegion().GetSize()[TIMEDIM];
-    gsl_fft_real_wavetable* table = gsl_fft_real_wavetable_alloc(numelements);
-    gsl_fft_real_workspace* work = gsl_fft_real_workspace_alloc(numelements);
-    inimg->SetBufferedRegion(inimg->GetRequestedRegion());
-    
-    typedef itk::MultiplyByConstantImageFilter< itk::OrientedImage<double,4>, double,
-                itk::OrientedImage<double,4> > Filter;
-    Filter::Pointer filter = Filter::New();
-    filter->SetInput(inimg);
-    filter->SetConstant(1);
-    filter->Update();
-
-    itk::OrientedImage<double,4>::Pointer out = filter->GetOutput();
-    
-    itk::OrientedImage<double,4>::IndexType index = {{ 0, 0, 0, 0}};
-    itk::OrientedImage<double,4>::SizeType size = inimg->GetRequestedRegion().GetSize();
-    int delta = 0;
-    int start = 0;
-
-    for(index[0] = 0 ; index[0] < (int)size[0] ; index[0]++) {
-        for(index[1] = 0 ; index[1] < (int)size[1] ; index[1]++) {
-            for(index[2] = 0 ; index[2] < (int)size[2] ; index[2]++) {
-//                fprintf(stderr, "Calculating for %li %li %li\n", index[0], index[1], 
-//                            index[2]);
-                double* data = out->GetBufferPointer();
-                /* Find offset of first pixel */
-                start = out->ComputeOffset(index);
-                
-                /* Find offset of second pixel, then get the delta */
-                index[TIMEDIM] = 1;
-                delta = out->ComputeOffset(index) - start;
-                index[TIMEDIM] = 0;
-//                fprintf(stderr, "Offsets %i %i\n", start, delta);
-
-                data += start;
-                gsl_fft_real_transform(data, delta, numelements, table, work);
-            }
-        }
-    }
-    
-    gsl_fft_real_wavetable_free(table);
-    gsl_fft_real_workspace_free(work);
-
-    out->CopyInformation(inimg);
-    itk::OrientedImage<double,4>::SpacingType spacing = out->GetSpacing();
-    spacing[TIMEDIM] = 1./(2*numelements);
-    out->SetSpacing(spacing);
-    return out;
-}
 
 template<class T, unsigned int SIZE1, class U, unsigned int SIZE2>
 typename itk::OrientedImage<T, SIZE1>::Pointer applymask(

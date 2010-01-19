@@ -31,6 +31,7 @@ ADD_LIBRARY(modNiftiImageIO modNiftiImageIO.cxx)
 ADD_LIBRARY(segment segment.cpp)
 ADD_LIBRARY(activate activate.cpp)
 ADD_LIBRARY(BoldModel BoldModel.cpp)
+ADD_LIBRARY(tools tools.cc)
 
 #TARGET_LINK_LIBRARIES(bold particle ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
 
@@ -49,29 +50,29 @@ ADD_EXECUTABLE(fft fft.cpp)
 ADD_EXECUTABLE(makesine makesine.cpp)
 
 TARGET_LINK_LIBRARIES(prune modNiftiImageIO 
-    ITKAlgorithms ITKBasicFilters gsl cblas
+    ITKAlgorithms ITKBasicFilters gsl gslcblas
     ITKCommon ITKIO )
 TARGET_LINK_LIBRARIES(concatinate modNiftiImageIO 
-    ITKAlgorithms ITKBasicFilters gsl cblas
+    ITKAlgorithms ITKBasicFilters gsl gslcblas
     ITKCommon ITKIO )
 TARGET_LINK_LIBRARIES(fmri_timeseries modNiftiImageIO segment 
     ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
     itkvcl vullib)
-TARGET_LINK_LIBRARIES(segment gsl cblas)
+TARGET_LINK_LIBRARIES(segment gsl gslcblas)
 TARGET_LINK_LIBRARIES(unbias ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
 TARGET_LINK_LIBRARIES(printtags modNiftiImageIO ITKAlgorithms 
     ITKBasicFilters ITKCommon ITKIO)
 TARGET_LINK_LIBRARIES(copyorigin modNiftiImageIO ITKAlgorithms 
     ITKBasicFilters ITKCommon ITKIO)
-TARGET_LINK_LIBRARIES(brainid gfortran blas modNiftiImageIO lapack mpi 
+TARGET_LINK_LIBRARIES(brainid tools gfortran blas modNiftiImageIO lapack mpi 
     boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
-    ITKCommon ITKIO mpi gslcblas gsl dysii itkvnl itkvcl vullib)
-TARGET_LINK_LIBRARIES(boldgen gfortran blas lapack modNiftiImageIO boost_mpi 
+    ITKCommon ITKIO mpi gsl gslcblas dysii itkvnl itkvcl vullib)
+TARGET_LINK_LIBRARIES(boldgen tools gfortran blas lapack modNiftiImageIO boost_mpi 
     BoldModel ITKAlgorithms ITKBasicFilters 
-    ITKCommon ITKIO gslcblas gsl mpi dysii itkvnl itkvcl vullib)
-TARGET_LINK_LIBRARIES(fft gfortran blas lapack modNiftiImageIO 
+    ITKCommon ITKIO gsl gslcblas mpi dysii itkvnl itkvcl vullib)
+TARGET_LINK_LIBRARIES(fft tools gfortran blas lapack modNiftiImageIO 
     ITKAlgorithms ITKBasicFilters 
-    ITKCommon ITKIO gslcblas gsl itkvnl itkvcl vullib)
+    ITKCommon ITKIO gsl gslcblas itkvnl itkvcl vullib)
 TARGET_LINK_LIBRARIES(makesine modNiftiImageIO 
     ITKAlgorithms ITKBasicFilters 
     ITKCommon ITKIO itkvnl itkvcl vullib)
