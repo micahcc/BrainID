@@ -48,6 +48,9 @@ ADD_EXECUTABLE(makespline makespline.cpp)
 ADD_EXECUTABLE(applymask applymask.cpp)
 ADD_EXECUTABLE(fft fft.cpp)
 ADD_EXECUTABLE(makesine makesine.cpp)
+ADD_EXECUTABLE(actmap activate_map.cpp)
+ADD_EXECUTABLE(mean_filter mean_filter.cpp)
+ADD_EXECUTABLE(make_param_image make_param_image.cpp)
 
 TARGET_LINK_LIBRARIES(prune modNiftiImageIO 
     ITKAlgorithms ITKBasicFilters gsl gslcblas
@@ -64,7 +67,7 @@ TARGET_LINK_LIBRARIES(printtags modNiftiImageIO ITKAlgorithms
     ITKBasicFilters ITKCommon ITKIO)
 TARGET_LINK_LIBRARIES(copyorigin modNiftiImageIO ITKAlgorithms 
     ITKBasicFilters ITKCommon ITKIO)
-TARGET_LINK_LIBRARIES(brainid tools gfortran blas modNiftiImageIO lapack mpi 
+TARGET_LINK_LIBRARIES(brainid tools gfortran modNiftiImageIO blas lapack mpi 
     boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO mpi gsl gslcblas dysii itkvnl itkvcl vullib)
 TARGET_LINK_LIBRARIES(boldgen tools gfortran blas lapack modNiftiImageIO boost_mpi 
@@ -84,5 +87,15 @@ TARGET_LINK_LIBRARIES(makespline modNiftiImageIO segment
     ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
     itkvcl vullib)
 TARGET_LINK_LIBRARIES(applymask modNiftiImageIO segment 
+    ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
+    itkvcl vullib)
+TARGET_LINK_LIBRARIES(actmap modNiftiImageIO segment tools
+    ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
+    itkvcl vullib)
+TARGET_LINK_LIBRARIES(make_param_image modNiftiImageIO segment tools
+    ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
+    itkvcl vullib)
+
+TARGET_LINK_LIBRARIES(mean_filter modNiftiImageIO segment 
     ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
     itkvcl vullib)

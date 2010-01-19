@@ -238,8 +238,14 @@ except os.error:
     print "Directory " + options.depdir + " may overwrite."
 
 os.chdir(lapack_src_dir)
-os.system("make -j%i blaslib" % ncpus())
-os.system("make -j%i all" % ncpus())
+if os.system("make -j%i blaslib" % ncpus()) != 0:
+    print "Build Failed in Lapack blaslib"
+    sys.exit()
+
+if os.system("make -j%i all" % ncpus()) != 0:
+    print "build in %s Lapack" 
+    sys.exit()
+
 for filen in os.listdir("./"):
     if splitext(filen)[1] == ".a":
         shared = splitext(filen)[0]+ ".so"

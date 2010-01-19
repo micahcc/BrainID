@@ -34,9 +34,9 @@ itk::OrientedImage<double, 4>::Pointer fft_image(
 //dir2 should be the direction that you want to get rms of
 //RMS for a non-zero mean signal is 
 //sqrt(mu^2+sigma^2)
-template<class vector>
+template<class Vector>
 void get_rms(itk::OrientedImage<double,4>::Pointer in, size_t dir1, size_t dir2, 
-            vector& out)
+            Vector& out)
 {
     for(unsigned int i = 0 ; i < out.size() ; i++) {
         out[i] = 0;
@@ -88,9 +88,9 @@ void get_rms(itk::OrientedImage<double,4>::Pointer in, size_t dir1, size_t dir2,
 
 
 //write a vector to a dimension of an image
-template <class T>
+template <class T, class Vector>
 void writeVector(typename itk::OrientedImage< T, 4 >::Pointer out, int dir, 
-            const indii::ml::aux::vector& input, 
+            const Vector& input, 
             typename itk::OrientedImage< T, 4 >::IndexType start)
 {
     itk::ImageLinearIteratorWithIndex< itk::OrientedImage< T, 4 > >
@@ -130,9 +130,9 @@ void writeMatrix(typename itk::OrientedImage< T, 4 >::Pointer out, int dir1,
 
 
 //read dimension of image into a vector
-template <class T>
+template <class T, class Vector>
 int readVector(const typename itk::OrientedImage< T, 4 >::Pointer in, int dir, 
-            indii::ml::aux::vector& input, 
+            Vector& input, 
             typename itk::OrientedImage< T, 4 >::IndexType start)
 {
     itk::ImageLinearConstIteratorWithIndex<itk::OrientedImage< T, 4 > >

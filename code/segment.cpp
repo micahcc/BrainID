@@ -411,10 +411,10 @@ int detrend_lmin(const Image4DType::Pointer fmri_img, Image4DType::IndexType ind
 }
 
 int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType index, 
-            int regions, Image4DType::Pointer output)
+            int knots, Image4DType::Pointer output)
 {
     gsl_interp_accel *acc = gsl_interp_accel_alloc();
-    gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, regions+2);
+    gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, knots);
 
 //    for(int i = 0 ; i < 4 ; i++) {
 //        fprintf(stderr, "%zu ", index[i]);
@@ -427,16 +427,16 @@ int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType inde
     fmri_it.SetDirection(3);
     fmri_it.SetIndex(index);
 
-    double averages[regions+2];
-    int counts[regions+2];
-    int starts[regions];
+    double averages[knots];
+    int counts[knots];
+    int starts[knots-2];
 
     int length = fmri_img->GetRequestedRegion().GetSize()[3];
-    double rsize = length / regions;
-    for(int i = 0 ; i < regions ; i++) {
+    double rsize = length / (knots-2);
+    for(int i = 0 ; i < (knots-2) ; i++) {
         starts[i] = rsize*i;
     }
-    for(int i = 0 ; i < regions+2 ; i++) {
+    for(int i = 0 ; i < knots ; i++) {
         counts[i] = 0;
         averages[i] = 0;
     }
@@ -444,19 +444,19 @@ int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType inde
     int region = 0;
     for(fmri_it.GoToBeginOfLine(); !fmri_it.IsAtEndOfLine(); ++fmri_it) {
         /* Figure out Region */
-        if(fmri_it.GetIndex()[3] < length/(regions*2)) {
+        if(fmri_it.GetIndex()[3] < length/((knots-2)*2)) {
             averages[0] += fmri_it.Get();
             counts[0]++;
-        } else if(fmri_it.GetIndex()[3] > (length - length/(regions*2))) {
-            averages[regions+1] += fmri_it.Get();
-            counts[regions+1]++;
+        } else if(fmri_it.GetIndex()[3] > (length - length/((knots-2)*2))) {
+            averages[(knots-2)+1] += fmri_it.Get();
+            counts[(knots-2)+1]++;
         }
 
         /* Check to see if the index is for the last region(since there is no)
          * start for the region after that */
-        if(fmri_it.GetIndex()[3] > starts[regions-1]) {
-            averages[regions] += fmri_it.Get();
-            counts[regions]++;
+        if(fmri_it.GetIndex()[3] > starts[(knots-2)-1]) {
+            averages[(knots-2)] += fmri_it.Get();
+            counts[(knots-2)]++;
         /* Check to see if the index is for the next region and
          * if that is the case, then add the data to the next region
          * and iterate the region count*/
@@ -471,15 +471,15 @@ int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType inde
         }
     }
 
-    double xpos[regions+2];
+    double xpos[knots];
     xpos[0] = 0;
-    xpos[regions+1] = length-1;;
-    xpos[regions] = (length + starts[regions-1])/2;
-    for(int i = 0 ; i < regions-1 ; i++){
+    xpos[(knots-2)+1] = length-1;;
+    xpos[(knots-2)] = (length + starts[(knots-2)-1])/2;
+    for(int i = 0 ; i < (knots-2)-1 ; i++){
         xpos[i+1] = (starts[i+1] + starts[i])/2;
     }
 
-    for(int i = 0 ; i < regions+2 ; i++) {
+    for(int i = 0 ; i < knots ; i++) {
         averages[i] /= counts[i];
     }
 
@@ -487,22 +487,22 @@ int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType inde
                 out_it(output, output->GetRequestedRegion());
     out_it.SetDirection(3);
     out_it.SetIndex(index);
-    gsl_spline_init(spline, xpos, averages, regions+2);
+    gsl_spline_init(spline, xpos, averages, knots);
     for(out_it.GoToBeginOfLine(); !out_it.IsAtEndOfLine(); ++out_it) {
         out_it.Set(gsl_spline_eval(spline, out_it.GetIndex()[3], acc));
     }
 
-//    for(int i = 0 ; i  < regions+2 ; i++) {
+//    for(int i = 0 ; i  < knots ; i++) {
 //        fprintf(stderr, "%i Average: %f Count: %i, pos: %f\n", i, averages[i], 
 //                    counts[i], xpos[i]);
 //    }
-//    for(int i = 0 ; i  < regions ; i++) {
+//    for(int i = 0 ; i  < (knots-2) ; i++) {
 //        fprintf(stderr, "%i Starts: %i\n", i, starts[i]);
 //    }
     return 0;
 }
 
-Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img, int sections)
+Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img, int knots)
 {
     Image4DType::Pointer outimage = Image4DType::New();
     outimage->SetRegions(fmri_img->GetRequestedRegion());
@@ -522,7 +522,7 @@ Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img, int sections
     
     for(fmri_it.GoToBegin(); fmri_it != fmri_stop ; fmri_it.NextLine()) {
         for( ; !fmri_it.IsAtEndOfLine(); ++fmri_it) {
-            detrend_avg(fmri_img, fmri_it.GetIndex(), sections, outimage);
+            detrend_avg(fmri_img, fmri_it.GetIndex(), knots, outimage);
         }
     }
 
@@ -532,9 +532,9 @@ Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img, int sections
 }
 
 Image4DType::Pointer normalizeByVoxel(const Image4DType::Pointer fmri_img,
-            const Label3DType::Pointer mask, int regions)
+            const Label3DType::Pointer mask, int knots)
 {
-    Image4DType::Pointer spline = getspline(fmri_img, regions);
+    Image4DType::Pointer spline = getspline(fmri_img, knots);
     
     itk::ImageFileWriter< Image4DType >::Pointer writer = 
                 itk::ImageFileWriter< Image4DType >::New();
