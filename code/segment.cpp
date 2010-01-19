@@ -17,7 +17,6 @@
 
 #include "segment.h"
 #include <itkLabelStatisticsImageFilterMod.h>
-#include <itkCastImageFilter.h>
 #include <itkImageLinearIteratorWithIndex.h>
 #include <itkImageLinearConstIteratorWithIndex.h>
 
@@ -29,6 +28,7 @@
 #include <itkDivideImageFilter.h>
 #include <itkDivideByConstantImageFilter.h>
 #include <itkMultiplyByConstantImageFilter.h>
+#include <itkCastImageFilter.h>
 #include <itkBinaryThresholdImageFilter.h>
 
 #include <gsl/gsl_spline.h>
@@ -48,6 +48,54 @@ typedef itk::SubtractConstantFromImageFilter< Image4DType, double,
             Image4DType > SubCF;
 typedef itk::DivideImageFilter< Image4DType, Image4DType, Image4DType > DivF;
 typedef itk::DivideByConstantImageFilter< Image4DType, double, Image4DType > DivCF;
+
+template<class T, unsigned int SIZE1, class U, unsigned int SIZE2>
+typename itk::OrientedImage<T, SIZE1>::Pointer applymask(
+            typename itk::OrientedImage<T, SIZE1>::Pointer input, 
+            typename itk::OrientedImage<U, SIZE2>::Pointer mask)
+{
+    /* Make Copy For Output */
+    typedef itk::CastImageFilter< itk::OrientedImage<T, SIZE1>, 
+                itk::OrientedImage<T, SIZE1> > CastF;
+    typename CastF::Pointer cast = CastF::New();
+    cast->SetInput(input);
+    cast->Update();
+
+    typename itk::OrientedImage<T, SIZE1>::Pointer recast = cast->GetOutput();
+                
+    typename itk::OrientedImage<U, SIZE2>::IndexType maskindex;
+    typename itk::OrientedImage<U, SIZE2>::PointType maskpoint;
+    typename itk::ImageLinearIteratorWithIndex<itk::OrientedImage<U, SIZE2> > maskit
+                (mask, mask->GetRequestedRegion());
+//    typename itk::OrientedImage<T, SIZE1>::IndexType imgindex;
+    typename itk::OrientedImage<T, SIZE1>::PointType imgpoint;
+    typename itk::ImageLinearIteratorWithIndex<itk::OrientedImage<T, SIZE1> > imgit
+                (recast, recast->GetRequestedRegion());
+    
+    imgit.GoToBegin();
+
+    while(!imgit.IsAtEnd()) {
+        while(!imgit.IsAtEndOfLine()) {
+            recast->TransformIndexToPhysicalPoint(imgit.GetIndex(), imgpoint);
+            for(size_t ii = 0 ; ii < SIZE2; ii++) {
+                if(ii >= SIZE1)
+                    maskpoint[ii] = 0;
+                else
+                    maskpoint[ii] = imgpoint[ii];
+            }
+            mask->TransformPhysicalPointToIndex(maskpoint, maskindex);
+            maskit.SetIndex(maskindex);
+            /* The double negative is because != will be false for NaN */
+            if(!(maskit.Get() != 0)) {
+                imgit.Set(0);
+            }
+            ++imgit;
+        }
+        imgit.NextLine();
+    }
+
+    return recast;
+}
 
 //sort first by increasing label, then by increasing time
 //then by increasing slice, then by dim[1] then dim[0]
@@ -798,54 +846,6 @@ Image4DType::Pointer summ(const Image4DType::Pointer fmri_img,
     return output;
 }
 
-
-template<class T, unsigned int SIZE1, class U, unsigned int SIZE2>
-typename itk::OrientedImage<T, SIZE1>::Pointer applymask(
-            typename itk::OrientedImage<T, SIZE1>::Pointer input, 
-            typename itk::OrientedImage<U, SIZE2>::Pointer mask)
-{
-    /* Make Copy For Output */
-    typedef itk::CastImageFilter< itk::OrientedImage<T, SIZE1>, 
-                itk::OrientedImage<T, SIZE1> > CastF;
-    typename CastF::Pointer cast = CastF::New();
-    cast->SetInput(input);
-    cast->Update();
-
-    typename itk::OrientedImage<T, SIZE1>::Pointer recast = cast->GetOutput();
-                
-    typename itk::OrientedImage<U, SIZE2>::IndexType maskindex;
-    typename itk::OrientedImage<U, SIZE2>::PointType maskpoint;
-    typename itk::ImageLinearIteratorWithIndex<itk::OrientedImage<U, SIZE2> > maskit
-                (mask, mask->GetRequestedRegion());
-//    typename itk::OrientedImage<T, SIZE1>::IndexType imgindex;
-    typename itk::OrientedImage<T, SIZE1>::PointType imgpoint;
-    typename itk::ImageLinearIteratorWithIndex<itk::OrientedImage<T, SIZE1> > imgit
-                (recast, recast->GetRequestedRegion());
-    
-    imgit.GoToBegin();
-
-    while(!imgit.IsAtEnd()) {
-        while(!imgit.IsAtEndOfLine()) {
-            recast->TransformIndexToPhysicalPoint(imgit.GetIndex(), imgpoint);
-            for(size_t ii = 0 ; ii < SIZE2; ii++) {
-                if(ii >= SIZE1)
-                    maskpoint[ii] = 0;
-                else
-                    maskpoint[ii] = imgpoint[ii];
-            }
-            mask->TransformPhysicalPointToIndex(maskpoint, maskindex);
-            maskit.SetIndex(maskindex);
-            /* The double negative is because != will be false for NaN */
-            if(!(maskit.Get() != 0)) {
-                imgit.Set(0);
-            }
-            ++imgit;
-        }
-        imgit.NextLine();
-    }
-
-    return recast;
-}
 
 
 /* ???? */

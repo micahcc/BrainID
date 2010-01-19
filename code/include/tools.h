@@ -1,3 +1,6 @@
+#ifndef TOOLS_H
+#define TOOLS_H
+
 #include <indii/ml/aux/vector.hpp>
 #include <indii/ml/aux/matrix.hpp>
 
@@ -10,8 +13,12 @@
 #include <iostream>
 #include <iomanip>
 
+#include <itkCastImageFilter.h>
 #include <itkImageLinearIteratorWithIndex.h>
 #include <itkImageSliceIteratorWithIndex.h>
+#include <itkMultiplyByConstantImageFilter.h>
+
+#include <gsl/gsl_fft_real.h>
 
 /* Typedefs */
 #define SERIESDIM 0
@@ -289,3 +296,110 @@ typename itk::OrientedImage< T, 4 >::Pointer prune(
 
     return newout;
 };
+
+//dir1 should be the direction of several separate series
+//dir2 should be the direction that you want to get rms of
+//RMS for a non-zero mean signal is 
+//sqrt(mu^2+sigma^2)
+itk::OrientedImage<double, 4>::Pointer fft_image(
+            itk::OrientedImage<double,4>::Pointer inimg)
+{
+    int numelements = inimg->GetRequestedRegion().GetSize()[TIMEDIM];
+    gsl_fft_real_wavetable* table = gsl_fft_real_wavetable_alloc(numelements);
+    gsl_fft_real_workspace* work = gsl_fft_real_workspace_alloc(numelements);
+    inimg->SetBufferedRegion(inimg->GetRequestedRegion());
+    
+    typedef itk::MultiplyByConstantImageFilter< itk::OrientedImage<double,4>, double,
+                itk::OrientedImage<double,4> > Filter;
+    Filter::Pointer filter = Filter::New();
+    filter->SetInput(inimg);
+    filter->SetConstant(1);
+    filter->Update();
+
+    itk::OrientedImage<double,4>::Pointer out = filter->GetOutput();
+    
+    itk::OrientedImage<double,4>::IndexType index = {{ 0, 0, 0, 0}};
+    itk::OrientedImage<double,4>::SizeType size = inimg->GetRequestedRegion().GetSize();
+    int delta = 0;
+    int start = 0;
+
+    for(index[0] = 0 ; index[0] < (int)size[0] ; index[0]++) {
+        for(index[1] = 0 ; index[1] < (int)size[1] ; index[1]++) {
+            for(index[2] = 0 ; index[2] < (int)size[2] ; index[2]++) {
+//                fprintf(stderr, "Calculating for %li %li %li\n", index[0], index[1], 
+//                            index[2]);
+                double* data = out->GetBufferPointer();
+                /* Find offset of first pixel */
+                start = out->ComputeOffset(index);
+                
+                /* Find offset of second pixel, then get the delta */
+                index[TIMEDIM] = 1;
+                delta = out->ComputeOffset(index) - start;
+                index[TIMEDIM] = 0;
+//                fprintf(stderr, "Offsets %i %i\n", start, delta);
+
+                data += start;
+                gsl_fft_real_transform(data, delta, numelements, table, work);
+            }
+        }
+    }
+    
+    gsl_fft_real_wavetable_free(table);
+    gsl_fft_real_workspace_free(work);
+
+    out->CopyInformation(inimg);
+    itk::OrientedImage<double,4>::SpacingType spacing = out->GetSpacing();
+    spacing[TIMEDIM] = 1./(2*numelements);
+    out->SetSpacing(spacing);
+    return out;
+}
+
+template<class T, unsigned int SIZE1, class U, unsigned int SIZE2>
+typename itk::OrientedImage<T, SIZE1>::Pointer applymask(
+            typename itk::OrientedImage<T, SIZE1>::Pointer input, 
+            typename itk::OrientedImage<U, SIZE2>::Pointer mask)
+{
+    /* Make Copy For Output */
+    typedef itk::CastImageFilter< itk::OrientedImage<T, SIZE1>, 
+                itk::OrientedImage<T, SIZE1> > CastF;
+    typename CastF::Pointer cast = CastF::New();
+    cast->SetInput(input);
+    cast->Update();
+
+    typename itk::OrientedImage<T, SIZE1>::Pointer recast = cast->GetOutput();
+                
+    typename itk::OrientedImage<U, SIZE2>::IndexType maskindex;
+    typename itk::OrientedImage<U, SIZE2>::PointType maskpoint;
+    typename itk::ImageLinearIteratorWithIndex<itk::OrientedImage<U, SIZE2> > maskit
+                (mask, mask->GetRequestedRegion());
+//    typename itk::OrientedImage<T, SIZE1>::IndexType imgindex;
+    typename itk::OrientedImage<T, SIZE1>::PointType imgpoint;
+    typename itk::ImageLinearIteratorWithIndex<itk::OrientedImage<T, SIZE1> > imgit
+                (recast, recast->GetRequestedRegion());
+    
+    imgit.GoToBegin();
+
+    while(!imgit.IsAtEnd()) {
+        while(!imgit.IsAtEndOfLine()) {
+            recast->TransformIndexToPhysicalPoint(imgit.GetIndex(), imgpoint);
+            for(size_t ii = 0 ; ii < SIZE2; ii++) {
+                if(ii >= SIZE1)
+                    maskpoint[ii] = 0;
+                else
+                    maskpoint[ii] = imgpoint[ii];
+            }
+            mask->TransformPhysicalPointToIndex(maskpoint, maskindex);
+            maskit.SetIndex(maskindex);
+            /* The double negative is because != will be false for NaN */
+            if(!(maskit.Get() != 0)) {
+                imgit.Set(0);
+            }
+            ++imgit;
+        }
+        imgit.NextLine();
+    }
+
+    return recast;
+}
+
+#endif// TOOLS_H

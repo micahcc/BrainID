@@ -80,8 +80,4 @@ Image3DType::Pointer extract(Image4DType::Pointer input, size_t index);
 void removeMissing(std::list<LabelType>& ref, std::list<LabelType>& mod);
 std::list<LabelType> getlabels(Label3DType::Pointer labelmap);
 
-template<class T, unsigned int SIZE1, class U, unsigned int SIZE2>
-typename itk::OrientedImage<T, SIZE1>::Pointer applymask(
-            typename itk::OrientedImage<T, SIZE1>::Pointer input, 
-            typename itk::OrientedImage<U, SIZE2>::Pointer mask);
 #endif

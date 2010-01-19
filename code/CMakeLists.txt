@@ -45,12 +45,14 @@ ADD_EXECUTABLE(prune prune.cpp)
 ADD_EXECUTABLE(readdicom readdicom.cpp)
 ADD_EXECUTABLE(makespline makespline.cpp)
 ADD_EXECUTABLE(applymask applymask.cpp)
+ADD_EXECUTABLE(fft fft.cpp)
+ADD_EXECUTABLE(makesine makesine.cpp)
 
 TARGET_LINK_LIBRARIES(prune modNiftiImageIO 
-    ITKAlgorithms ITKBasicFilters
+    ITKAlgorithms ITKBasicFilters gsl cblas
     ITKCommon ITKIO )
 TARGET_LINK_LIBRARIES(concatinate modNiftiImageIO 
-    ITKAlgorithms ITKBasicFilters
+    ITKAlgorithms ITKBasicFilters gsl cblas
     ITKCommon ITKIO )
 TARGET_LINK_LIBRARIES(fmri_timeseries modNiftiImageIO segment 
     ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
@@ -67,6 +69,12 @@ TARGET_LINK_LIBRARIES(brainid gfortran blas modNiftiImageIO lapack mpi
 TARGET_LINK_LIBRARIES(boldgen gfortran blas lapack modNiftiImageIO boost_mpi 
     BoldModel ITKAlgorithms ITKBasicFilters 
     ITKCommon ITKIO gslcblas gsl mpi dysii itkvnl itkvcl vullib)
+TARGET_LINK_LIBRARIES(fft gfortran blas lapack modNiftiImageIO 
+    ITKAlgorithms ITKBasicFilters 
+    ITKCommon ITKIO gslcblas gsl itkvnl itkvcl vullib)
+TARGET_LINK_LIBRARIES(makesine modNiftiImageIO 
+    ITKAlgorithms ITKBasicFilters 
+    ITKCommon ITKIO itkvnl itkvcl vullib)
 
 TARGET_LINK_LIBRARIES(readdicom modNiftiImageIO segment 
     ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 

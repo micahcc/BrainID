@@ -5,12 +5,10 @@
 #include "itkImageSliceIteratorWithIndex.h"
 #include "itkMetaDataObject.h"
 
-#include "segment.h"
-#include "tools.h"
-
 #include <itkMaskImageFilter.h>
 #include <itkStatisticsImageFilter.h>
 #include "modNiftiImageIO.h"
+#include "tools.h"
 
 #include <sstream>
 #include <iostream>
@@ -18,28 +16,25 @@
 #include <vcl_list.h>
 #include <vul/vul_arg.h>
 
-typedef itk::OrientedImage<double, 4> ImageTimeSeries;
+typedef itk::OrientedImage<double, 4> Image4DType;
+typedef itk::OrientedImage<int, 3> Label3DType;
 
 using namespace std;
 
-
-//The labelmap should already have been masked through a maxprob image for
-//graymatter
-//TODO: Make the first element in each time series the section label
 int main( int argc, char **argv ) 
 {
     /* Input related */
-    vul_arg<string> a_fmri(0 ,"Input 4D Image");
-    vul_arg<string> a_mask(0 ,"Input Mask Image");
-    vul_arg<string> a_out(0, "Output 4D Masked Image");
+    vul_arg<string> a_fmri(0 ,"Input 4D Image, to FFT");
+//    vul_arg<string> a_mask(0, "Output 4D Masked Image");
+    vul_arg<string> a_out(0 ,"Output 4D Image with frequencies where time was");
     
     /* Processing */
     vul_arg_parse(argc, argv);
     
-    Image4DType::Pointer fmri_img, out_img;
-    Label3DType::Pointer mask_img;
+    Image4DType::Pointer fmri_img;
+//    Label3DType::Pointer mask_img;
 
-    //Read Image
+    //Read Images
     {
     itk::ImageFileReader<Image4DType>::Pointer reader = 
                 itk::ImageFileReader<Image4DType>::New();
@@ -49,18 +44,22 @@ int main( int argc, char **argv )
     fmri_img->Update();
     }
     
-    {
-    itk::ImageFileReader<Label3DType>::Pointer reader = 
-                itk::ImageFileReader<Label3DType>::New();
-    reader->SetImageIO(itk::modNiftiImageIO::New());
-    reader->SetFileName( a_mask() );
-    mask_img = reader->GetOutput();
-    mask_img->Update();
-    }
-    
-    fprintf(stderr, "Applying Mask\n");
-    out_img = applymask<DataType, 4, LabelType, 3>(fmri_img, mask_img);
+//    {
+//    itk::ImageFileReader<Label3DType>::Pointer reader = 
+//                itk::ImageFileReader<Label3DType>::New();
+//    reader->SetImageIO(itk::modNiftiImageIO::New());
+//    reader->SetFileName( a_mask() );
+//    mask_img = reader->GetOutput();
+//    mask_img->Update();
+//    }
+
+    fprintf(stderr, "Applying FFT");
+    Image4DType::Pointer out_img = fft_image(fmri_img);
     fprintf(stderr, "Done\n");
+    
+//    fprintf(stderr, "Applying Mask\n");
+//    out_img = applymask<DataType, 4, LabelType, 3>(out_image, mask_img);
+//    fprintf(stderr, "Done\n");
        
     fprintf(stderr, "Writing...\n");
     itk::ImageFileWriter<Image4DType>::Pointer writer = 

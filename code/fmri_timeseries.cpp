@@ -6,6 +6,7 @@
 #include "itkMetaDataObject.h"
 
 #include "segment.h"
+#include "tools.h"
 
 #include <itkMaskImageFilter.h>
 #include <itkStatisticsImageFilter.h>

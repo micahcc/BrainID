@@ -237,10 +237,10 @@ int main(int argc, char* argv[])
         rms = aux::zero_vector(meassize);
         get_rms(measInput, SERIESDIM, TIMEDIM, rms);
         double avg = 0;
-        for(int i = 0 ; i < rms.size() ;i++)
+        for(int i = 0 ; i < (int)rms.size() ;i++)
             avg += rms(i);
         avg/=rms.size();
-        for(int i = 0 ; i < rms.size() ; i++)
+        for(int i = 0 ; i < (int)rms.size() ; i++)
             rms(i) = avg;
 //        *out << "RMS: " << std::endl;
 //        outputVector(*out << endl, rms);
