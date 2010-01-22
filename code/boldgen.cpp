@@ -105,7 +105,7 @@ int main (int argc, char** argv)
     const unsigned int size = world.size();
     
     fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
-    srand(1333);
+//    srand(1333);
 
     vul_arg<string> a_boldfile("-bf", "boldfile to write to (image) - boldfine with noise"
                 " will be the same name but with \"noise-\" prefixed", "");
@@ -200,9 +200,6 @@ int main (int argc, char** argv)
                 state_it(outState, outState->GetRequestedRegion());
     state_it.SetDirection(PARAM_DIR);
 
-    //Used to add noise
-    gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);
-    gsl_rng_set(rng, (int)((time(NULL)*rank)/11.));
 
 //    outputVector(std::cout, systemstate);
 //    std::cout << std::endl;
@@ -234,9 +231,10 @@ int main (int argc, char** argv)
             exit(-1);
         }
     } else {
-        cout << "Using random values for init/theta" << endl;
+        cerr << "Using random values for init/theta" << endl;
         aux::DiracMixturePdf x0(model.getStateSize());
-        model.generatePrior(x0, 10000);
+        //1 is really all you need if generatePrior generates a gaussian
+        model.generatePrior(x0, 100); 
         systemstate = x0.sample();
 
 #ifdef ZEROSTART
@@ -340,6 +338,14 @@ int main (int argc, char** argv)
     }
     
     if(a_noise_snr() != 0) {
+        gsl_rng* rng = gsl_rng_alloc(gsl_rng_taus);;
+        {
+            unsigned int seed;
+            FILE* file = fopen("/dev/urandom", "r");
+            fread(&seed, 1, sizeof(unsigned int), file);
+            fclose(file);
+            gsl_rng_set(rng, seed);
+        }
         add_noise(measImage, a_noise_snr(), rng, a_series());
         if(!a_boldfile().empty()) {
             itk::ImageFileWriter< Image4DType >::Pointer writer = 
@@ -351,6 +357,7 @@ int main (int argc, char** argv)
             writer->SetInput(measImage);
             writer->Update();
         }
+        gsl_rng_free(rng);
     }
     
     if(!a_statefile().empty()) {
@@ -362,7 +369,6 @@ int main (int argc, char** argv)
         writer->Update();
     }
   
-    gsl_rng_free(rng);
     return 0;
 }
 

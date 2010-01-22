@@ -326,7 +326,13 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
     }
     
     gsl_rng* rng = gsl_rng_alloc(gsl_rng_ran3);
-    gsl_rng_set(rng, (int)((time(NULL)*(rank+11))/71.));
+    {
+        unsigned int seed;
+        FILE* file = fopen("/dev/urandom", "r");
+        fread(&seed, 1, sizeof(unsigned int), file);
+        fclose(file);
+        gsl_rng_set(rng, seed);
+    }
     aux::vector comp(STATE_SIZE);
     for(int i = 0 ; i < samples; i ++) {
         generate_component(rng, comp, k_sigma, theta_mu);

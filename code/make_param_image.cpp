@@ -25,7 +25,7 @@
 #include <vcl_list.h>
 #include <vul/vul_arg.h>
 
-enum{TAU_0=0, ALPHA, E_0, V_0, TAU_S, TAU_F, EPSILON, A_1, A_2};
+enum{TAU_0=0, ALPHA=1, E_0=2, V_0=3, TAU_S=4, TAU_F=5, EPSILON=6, A_1=7, A_2=8, PSIZE=9};
 
 using namespace std;
 
@@ -134,7 +134,7 @@ Image4DType::Pointer applyParams(string param_f, Label4DType::Pointer regions)
     Image4DType::SizeType size = regions->GetRequestedRegion().GetSize();
     
     /*Determine Size*/
-    size[3] = 9;
+    size[3] = PSIZE;
     out->SetRegions(size);
     out->Allocate();
     out->SetSpacing(regions->GetSpacing());
