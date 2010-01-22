@@ -22,6 +22,8 @@
 
 #include <itkSubtractConstantFromImageFilter.h>
 #include <itkDivideByConstantImageFilter.h>
+#include <itkSquareImageFilter.h>
+#include <itkSqrtImageFilter.h>
 #include <itkNaryAddImageFilter.h>
 #include <itkAddImageFilter.h>
 #include <itkSubtractImageFilter.h>
@@ -33,7 +35,12 @@
 
 #include <gsl/gsl_spline.h>
 
-typedef itk::AddImageFilter< Image3DType > AddF;
+typedef itk::AddImageFilter< Image3DType > AddF3;
+typedef itk::AddImageFilter< Image4DType > AddF4;
+
+typedef itk::SubtractImageFilter< Image3DType > SubF3;
+typedef itk::SubtractImageFilter< Image4DType > SubF4;
+
 typedef itk::MultiplyByConstantImageFilter< Image3DType, double, Image3DType > ScaleF;
 typedef itk::BinaryThresholdImageFilter<Label3DType, Label3DType> ThreshF;
 typedef itk::LabelStatisticsImageFilterMod<Image3DType, Label3DType> StatF3D;
@@ -43,7 +50,8 @@ typedef itk::MaskImageFilter<Image3DType, Label3DType, Image3DType> MaskF;
 typedef itk::LabelStatisticsImageFilterMod<Image4DType, Label4DType> StatF4D;
 //typedef itk::LabelStatisticsImageFilter<Image4DType, Label4DType> StatF4D;
 typedef itk::NaryAddImageFilter< Image3DType, Image3DType > AddNF;
-typedef itk::SubtractImageFilter< Image4DType > SubF;
+typedef itk::SquareImageFilter< Image3DType, Image3DType > SqrF3;
+typedef itk::SqrtImageFilter< Image3DType, Image3DType > SqrtF3;
 typedef itk::SubtractConstantFromImageFilter< Image4DType, double, 
             Image4DType > SubCF;
 typedef itk::DivideImageFilter< Image4DType, Image4DType, Image4DType > DivF;
@@ -536,17 +544,19 @@ Image4DType::Pointer normalizeByVoxel(const Image4DType::Pointer fmri_img,
 {
     Image4DType::Pointer spline = getspline(fmri_img, knots);
     
+    {
     itk::ImageFileWriter< Image4DType >::Pointer writer = 
                 itk::ImageFileWriter< Image4DType >::New();
     writer->SetInput(spline);
     writer->SetFileName("spline.nii.gz");
     writer->Update();
+    }
 
     Image3DType::Pointer average = get_average(fmri_img);
     double globalmean = get_average(fmri_img, mask);
     /* Rescale (fmri - avg)/avg*/
 
-    SubF::Pointer sub = SubF::New();   
+    SubF4::Pointer sub = SubF4::New();   
     DivCF::Pointer div = DivCF::New();
     sub->SetInput1(fmri_img);
     sub->SetInput2(spline);
@@ -554,10 +564,72 @@ Image4DType::Pointer normalizeByVoxel(const Image4DType::Pointer fmri_img,
     div->SetConstant(globalmean);
     div->Update();
     
-    div->GetOutput()->CopyInformation(fmri_img);
-    div->GetOutput()->SetMetaDataDictionary(
+    /* Add 1.5 sigma */
+    SqrtF3::Pointer sqrt = SqrtF3::New();
+    ScaleF::Pointer scale = ScaleF::New();
+    AddF4::Pointer add = AddF4::New();
+    
+    Image3DType::Pointer variance = get_variance(div->GetOutput());
+    {
+    itk::ImageFileWriter< Image3DType >::Pointer writer = 
+                itk::ImageFileWriter< Image3DType >::New();
+    writer->SetInput(variance);
+    writer->SetFileName("variance.nii.gz");
+    writer->Update();
+    }
+    
+    sqrt->SetInput(variance);
+    scale->SetConstant(1.5);
+    scale->SetInput(sqrt->GetOutput());
+    scale->Update();
+
+    Image4DType::Pointer sigma1_5 = stretch<double>(scale->GetOutput(), 
+                fmri_img->GetRequestedRegion().GetSize()[3]);
+    add->SetInput1(sigma1_5);
+    add->SetInput2(div->GetOutput());
+    add->Update();
+    
+    add->GetOutput()->CopyInformation(fmri_img);
+    add->GetOutput()->SetMetaDataDictionary(
                 fmri_img->GetMetaDataDictionary() );
-    return div->GetOutput();
+    return add->GetOutput();
+}
+
+Image3DType::Pointer get_variance(const Image4DType::Pointer fmri_img)
+{
+    Image3DType::Pointer average = get_average(fmri_img);
+
+    /* Used to zero out the addfilter */
+    Image3DType::Pointer zero = extract(fmri_img, 0);
+    zero->FillBuffer(0);
+    
+    /* Initialize the Addition */
+    AddF3::Pointer add = AddF3::New();
+    add->GraftOutput(zero);
+    add->SetInput2(add->GetOutput());
+    
+    /* Initialize Subtraction */
+    SubF3::Pointer sub = SubF3::New();   
+    
+    /* Initialize Subtraction */
+    SqrF3::Pointer sqr = SqrF3::New();   
+    
+    /* Calculate Sum of Images */
+    //SUM( (X_i - mu)^2 )
+    for(size_t ii = 0 ; ii < fmri_img->GetRequestedRegion().GetSize()[3] ; ii++) {
+        sub->SetInput1(extract(fmri_img, ii));
+        sub->SetInput2(average);
+        sqr->SetInput(sub->GetOutput());
+        add->SetInput1(sqr->GetOutput());
+        add->Update();
+    }
+
+    /* Calculate Average of Images */
+    ScaleF::Pointer scale = ScaleF::New();
+    scale->SetInput(add->GetOutput());
+    scale->SetConstant(1./fmri_img->GetRequestedRegion().GetSize()[3]);
+    scale->Update();
+    return scale->GetOutput();
 }
 
 Image3DType::Pointer get_average(const Image4DType::Pointer fmri_img)
@@ -567,7 +639,7 @@ Image3DType::Pointer get_average(const Image4DType::Pointer fmri_img)
     zero->FillBuffer(0);
     
     /* Initialize the Addition */
-    AddF::Pointer add = AddF::New();
+    AddF3::Pointer add = AddF3::New();
     add->GraftOutput(zero);
     add->SetInput2(add->GetOutput());
     

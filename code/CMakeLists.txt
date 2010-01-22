@@ -37,6 +37,7 @@ ADD_LIBRARY(tools tools.cc)
 
 ADD_EXECUTABLE(unbias unbias.cpp)
 ADD_EXECUTABLE(brainid brainid.cpp)
+ADD_EXECUTABLE(calc_parammap calc_parammap.cpp)
 ADD_EXECUTABLE(printtags printtags.cpp)
 ADD_EXECUTABLE(copyorigin copy.cpp)
 ADD_EXECUTABLE(fmri_timeseries fmri_timeseries.cpp)
@@ -70,6 +71,9 @@ TARGET_LINK_LIBRARIES(copyorigin modNiftiImageIO ITKAlgorithms
 TARGET_LINK_LIBRARIES(brainid tools gfortran modNiftiImageIO blas lapack mpi 
     boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO mpi gsl gslcblas dysii itkvnl itkvcl vullib)
+TARGET_LINK_LIBRARIES(calc_parammap tools gfortran modNiftiImageIO blas lapack mpi 
+    boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
+    ITKCommon ITKIO mpi gsl gslcblas dysii itkvnl itkvcl vullib segment)
 TARGET_LINK_LIBRARIES(boldgen tools gfortran blas lapack modNiftiImageIO boost_mpi 
     BoldModel ITKAlgorithms ITKBasicFilters 
     ITKCommon ITKIO gsl gslcblas mpi dysii itkvnl itkvcl vullib)

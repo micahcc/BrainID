@@ -1,37 +1,11 @@
 #ifndef SEGMENT_H
 #define SEGMENT_H
 
-//image readers
-#include <itkOrientedImage.h>
-
-//test
-#include <itkImageConstIteratorWithIndex.h>
-
-//iterators
-#include <itkImageLinearConstIteratorWithIndex.h>
-#include <itkImageLinearIteratorWithIndex.h>
-#include <itkImageSliceIteratorWithIndex.h>
+#include "types.h"
 
 //standard libraries
 #include <vector>
 #include <list>
-
-#define TIMEDIM 3
-#define SLICEDIM 1
-#define SECTIONDIM 0
-
-// declare images
-typedef double DataType;
-typedef itk::OrientedImage<DataType, 3> Image3DType;
-typedef itk::OrientedImage<DataType, 4> Image4DType;
-
-typedef int LabelType;
-typedef itk::OrientedImage<LabelType, 3> Label3DType;
-typedef itk::OrientedImage<LabelType, 4> Label4DType;
-
-typedef itk::ImageSliceIteratorWithIndex< Image4DType > SliceIterator4D;
-typedef itk::ImageLinearIteratorWithIndex< Image4DType > PixelIterator4D;
-typedef itk::ImageLinearIteratorWithIndex< Image3DType > PixelIterator3D;
 
 //Each SectionType struct contains an integer label
 //and an iterator that moves forward in time
@@ -75,6 +49,7 @@ double get_average(const Image4DType::Pointer fmri_img,
 Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img, int sections);
 
 Image3DType::Pointer get_average(const Image4DType::Pointer fmri_img);
+Image3DType::Pointer get_variance(const Image4DType::Pointer fmri_img);
 Image3DType::Pointer extract(Image4DType::Pointer input, size_t index);
 
 void removeMissing(std::list<LabelType>& ref, std::list<LabelType>& mod);

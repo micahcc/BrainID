@@ -4,6 +4,7 @@
 #include "itkMetaDataObject.h"
 #include "modNiftiImageIO.h"
 
+#include "types.h"
 #include "tools.h"
 
 #include <string>
@@ -13,9 +14,6 @@
 #include <vul/vul_arg.h>
 
 using namespace std;
-
-typedef itk::OrientedImage< double,  4 > Image4DType;
-typedef itk::OrientedImage< int,  3 > Image3DType;
 
 int main (int argc, char** argv)
 {
@@ -34,10 +32,10 @@ int main (int argc, char** argv)
     input = reader->GetOutput();
     }
 
-    Image3DType::Pointer mask;
+    Label3DType::Pointer mask;
     {
-    itk::ImageFileReader< Image3DType >::Pointer reader = 
-                itk::ImageFileReader< Image3DType >::New();
+    itk::ImageFileReader< Label3DType >::Pointer reader = 
+                itk::ImageFileReader< Label3DType >::New();
     reader->SetImageIO(itk::modNiftiImageIO::New());
     reader->SetFileName( argv[2] );
     reader->Update();

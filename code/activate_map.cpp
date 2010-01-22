@@ -25,22 +25,6 @@
 #include <vcl_list.h>
 #include <vul/vul_arg.h>
 
-struct Tuple
-{
-    double A;
-    double B;
-};
-
-struct State
-{
-    double S;
-    double F;
-    double V;
-    double Q;
-};
-
-enum{TAU_0=0, ALPHA, E_0, V_0, TAU_S, TAU_F, EPSILON, A_1, A_2};
-
 using namespace std;
 
 Label4DType::Pointer createRegions(double sigma, double threshp,
@@ -132,32 +116,6 @@ vector< vector<double> > read_params(string filename)
     return params;
 }
 
-vector<Tuple> read_activations(string filename)
-{
-    FILE* fin = fopen(filename.c_str(), "r");
-    vector< Tuple > output;
-    if(!fin) {
-        fprintf(stderr, "\"%s\" is invalid\n", filename.c_str());
-        return output;
-    }
-    
-    char* input = NULL;
-    size_t size = 0;
-    char* curr = NULL;
-    Tuple parsed;
-    printf("Parsing activations\n");
-    while(getline(&input, &size, fin) && !feof(fin)) {
-        parsed.A = strtod(input, &curr);
-        parsed.B = strtod(curr, NULL);
-
-        output.push_back(parsed);
-        free(input);
-        input = NULL;
-    }
-    fclose(fin);
-    return output;
-}
-
 /*Modifies state, by steping forward delta in time*/
 int transition(State& state, const vector<double>& params, double delta, double in)
 {
@@ -207,9 +165,9 @@ vector<double> simulate(const vector<Tuple>& activations,
     while(longtime < (int)out.size()) {
         /*Update Input If there is a change for the current time*/
         act_level = 0; //this results in transients, rather than squares
-        while(act_pos < activations.size() && activations[act_pos].A <= 
+        while(act_pos < activations.size() && activations[act_pos].time <= 
                         shorttime*int_timestep) {
-            act_level = activations[act_pos].B;
+            act_level = activations[act_pos].level;
             printf("Act: %f %f\n", shorttime*int_timestep , act_level);
             act_pos++;
         }
@@ -260,7 +218,7 @@ Image4DType::Pointer simulate(string param_f, string act_f,
     vector< vector<double> > params = read_params(param_f);
     
     //open act_f and read act_f
-    vector<Tuple> activations = read_activations(act_f);
+    vector<Tuple> activations = read_activations(act_f.c_str());
 
     vector< vector<double> > timeseries(params.size());
     for(int i = 0 ; i < (int)timeseries.size() ; i++) {

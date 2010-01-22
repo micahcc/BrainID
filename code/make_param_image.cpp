@@ -25,8 +25,6 @@
 #include <vcl_list.h>
 #include <vul/vul_arg.h>
 
-enum{TAU_0=0, ALPHA=1, E_0=2, V_0=3, TAU_S=4, TAU_F=5, EPSILON=6, A_1=7, A_2=8, PSIZE=9};
-
 using namespace std;
 
 Label4DType::Pointer createRegions(double sigma, double threshp,
@@ -104,7 +102,6 @@ vector< vector<double> > read_params(string filename)
         prev = input;
         parsed = strtod(input, &curr);
         while(prev != curr) {
-            printf("%f, ", parsed);
             tmp.push_back(parsed);
             prev = curr;
             parsed = strtod(prev, &curr);
@@ -118,9 +115,9 @@ vector< vector<double> > read_params(string filename)
     fclose(fin);
     
     fprintf(stderr, "Parameter Sets:\n");
-    for(int i = 0 ; i < params.size(); i++) {
-        fprintf(stderr, "%i: ", i);
-        for(int j = 0 ; j < params[i].size(); j++) {
+    for(size_t i = 0 ; i < params.size(); i++) {
+        fprintf(stderr, "%zu: ", i);
+        for(size_t j = 0 ; j < params[i].size(); j++) {
             fprintf(stderr, "%f ", params[i][j]);
         }
         fprintf(stderr, "\n");
@@ -143,7 +140,7 @@ Image4DType::Pointer applyParams(string param_f, Label4DType::Pointer regions)
     //open and read param_f
     vector< vector<double> > params = read_params(param_f);
     
-    //simulate each region, using act_f for activation times
+    //Write each set of parameters to the parameter image
     for(size_t xx = 0 ; xx<regions->GetRequestedRegion().GetSize()[0] ; xx++) {
         for(size_t yy = 0 ; yy<regions->GetRequestedRegion().GetSize()[1] ; yy++) {
             for(size_t zz = 0 ; zz<regions->GetRequestedRegion().GetSize()[2] ; zz++) {

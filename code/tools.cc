@@ -1,9 +1,37 @@
 #include "tools.h"
 
 #include <vector>
+#include <cmath>
 #include <itkComplexToModulusImageFilter.h>
 #include <itkComplexToPhaseImageFilter.h>
 #include <itkFFTRealToComplexConjugateImageFilter.h>
+
+std::vector<Tuple> read_activations(const char* filename)
+{
+    FILE* fin = fopen(filename, "r");
+    std::vector< Tuple > output;
+    if(!fin) {
+        fprintf(stderr, "\"%s\" is invalid\n", filename);
+        return output;
+    }
+    
+    char* input = NULL;
+    size_t size = 0;
+    char* curr = NULL;
+    Tuple parsed;
+    printf("Parsing activations\n");
+    while(getline(&input, &size, fin) && !feof(fin)) {
+        parsed.time = strtod(input, &curr);
+        parsed.level = strtod(curr, NULL);
+
+        output.push_back(parsed);
+        free(input);
+        input = NULL;
+    }
+    fclose(fin);
+    return output;
+}
+
 
 void outputVector(std::ostream& out, indii::ml::aux::vector mat) 
 {
@@ -138,5 +166,59 @@ itk::OrientedImage<double, 4>::Pointer fft_image(
     }
 
     return out;
-}
+};
 
+//RMS for a non-zero mean signal is 
+//sqrt(mu^2+sigma^2)
+Image3DType::Pointer get_rms(Image4DType::Pointer in)
+{ 
+    Image3DType::Pointer out = Image3DType::New();
+    Image3DType::SizeType outsize;
+    Image3DType::DirectionType outdir;
+    Image3DType::PointType outorigin;
+    Image3DType::SpacingType outspacing;
+    for(int i = 0 ; i < 3 ; i++) {
+        outsize[i] = in->GetRequestedRegion().GetSize()[i];
+        outorigin[i] = in->GetOrigin()[i];
+        outspacing[i] = in->GetSpacing()[i];
+        
+        for(int j = 0 ; j < 3 ; j++) 
+            outdir(i, j) = in->GetDirection()(i,j);
+    }
+    out->SetRegions(outsize);
+    out->SetDirection(outdir);
+    out->SetOrigin(outorigin);
+    out->SetSpacing(outspacing);
+    out->Allocate();
+    
+    for(size_t xx = 0 ; xx < in->GetRequestedRegion().GetSize()[0] ; xx++) {
+        for(size_t yy = 0 ; yy < in->GetRequestedRegion().GetSize()[1] ; yy++) {
+            for(size_t zz = 0 ; zz < in->GetRequestedRegion().GetSize()[2] ; zz++) {
+                double mean = 0;
+                double var = 0;
+                
+                //calc mean
+                for(size_t tt = 0 ; tt < in->GetRequestedRegion().GetSize()[3] ; tt++) {
+                    Image4DType::IndexType index = {{xx, yy, zz, 0}};
+                    mean += in->GetPixel(index);
+                }
+                mean /= in->GetRequestedRegion().GetSize()[3];
+                
+                //calc cov
+                for(size_t tt = 0 ; tt < in->GetRequestedRegion().GetSize()[3] ; tt++) {
+                    Image4DType::IndexType index = {{xx, yy, zz, 0}};
+                    var += pow(in->GetPixel(index)-mean, 2);
+                }
+                var /= in->GetRequestedRegion().GetSize()[3];
+                
+                //set output pixel as rms
+                {
+                    Image3DType::IndexType index = {{xx, yy, zz}};
+                    out->SetPixel(index, sqrt(mean*mean + var));
+                }
+            }
+        }
+    }
+
+    return out;
+}
