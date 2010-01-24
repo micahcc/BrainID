@@ -295,46 +295,38 @@ int main(int argc, char* argv[])
     ///////////////////////////////////////////////////////////////////////////////
     fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
 
-    std::ifstream fin;
-
     Image4DType::Pointer inImage;
     Image4DType::Pointer outImage;
 
-    //distribute arguments
-    double timestep = a_timestep();
-    double divider = a_divider();
-    double particles = a_num_particles();
-
     std::vector<Tuple> input;
 
-    size_t xlen, ylen, zlen;
     Image3DType::Pointer rms;
     Label3DType::Pointer mask;
 
-    if(rank == 0) {
-        /* Open up the input */
-        {
-        ImageReaderType::Pointer reader;
-        reader = ImageReaderType::New();
-        reader->SetImageIO(itk::modNiftiImageIO::New());
-        reader->SetFileName( a_input() );
-        reader->Update();
-        inImage = reader->GetOutput();
-        }
-        {
-        itk::ImageFileReader<Label3DType>::Pointer reader;
-        reader = itk::ImageFileReader<Label3DType>::New();
-        reader->SetImageIO(itk::modNiftiImageIO::New());
-        reader->SetFileName( a_input() );
-        reader->Update();
-        mask = reader->GetOutput();
-        }
-        
-        /* Open Stimulus file */
-        *out << a_stimfile() << endl;;
-        input = read_activations(a_stimfile().c_str());
+    /* Open up the input */
+    {
+    ImageReaderType::Pointer reader;
+    reader = ImageReaderType::New();
+    reader->SetImageIO(itk::modNiftiImageIO::New());
+    reader->SetFileName( a_input() );
+    reader->Update();
+    inImage = reader->GetOutput();
+    }
+    {
+    itk::ImageFileReader<Label3DType>::Pointer reader;
+    reader = itk::ImageFileReader<Label3DType>::New();
+    reader->SetImageIO(itk::modNiftiImageIO::New());
+    reader->SetFileName( a_input() );
+    reader->Update();
+    mask = reader->GetOutput();
+    }
+    
+    /* Open Stimulus file */
+    *out << a_stimfile() << endl;;
+    input = read_activations(a_stimfile().c_str());
 
-        /* Create Output Image */
+    /* Create Output Image */
+    if(rank == 0) {
         outImage = Image4DType::New();
         Image4DType::SizeType size;
         for(int i = 0 ; i < 3 ; i++)
@@ -343,35 +335,26 @@ int main(int argc, char* argv[])
 
         outImage->SetRegions(size);
         outImage->Allocate();
-        
-        xlen = inImage->GetRequestedRegion().GetSize()[0];
-        ylen = inImage->GetRequestedRegion().GetSize()[1];
-        zlen = inImage->GetRequestedRegion().GetSize()[2];
-        
-        //detrend
-        Image4DType::Pointer tmp = normalizeByVoxel(inImage, mask, 
-                    inImage->GetRequestedRegion().GetSize()[3]/10+2);
-        {
-            itk::ImageFileWriter<Image4DType>::Pointer out = 
-                        itk::ImageFileWriter<Image4DType>::New();
-            out->SetInput(tmp);
-            out->SetFileName("pfilter_input.nii.gz");
-            out->Update();
-        }
-        inImage = tmp;
-        //acquire rms
-        rms = get_rms(inImage);
     }
-
-    boost::mpi::broadcast(world, xlen, 0);
-    boost::mpi::broadcast(world, ylen, 0);
-    boost::mpi::broadcast(world, zlen, 0);
-
-    boost::mpi::broadcast(world, timestep, 0);
-    boost::mpi::broadcast(world, divider, 0);
-    boost::mpi::broadcast(world, particles, 0);
-
-    double tmp_rms;
+    
+    xlen = inImage->GetRequestedRegion().GetSize()[0];
+    ylen = inImage->GetRequestedRegion().GetSize()[1];
+    zlen = inImage->GetRequestedRegion().GetSize()[2];
+    
+    //detrend
+    Image4DType::Pointer inImage = normalizeByVoxel(inImage, mask, 
+                inImage->GetRequestedRegion().GetSize()[3]/10+2);
+    /* Save detrended image */
+    if(rank == 0) {
+        itk::ImageFileWriter<Image4DType>::Pointer out = 
+                    itk::ImageFileWriter<Image4DType>::New();
+        out->SetInput(inImage);
+        out->SetFileName("pfilter_input.nii.gz");
+        out->Update();
+    }
+    
+    //acquire rms
+    rms = get_rms(inImage);
 
     for(size_t xx = 0 ; xx < xlen ; xx++) {
         for(size_t yy = 0 ; yy < ylen ; yy++) {
@@ -379,30 +362,21 @@ int main(int argc, char* argv[])
                 //create the model/empty distribution for the filter
                 Image4DType::IndexType index = {{xx, yy, zz, 0}};
 
-                if( rank == 0 ) {
-                    //Calculate RMS to use for weight functions' variance
-                    tmp_rms = rms->GetPixel(index); 
+                //Calculate RMS to use for weight functions' variance
+                rms->GetPixel(index); 
 
-                    //initialize start stop iterators for measurements
-                    ImgIter ystart(inImage, inImage->GetRequestedRegion());
-                    ystart.SetDirection(3);
-                    ystart.SetIndex(index);
-                    ImgIter yend = ystart;
-                    yend.GoToEndOfLine();
+                //initialize start stop iterators for measurements
+                ImgIter ystart(inImage, inImage->GetRequestedRegion());
+                ystart.SetDirection(3);
+                ystart.SetIndex(index);
+                ImgIter yend = ystart;
+                yend.GoToEndOfLine();
 
-                    //initialize iterators over activations
-                    vector<Activation>::iterator ustart = input.begin();
-                    vector<Activation>::iterator uend = input.begin();
+                //initialize iterators over activations
 
-                    BoldPF<ImgIter, vector<Tuple>, double, callback>
-                                boldpf(particles, timestep, 1./divider, 
-                                tmp_rms, yend, uend);
-                } else {
-                    BoldPF<ImgIter, vector<Tuple>, double, callback> boldpf;
-                }
+                BoldPF<double, callback> boldpf(particles, timestep, 1./divider, 
+                            tmp_rms, yend, uend);
 
-                memcpy
-                strcpy
 
                 int status = calcParams<(&filter, particles, timestep, 1./divider,
                             inImage, index, input);

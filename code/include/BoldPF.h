@@ -32,7 +32,6 @@
 #include <string>
 
 namespace aux = indii::ml::aux;
-typedef indii::ml::filter::ParticleFilter<double> Filter;
 
 /* 
  * YITER - Measurement iterator, over list of doubles/ints/numbers
@@ -40,42 +39,10 @@ typedef indii::ml::filter::ParticleFilter<double> Filter;
  * VOID  - Some type we don't care about
  * callback - a callback function that returns a status code
 */
-template <typename VOID, int callback(typename const BoldPF*, VOID*)>
+template <typename VOID, int callback(const typename BoldPF*, VOID*)>
 class BoldPF 
 {
 public:
-
-    //SHOULD ONLY BE USED FOR NON-HEAD NODES (!0)
-    BoldPF()
-    {
-        boost::mpi::communicator world;
-        const unsigned int rank = world.rank();
-        const unsigned int size = world.size();
-        assert(rank != 0);
-
-        double tmpvar = weightvar;
-        size_t tmppart = particles; 
-
-        boost::mpi::broadcast(world, dt_l, 0);
-        boost::mpi::broadcast(world, dt_s, 0);
-        boost::mpi::broadcast(world, tmpvar, 0);
-        boost::mpi::broadcast(world, tmppart, 0);
-
-        /* Initalized the filter*/
-        aux::vector tmp_rms(1);
-        tmp_rms[0] = weightvar;
-    
-        model = new BoldModel(tmp_rms);
-        aux::DiracMixturePdf tmp(model.getStateSize());
-        filter = new Filter(model, tmp);
-
-        dt_l = longstep;
-        dt_s = shortstep;
-
-        read_end = readend;
-        stim_end = uend;
-    };
-
     /*SHOULD ONLY BE USED FOR MAIN NODE (0)
      * measurements - a standard vector of measurement aux::vectors
      * activations  - a std::vector of Activation structs, time/level pairs
@@ -91,31 +58,68 @@ public:
         boost::mpi::communicator world;
         const unsigned int rank = world.rank();
         const unsigned int size = world.size();
-        assert(rank == 0);
         
         dt_l = longstep;
         dt_s = shortstep;
 
-        double tmpvar = weightvar;
-        size_t tmppart = particles; 
-
-        boost::mpi::broadcast(world, dt_l, 0);
-        boost::mpi::broadcast(world, dt_s, 0);
-        boost::mpi::broadcast(world, tmpvar, 0);
-        boost::mpi::broadcast(world, tmppart, 0);
-
-        /* Initalized the filter*/
+        /* Initalize the model and filter*/
         aux::vector tmp_rms(1) = {{weightvar}};
         model = new BoldModel(tmp_rms);
+        model->setinput(aux::zerovector(1));
         aux::DiracMixturePdf tmp(model.getStateSize());
-        filter = new Filter(model, tmp);
+        filter = new indii::ml::filter::ParticleFilter<double>(model, tmp);
+
+        /* initialize debug/output */
+        nullout = new ofstream("/dev/null");
+        if(rank == 0)
+            debug = &std::cerr;
+        else
+            debug = &nullout;
+    
+        /* 
+         * Particles Setup 
+         */
+        *debug << "Generating prior" << std::endl;
+        size_t localparticles = numparticles/size;
         
-        read_end = readend;
-        stim_end = uend;
+        //give excess particles to last rank
+        if(rank == (size-1))
+            localparticles += numparticles - localparticles*size;
+
+        //prior is (2*sigma)^2, by having each rank generate its own particles,
+        //a decent amount of time is saved
+        model->generatePrior(filter->getFilteredState(), localparticles, 4); 
+
+        //Redistribute - doesn't cost anything if distrib. was already fine 
+        *out << "Redistributing" << endl;
+        filter->getFilteredState().redistributeBySize(); 
+
+        *out << "Size: " <<  filter->getFilteredState().getSize() << endl;
+    
+        /* 
+         * Create 
+         * Regularized Resampler
+         */
+        aux::Almost2Norm norm;
+        aux::AlmostGaussianKernel kernel(model->getStateSize(), 1);
+        resampler_reg = new RegularizedParticleResamplerMod
+                    <aux::Almost2Norm, aux::AlmostGaussianKernel>
+                    (norm, kernel, filter->getModel());
+
+        int disctime = 0;
 
     };
 
-    int run(YITER ystart, UITER ustart, T* pass);
+    ~BoldPF()
+    {
+        delete filter;
+        delete model;
+        delete nullout;
+        delete resampler_reg;
+    };
+
+    int run(T* pass);
+    int pause();
 
     void setNumParticles(int newnum);
     int getNumParticles();
@@ -131,6 +135,25 @@ private:
     //timestep data
     double dt_l;
     double dt_s;
+    size_t disctime_l;
+    size_t disctime_s;
+
+    //log output
+    ostream* debug;
+    ofstream* nullout;
+
+    //resamplers
+    indii::ml::filter::StratifiedParticleResampler resampler;
+    RegularizedParticleResamplerMod<aux::Almost2Norm, aux::AlmostGaussianKernel>*
+                resampler_reg;
+
+    //0, not started
+    //1, started
+    //2, started, but paused
+    //3, done
+    int status;
+
+
 
     /* Gathers all the elements of the DiracMixturePdf to the local node */
     void gatherToNode(unsigned int dest, aux::DiracMixturePdf& input) 
@@ -196,59 +219,7 @@ int calcParams(Filter* filter, size_t particles, double longstep, double shortst
     const unsigned int rank = world.rank();
     const unsigned int size = world.size();
     
-    /* GetSize of Input Image */
-    size_t tlength;
-    if(rank == 0) {
-        tlength = timeseries_img->GetRequestedRegion().GetSize()[3]; 
-    }
-    boost::mpi::broadcast(world, tlength, 0);
-    Image4DType::IndexType pos = {{index[0], index[1], index[2], 0}};
-
-    ostream* out;
-    ofstream nullout("/dev/null");
-    /* output setup */
-    if(rank == 0)
-        out = &cout;
-    else
-        out = &nullout;
-    
-    /* 
-     * Particles Setup 
-     */
-    *out << "Generating prior" << endl;
-    size_t localparticles = particles/size;
-    
-    //give excess particles to last rank
-    if(rank == (size-1))
-        localparticles += particles - localparticles*size;
-    filter->getModel()->generatePrior(filter->getFilteredState(), 
-                localparticles, 4); //2*sigma, squared
-
-    //Redistribute - doesn't cost anything if distrib. was already fine 
-    *out << "Redistributing" << endl;
-    filter->getFilteredState().redistributeBySize(); 
-
-    *out << "Size: " <<  filter->getFilteredState().getSize() << endl;
-    
-    /* 
-     * Create resamplers 
-     *
-     * Normal resampler, used to eliminate particles 
-     */
-    indii::ml::filter::StratifiedParticleResampler resampler;
-
-    /* Regularized Resample */
-    aux::Almost2Norm norm;
-    aux::AlmostGaussianKernel kernel(filter->getModel()->getStateSize(), 1);
-    RegularizedParticleResamplerMod<aux::Almost2Norm, aux::AlmostGaussianKernel> 
-                resampler_reg(norm, kernel, filter->getModel());
-
     /* Simulation Section */
-    aux::vector input(1);
-    input[0] = 0;
-    aux::vector meas(1);
-    meas[0] = 0;
-    
     double conttime = 0;
     size_t stim_index = 0;
     
@@ -256,9 +227,9 @@ int calcParams(Filter* filter, size_t particles, double longstep, double shortst
      * Run the particle filter either until we reach a predetermined end
      * time, or until we are done processing measurements.
      */
-     for(int disctime = 0; disctime*shortstep < longstep*tlength ; disctime++) {
+     for(; disctime_s*shortstep < longstep*tlength ; disctime_s++) {
         /* time */
-        conttime = disctime*shortstep;
+        conttime = disctime_s*shortstep;
         *out << "t= " << conttime << ", ";
         
         /* Update Input if there is any*/
@@ -271,7 +242,7 @@ int calcParams(Filter* filter, size_t particles, double longstep, double shortst
         model.setinput(input);
 
         /* Check to see if it is time to update */
-        if(conttime >= pos[3]*longstep) { 
+        if(conttime >= disctime_l*longstep) { 
             //acquire the latest measurement
             if(rank == 0) {
                 *out << "Measuring at " <<  conttime << endl;

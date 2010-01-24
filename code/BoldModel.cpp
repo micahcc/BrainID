@@ -331,7 +331,8 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
         FILE* file = fopen("/dev/urandom", "r");
         fread(&seed, 1, sizeof(unsigned int), file);
         fclose(file);
-        gsl_rng_set(rng, seed);
+        gsl_rng_set(rng, seed^rank);
+        std::cout << "Seeding with " << seed^rank << "\n";
     }
     aux::vector comp(STATE_SIZE);
     for(int i = 0 ; i < samples; i ++) {
