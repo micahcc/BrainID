@@ -40,46 +40,46 @@ public:
                 size_t sections = 1,
                 aux::vector u = aux::zero_vector(1));
 
-    virtual unsigned int getStateSize() { return STATE_SIZE; };
-    unsigned int getStimSize() { return INPUT_SIZE; };
-    virtual unsigned int getMeasurementSize() { return MEAS_SIZE; };
+    unsigned int getStateSize() const { return STATE_SIZE; };
+    unsigned int getStimSize() const { return INPUT_SIZE; };
+    unsigned int getMeasurementSize() const { return MEAS_SIZE; };
 
     int transition(aux::vector& s,
-            const double t, const double delta);
+            const double t, const double delta) const;
     int transition(aux::vector& s,
-            const double t, const double delta, const aux::vector& u);
+            const double t, const double delta, const aux::vector& u) const;
 
-    aux::vector measure(const aux::vector& s);
+    aux::vector measure(const aux::vector& s) const;
 
     //acquire the weight of the particle based on the input
-    double weight(const aux::vector& s, const aux::vector& y);
+    double weight(const aux::vector& s, const aux::vector& y) const;
 
-    void generatePrior(aux::DiracMixturePdf&, int, double scale = 1);
+    void generatePrior(aux::DiracMixturePdf&, int, double scale = 1) const;
     void generatePrior(aux::DiracMixturePdf& x0, int samples, const aux::vector mean,
-          double scale = 1);
+          double scale = 1) const;
     void generatePrior(aux::DiracMixturePdf& x0, int samples, 
-                const aux::symmetric_matrix cov);
+                const aux::symmetric_matrix cov) const;
     void generatePrior(aux::DiracMixturePdf& x0, int samples, const aux::vector mean,
-                const aux::symmetric_matrix cov);
+                const aux::symmetric_matrix cov) const;
 
     //since the particle filter doesn't yet support input, we are
     //going to hack around that and set it directly
     void setinput(aux::vector& in) { input = in; };
     
-    bool reweight(aux::vector& checkme, double& weight);
+    bool reweight(aux::vector& checkme, double& weight) const;
     
     //these are recurring in the state array, so V_T could be at 0,4,...16,20...
     enum StateName { TAU_0=0 , ALPHA=1, E_0=2, V_0=3, TAU_S=4, TAU_F=5, 
                 EPSILON=6, V_T=7, Q_T=8, S_T=9, F_T =10};
 
-    const aux::vector& getdefault() { return defaultstate; };
+    const aux::vector& getdefault() const { return defaultstate; };
     void setdefault(aux::vector def) { defaultstate = def; };
 
-    aux::vector estMeasVar(aux::DiracMixturePdf& in);
-    aux::vector estMeasMean(aux::DiracMixturePdf& in);
+    aux::vector estMeasVar(aux::DiracMixturePdf& in) const;
+    aux::vector estMeasMean(aux::DiracMixturePdf& in) const;
 
     //goes to the index of the given state
-    inline size_t indexof(int name, int index){
+    inline size_t indexof(int name, int index) const {
         return (name < (int)GVAR_SIZE) ? name : index*LVAR_SIZE + name;
     };
 
@@ -94,8 +94,8 @@ private:
     //storage for the current input
     aux::vector input;
 
-    void generate_component(gsl_rng* rng, aux::vector& fillme, 
-                const double k_sigma[], const double theta_mu[]);
+    void generateComponent(gsl_rng* rng, aux::vector& fillme, 
+                const double k_sigma[], const double theta_mu[]) const;
 
     //Weighting
     enum WeightF { NORM = 0, EXP = 1, HYP = 2} ;

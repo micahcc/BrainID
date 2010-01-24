@@ -16,7 +16,7 @@
 
 BoldModel::BoldModel(aux::vector stddev, bool expweight, size_t sections,
             aux::vector u) : 
-            GVAR_SIZE(4), LVAR_SIZE(7), SIMUL_STATES(sections), sigma(stddev),
+            sigma(stddev), GVAR_SIZE(4), LVAR_SIZE(7), SIMUL_STATES(sections),
             STATE_SIZE(GVAR_SIZE+LVAR_SIZE*SIMUL_STATES), MEAS_SIZE(SIMUL_STATES),
             INPUT_SIZE(1)//, segments(sections)
 {
@@ -75,16 +75,15 @@ BoldModel::~BoldModel()
 //necessary. This might not work though, because Particle Filter likes to
 //keep all the particles around for history. After trying, this would mean
 //that particle filter is no longer compatible with Filter.hpp.
-int BoldModel::transition(aux::vector& s,
-        const double t, const double delta)
+int BoldModel::transition(aux::vector& s, const double t, const double delta) const
 {
     //use the default input
     return transition(s, t, delta, input);
 }
 
 //TODO make transition as FAST as possible
-int BoldModel::transition(aux::vector& dustin,
-        const double time, const double delta_t, const aux::vector& u_t)
+int BoldModel::transition(aux::vector& dustin, const double time, 
+            const double delta_t, const aux::vector& u_t) const
 {
     static aux::vector defaultvector = getdefault();
     double dot1, dot2, dot3;
@@ -149,7 +148,7 @@ int BoldModel::transition(aux::vector& dustin,
     return 0;
 }
 
-aux::vector BoldModel::measure(const aux::vector& s)
+aux::vector BoldModel::measure(const aux::vector& s) const
 {
     aux::vector y(MEAS_SIZE);
     for(size_t i = 0 ; i < MEAS_SIZE ; i++) {
@@ -159,7 +158,7 @@ aux::vector BoldModel::measure(const aux::vector& s)
     return y;
 }
 
-double BoldModel::weight(const aux::vector& s, const aux::vector& y)
+double BoldModel::weight(const aux::vector& s, const aux::vector& y) const
 {
     //these are really constant throughout the execution
     //of the program, so no need to calculate over and over
@@ -203,8 +202,8 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y)
 
 //Note that k_sigma contains std. deviation OR k and theta_mu contains either
 //mean or theta depending on the distribution
-void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme, 
-            const double* k_sigma, const double* theta_mu) 
+void BoldModel::generateComponent(gsl_rng* rng, aux::vector& fillme, 
+            const double* k_sigma, const double* theta_mu) const
 {
     //going to distribute all the state variables the same even if they are
     //in different sections
@@ -226,7 +225,7 @@ void BoldModel::generate_component(gsl_rng* rng, aux::vector& fillme,
     
 //approximated the variance by assuming V_0 is a constant, rather than
 //random, because the variance of V_0 is actually pretty small
-aux::vector BoldModel::estMeasVar(aux::DiracMixturePdf& in)
+aux::vector BoldModel::estMeasVar(aux::DiracMixturePdf& in) const
 {
     boost::mpi::communicator world;
     aux::vector var(MEAS_SIZE);
@@ -242,13 +241,14 @@ aux::vector BoldModel::estMeasVar(aux::DiracMixturePdf& in)
     return var;
 }
 
-aux::vector BoldModel::estMeasMean(aux::DiracMixturePdf& in)
+aux::vector BoldModel::estMeasMean(aux::DiracMixturePdf& in) const
 {
     return measure(in.getDistributedExpectation());
 }
 
 //TODO make some of these non-gaussian
-void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, double varwidth)
+void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
+            double varwidth) const
 {
     aux::vector mean = getdefault();
     aux::symmetric_matrix cov = aux::zero_matrix(STATE_SIZE);
@@ -273,7 +273,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, double varw
 }
 
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
-            const aux::vector mean, double varwidth)
+            const aux::vector mean, double varwidth) const
 {
     aux::symmetric_matrix cov = aux::zero_matrix(STATE_SIZE);
     
@@ -298,7 +298,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
 }
 
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
-            const aux::symmetric_matrix cov)
+            const aux::symmetric_matrix cov) const
 {
     aux::vector mean = getdefault();
     generatePrior(x0, samples, mean, cov);
@@ -306,7 +306,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
 
 //TODO make some of these non-gaussian
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
-            const aux::vector mean, const aux::symmetric_matrix cov)
+            const aux::vector mean, const aux::symmetric_matrix cov) const
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
@@ -335,14 +335,14 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
     }
     aux::vector comp(STATE_SIZE);
     for(int i = 0 ; i < samples; i ++) {
-        generate_component(rng, comp, k_sigma, theta_mu);
+        generateComponent(rng, comp, k_sigma, theta_mu);
         x0.add(comp, 1.0);
     }
     gsl_rng_free(rng);
 }
 
 //return (weight modified)
-bool BoldModel::reweight(aux::vector& checkme, double& weightout)
+bool BoldModel::reweight(aux::vector& checkme, double& weightout) const
 {
     static aux::vector defaultvector = getdefault();
     size_t count = 0;

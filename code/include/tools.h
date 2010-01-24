@@ -21,7 +21,7 @@
 
 #include "types.h"
 
-struct Tuple
+struct Activation
 {
     double time;
     double level;
@@ -31,7 +31,7 @@ void outputVector(std::ostream& out, indii::ml::aux::vector mat);
 void outputMatrix(std::ostream& out, indii::ml::aux::matrix mat);
 itk::OrientedImage<double, 4>::Pointer fft_image(
             itk::OrientedImage<double,4>::Pointer inimg);
-std::vector<Tuple> read_activations(const char* filename);
+std::vector<Activation> read_activations(const char* filename);
 
 //dir1 should be the direction of several separate series
 //dir2 should be the direction that you want to get rms of
