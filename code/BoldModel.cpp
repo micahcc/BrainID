@@ -70,11 +70,6 @@ BoldModel::~BoldModel()
 
 }
 
-//TODO, I would like to modify these functions so that the vector s
-//will just be modified in place, which would reduce the amount of copying
-//necessary. This might not work though, because Particle Filter likes to
-//keep all the particles around for history. After trying, this would mean
-//that particle filter is no longer compatible with Filter.hpp.
 int BoldModel::transition(aux::vector& s, const double t, const double delta) const
 {
     //use the default input
@@ -86,11 +81,10 @@ int BoldModel::transition(aux::vector& dustin, const double time,
             const double delta_t, const aux::vector& u_t) const
 {
     static aux::vector defaultvector = getdefault();
-    double dot1, dot2, dot3;
+    double dotV, dotQ, dotS;
     double tmpA, tmpB;
 
     //transition the actual state variables
-    //TODO, potentially add some randomness here.
     for(unsigned int ii=0 ; ii<SIMUL_STATES ; ii++) {
         unsigned int v_t = indexof(V_T,ii);
         unsigned int q_t = indexof(Q_T,ii);
@@ -98,7 +92,7 @@ int BoldModel::transition(aux::vector& dustin, const double time,
         unsigned int f_t = indexof(F_T,ii);
         // Normalized Blood Volume
         //V_t* = (1/tau_0) * ( f_t - v_t ^ (1/\alpha)) 
-        dot1 = (  ( dustin[f_t] - 
+        dotV = (  ( dustin[f_t] - 
                     pow(dustin[v_t], 1./dustin[indexof(ALPHA, ii)]) ) / 
                     dustin[indexof(TAU_0,ii)]  );
 
@@ -109,40 +103,24 @@ int BoldModel::transition(aux::vector& dustin, const double time,
                     (1 - pow( 1. - dustin[indexof(E_0, ii)], 1./dustin[f_t]));
         tmpB = dustin[q_t] / 
                     pow(dustin[v_t], 1.-1./dustin[indexof(ALPHA,ii)]);
-        dot2 =  ( tmpA - tmpB )/dustin[indexof(TAU_0,ii)];
+        dotQ =  ( tmpA - tmpB )/dustin[indexof(TAU_0,ii)];
 
         // Second Derivative of Cerebral Blood Flow
         //S_t* = \epsilon*u_t - 1/\tau_s * s_t - 1/\tau_f * (f_t - 1)
-        dot3 = u_t[0]*dustin[indexof(EPSILON, ii)] 
+        dotS = u_t[0]*dustin[indexof(EPSILON, ii)] 
                     - dustin[s_t]/dustin[indexof(TAU_S, ii)]
                     - (dustin[f_t] - 1.) / dustin[indexof(TAU_F,ii)];
         // Normalized Cerebral Blood Flow
         //f_t* = s_t;
         dustin[f_t] += dustin[s_t]*delta_t;
-        if(dustin[f_t] < 0 || isnan(dustin[f_t]) || isinf(dustin[f_t]) ) {
-            dustin = defaultvector;
-            return -4;
-        }
+        dustin[v_t] += dotV*delta_t;
+        dustin[q_t] += dotQ*delta_t;
+        dustin[s_t] += dotS*delta_t;
 
-        /* Update the others based on their gradient */
-        dustin[v_t] += dot1*delta_t;
-        if(isnan(dustin[v_t]) || isinf(dustin[v_t]) || dustin[v_t] < 0) {
+        if(!isnan(dustin[f_t] - dustin[v_t] - dustin[q_t] - dustin[s_t])) {
             dustin = defaultvector;
             return -1;
         }
-        
-        dustin[q_t] += dot2*delta_t;
-        if(isnan(dustin[q_t]) || isinf(dustin[q_t]) || dustin[q_t] < 0) {
-            dustin = defaultvector;
-            return -2;
-        }
-        
-        dustin[s_t] += dot3*delta_t;
-        if(isnan(dustin[s_t]) || isinf(dustin[s_t])) {
-            dustin = defaultvector;
-            return -3;
-        }
-       
     }
         
     return 0;
@@ -332,7 +310,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
         fread(&seed, 1, sizeof(unsigned int), file);
         fclose(file);
         gsl_rng_set(rng, seed^rank);
-        std::cout << "Seeding with " << seed^rank << "\n";
+        std::cout << "Seeding with " << (unsigned int)(seed^rank) << "\n";
     }
     aux::vector comp(STATE_SIZE);
     for(int i = 0 ; i < samples; i ++) {

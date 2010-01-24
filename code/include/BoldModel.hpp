@@ -64,7 +64,7 @@ public:
 
     //since the particle filter doesn't yet support input, we are
     //going to hack around that and set it directly
-    void setinput(aux::vector& in) { input = in; };
+    void setinput(aux::vector in) { input = in; };
     
     bool reweight(aux::vector& checkme, double& weight) const;
     

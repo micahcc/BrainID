@@ -145,7 +145,7 @@ double readout(State& state, const vector<double>&params)
 }
 
 /*Simulates an entire timeseries for a set of parameters*/
-vector<double> simulate(const vector<Tuple>& activations, 
+vector<double> simulate(const vector<Activation>& activations, 
             const vector<double>& params, double endtime,
             double timestep, double int_timestep)
 {
@@ -218,7 +218,7 @@ Image4DType::Pointer simulate(string param_f, string act_f,
     vector< vector<double> > params = read_params(param_f);
     
     //open act_f and read act_f
-    vector<Tuple> activations = read_activations(act_f.c_str());
+    vector<Activation> activations = read_activations(act_f.c_str());
 
     vector< vector<double> > timeseries(params.size());
     for(int i = 0 ; i < (int)timeseries.size() ; i++) {

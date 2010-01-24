@@ -6,10 +6,10 @@
 #include <itkComplexToPhaseImageFilter.h>
 #include <itkFFTRealToComplexConjugateImageFilter.h>
 
-std::vector<Tuple> read_activations(const char* filename)
+std::vector<Activation> read_activations(const char* filename)
 {
     FILE* fin = fopen(filename, "r");
-    std::vector< Tuple > output;
+    std::vector< Activation > output;
     if(!fin) {
         fprintf(stderr, "\"%s\" is invalid\n", filename);
         return output;
@@ -18,7 +18,7 @@ std::vector<Tuple> read_activations(const char* filename)
     char* input = NULL;
     size_t size = 0;
     char* curr = NULL;
-    Tuple parsed;
+    Activation parsed;
     printf("Parsing activations\n");
     while(getline(&input, &size, fin) && !feof(fin)) {
         parsed.time = strtod(input, &curr);

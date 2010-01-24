@@ -29,21 +29,32 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
+#include <fstream>
 #include <string>
 
 namespace aux = indii::ml::aux;
 
 /* 
- * YITER - Measurement iterator, over list of doubles/ints/numbers
- * UITER - Stimulus iterator, over list of activations
  * VOID  - Some type we don't care about
  * callback - a callback function that returns a status code
 */
-template <typename VOID, int callback(const typename BoldPF*, VOID*)>
+template <typename PassType>
 class BoldPF 
 {
 public:
-    /*SHOULD ONLY BE USED FOR MAIN NODE (0)
+    /* Types */
+    typedef indii::ml::filter::ParticleFilter<double> Filter;
+    
+    /* Callback types */
+    struct CallPoints{
+        bool start;
+        bool postMeas;
+        bool postFilter; //AKA when no measurement exists;
+        bool end;
+    };
+    typedef int(*CallBackFunction)(BoldPF<PassType>*, PassType*);
+
+    /* Constructor
      * measurements - a standard vector of measurement aux::vectors
      * activations  - a std::vector of Activation structs, time/level pairs
      * weightvar    - variance of the weighting function's pdf
@@ -52,79 +63,29 @@ public:
      * shortstep    - simulation timesteps
      */
     BoldPF(const std::vector<aux::vector>& measurements, 
-                const std::vector<Tuple> activations&,  double weightvar,
-                double longstep, size_t numparticles = 1000, double shortstep = 1./64)
-    {
-        boost::mpi::communicator world;
-        const unsigned int rank = world.rank();
-        const unsigned int size = world.size();
-        
-        dt_l = longstep;
-        dt_s = shortstep;
+                const std::vector<Activation>& activations,  double weightvar,
+                double longstep, unsigned int numparticles = 1000, 
+                double shortstep = 1./64);
 
-        /* Initalize the model and filter*/
-        aux::vector tmp_rms(1) = {{weightvar}};
-        model = new BoldModel(tmp_rms);
-        model->setinput(aux::zerovector(1));
-        aux::DiracMixturePdf tmp(model.getStateSize());
-        filter = new indii::ml::filter::ParticleFilter<double>(model, tmp);
-
-        /* initialize debug/output */
-        nullout = new ofstream("/dev/null");
-        if(rank == 0)
-            debug = &std::cerr;
-        else
-            debug = &nullout;
+    /* Destructor */
+    ~BoldPF();
     
-        /* 
-         * Particles Setup 
-         */
-        *debug << "Generating prior" << std::endl;
-        size_t localparticles = numparticles/size;
-        
-        //give excess particles to last rank
-        if(rank == (size-1))
-            localparticles += numparticles - localparticles*size;
+    /* Primary Functions */
+    int run(PassType* pass);
+    int pause() { return status = 2; };
 
-        //prior is (2*sigma)^2, by having each rank generate its own particles,
-        //a decent amount of time is saved
-        model->generatePrior(filter->getFilteredState(), localparticles, 4); 
+    /* Accessors */
+    int getNumParticles(); 
+    double getShortStep();
+    double getLongStep();
+    const Filter& getFilter();
+    int getStatus();
 
-        //Redistribute - doesn't cost anything if distrib. was already fine 
-        *out << "Redistributing" << endl;
-        filter->getFilteredState().redistributeBySize(); 
-
-        *out << "Size: " <<  filter->getFilteredState().getSize() << endl;
-    
-        /* 
-         * Create 
-         * Regularized Resampler
-         */
-        aux::Almost2Norm norm;
-        aux::AlmostGaussianKernel kernel(model->getStateSize(), 1);
-        resampler_reg = new RegularizedParticleResamplerMod
-                    <aux::Almost2Norm, aux::AlmostGaussianKernel>
-                    (norm, kernel, filter->getModel());
-
-        int disctime = 0;
-
-    };
-
-    ~BoldPF()
+    void setCallBack(const CallPoints& cpt, CallBackFunction cback)
     {
-        delete filter;
-        delete model;
-        delete nullout;
-        delete resampler_reg;
+        callback = cback;
+        call_points = cpt;
     };
-
-    int run(T* pass);
-    int pause();
-
-    void setNumParticles(int newnum);
-    int getNumParticles();
-
-
 
 private:
     /* Variables */
@@ -135,17 +96,10 @@ private:
     //timestep data
     double dt_l;
     double dt_s;
-    size_t disctime_l;
-    size_t disctime_s;
 
-    //log output
-    ostream* debug;
-    ofstream* nullout;
-
-    //resamplers
-    indii::ml::filter::StratifiedParticleResampler resampler;
-    RegularizedParticleResamplerMod<aux::Almost2Norm, aux::AlmostGaussianKernel>*
-                resampler_reg;
+    //Indices
+    unsigned int disctime_l;
+    unsigned int disctime_s;
 
     //0, not started
     //1, started
@@ -153,107 +107,83 @@ private:
     //3, done
     int status;
 
+    //log output
+    std::ostream* debug;
+    std::ofstream nullout;
 
+    //resamplers
+    indii::ml::filter::StratifiedParticleResampler resampler;
+    RegularizedParticleResamplerMod<aux::Almost2Norm, aux::AlmostGaussianKernel>*
+                resampler_reg;
+
+    //input and measurement vectors
+    std::vector<aux::vector> measure;
+    std::vector<Activation> stim;
+
+    //constants
+    const unsigned int ESS_THRESH;
+    
+    //Callback data
+    CallPoints call_points;
+    static int nop(BoldPF<PassType>*, PassType*) { return 0; };
+    int (*callback)(BoldPF<PassType>*, PassType*);
 
     /* Gathers all the elements of the DiracMixturePdf to the local node */
-    void gatherToNode(unsigned int dest, aux::DiracMixturePdf& input) 
-    {
-      boost::mpi::communicator world;
-      unsigned int rank = world.rank();
-      unsigned int size = world.size();
-      
-      assert(dest < size);
-    
-      std::vector< std::vector< DiracPdf > > xsFull;
-      std::vector< aux::vector > wsFull;
-    
-      unsigned int initialSize = input.getDistributedSize();
-      aux::vector initialMu = input.getDistributedExpectation();
-      aux::matrix initialCov = input.getDistributedCovariance();
-    
-      /* if rank is the destination then receive from all the other nodes */
-      if(rank == dest) {
-        /* Receive from each other node */
-        boost::mpi::gather(world, input.getAll(), xsFull, dest); 
-        boost::mpi::gather(world, input.getWeights(), wsFull, dest); 
-    
-        for(unsigned int ii=0 ; ii < size ; ii++) {
-          if(ii != rank) {
-            for (unsigned int jj = 0; jj < xsFull[ii].size(); jj++) {
-              input.add( (xsFull[ii])[jj] , (wsFull[ii])(jj) );
-            }
-          }
-        }
-      
-      /* if rank is not the destination then send to the destination */
-      } else {
-        boost::mpi::gather(world, input.getAll(), dest); 
-        boost::mpi::gather(world, input.getWeights(), dest); 
-        input.clear();
-      }
-      
-      unsigned int endSize = input.getDistributedSize();
-      aux::vector endMu = input.getDistributedExpectation();
-      aux::matrix endCov = input.getDistributedCovariance();
-      
-      assert (initialSize == endSize);
-    };
+    void gatherToNode(unsigned int dest, aux::DiracMixturePdf& input);
+};
 
-}
-
-//*S* means it must be sync'd between all mpi processes
-//model         *S* - the input model with the appropriate weighting function etc
-//particles     *S* - TOTAL number of particles to use
-//longstep      *S* - time between samples from measurement image
-//shortstep     *S* - timesteps to simulate at
-//timeseries_img    - Image with measurements in it
-//index             - Location to read from 
-//input_v           - Input/Stimulus vector
-template < typename T, int callback(aux::DiractMixturePdf*, T*) >
-int calcParams(Filter* filter, size_t particles, double longstep, double shortstep,
-            Image4DType::Pointer timeseries_img, Image3DType::IndexType index,
-            std::vector<Tuple> input_v, T* pass)
+/* Run - runs the particle filter
+ * pass - variable to pass to callback function
+**/
+template <typename PassType>
+int BoldPF<PassType>::run(PassType* pass = NULL)
 {
+    using std::endl;
+
     /* Initialize mpi */
-    boost::mpi::communicator world;
-    const unsigned int rank = world.rank();
-    const unsigned int size = world.size();
+//    boost::mpi::communicator world;
+//    const unsigned int rank = world.rank();
+//    const unsigned int size = world.size();
     
     /* Simulation Section */
-    double conttime = 0;
-    size_t stim_index = 0;
+    double conttime = disctime_s*dt_s;
+    unsigned int stim_index = 0;
+
+    *debug << "Starting at " << conttime
+                << " disctime_s: " << disctime_s
+                << " disctime_l: " << disctime_l 
+                << " dt_l: " << dt_l << " dt_s: " << dt_s 
+                << " measure size: " << measure.size()
+                << " stim size: " << stim.size() << endl;
+    
+    if(call_points.start) 
+        callback(this, pass);
     
     /* 
      * Run the particle filter either until we reach a predetermined end
      * time, or until we are done processing measurements.
      */
-     for(; disctime_s*shortstep < longstep*tlength ; disctime_s++) {
+     status = 1;
+     while(status == 1 && disctime_s*dt_s < dt_l*measure.size()) {
         /* time */
-        conttime = disctime_s*shortstep;
-        *out << "t= " << conttime << ", ";
+        conttime = disctime_s*dt_s;
+        *debug << "t= " << conttime << ", ";
         
         /* Update Input if there is any*/
-        while(rank == 0 && input_v[stim_index].time <= conttime) {
-            input[0] = input_v[stim_index].level;
+        while(stim[stim_index].time <= conttime) {
+            model->setinput(aux::vector(1, stim[stim_index].level));
             stim_index++;
         }
         
-        boost::mpi::broadcast(world, input, 0);
-        model.setinput(input);
 
         /* Check to see if it is time to update */
-        if(conttime >= disctime_l*longstep) { 
+        if(conttime >= disctime_l*dt_l) { 
             //acquire the latest measurement
-            if(rank == 0) {
-                *out << "Measuring at " <<  conttime << endl;
-                meas[0] = timeseries_img->GetPixel(pos);
-                outputVector(*out, meas);
-                *out << endl;
-            }
+            *debug << "Measuring at " <<  conttime << endl;
+            aux::vector meas = measure[disctime_l];
+            outputVector(*debug, meas);
+            *debug << endl;
 
-            //send meas and done to other nodes
-            boost::mpi::broadcast(world, meas, 0);
-            
             //step forward in time, with measurement
             filter->filter(conttime, meas);
 
@@ -264,45 +194,180 @@ int calcParams(Filter* filter, size_t particles, double longstep, double shortst
             //for instance if all the particles go to an unreasonable value like 
             //inf/nan/neg
             if(isnan(ess) || isinf(ess)) {
-                *out << std::endl << "Error! ESS was " << ess << endl;
+                *debug << endl << "Error! ESS was " << ess << endl;
                 return -1;
             } 
             
-            /* Because of the weighting functions, sometimes the total weight
-             * can get extremely high, thus this drops it back down if the
-             * total weight gets too high 
-             */
-            double totalweight = filter->getFilteredState().getDistributedTotalWeight();
-            *out << "Total Weight: " << totalweight << endl;
-
             //time to resample
-            if(ess < 50) {
-                *out << " ESS: " << ess << ", Stratified Resampling" << endl;
+            if(ess < ESS_THRESH) {
+                *debug << " ESS: " << ess << ", Stratified Resampling" << endl;
                 aux::symmetric_matrix statecov;
                 statecov = filter->getFilteredState().getDistributedCovariance();
                 filter->resample(&resampler);
                 
-                *out << " ESS: " << ess << ", Regularized Resampling" << endl << endl;
-                filter->setFilteredState(resampler_reg.
-                            resample(filter->getFilteredState(), statecov) );
+                *debug << " ESS: " << ess << ", Regularized Resampling" << endl << endl;
+                filter->setFilteredState(
+                            resampler_reg->resample(filter->getFilteredState(), statecov));
             } else {
-                *out << " ESS: " << ess << ", No Resampling Necessary!" 
+                *debug << " ESS: " << ess << ", No Resampling Necessary!" 
                             << endl;
             }
-
-            pos[3]++;
+            
+            if(call_points.postMeas) 
+                callback(this, pass);
+            disctime_l++;
         } else { //no update available, just step update states
             filter->filter(conttime);
+            if(call_points.postFilter) 
+                callback(this, pass);
         }
    
-       
         /* Update Time, disctime */
-        disctime++;
+        disctime_s++;
     }
 
-    *out << "End time: "<< conttime << endl;
+    /* Check to see if algorith finished, otherwise it was paused */
+    if(disctime_s*dt_s >= dt_l*measure.size()) {
+        status = 3;
+        if(call_points.end) 
+            callback(this, pass);
+    }
+
+    *debug << "Stop time: "<< conttime << endl;
     
     return 0;
-}
+};
+
+/* Constructor
+ * measurements - a standard vector of measurement aux::vectors
+ * activations  - a std::vector of Activation structs, time/level pairs
+ * weightvar    - variance of the weighting function's pdf
+ * longstep     - amount of time between measurements
+ * numparticles - number of particles to use
+ * shortstep    - simulation timesteps
+ */
+template <typename PassType>
+BoldPF<PassType>::BoldPF(const std::vector<aux::vector>& measurements, 
+            const std::vector<Activation>& activations,  double weightvar,
+            double longstep, unsigned int numparticles, double shortstep) : 
+            dt_l(longstep), dt_s(shortstep), 
+            disctime_l(0), disctime_s(0), status(0), 
+            nullout("/dev/null"),
+            measure(measurements), stim(activations), 
+            ESS_THRESH(50)
+{
+    boost::mpi::communicator world;
+    const unsigned int rank = world.rank();
+    const unsigned int size = world.size();
+    
+    using std::endl;
+    
+    /* Initalize the model and filter*/
+    aux::vector tmp_rms(1, weightvar);
+    model = new BoldModel(tmp_rms);
+    aux::vector tmp_in(1,0);
+    model->setinput(aux::vector(1, 0));
+    aux::DiracMixturePdf tmp(model->getStateSize());
+    filter = new indii::ml::filter::ParticleFilter<double>(model, tmp);
+
+    /* initialize debug/output */
+    if(rank == 0)
+        debug = &std::cerr;
+    else
+        debug = &nullout;
+
+    /* 
+     * Particles Setup 
+     */
+    *debug << "Generating prior" << std::endl;
+    unsigned int localparticles = numparticles/size;
+    
+    //give excess particles to last rank
+    if(rank == (size-1))
+        localparticles += numparticles - localparticles*size;
+
+    //prior is (2*sigma)^2, by having each rank generate its own particles,
+    //a decent amount of time is saved
+    model->generatePrior(filter->getFilteredState(), localparticles, 4); 
+
+    //Redistribute - doesn't cost anything if distrib. was already fine 
+    *debug << "Redistributing" << endl;
+    filter->getFilteredState().redistributeBySize(); 
+
+    *debug << "Size: " <<  filter->getFilteredState().getSize() << endl;
+
+    /* 
+     * Create 
+     * Regularized Resampler
+     */
+    aux::Almost2Norm norm;
+    aux::AlmostGaussianKernel kernel(model->getStateSize(), 1);
+    resampler_reg = new RegularizedParticleResamplerMod
+                <aux::Almost2Norm, aux::AlmostGaussianKernel>
+                (norm, kernel, model);
+
+    call_points.start = false;
+    call_points.postMeas = false;
+    call_points.postFilter = false;
+    call_points.end = false;
+    callback = nop;
+};
+
+/* Destructor */
+template<typename PassType>
+BoldPF<PassType>::~BoldPF<PassType>()
+{
+    delete filter;
+    delete model;
+    delete resampler_reg;
+};
+
+/* gatherToNode 
+ * dest  - destination rank
+ * input - mixturePDF whose components will be gathered to dest
+**/
+template<typename PassType>
+void BoldPF<PassType>::gatherToNode(unsigned int dest, aux::DiracMixturePdf& input)
+{
+  boost::mpi::communicator world;
+  unsigned int rank = world.rank();
+  unsigned int size = world.size();
+  
+  assert(dest < size);
+
+  std::vector< std::vector< DiracPdf > > xsFull;
+  std::vector< aux::vector > wsFull;
+
+  unsigned int initialSize = input.getDistributedSize();
+  aux::vector initialMu = input.getDistributedExpectation();
+  aux::matrix initialCov = input.getDistributedCovariance();
+
+  /* if rank is the destination then receive from all the other nodes */
+  if(rank == dest) {
+    /* Receive from each other node */
+    boost::mpi::gather(world, input.getAll(), xsFull, dest); 
+    boost::mpi::gather(world, input.getWeights(), wsFull, dest); 
+
+    for(unsigned int ii=0 ; ii < size ; ii++) {
+      if(ii != rank) {
+        for (unsigned int jj = 0; jj < xsFull[ii].size(); jj++) {
+          input.add( (xsFull[ii])[jj] , (wsFull[ii])(jj) );
+        }
+      }
+    }
+  
+  /* if rank is not the destination then send to the destination */
+  } else {
+    boost::mpi::gather(world, input.getAll(), dest); 
+    boost::mpi::gather(world, input.getWeights(), dest); 
+    input.clear();
+  }
+  
+  unsigned int endSize = input.getDistributedSize();
+  aux::vector endMu = input.getDistributedExpectation();
+  aux::matrix endCov = input.getDistributedCovariance();
+  
+  assert (initialSize == endSize);
+};
 
 #endif //BOLDPF_H
