@@ -38,7 +38,6 @@ namespace aux = indii::ml::aux;
  * VOID  - Some type we don't care about
  * callback - a callback function that returns a status code
 */
-template <typename PassType>
 class BoldPF 
 {
 public:
@@ -52,7 +51,7 @@ public:
         bool postFilter; //AKA when no measurement exists;
         bool end;
     };
-    typedef int(*CallBackFunction)(BoldPF<PassType>*, PassType*);
+    typedef int(*CallBackFunction)(BoldPF*, void*);
 
     /* Constructor
      * measurements - a standard vector of measurement aux::vectors
@@ -71,14 +70,14 @@ public:
     ~BoldPF();
     
     /* Primary Functions */
-    int run(PassType* pass);
+    int run(void* pass);
     int pause() { return status = 2; };
 
     /* Accessors */
-    int getNumParticles(); 
-    double getShortStep();
-    double getLongStep();
-    const Filter& getFilter();
+    int getNumParticles() const;
+    double getShortStep() const;
+    double getLongStep() const;
+    aux::DiracMixturePdf& getDistribution();
     int getStatus();
 
     void setCallBack(const CallPoints& cpt, CallBackFunction cback)
@@ -125,18 +124,48 @@ private:
     
     //Callback data
     CallPoints call_points;
-    static int nop(BoldPF<PassType>*, PassType*) { return 0; };
-    int (*callback)(BoldPF<PassType>*, PassType*);
+    static int nop(BoldPF*, void*) { return 0; };
+    int (*callback)(BoldPF*, void*);
 
     /* Gathers all the elements of the DiracMixturePdf to the local node */
     void gatherToNode(unsigned int dest, aux::DiracMixturePdf& input);
+};
+    
+    
+int BoldPF::getNumParticles() const
+{
+    return filter->getFilteredState().getDistributedSize();
+};
+
+double BoldPF::getShortStep() const
+{
+    return dt_s;
+};
+
+double BoldPF::getLongStep() const
+{
+    return dt_l;
+};
+
+aux::DiracMixturePdf& BoldPF::getDistribution()
+{
+    return filter->getFilteredState();
+};
+
+//const Filter& getFilter()
+//{
+//    return *filter;
+//};
+
+int BoldPF::getStatus()
+{
+    return status;
 };
 
 /* Run - runs the particle filter
  * pass - variable to pass to callback function
 **/
-template <typename PassType>
-int BoldPF<PassType>::run(PassType* pass = NULL)
+int BoldPF::run(void* pass = NULL)
 {
     using std::endl;
 
@@ -167,7 +196,7 @@ int BoldPF<PassType>::run(PassType* pass = NULL)
      while(status == 1 && disctime_s*dt_s < dt_l*measure.size()) {
         /* time */
         conttime = disctime_s*dt_s;
-        *debug << "t= " << conttime << ", ";
+        *debug << "."; 
         
         /* Update Input if there is any*/
         while(stim[stim_index].time <= conttime) {
@@ -180,12 +209,14 @@ int BoldPF<PassType>::run(PassType* pass = NULL)
         if(conttime >= disctime_l*dt_l) { 
             //acquire the latest measurement
             *debug << "Measuring at " <<  conttime << endl;
-            aux::vector meas = measure[disctime_l];
+            aux::vector meas(measure[disctime_l]);
             outputVector(*debug, meas);
             *debug << endl;
 
             //step forward in time, with measurement
             filter->filter(conttime, meas);
+            if(call_points.postMeas) 
+                callback(this, pass);
 
             //check to see if resampling is necessary
             double ess = filter->getFilteredState().calculateDistributedEss();
@@ -213,8 +244,6 @@ int BoldPF<PassType>::run(PassType* pass = NULL)
                             << endl;
             }
             
-            if(call_points.postMeas) 
-                callback(this, pass);
             disctime_l++;
         } else { //no update available, just step update states
             filter->filter(conttime);
@@ -246,8 +275,7 @@ int BoldPF<PassType>::run(PassType* pass = NULL)
  * numparticles - number of particles to use
  * shortstep    - simulation timesteps
  */
-template <typename PassType>
-BoldPF<PassType>::BoldPF(const std::vector<aux::vector>& measurements, 
+BoldPF::BoldPF(const std::vector<aux::vector>& measurements, 
             const std::vector<Activation>& activations,  double weightvar,
             double longstep, unsigned int numparticles, double shortstep) : 
             dt_l(longstep), dt_s(shortstep), 
@@ -264,7 +292,7 @@ BoldPF<PassType>::BoldPF(const std::vector<aux::vector>& measurements,
     
     /* Initalize the model and filter*/
     aux::vector tmp_rms(1, weightvar);
-    model = new BoldModel(tmp_rms);
+    model = new BoldModel(tmp_rms, false, measurements.front().size());
     aux::vector tmp_in(1,0);
     model->setinput(aux::vector(1, 0));
     aux::DiracMixturePdf tmp(model->getStateSize());
@@ -272,7 +300,7 @@ BoldPF<PassType>::BoldPF(const std::vector<aux::vector>& measurements,
 
     /* initialize debug/output */
     if(rank == 0)
-        debug = &std::cerr;
+        debug = &std::cout;
     else
         debug = &nullout;
 
@@ -294,7 +322,7 @@ BoldPF<PassType>::BoldPF(const std::vector<aux::vector>& measurements,
     *debug << "Redistributing" << endl;
     filter->getFilteredState().redistributeBySize(); 
 
-    *debug << "Size: " <<  filter->getFilteredState().getSize() << endl;
+    *debug << "Size: " <<  filter->getFilteredState().getDistributedSize() << endl;
 
     /* 
      * Create 
@@ -314,8 +342,7 @@ BoldPF<PassType>::BoldPF(const std::vector<aux::vector>& measurements,
 };
 
 /* Destructor */
-template<typename PassType>
-BoldPF<PassType>::~BoldPF<PassType>()
+BoldPF::~BoldPF()
 {
     delete filter;
     delete model;
@@ -326,8 +353,7 @@ BoldPF<PassType>::~BoldPF<PassType>()
  * dest  - destination rank
  * input - mixturePDF whose components will be gathered to dest
 **/
-template<typename PassType>
-void BoldPF<PassType>::gatherToNode(unsigned int dest, aux::DiracMixturePdf& input)
+void BoldPF::gatherToNode(unsigned int dest, aux::DiracMixturePdf& input)
 {
   boost::mpi::communicator world;
   unsigned int rank = world.rank();

@@ -11,7 +11,7 @@ std::vector<Activation> read_activations(const char* filename)
     FILE* fin = fopen(filename, "r");
     std::vector< Activation > output;
     if(!fin) {
-        fprintf(stderr, "\"%s\" is invalid\n", filename);
+        fprintf(stderr, "read_activations: \"%s\" is invalid\n", filename);
         return output;
     }
     
@@ -199,14 +199,14 @@ Image3DType::Pointer get_rms(Image4DType::Pointer in)
                 
                 //calc mean
                 for(size_t tt = 0 ; tt < in->GetRequestedRegion().GetSize()[3] ; tt++) {
-                    Image4DType::IndexType index = {{xx, yy, zz, 0}};
+                    Image4DType::IndexType index = {{xx, yy, zz, tt}};
                     mean += in->GetPixel(index);
                 }
                 mean /= in->GetRequestedRegion().GetSize()[3];
                 
                 //calc cov
                 for(size_t tt = 0 ; tt < in->GetRequestedRegion().GetSize()[3] ; tt++) {
-                    Image4DType::IndexType index = {{xx, yy, zz, 0}};
+                    Image4DType::IndexType index = {{xx, yy, zz, tt}};
                     var += pow(in->GetPixel(index)-mean, 2);
                 }
                 var /= in->GetRequestedRegion().GetSize()[3];

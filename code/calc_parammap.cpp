@@ -40,12 +40,7 @@ typedef itk::ImageLinearIteratorWithIndex<Image4DType> ImgIter;
 namespace aux = indii::ml::aux;
 typedef indii::ml::filter::ParticleFilter<double> Filter;
 
-int callback(const BoldPF<double>* in, double garbage)
-{
-    return 1;
-};
-
-void fillvector(std::vector< aux::vector > output, Image4DType* input,
+void fillvector(std::vector< aux::vector >& output, Image4DType* input,
             Image4DType::IndexType pos)
 {       
     ImgIter iter(input, input->GetRequestedRegion());
@@ -121,7 +116,14 @@ int main(int argc, char* argv[])
     }
     
     /* Open Stimulus file */
-    input = read_activations(a_stimfile().c_str());
+    if(!a_stimfile().empty()) {
+        input = read_activations(a_stimfile().c_str());
+    } else {
+        Activation tmp;
+        tmp.time = 0;
+        tmp.level= 0;
+        input = std::vector<Activation>(1,tmp);
+    }
 
     /* Create Output Image */
     if(rank == 0) {
@@ -148,24 +150,28 @@ int main(int argc, char* argv[])
         itk::ImageFileWriter<Image4DType>::Pointer out = 
                     itk::ImageFileWriter<Image4DType>::New();
         out->SetInput(inImage);
-        out->SetFileName("pfilter_input.nii.gz");
+        out->SetFileName(a_output().append("/pfilter_input.nii.gz"));
         out->Update();
     }
     
     //acquire rms
     rms = get_rms(inImage);
 
-    for(unsigned int xx = 0 ; xx < xlen ; xx++) {
-        for(unsigned int yy = 0 ; yy < ylen ; yy++) {
-            for(unsigned int zz = 0 ; zz < zlen ; zz++) {
+    for(unsigned int xx = xlen/2 ; xx == xlen/2 ; xx++) {
+        for(unsigned int yy = ylen/2 ; yy == ylen/2 ; yy++) {
+            for(unsigned int zz = zlen/2 ; zz == zlen/2 ; zz++) {
+                printf("%u %u %u\n", xx, yy, zz);
                 Image3DType::IndexType index3 = {{xx, yy, zz}};
                 Image4DType::IndexType index4 = {{xx, yy, zz, 0}};
                 std::vector< aux::vector > meas(tlen);
                 fillvector(meas, inImage, index4);
                 
-                BoldPF<int> boldpf(meas, input, rms->GetPixel(index3), a_timestep(),
-                            1./a_divider(), a_num_particles());
+                BoldPF boldpf(meas, input, pow(rms->GetPixel(index3),2), a_timestep(),
+                            a_num_particles(), 1./a_divider());
                 boldpf.run();
+                aux::vector mu = boldpf.getDistribution().getDistributedExpectation();
+                if(rank == 0) 
+                    outputVector(std::cerr, mu);
             }
         }
     }

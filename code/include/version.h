@@ -1,1 +1,1 @@
-#define BRAINID_VERSION "505"
+#define BRAINID_VERSION "508"

@@ -117,10 +117,19 @@ int BoldModel::transition(aux::vector& dustin, const double time,
         dustin[q_t] += dotQ*delta_t;
         dustin[s_t] += dotS*delta_t;
 
-        if(!isnan(dustin[f_t] - dustin[v_t] - dustin[q_t] - dustin[s_t])) {
-            dustin = defaultvector;
-            return -1;
-        }
+    }
+
+    /* Check for Nan, (nan operated with anything is nan),
+     * inf - inf = nan, so nan or inf in any member 
+     * will cause this to fail
+    */
+    double tmp = 0;
+    for(unsigned int ii = 0 ; ii < STATE_SIZE ; ii++)
+        tmp += dustin[ii] - dustin[ii];
+
+    if(isnan(tmp)) {
+        dustin = defaultvector;
+        return -1;
     }
         
     return 0;
