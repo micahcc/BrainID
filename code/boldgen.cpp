@@ -25,13 +25,17 @@
 #include <sstream>
 #include <cmath>
 
+#include <itkMultiplyByConstantImageFilter.h>
+#include <itkAddConstantToImageFilter.h>
+
 using namespace std;
 
 const int SERIES_DIR = 0;
 const int PARAM_DIR = 1;
 const int TIME_DIR = 3;
 
-typedef itk::OrientedImage<double, 4> Image4DType;
+typedef itk::MultiplyByConstantImageFilter<Image4DType, double, Image4DType> MultF;
+typedef itk::AddConstantToImageFilter<Image4DType, double, Image4DType> AddF;
 
 void init4DImage(Image4DType::Pointer& out, size_t xlen, size_t ylen, 
             size_t zlen, size_t tlen)
@@ -119,6 +123,7 @@ int main (int argc, char** argv)
     vul_arg<bool> a_randstim("-randstim", "create a random stimulus", false);
     vul_arg<string> a_randstim_file("-rstimfile", "where to write to, for "
                 " stim generation", "");
+    vul_arg<double> a_carrier("-c", "Carrier level (signal will be %diff of this", 10);
     vul_arg<double> a_randstim_t("-rstimt", "time between changes, for stim "
                 "generation", 4);
     vul_arg<double> a_randstim_p("-rstimp", "probability of high stimulus, for "
@@ -322,6 +327,17 @@ int main (int argc, char** argv)
             sample++;;
         }
         
+    }
+
+    {
+        AddF::Pointer add = AddF::New();
+        MultF::Pointer mul = MultF::New();
+        mul->SetInput(measImage);
+        mul->SetConstant(a_carrier());
+        add->SetInput(mul->GetOutput());
+        add->SetConstant(a_carrier());
+        add->Update();
+        measImage = add->GetOutput();
     }
     
     if(!a_boldfile().empty()) {

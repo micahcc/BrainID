@@ -37,8 +37,7 @@ class BoldModel : public indii::ml::filter::ParticleFilterModel<double>
 public:
     ~BoldModel();
     BoldModel(aux::vector stddev, bool weightf = false,
-                size_t sections = 1,
-                aux::vector u = aux::zero_vector(1));
+                size_t sections = 1);
 
     unsigned int getStateSize() const { return STATE_SIZE; };
     unsigned int getStimSize() const { return INPUT_SIZE; };

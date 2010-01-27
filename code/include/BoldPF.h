@@ -199,7 +199,7 @@ int BoldPF::run(void* pass = NULL)
         *debug << "."; 
         
         /* Update Input if there is any*/
-        while(stim[stim_index].time <= conttime) {
+        while(stim_index < stim.size() && stim[stim_index].time <= conttime) {
             model->setinput(aux::vector(1, stim[stim_index].level));
             stim_index++;
         }
@@ -267,6 +267,91 @@ int BoldPF::run(void* pass = NULL)
     return 0;
 };
 
+bool isclose(double a, double b) 
+{
+    return fabs(a*1000 - b*1000) < 1;
+}
+
+/* 
+ * Find the loneliest stimulus input (longest time down time before and 
+ * 2 TR's of downtime after). We are then going to multiply the bold
+ * level 2 TR's after this time by 86 to get the rough mean of V_0, and
+ * the straight up bold/10 will be the variance used in the model
+ * This is sort of BS but it gives an
+ * estimate of the order of magnitude of the signal
+ */
+ //todo this needs to be fixed to prevent picking a point off the end of the 
+//measurement array
+double bspoint(const std::vector<Activation>& act, double TR)
+{
+    if(act.size() == 0) 
+        return 2*TR;
+    
+    double duration = 1/0.;
+    const double base = 0;
+    {
+    double prev = 0;
+    double start = 0;
+    //find shortest stim duration
+    double store;
+    for(unsigned int i = 0; i < act.size() ; i++) {
+        if(act[i].level != prev) {
+            prev = act[i].level;
+            if(act[i].level != base) {
+                start = act[i].time;
+            } else if(act[i].time - start < duration) {
+                duration = act[i].time - start;
+                store = start;
+            }
+        }
+    }
+    }
+
+    double longest = 0;
+    unsigned int store = 0;
+
+    double prev = act[0].level;
+    unsigned int troughstart = 0;
+    unsigned int peakstart = 0;
+    for(unsigned int i = 0 ; i < act.size() ; i++) { 
+        //find transitions 
+        if(prev != act[i].level) {
+            prev = act[i].level;
+            //down
+            if(act[i].level == base) {
+                if(act[peakstart].time - act[troughstart].time > longest && 
+                            isclose(act[i].time - act[peakstart].time, duration)) {
+                    //last check, check there are 2TR's of nothing afterward
+                    unsigned int tmp = i;
+                    while(tmp < act.size() && act[tmp].level == base)
+                        tmp++;
+                    if(act[tmp-1].time - act[i].time > 2*TR || (tmp < act.size()
+                                && act[tmp].time - act[i].time > 2*TR)) {
+                        longest = act[peakstart].time - act[troughstart].time;
+                        store = peakstart;
+                    }
+                }
+                troughstart = i;
+            //up
+            } else {
+                peakstart = i;
+            }
+        }
+    }
+
+    return act[store].time;
+}
+
+double bspoint(const std::vector<Activation>& act)
+{
+    const double base = 0;
+    for(unsigned int i = 0 ; i < act.size(); i++) {
+        if(act[i].level != base) 
+            return act[i].time;
+    }
+    return 0;
+}
+
 /* Constructor
  * measurements - a standard vector of measurement aux::vectors
  * activations  - a std::vector of Activation structs, time/level pairs
@@ -289,11 +374,60 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     const unsigned int size = world.size();
     
     using std::endl;
+
+//    /* get signals' mean */
+//    double signal_mean = 0;
+//    for(unsigned int ii = 0 ; ii < measurements.size() ; ii++) {
+//        for(unsigned int jj = 0 ; jj < measurements[ii].size() ; jj++) {
+//            signal_mean += measurements[ii][jj];
+//        }
+//    }
+//    signal_mean /= (measurements.size()*measurements.front().size());
+//
+//    /* get average activation level */
+//    double avg_act = 0;
+//    {
+//    double prev_time = 0;
+//    unsigned int i=0;
+//    for(i = 0 ; i < activations.size() && activations[i].time < 
+//                measurements.size()*longstep ; i++) {
+//        avg_act += activations[i].level*(activations[i].time - prev_time);
+//        prev_time = activations[i].time;
+//    }
+//    //correct for excess/short activations vector
+//    avg_act += activations[i-1].level*(measurements.size()*longstep
+//                - activations[i-1].time);
+//    avg_act /= (measurements.size()*longstep);
+//    fprintf(stderr, "Average activation level: %f\n", avg_act);
+//    }
+//
+//    double V_0_est = signal_mean/(avg_act*3);;
+//    double magnitude = signal_mean/(avg_act*128);
+//    fprintf(stderr, "Estimated V_0: %f\n", V_0_est);
+//    fprintf(stderr, "Weight Variance: %f\n", magnitude);
+
+//    {
+//    magnitude = bspoint(activations, longstep);
+//    unsigned int index = (unsigned int)magnitude/longstep + 2;
+//    if(measurements.size() < index) {
+//        std::cerr << "Measurement matrix is less than " << index << "long" << std::endl;
+//        throw (-2);
+//    }
+//    for(unsigned int i = 0 ; i < measurements[index].size() ; i++) {
+//        V_0_est += measurements[index][i];
+//    }
+//    
+//    V_0_est /= measurements[index].size();
+//    magnitude = V_0_est/10;
+//    std::cerr << "Variance: " << magnitude << std::endl;;
+//    V_0_est *= 200;
+//    std::cerr << "V_0 estimate: " << V_0_est << std::endl;
+//
+//    }
     
     /* Initalize the model and filter*/
-    aux::vector tmp_rms(1, weightvar);
-    model = new BoldModel(tmp_rms, false, measurements.front().size());
-    aux::vector tmp_in(1,0);
+    aux::vector weight(measurements.front().size(), weightvar);
+    model = new BoldModel(weight, false, measurements.front().size());
     model->setinput(aux::vector(1, 0));
     aux::DiracMixturePdf tmp(model->getStateSize());
     filter = new indii::ml::filter::ParticleFilter<double>(model, tmp);
@@ -389,7 +523,9 @@ void BoldPF::gatherToNode(unsigned int dest, aux::DiracMixturePdf& input)
     input.clear();
   }
   
+  #ifndef NDEBUG
   unsigned int endSize = input.getDistributedSize();
+  #endif 
   aux::vector endMu = input.getDistributedExpectation();
   aux::matrix endCov = input.getDistributedCovariance();
   

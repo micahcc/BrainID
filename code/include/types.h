@@ -45,4 +45,10 @@ struct State
     double Q;
 };
 
+struct Activation
+{
+    double time;
+    double level;
+};
+
 #endif //TYPES_H

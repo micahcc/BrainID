@@ -68,9 +68,9 @@ int main(int argc, char* argv[])
     const unsigned int size = world.size();
 
     vul_arg<string> a_input(0, "4D timeseries file");
-    vul_arg<string> a_mask(0, "3D mask file");
     vul_arg<string> a_output(0, "output directory");
     
+    vul_arg<string> a_mask("-m", "3D mask file");
     vul_arg<unsigned> a_num_particles("-p", "Number of particles.", 3000);
     vul_arg<unsigned> a_divider("-d", "Intermediate Steps between samples.", 128);
     vul_arg<string> a_stimfile("-s", "file containing \"<time> <value>\""
@@ -98,27 +98,40 @@ int main(int argc, char* argv[])
     Label3DType::Pointer mask;
 
     /* Open up the input */
-    {
+    try {
     ImageReaderType::Pointer reader;
     reader = ImageReaderType::New();
     reader->SetImageIO(itk::modNiftiImageIO::New());
     reader->SetFileName( a_input() );
     reader->Update();
     inImage = reader->GetOutput();
+    } catch(itk::ExceptionObject) {
+        fprintf(stderr, "Error opening %s\n", a_input().c_str());
+        exit(-1);
     }
-    {
-    itk::ImageFileReader<Label3DType>::Pointer reader;
-    reader = itk::ImageFileReader<Label3DType>::New();
-    reader->SetImageIO(itk::modNiftiImageIO::New());
-    reader->SetFileName( a_input() );
-    reader->Update();
-    mask = reader->GetOutput();
+
+    try{
+    if(!a_mask().empty()) {
+        itk::ImageFileReader<Label3DType>::Pointer reader;
+        reader = itk::ImageFileReader<Label3DType>::New();
+        reader->SetImageIO(itk::modNiftiImageIO::New());
+        reader->SetFileName( a_mask() );
+        reader->Update();
+        mask = reader->GetOutput();
+    }
+    } catch(itk::ExceptionObject) {
+        fprintf(stderr, "Error opening %s\n", a_mask().c_str());
+        exit(-2);
     }
     
     /* Open Stimulus file */
     if(!a_stimfile().empty()) {
         input = read_activations(a_stimfile().c_str());
-    } else {
+        if(input.empty()) 
+            return -1;
+    }
+
+    if(input.size() == 0) {
         Activation tmp;
         tmp.time = 0;
         tmp.level= 0;
@@ -127,6 +140,7 @@ int main(int argc, char* argv[])
 
     /* Create Output Image */
     if(rank == 0) {
+        fprintf(stdout, "Creating Output Image\n");
         outImage = Image4DType::New();
         Image4DType::SizeType size;
         for(int i = 0 ; i < 3 ; i++)
@@ -141,10 +155,14 @@ int main(int argc, char* argv[])
     unsigned int ylen = inImage->GetRequestedRegion().GetSize()[1];
     unsigned int zlen = inImage->GetRequestedRegion().GetSize()[2];
     unsigned int tlen = inImage->GetRequestedRegion().GetSize()[3];
-    
-    //detrend
-    inImage = normalizeByVoxel(inImage, mask, 
-                inImage->GetRequestedRegion().GetSize()[3]/10+2);
+    //Find the Tmean, and ignore elemnts whose mean is < 1
+    Image3DType::Pointer mean = Tmean(inImage);
+
+    //detrend, find percent difference, remove the 2 times (since they are typically
+    // polluted    
+    if(rank == 0)
+        fprintf(stdout, "Conditioning FMRI Image\n");
+    inImage = conditionFMRI(inImage, 20.0, input, a_timestep(), 2);
     /* Save detrended image */
     if(rank == 0) {
         itk::ImageFileWriter<Image4DType>::Pointer out = 
@@ -157,21 +175,23 @@ int main(int argc, char* argv[])
     //acquire rms
     rms = get_rms(inImage);
 
-    for(unsigned int xx = xlen/2 ; xx == xlen/2 ; xx++) {
-        for(unsigned int yy = ylen/2 ; yy == ylen/2 ; yy++) {
-            for(unsigned int zz = zlen/2 ; zz == zlen/2 ; zz++) {
-                printf("%u %u %u\n", xx, yy, zz);
+    for(unsigned int xx = 0 ; xx < xlen ; xx++) {
+        for(unsigned int yy = 0 ; yy == ylen ; yy++) {
+            for(unsigned int zz = 0 ; zz == zlen ; zz++) {
                 Image3DType::IndexType index3 = {{xx, yy, zz}};
                 Image4DType::IndexType index4 = {{xx, yy, zz, 0}};
-                std::vector< aux::vector > meas(tlen);
-                fillvector(meas, inImage, index4);
-                
-                BoldPF boldpf(meas, input, pow(rms->GetPixel(index3),2), a_timestep(),
-                            a_num_particles(), 1./a_divider());
-                boldpf.run();
-                aux::vector mu = boldpf.getDistribution().getDistributedExpectation();
-                if(rank == 0) 
-                    outputVector(std::cerr, mu);
+                if(mean->GetPixel(index3) > 1) {
+                    printf("%u %u %u\n", xx, yy, zz);
+                    std::vector< aux::vector > meas(tlen);
+                    fillvector(meas, inImage, index4);
+                    
+                    BoldPF boldpf(meas, input, rms->GetPixel(index3), a_timestep(),
+                                a_num_particles(), 1./a_divider());
+                    boldpf.run();
+                    aux::vector mu = boldpf.getDistribution().getDistributedExpectation();
+                    if(rank == 0) 
+                        outputVector(std::cerr, mu);
+                }
             }
         }
     }

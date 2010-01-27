@@ -21,17 +21,15 @@
 
 #include "types.h"
 
-struct Activation
-{
-    double time;
-    double level;
-};
-
 void outputVector(std::ostream& out, indii::ml::aux::vector mat);
 void outputMatrix(std::ostream& out, indii::ml::aux::matrix mat);
 itk::OrientedImage<double, 4>::Pointer fft_image(
             itk::OrientedImage<double,4>::Pointer inimg);
 std::vector<Activation> read_activations(const char* filename);
+Image4DType::Pointer conditionFMRI(const Image4DType::Pointer fmri_img,
+            int knots, std::vector<Activation>& stim);
+Image3DType::Pointer Tmean(const Image4DType::Pointer fmri_img);
+Image4DType::Pointer extrude(const Image3DType::Pointer input, unsigned int len);
 
 //dir1 should be the direction of several separate series
 //dir2 should be the direction that you want to get rms of
@@ -233,7 +231,7 @@ typename itk::OrientedImage< T, 4 >::Pointer concat(
 /* Removes all but the indices between start and stop, inclusive */
 template <class T>
 typename itk::OrientedImage< T, 4 >::Pointer prune(
-            typename itk::OrientedImage< T, 4 >::Pointer in,
+            const typename itk::OrientedImage< T, 4 >::Pointer in,
             int dir, int start, int stop)
 {
     typedef itk::OrientedImage< T, 4>  ImageType;

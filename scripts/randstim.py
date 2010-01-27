@@ -15,7 +15,7 @@ parser.add_option("-u", "--ulevel", dest="ulevel", default=1.0, type="float",
 parser.add_option("-l", "--level", dest="level", default=0.0, type="float",
             help="Default level")
 parser.add_option("-s", "--start", dest="start", default=0.0, type="float",
-            help="Time to start (at set to 0 before this)")
+            help="Time to start (set to 0 before this)")
 parser.add_option("-p", "--pad", dest="pad", default=0.0, type="float",
             help="amount of time before end to stop allowing non-defualt stimulus")
 parser.add_option("-e", "--end", dest="end", default=1024, type="float",

@@ -25,6 +25,7 @@ std::vector<Activation> read_activations(const char* filename)
         parsed.level = strtod(curr, NULL);
 
         output.push_back(parsed);
+        printf("%f %f\n", output.back().time, output.back().level);
         free(input);
         input = NULL;
     }
@@ -167,6 +168,67 @@ itk::OrientedImage<double, 4>::Pointer fft_image(
 
     return out;
 };
+
+Image3DType::Pointer Tmean(const Image4DType::Pointer fmri_img)
+{
+    itk::ImageLinearConstIteratorWithIndex<Image4DType> iter(
+                fmri_img, fmri_img->GetRequestedRegion());
+    iter.SetDirection(3);
+    iter.GoToBegin();
+    Image4DType::IndexType index4;
+    Image3DType::Pointer out = Image3DType::New();
+    Image4DType::SizeType size4 = fmri_img->GetRequestedRegion().GetSize();
+    {
+        Image3DType::SizeType size3 = {{size4[0], size4[1], size4[2]}};
+        out->SetRegions(size3);
+        out->Allocate();
+    }
+
+    while(!iter.IsAtEnd()) {
+        index4 = iter.GetIndex();
+        fprintf(stderr, "Starting %li %li %li\n", index4[0], index4[1], index4[2]);
+        double average = 0;
+        while(!iter.IsAtEndOfLine()) {
+            average += iter.Get();
+            ++iter;
+        }
+        index4 = iter.GetIndex();
+        Image3DType::IndexType index3 = {{index4[0], index4[1], index4[2]}};
+        fprintf(stderr, "Writing: %li %li %li\n", index3[0], index3[1], index3[2]);
+        out->SetPixel(index3, average/size4[3]);
+        iter.NextLine();
+    }
+    return out;
+}
+
+Image4DType::Pointer extrude(const Image3DType::Pointer input, unsigned int len)
+{
+    itk::ImageLinearConstIteratorWithIndex<Image3DType> iter(
+                input, input->GetRequestedRegion());
+    iter.SetDirection(0);
+    iter.GoToBegin();
+    Image3DType::SizeType size3 = input->GetRequestedRegion().GetSize();
+
+    Image4DType::Pointer out = Image4DType::New();
+    {
+        Image4DType::SizeType size4 = {{size3[0], size3[1], size3[2], len}};
+        out->SetRegions(size4);
+        out->Allocate();
+    }
+
+    while(!iter.IsAtEnd()) {
+        while(!iter.IsAtEndOfLine()) {
+            Image3DType::IndexType index3 = iter.GetIndex();
+            for(unsigned int i = 0 ; i < len ; i++) {
+                Image4DType::IndexType index4 = {{index3[0], index3[1], index3[2], i}};
+                out->SetPixel(index4, iter.Get());
+            }
+            ++iter;
+        }
+        iter.NextLine();
+    }
+    return out;
+}
 
 //RMS for a non-zero mean signal is 
 //sqrt(mu^2+sigma^2)

@@ -14,8 +14,8 @@
 
 #include <iostream>
 
-BoldModel::BoldModel(aux::vector stddev, bool expweight, size_t sections,
-            aux::vector u) : 
+BoldModel::BoldModel(aux::vector stddev, bool expweight, 
+            size_t sections) :
             sigma(stddev), GVAR_SIZE(4), LVAR_SIZE(7), SIMUL_STATES(sections),
             STATE_SIZE(GVAR_SIZE+LVAR_SIZE*SIMUL_STATES), MEAS_SIZE(SIMUL_STATES),
             INPUT_SIZE(1)//, segments(sections)
@@ -27,10 +27,7 @@ BoldModel::BoldModel(aux::vector stddev, bool expweight, size_t sections,
 
     //this is only a problem if the user put in a bad vector
     //in which case the u will be overwritten with 0's
-    if(u.size() != sections)
-        this->input = aux::zero_vector(sections);
-    else 
-        this->input = u;
+    this->input = aux::zero_vector(sections);
     
     if(expweight) 
         this->weightf = EXP;;
