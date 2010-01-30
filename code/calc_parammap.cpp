@@ -157,6 +157,13 @@ int main(int argc, char* argv[])
     unsigned int tlen = inImage->GetRequestedRegion().GetSize()[3];
     //Find the Tmean, and ignore elemnts whose mean is < 1
     Image3DType::Pointer mean = Tmean(inImage);
+    if(rank == 0) {
+        itk::ImageFileWriter<Image4DType>::Pointer out = 
+                    itk::ImageFileWriter<Image4DType>::New();
+        out->SetInput(inImage);
+        out->SetFileName(a_output().append("/Tmean.nii.gz"));
+        out->Update();
+    }
 
     //detrend, find percent difference, remove the 2 times (since they are typically
     // polluted    
@@ -176,8 +183,8 @@ int main(int argc, char* argv[])
     rms = get_rms(inImage);
 
     for(unsigned int xx = 0 ; xx < xlen ; xx++) {
-        for(unsigned int yy = 0 ; yy == ylen ; yy++) {
-            for(unsigned int zz = 0 ; zz == zlen ; zz++) {
+        for(unsigned int yy = 0 ; yy < ylen ; yy++) {
+            for(unsigned int zz = 0 ; zz < zlen ; zz++) {
                 Image3DType::IndexType index3 = {{xx, yy, zz}};
                 Image4DType::IndexType index4 = {{xx, yy, zz, 0}};
                 if(mean->GetPixel(index3) > 1) {
@@ -186,7 +193,7 @@ int main(int argc, char* argv[])
                     fillvector(meas, inImage, index4);
                     
                     BoldPF boldpf(meas, input, rms->GetPixel(index3), a_timestep(),
-                                a_num_particles(), 1./a_divider());
+                                &std::cout, a_num_particles(), 1./a_divider());
                     boldpf.run();
                     aux::vector mu = boldpf.getDistribution().getDistributedExpectation();
                     if(rank == 0) 

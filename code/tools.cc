@@ -25,7 +25,6 @@ std::vector<Activation> read_activations(const char* filename)
         parsed.level = strtod(curr, NULL);
 
         output.push_back(parsed);
-        printf("%f %f\n", output.back().time, output.back().level);
         free(input);
         input = NULL;
     }
@@ -186,7 +185,6 @@ Image3DType::Pointer Tmean(const Image4DType::Pointer fmri_img)
 
     while(!iter.IsAtEnd()) {
         index4 = iter.GetIndex();
-        fprintf(stderr, "Starting %li %li %li\n", index4[0], index4[1], index4[2]);
         double average = 0;
         while(!iter.IsAtEndOfLine()) {
             average += iter.Get();
@@ -194,7 +192,6 @@ Image3DType::Pointer Tmean(const Image4DType::Pointer fmri_img)
         }
         index4 = iter.GetIndex();
         Image3DType::IndexType index3 = {{index4[0], index4[1], index4[2]}};
-        fprintf(stderr, "Writing: %li %li %li\n", index3[0], index3[1], index3[2]);
         out->SetPixel(index3, average/size4[3]);
         iter.NextLine();
     }

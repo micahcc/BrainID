@@ -485,9 +485,9 @@ int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType inde
         level[ii] /= knots[ii].size();
     }
 
-    for(unsigned int ii = 0 ; ii < knots.size() ; ii++){
-        fprintf(stderr, "%f => %f\n", xpos[ii], level[ii]);
-    }
+//    for(unsigned int ii = 0 ; ii < knots.size() ; ii++){
+//        fprintf(stderr, "%f => %f\n", xpos[ii], level[ii]);
+//    }
 
     itk::ImageLinearIteratorWithIndex< Image4DType > 
                 out_it(output, output->GetRequestedRegion());
@@ -515,8 +515,8 @@ void getknots(std::vector< std::vector<unsigned int> >& knots, double min_delay,
                 //translate times to elements
                 unsigned int start = (unsigned int)(prev_t + min_delay+.5)/dt;
                 unsigned int stop = (unsigned int)(stim[i].time + .5)/dt;
-                fprintf(stderr, "%f - %f: %u - %u\n", prev_t + min_delay, 
-                            stim[i].time, start, stop);
+//                fprintf(stderr, "%f - %f: %u - %u\n", prev_t + min_delay, 
+//                            stim[i].time, start, stop);
 
                 std::vector<unsigned int> tmp;
                 for(unsigned int i = start; i <= stop && i < length; i++) {
@@ -534,8 +534,8 @@ void getknots(std::vector< std::vector<unsigned int> >& knots, double min_delay,
         //translate times to elements
         unsigned int start = (unsigned int)(prev_t + min_delay+.5)/dt;
         unsigned int stop = length-1;
-        fprintf(stderr, "%f - %f: %u - %u\n", prev_t + min_delay, 
-                    (length-1)*dt, start, stop);
+//        fprintf(stderr, "%f - %f: %u - %u\n", prev_t + min_delay, 
+//                    (length-1)*dt, start, stop);
 
         std::vector<unsigned int> tmp;
         for(unsigned int i = start; i <= stop && i < length; i++) {
@@ -1270,6 +1270,7 @@ Image4DType::Pointer conditionFMRI(const Image4DType::Pointer fmri_img,
         stim[i].time -= dt*remove;
     }
 
+    /* Find good knots for spline */
     std::vector< std::vector<unsigned int> > knots;
     getknots(knots, min_delay, stim, dt, 
                 new_img->GetRequestedRegion().GetSize()[3]);

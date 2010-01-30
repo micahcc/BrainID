@@ -63,8 +63,8 @@ public:
      */
     BoldPF(const std::vector<aux::vector>& measurements, 
                 const std::vector<Activation>& activations,  double weightvar,
-                double longstep, unsigned int numparticles = 1000, 
-                double shortstep = 1./64);
+                double longstep, std::ostream* output, 
+                unsigned int numparticles = 1000, double shortstep = 1./64);
 
     /* Destructor */
     ~BoldPF();
@@ -108,7 +108,6 @@ private:
 
     //log output
     std::ostream* debug;
-    std::ofstream nullout;
 
     //resamplers
     indii::ml::filter::StratifiedParticleResampler resampler;
@@ -362,10 +361,10 @@ double bspoint(const std::vector<Activation>& act)
  */
 BoldPF::BoldPF(const std::vector<aux::vector>& measurements, 
             const std::vector<Activation>& activations,  double weightvar,
-            double longstep, unsigned int numparticles, double shortstep) : 
+            double longstep, std::ostream* output, unsigned int numparticles,
+            double shortstep) : 
             dt_l(longstep), dt_s(shortstep), 
             disctime_l(0), disctime_s(0), status(0), 
-            nullout("/dev/null"),
             measure(measurements), stim(activations), 
             ESS_THRESH(50)
 {
@@ -375,56 +374,6 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     
     using std::endl;
 
-//    /* get signals' mean */
-//    double signal_mean = 0;
-//    for(unsigned int ii = 0 ; ii < measurements.size() ; ii++) {
-//        for(unsigned int jj = 0 ; jj < measurements[ii].size() ; jj++) {
-//            signal_mean += measurements[ii][jj];
-//        }
-//    }
-//    signal_mean /= (measurements.size()*measurements.front().size());
-//
-//    /* get average activation level */
-//    double avg_act = 0;
-//    {
-//    double prev_time = 0;
-//    unsigned int i=0;
-//    for(i = 0 ; i < activations.size() && activations[i].time < 
-//                measurements.size()*longstep ; i++) {
-//        avg_act += activations[i].level*(activations[i].time - prev_time);
-//        prev_time = activations[i].time;
-//    }
-//    //correct for excess/short activations vector
-//    avg_act += activations[i-1].level*(measurements.size()*longstep
-//                - activations[i-1].time);
-//    avg_act /= (measurements.size()*longstep);
-//    fprintf(stderr, "Average activation level: %f\n", avg_act);
-//    }
-//
-//    double V_0_est = signal_mean/(avg_act*3);;
-//    double magnitude = signal_mean/(avg_act*128);
-//    fprintf(stderr, "Estimated V_0: %f\n", V_0_est);
-//    fprintf(stderr, "Weight Variance: %f\n", magnitude);
-
-//    {
-//    magnitude = bspoint(activations, longstep);
-//    unsigned int index = (unsigned int)magnitude/longstep + 2;
-//    if(measurements.size() < index) {
-//        std::cerr << "Measurement matrix is less than " << index << "long" << std::endl;
-//        throw (-2);
-//    }
-//    for(unsigned int i = 0 ; i < measurements[index].size() ; i++) {
-//        V_0_est += measurements[index][i];
-//    }
-//    
-//    V_0_est /= measurements[index].size();
-//    magnitude = V_0_est/10;
-//    std::cerr << "Variance: " << magnitude << std::endl;;
-//    V_0_est *= 200;
-//    std::cerr << "V_0 estimate: " << V_0_est << std::endl;
-//
-//    }
-    
     /* Initalize the model and filter*/
     aux::vector weight(measurements.front().size(), weightvar);
     model = new BoldModel(weight, false, measurements.front().size());
@@ -433,10 +382,7 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     filter = new indii::ml::filter::ParticleFilter<double>(model, tmp);
 
     /* initialize debug/output */
-    if(rank == 0)
-        debug = &std::cout;
-    else
-        debug = &nullout;
+    debug = output;
 
     /* 
      * Particles Setup 

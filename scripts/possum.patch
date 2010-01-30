@@ -1,0 +1,411 @@
+diff --git a/depend.mk b/depend.mk
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/possum.cc b/possum.cc
+index 67d6998..76ed653 100644
+--- a/possum.cc
++++ b/possum.cc
+@@ -69,6 +69,7 @@
+ 
+ #include <iostream>
+ #include <string>
++#include <vector>
+ #include <fstream>
+ #include <unistd.h>
+ 
+@@ -95,6 +96,254 @@ using namespace MISCMATHS;
+ using namespace Utilities;
+ //using namespace std;
+ 
++//HACK 
++namespace hack{
++//and should be the same x,y,z size as the 3d activation file given
++#include <sys/stat.h>
++
++/* Global Variables */
++bool use;
++const double internal_timestep = .001;
++
++//The hack nifti file should be length 9 in the 4th dimension, one for 
++//  each parameter in the following order:
++//  enum{TAU_0=0, ALPHA=1, E_0=2, V_0=3, TAU_S=4, TAU_F=5, EPSILON=6, A_1=7, A_2=8};
++const char* filename_img = "/tmp/possum_override.nii.gz";
++
++//The hack text file should be time/newlevel pairs, with a space between, 
++//  with each pair on a line
++const char* filename_txt = "/tmp/possum_override.txt";
++
++/* "u" A.K.A. input */
++/* Used to store input changes */
++struct Tuple
++{
++    double time;
++    double level;
++};
++
++std::vector<Tuple> input_vector;
++
++/* Other Data Structures */
++enum{TAU_0=0, ALPHA=1, E_0=2, V_0=3, TAU_S=4, TAU_F=5, EPSILON=6, A_1=7, A_2=8, PSIZE=9};
++struct State
++{
++    double S;
++    double F;
++    double V;
++    double Q;
++};
++
++/* Functions */
++void setup()
++{
++  struct stat buf;
++  int status = stat(filename_img, &buf);
++  
++  if(!status) {
++    cout << "Hack file found at " << filename_img << ", using" << endl;
++  } else {
++    cout << "Hack not file found at " << filename_img << endl;
++    cout << "If you don't know what this is about, ignore it" << endl;
++    use = false;
++    return ;
++  }
++
++  ifstream fin(filename_txt);
++  if(!fin.is_open()) {
++    cout << "Failed to find hack text file at " << filename_txt << endl;
++    cout << "If you don't know what this is about, ignore it" << endl;
++    use = false;
++    return ;
++  }
++  
++  char input[1024];
++  char* curr = NULL;
++  Tuple parsed;
++  cout << "Parsing activations" << endl;
++  double prevval = NAN;
++  double prevtime = NAN;
++  while(!fin.getline(input, 1024).eof()) {
++      parsed.time = strtod(input, &curr);
++      if(curr-input < 1) {
++        cout << "Line: |" << input << "| not valid, skipping" << endl;
++        continue;
++      }
++
++      parsed.level = strtod(curr, &curr);
++      if(curr-input < 3) {
++        cout << "Line: |" << input << "| not valid, skipping" << endl;
++        continue;
++      }
++
++      if(!(prevtime <= parsed.time)) {
++        cerr << "warning stimulus timeseries is non-increasing" << endl;
++      }
++   
++      if(!(parsed.level == prevval)) {
++        prevval = parsed.level;
++        input_vector.push_back(parsed);
++      }
++  }
++  fin.close();
++
++  cout << "Activation vector: " << endl;
++  for(size_t i = 0 ; i < input_vector.size() ; i++) {
++    cout << input_vector[i].time << "\t" << input_vector[i].level << endl;
++  }
++        
++  cout << "Hack note: " << ". => Cache Hit\n+ => Cache Miss" << endl;
++
++  use = true;
++}
++
++/*Performs readout from state, parameters*/
++double readout(State& state, double* params)
++{
++    return params[V_0]*(params[A_1]*(1-state.Q)-params[A_2]*(1-state.V));
++}
++
++int transition(State& state, double* params, double delta, double in)
++{
++    State change;
++    change.S = params[EPSILON]*in - state.S/params[TAU_S] - 
++                (state.F - 1.)/params[TAU_F];
++    change.F = state.S;
++    change.V = (state.F - pow(state.V, 1./params[ALPHA]))/params[TAU_0];
++    change.Q = (state.F*(1.-pow(1.-params[E_0],1./state.F))/params[E_0] -
++                state.Q/pow(state.V, 1.-1./params[ALPHA]))/params[TAU_0];
++    state.S += change.S*delta;
++    state.F += change.F*delta;
++    state.V += change.V*delta;
++    state.Q += change.Q*delta;
++    if(isinf(state.S) || isnan(state.S)) return -1;
++    if(isinf(state.F) || isnan(state.F)) return -2;
++    if(isinf(state.V) || isnan(state.V)) return -3;
++    if(isinf(state.Q) || isnan(state.Q)) return -4;
++    return 0;
++}
++
++bool use_cache = true;
++double hash(double* params)
++{
++    double tmp = params[0];
++    for(int i = 1 ; i < PSIZE ; i++) {
++        tmp *= params[i];
++    }
++    return tmp;
++}
++std::map<double, vector<double> > cache;
++
++/*Simulates an entire timeseries for a set of parameters
++  * levels is the output
++  * times is the times to sample the output
++  * length is the size of levels (output) and times vectors
++  * params_img is for xx, yy, zz (don't vary with time)
++  * b is the normalization from the loop in the main function
++*/
++void fill_activation4D_voxel(double* levels, double* times, size_t length, 
++      volume4D<double>& params_img, int xx, int yy, int zz, double b)
++{
++    //Fill params vector
++    double params[PSIZE];
++    for(int pp = 0 ; pp < PSIZE ; pp++) {
++        params[pp] = params_img(xx, yy, zz, pp);
++    }
++    
++    double hash_value = hash(params);
++
++    //check for cache hit, then fill with cached value if possible
++    if(use_cache && cache.count(hash_value) > 0) {
++        cout << ".";
++        vector<double>& timeseries = cache[hash_value];
++        for(size_t i = 0 ; i < timeseries.size() && i < length ; i++) {
++            levels[i] = timeseries[i]*b/(timeseries[i]+b);
++        }
++        return;
++    }
++    cout << "+" << endl;
++
++    //Set up simulation state, initialize
++    State state;
++    state.V = 1;
++    state.Q = 1;
++    state.F = 1;
++    state.S = 0;
++
++    //Counters/temps
++    double input = 0;
++    size_t sample_index = 0;
++    size_t input_index = 0;
++    double int_ts = internal_timestep;
++    double rt = 0;
++    double prev_rt = 0;
++
++    vector<double> timeseries(length);
++    for(size_t ii = 0 ; ii*int_ts < times[length-1]; ii++) {
++        prev_rt = rt;
++        rt = ii*int_ts; //"real" time
++
++        /*Update Input If there is a change for the current time*/
++        while(input_index < input_vector.size() && 
++                    input_vector[input_index].time <= rt) {
++            input = input_vector[input_index].level;
++            input_index++;
++        }
++
++        /*Update state variables*/
++        int res = transition(state, params, rt-prev_rt, input);
++        switch(res) {
++            case -1:
++                printf("Error in s at %f - %f\n", rt, prev_rt);
++                printf("State: V:%f Q:%f F:%f S:%f\n", state.V, state.Q, state.F, state.S);
++                printf("Params: TAU_0=%f, ALPHA=%f, E_0=%f, V_0=%f, TAU_S=%f, "
++                        "TAU_F=%f, EPSILON=%f, A_1=%f, A_2=%f\n", params[TAU_0], 
++                        params[ALPHA], params[E_0], params[V_0], params[TAU_S], 
++                        params[TAU_F], params[EPSILON], params[A_1], params[A_2]);
++                exit(res);
++            case -2:
++                printf("Error in f at %f - %f\n", rt, prev_rt);
++                printf("State: V:%f Q:%f F:%f S:%f\n", state.V, state.Q, state.F, state.S);
++                printf("Params: TAU_0=%f, ALPHA=%f, E_0=%f, V_0=%f, TAU_S=%f, "
++                        "TAU_F=%f, EPSILON=%f, A_1=%f, A_2=%f\n", params[TAU_0], 
++                        params[ALPHA], params[E_0], params[V_0], params[TAU_S], 
++                        params[TAU_F], params[EPSILON], params[A_1], params[A_2]);
++                exit(res);
++            case -3:
++                printf("Error in v at %f - %f\n", rt, prev_rt);
++                printf("State: V:%f Q:%f F:%f S:%f\n", state.V, state.Q, state.F, state.S);
++                printf("Params: TAU_0=%f, ALPHA=%f, E_0=%f, V_0=%f, TAU_S=%f, "
++                        "TAU_F=%f, EPSILON=%f, A_1=%f, A_2=%f\n", params[TAU_0], 
++                        params[ALPHA], params[E_0], params[V_0], params[TAU_S], 
++                        params[TAU_F], params[EPSILON], params[A_1], params[A_2]);
++                exit(res);
++            case -4:
++                printf("Error in q at %f - %f\n", rt, prev_rt);
++                printf("State: V:%f Q:%f F:%f S:%f\n", state.V, state.Q, state.F, state.S);
++                printf("Params: TAU_0=%f, ALPHA=%f, E_0=%f, V_0=%f, TAU_S=%f, "
++                        "TAU_F=%f, EPSILON=%f, A_1=%f, A_2=%f\n", params[TAU_0], 
++                        params[ALPHA], params[E_0], params[V_0], params[TAU_S], 
++                        params[TAU_F], params[EPSILON], params[A_1], params[A_2]);
++                exit(res);
++        }
++
++        /*If it is time to sample, do so*/
++        while(sample_index < length && times[sample_index] <= rt) {
++            timeseries[sample_index] = readout(state, params);
++            sample_index++;
++        }
++    }
++    
++    //fill in output
++    for(size_t i = 0 ; i < timeseries.size() && i < length ; i++)
++        levels[i] = timeseries[i]*b/(timeseries[i]+b);
++
++    //add to cache
++    cache[hash_value] = timeseries;
++}
++
++} //END HACK
++
+ string title="possum (Version 2.0)\nCopyright(c) 2007, University of Oxford (Ivana Drobnjak)";
+ string examples="possum -i <input phantom volume> -x <MR parameters matrix> -p <pulse> -f <RF slice profile> -m <motion file> -o <output signal matrix> [optional arguments]";
+ 
+@@ -394,7 +643,41 @@ int compute_volume(int argc, char *argv[])
+   double* timecourse_2=0;
+   double* activation4D_voxel;
+   int Nact;
+-  if (opt_activation.set()) {
++  if (hack::use){
++    cout<<"Hack mode"<<endl;
++    read_volume4DROI(activation4D,hack::filename_img,myid,0,0,0,Nxx,-1,-1,-1,numprocs,1,1,1);
++    cout <<"Pulse(1,1): " << pulse(1,1) << endl;
++
++    const double TMP = 16;
++    //if the spacing is verrry small, then increase it to 1/16
++    if(pulse(2, 1) - pulse(1,1) < 1./TMP) {
++        Nact = (int)(TMP*(pulse(pulse.Nrows(),1) - pulse(1,1))) + 2;
++        
++        //create/fill in timecourse
++        timecourse=new double[Nact];
++        for (int n=0;n<=Nact-1;n++){
++          timecourse[n]=n/TMP + pulse(1,1);
++          cout<<"sample: "<<n<<"@"<<timecourse[n]<<endl;
++        } 
++    //otherwise, just use the times from the pulse sequence
++    } else {
++        double tmp_val = NAN;
++        Nact = pulse.Nrows();
++        timecourse=new double[Nact];
++
++        //fill in timecourse, and check for increasing
++        for (int n=0;n<=Nact-1;n++){
++          timecourse[n]=pulse(n, 1);
++          
++          //check that its increasing
++          if(tmp_val > timecourse[n]) cerr << "Times nonincreasing!" << endl;
++          tmp_val = timecourse[n];
++          
++          cout<<"sample: "<<n<<"@"<<timecourse[n]<<endl;
++        }             
++    }
++    activation4D_voxel=new double[Nact];
++  } else if (opt_activation.set()) {
+     cout<<"3D activation mode"<<endl;
+     read_volumeROI(activation,opt_activation.value(),myid,0,0,Nxx,-1,-1,numprocs,1,1);
+     //read_volume(activation,opt_activation.value());
+@@ -579,7 +862,12 @@ int compute_volume(int argc, char *argv[])
+             if (phantom(xx,yy,zz,tt)!=0){
+               voxelcounter=voxelcounter+1;
+               double den=phantom(xx,yy,zz,tt)*RFrec(xx,yy,zz)*cxyz;
+-              if (opt_activation.set()) {
++              if (hack::use) {
++		  double b=tissue(tt+1,2);
++                  hack::fill_activation4D_voxel(activation4D_voxel, timecourse,
++                            Nact, activation4D, xx, yy, zz, b);
++	      }
++             else if (opt_activation.set()) {
+                 for (int n=0;n<=Nact-1;n++){
+ 		  double a=activation(xx,yy,zz)*timecourse_2[n];
+ 		  double b=tissue(tt+1,2);
+@@ -660,7 +948,12 @@ int compute_volume(int argc, char *argv[])
+               voxelcounter=voxelcounter+1;
+ 	      //cout<<"xx= "<<xx<<"; yy= "<<yy<<"; zz= "<<zz<<"; RFrec(xx,yy,zz)= "<<RFrec(xx,yy,zz)<<"; RFtrans(xx,yy,zz)= "<<RFtrans(xx,yy,zz)<<endl;
+ 	      double den=phantom(xx,yy,zz,tt)*RFrec(xx,yy,zz)*cxyz;
+-              if (opt_activation.set()) {
++              if (hack::use) {
++		  double b=tissue(tt+1,2);
++                  hack::fill_activation4D_voxel(activation4D_voxel, timecourse,
++                            Nact, activation4D, xx, yy, zz, b);
++	      }
++              else if (opt_activation.set()) {
+                 for (int n=0;n<=Nact-1;n++){
+                   double a=activation(xx,yy,zz)*timecourse_2[n];
+ 		  double b=tissue(tt+1,2);
+@@ -762,7 +1055,11 @@ int compute_volume(int argc, char *argv[])
+ 	    if (phantom(xx,yy,zz,tt)!=0){
+                 voxelcounter=voxelcounter+1;
+ 	        double den=phantom(xx,yy,zz,tt)*RFrec(xx,yy,zz)*cxyz;
+-                if (opt_activation.set()) {
++                if (hack::use) {
++	            double b=tissue(tt+1,2);
++                    hack::fill_activation4D_voxel(activation4D_voxel, timecourse, Nact, activation4D, xx, yy, zz, b);
++	        }
++                else if (opt_activation.set()) {
+                   for (int n=0;n<=Nact-1;n++){
+                     double a=activation(xx,yy,zz)*timecourse_2[n];
+ 		    double b=tissue(tt+1,2);
+@@ -875,7 +1172,11 @@ int compute_volume(int argc, char *argv[])
+             if (phantom(xx,yy,zz,tt)!=0){
+                 voxelcounter=voxelcounter+1;
+                 double den=phantom(xx,yy,zz,tt)*RFrec(xx,yy,zz)*cxyz;
+-                if (opt_activation.set()) {
++                if (hack::use) {
++	            double b=tissue(tt+1,2);
++                    hack::fill_activation4D_voxel(activation4D_voxel, timecourse, Nact, activation4D, xx, yy, zz, b);
++	        }
++                else if (opt_activation.set()) {
+                   for (int n=0;n<=Nact-1;n++){
+                     double a=activation(xx,yy,zz)*timecourse_2[n];
+ 		    double b=tissue(tt+1,2);
+@@ -949,6 +1250,7 @@ int compute_volume(int argc, char *argv[])
+ 
+ int main (int argc, char *argv[])
+ {
++  hack::setup();
+ 
+   Tracer tr("main");
+   OptionParser options(title, examples);
+@@ -998,5 +1300,6 @@ int main (int argc, char *argv[])
+ 
+   // Call the local functions
+   compute_volume(argc, argv);
++  cout << "End Cache Size: " << hack::cache.size() <<  endl;
+   return 0;
+ }
+diff --git a/possumfns.cc b/possumfns.cc
+index 7f88776..155a8d9 100644
+--- a/possumfns.cc
++++ b/possumfns.cc
+@@ -2093,7 +2093,7 @@ void voxel3(const double x,const double y,const double z,
+  }
+ }
+ ////////////////////////////////
+-void voxel4(const double x,const double y,double z, 
++void voxel4(const double x,const double y, const double z, 
+             const RowVector& tissue,const Matrix& H,
+             const int nreadp,const int v,
+             const double xdim,const double ydim,const double zdim,
+diff --git a/possumfns.h b/possumfns.h
+index 03d4b8f..04d83c9 100644
+--- a/possumfns.h
++++ b/possumfns.h
+@@ -11,9 +11,9 @@ using namespace NEWIMAGE;
+ void voxel4(const double x,const double y,const double z, 
+             const RowVector& tissue,const Matrix& H,const int nreadp,const int v,
+             const double xdim,const double ydim,const double zdim,
+-            const double* b0, const double* b0gxx,const double* b0gyy,const double* b0gzz,
++            const double* b0time, const double* b0xtime,const double* b0ytime,const double* b0ztime,
+             const double* b0timecourse,const int Nb0,
+-            const double b0, const double b0gxx,const double b0gyy,const double b0gzz, 
++            const double b0, const double b0x,const double b0y,const double b0z, 
+             const double* timecourse,const double* activation,const int Nact,
+ 	    const string outputname, const double* table_slcprof, const double dslcp, const double dslcp_first, const int Nslc,
+             const double den,const double RFtrans, const int opt_test,
