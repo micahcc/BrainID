@@ -176,7 +176,9 @@ RegularizedParticleResamplerMod<NT, KT>::resample_help(
     /* standardise particles */
     aux::matrix sd(covariance);
     aux::vector diag_v(sd.size1());
+    #ifndef NDEBUG
     int err = lapack::syev('V', 'U', sd, diag_v);
+    #endif
     assert(err == 0);
     bool verbose = false;
 

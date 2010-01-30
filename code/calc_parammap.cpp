@@ -90,7 +90,8 @@ int main(int argc, char* argv[])
     fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
 
     Image4DType::Pointer inImage;
-    Image4DType::Pointer outImage;
+    Image4DType::Pointer meanImage;
+    Image4DType::Pointer varImage;
 
     std::vector<Activation> input;
 
@@ -138,17 +139,23 @@ int main(int argc, char* argv[])
         input = std::vector<Activation>(1,tmp);
     }
 
-    /* Create Output Image */
+    /* Create Output Images */
     if(rank == 0) {
-        fprintf(stdout, "Creating Output Image\n");
-        outImage = Image4DType::New();
+        fprintf(stdout, "Creating Output Images\n");
         Image4DType::SizeType size;
         for(int i = 0 ; i < 3 ; i++)
             size[i] = inImage->GetRequestedRegion().GetSize()[i];
         size[3] = 7;
-
-        outImage->SetRegions(size);
-        outImage->Allocate();
+        
+        meanImage = Image4DType::New();
+        meanImage->SetRegions(size);
+        meanImage->Allocate();
+        meanImage->FillBuffer(0);
+        
+        varImage = Image4DType::New();
+        varImage->SetRegions(size);
+        varImage->Allocate();
+        varImage->FillBuffer(0);
     }
     
     unsigned int xlen = inImage->GetRequestedRegion().GetSize()[0];
@@ -158,9 +165,9 @@ int main(int argc, char* argv[])
     //Find the Tmean, and ignore elemnts whose mean is < 1
     Image3DType::Pointer mean = Tmean(inImage);
     if(rank == 0) {
-        itk::ImageFileWriter<Image4DType>::Pointer out = 
-                    itk::ImageFileWriter<Image4DType>::New();
-        out->SetInput(inImage);
+        itk::ImageFileWriter<Image3DType>::Pointer out = 
+                    itk::ImageFileWriter<Image3DType>::New();
+        out->SetInput(mean);
         out->SetFileName(a_output().append("/Tmean.nii.gz"));
         out->Update();
     }
@@ -187,7 +194,7 @@ int main(int argc, char* argv[])
             for(unsigned int zz = 0 ; zz < zlen ; zz++) {
                 Image3DType::IndexType index3 = {{xx, yy, zz}};
                 Image4DType::IndexType index4 = {{xx, yy, zz, 0}};
-                if(mean->GetPixel(index3) > 1) {
+                if(mean->GetPixel(index3) > 10) {
                     printf("%u %u %u\n", xx, yy, zz);
                     std::vector< aux::vector > meas(tlen);
                     fillvector(meas, inImage, index4);
@@ -196,8 +203,11 @@ int main(int argc, char* argv[])
                                 &std::cout, a_num_particles(), 1./a_divider());
                     boldpf.run();
                     aux::vector mu = boldpf.getDistribution().getDistributedExpectation();
-                    if(rank == 0) 
-                        outputVector(std::cerr, mu);
+                    aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
+                    if(rank == 0) {
+                        writeVector<double, aux::vector>(meanImage, 3, mu, index4);
+                        writeVector<double, aux::vector>(varImage, 3, diag(cov), index4);
+                    }
                 }
             }
         }

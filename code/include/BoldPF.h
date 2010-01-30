@@ -444,7 +444,9 @@ void BoldPF::gatherToNode(unsigned int dest, aux::DiracMixturePdf& input)
   std::vector< std::vector< DiracPdf > > xsFull;
   std::vector< aux::vector > wsFull;
 
+  #ifndef NDEBUG
   unsigned int initialSize = input.getDistributedSize();
+  #endif 
   aux::vector initialMu = input.getDistributedExpectation();
   aux::matrix initialCov = input.getDistributedCovariance();
 
