@@ -168,21 +168,31 @@ int main(int argc, char* argv[])
         itk::ImageFileWriter<Image3DType>::Pointer out = 
                     itk::ImageFileWriter<Image3DType>::New();
         out->SetInput(mean);
-        out->SetFileName(a_output().append("/Tmean.nii.gz"));
+        string tmean = a_output();
+        out->SetFileName(tmean.append("/Tmean.nii.gz"));
+        cout << "Writing: " << tmean << endl;
         out->Update();
     }
 
     //detrend, find percent difference, remove the 2 times (since they are typically
     // polluted    
-    if(rank == 0)
-        fprintf(stdout, "Conditioning FMRI Image\n");
+    ofstream ofile("/dev/null");
+    ostream* output;
+    if(rank == 0) {
+        output = &cout;
+        *output << "Conditioning FMRI Image" << endl;
+    } else {
+        output = &ofile;
+    }
     inImage = conditionFMRI(inImage, 20.0, input, a_timestep(), 2);
     /* Save detrended image */
     if(rank == 0) {
         itk::ImageFileWriter<Image4DType>::Pointer out = 
                     itk::ImageFileWriter<Image4DType>::New();
         out->SetInput(inImage);
-        out->SetFileName(a_output().append("/pfilter_input.nii.gz"));
+        string pfilter = a_output();
+        out->SetFileName(pfilter.append("/pfilter_input.nii.gz"));
+        cout << "Writing: " << pfilter << endl;
         out->Update();
     }
     
@@ -192,22 +202,40 @@ int main(int argc, char* argv[])
     for(unsigned int xx = 0 ; xx < xlen ; xx++) {
         for(unsigned int yy = 0 ; yy < ylen ; yy++) {
             for(unsigned int zz = 0 ; zz < zlen ; zz++) {
+                //initialize some variables
                 Image3DType::IndexType index3 = {{xx, yy, zz}};
                 Image4DType::IndexType index4 = {{xx, yy, zz, 0}};
+                int result = 0;
+                aux::vector mu(meanImage->GetRequestedRegion().GetSize()[3]);
+                aux::vector var(meanImage->GetRequestedRegion().GetSize()[3]);
+                
+                //debug
+                *output << xx << " " << yy << " " << zz << endl;
+                *output << xx*ylen*zlen + (zz+1)+yy*zlen << "/" << xlen*ylen*zlen << endl;
+                
+                //run particle filter
                 if(mean->GetPixel(index3) > 10) {
-                    printf("%u %u %u\n", xx, yy, zz);
                     std::vector< aux::vector > meas(tlen);
                     fillvector(meas, inImage, index4);
                     
                     BoldPF boldpf(meas, input, rms->GetPixel(index3), a_timestep(),
-                                &std::cout, a_num_particles(), 1./a_divider());
-                    boldpf.run();
-                    aux::vector mu = boldpf.getDistribution().getDistributedExpectation();
+                                output, a_num_particles(), 1./a_divider());
+                    result = boldpf.run();
+                    mu = boldpf.getDistribution().getDistributedExpectation();
                     aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
-                    if(rank == 0) {
-                        writeVector<double, aux::vector>(meanImage, 3, mu, index4);
-                        writeVector<double, aux::vector>(varImage, 3, diag(cov), index4);
+                    var = diag(cov);
+                }
+
+                //write the output
+                if(rank == 0) {
+                    if(result != 3) {
+                        for(unsigned int i = 0 ; i < mu.size() ; i++) 
+                            mu[i] = -1;
+                        for(unsigned int i = 0 ; i < var.size() ; i++)
+                            var[i] = -1;
                     }
+                    writeVector<double, aux::vector>(meanImage, 3, mu, index4);
+                    writeVector<double, aux::vector>(varImage, 3, var, index4);
                 }
             }
         }

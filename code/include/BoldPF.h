@@ -71,7 +71,7 @@ public:
     
     /* Primary Functions */
     int run(void* pass);
-    int pause() { return status = 2; };
+    int pause() { return status = PAUSED; };
 
     /* Accessors */
     int getNumParticles() const;
@@ -100,11 +100,13 @@ private:
     unsigned int disctime_l;
     unsigned int disctime_s;
 
-    //0, not started
-    //1, started
-    //2, started, but paused
-    //3, done
+    //-1, error
+    // 0, not started
+    // 1, started
+    // 2, started, but paused
+    // 3, done
     int status;
+    enum Status {ERROR=-1, UNSTARTED=0, RUNNING=1, PAUSED=2, DONE=3};
 
     //log output
     std::ostream* debug;
@@ -168,6 +170,10 @@ int BoldPF::run(void* pass = NULL)
 {
     using std::endl;
 
+    if(status == ERROR || status == RUNNING || status == DONE) {
+        return status;
+    }
+
     /* Initialize mpi */
 //    boost::mpi::communicator world;
 //    const unsigned int rank = world.rank();
@@ -191,11 +197,11 @@ int BoldPF::run(void* pass = NULL)
      * Run the particle filter either until we reach a predetermined end
      * time, or until we are done processing measurements.
      */
-     status = 1;
-     while(status == 1 && disctime_s*dt_s < dt_l*measure.size()) {
+     status = RUNNING;
+     while(status == RUNNING && disctime_s*dt_s < dt_l*measure.size()) {
         /* time */
         conttime = disctime_s*dt_s;
-        *debug << "."; 
+//        *debug << "."; 
         
         /* Update Input if there is any*/
         while(stim_index < stim.size() && stim[stim_index].time <= conttime) {
@@ -225,7 +231,8 @@ int BoldPF::run(void* pass = NULL)
             //inf/nan/neg
             if(isnan(ess) || isinf(ess)) {
                 *debug << endl << "Error! ESS was " << ess << endl;
-                return -1;
+                status = ERROR;
+                break;
             } 
             
             //time to resample
@@ -256,14 +263,14 @@ int BoldPF::run(void* pass = NULL)
 
     /* Check to see if algorith finished, otherwise it was paused */
     if(disctime_s*dt_s >= dt_l*measure.size()) {
-        status = 3;
+        status = DONE;
         if(call_points.end) 
             callback(this, pass);
     }
 
     *debug << "Stop time: "<< conttime << endl;
     
-    return 0;
+    return status;
 };
 
 bool isclose(double a, double b) 
@@ -364,7 +371,7 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
             double longstep, std::ostream* output, unsigned int numparticles,
             double shortstep) : 
             dt_l(longstep), dt_s(shortstep), 
-            disctime_l(0), disctime_s(0), status(0), 
+            disctime_l(0), disctime_s(0), status(UNSTARTED), 
             measure(measurements), stim(activations), 
             ESS_THRESH(50)
 {
