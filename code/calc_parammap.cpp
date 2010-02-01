@@ -90,13 +90,22 @@ int main(int argc, char* argv[])
     fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
 
     Image4DType::Pointer inImage;
-    Image4DType::Pointer meanImage;
-    Image4DType::Pointer varImage;
+    Image4DType::Pointer paramMuImg;
+    Image4DType::Pointer paramVarImg;
 
     std::vector<Activation> input;
 
     Image3DType::Pointer rms;
     Label3DType::Pointer mask;
+    Image4DType::SizeType outsize;
+    
+    ofstream ofile("/dev/null");
+    ostream* output;
+    if(rank == 0) {
+        output = &cout;
+    } else {
+        output = &ofile;
+    }
 
     /* Open up the input */
     try {
@@ -140,34 +149,31 @@ int main(int argc, char* argv[])
     }
 
     /* Create Output Images */
-    if(rank == 0) {
-        fprintf(stdout, "Creating Output Images\n");
-        Image4DType::SizeType size;
-        for(int i = 0 ; i < 3 ; i++)
-            size[i] = inImage->GetRequestedRegion().GetSize()[i];
-        size[3] = 7;
-        
-        meanImage = Image4DType::New();
-        meanImage->SetRegions(size);
-        meanImage->Allocate();
-        meanImage->FillBuffer(0);
-        
-        varImage = Image4DType::New();
-        varImage->SetRegions(size);
-        varImage->Allocate();
-        varImage->FillBuffer(0);
-    }
+    *output << "Creating Output Images" << endl;
+    for(int i = 0 ; i < 3 ; i++)
+        outsize[i] = inImage->GetRequestedRegion().GetSize()[i];
+    outsize[3] = 7;
+    
+    paramMuImg = Image4DType::New();
+    paramMuImg->SetRegions(outsize);
+    paramMuImg->Allocate();
+    paramMuImg->FillBuffer(0);
+    
+    paramVarImg = Image4DType::New();
+    paramVarImg->SetRegions(outsize);
+    paramVarImg->Allocate();
+    paramVarImg->FillBuffer(0);
     
     unsigned int xlen = inImage->GetRequestedRegion().GetSize()[0];
     unsigned int ylen = inImage->GetRequestedRegion().GetSize()[1];
     unsigned int zlen = inImage->GetRequestedRegion().GetSize()[2];
     unsigned int tlen = inImage->GetRequestedRegion().GetSize()[3];
     //Find the Tmean, and ignore elemnts whose mean is < 1
-    Image3DType::Pointer mean = Tmean(inImage);
+    Image3DType::Pointer tmeanImg = Tmean(inImage);
     if(rank == 0) {
         itk::ImageFileWriter<Image3DType>::Pointer out = 
                     itk::ImageFileWriter<Image3DType>::New();
-        out->SetInput(mean);
+        out->SetInput(tmeanImg);
         string tmean = a_output();
         out->SetFileName(tmean.append("/Tmean.nii.gz"));
         cout << "Writing: " << tmean << endl;
@@ -176,13 +182,6 @@ int main(int argc, char* argv[])
 
     //detrend, find percent difference, remove the 2 times (since they are typically
     // polluted    
-    ofstream ofile("/dev/null");
-    ostream* output;
-    if(rank == 0) {
-        output = &cout;
-    } else {
-        output = &ofile;
-    }
     *output << "Conditioning FMRI Image" << endl;
     inImage = conditionFMRI(inImage, 20.0, input, a_timestep(), 2);
     /* Save detrended image */
@@ -198,7 +197,7 @@ int main(int argc, char* argv[])
     
     //acquire rms
     rms = get_rms(inImage);
-
+    
     for(unsigned int xx = 0 ; xx < xlen ; xx++) {
         for(unsigned int yy = 0 ; yy < ylen ; yy++) {
             for(unsigned int zz = 0 ; zz < zlen ; zz++) {
@@ -208,42 +207,55 @@ int main(int argc, char* argv[])
                 int result = 0;
                 aux::vector mu;
                 aux::vector var;
-                
+
                 //debug
                 *output << xx << " " << yy << " " << zz << endl;
                 *output << xx*ylen*zlen + (zz+1)+yy*zlen << "/" << xlen*ylen*zlen << endl;
-                
+
                 //run particle filter
-                if(mean->GetPixel(index3) > 10) {
+                if(tmeanImg->GetPixel(index3) > 10) {
                     std::vector< aux::vector > meas(tlen);
                     fillvector(meas, inImage, index4);
-                    
+
                     BoldPF boldpf(meas, input, rms->GetPixel(index3), a_timestep(),
-                                output, a_num_particles(), 1./a_divider());
+                            output, a_num_particles(), 1./a_divider());
                     result = boldpf.run();
                     mu = boldpf.getDistribution().getDistributedExpectation();
                     aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
                     var = diag(cov);
                 }
 
-                //write the output
-                if(rank == 0) {
-                    if(result != 3) {
-                        mu = aux::vector(meanImage->GetRequestedRegion().GetSize()[3], -1);
-                        var = aux::vector(meanImage->GetRequestedRegion().GetSize()[3], -1);
-//                        for(unsigned int i = 0 ; i < mu.size() ; i++) 
-//                            mu[i] = -1;
-//                        for(unsigned int i = 0 ; i < var.size() ; i++)
-//                            var[i] = -1;
-                    }
-                    writeVector<double, aux::vector>(meanImage, 3, mu, index4);
-                    writeVector<double, aux::vector>(varImage, 3, var, index4);
+                //save the output
+                if(result != 3) {
+                    mu = aux::vector(paramMuImg->GetRequestedRegion().GetSize()[3], -1);
+                    var = aux::vector(paramMuImg->GetRequestedRegion().GetSize()[3], -1);
                 }
+                writeVector<double, aux::vector>(paramMuImg, 3, mu, index4);
+                writeVector<double, aux::vector>(paramVarImg, 3, var, index4);
             }
         }
     }
+    
+    //write final output
+    if(rank == 0) {
+        itk::ImageFileWriter<Image4DType>::Pointer out1 = 
+                    itk::ImageFileWriter<Image4DType>::New();
+        out1->SetInput(paramMuImg);
+        string tmp1 = a_output();
+        out1->SetFileName(tmp1.append("/param_exp.nii.gz"));
+        cout << "Writing: " << tmp1 << endl;
+        out1->Update();
+
+        itk::ImageFileWriter<Image4DType>::Pointer out2 = 
+                    itk::ImageFileWriter<Image4DType>::New();
+        out2->SetInput(paramVarImg);
+        string tmp2 = a_output();
+        out2->SetFileName(tmp2.append("/param_var.nii.gz"));
+        cout << "Writing: " << tmp2 << endl;
+        out2->Update();
+    }
                 
-  return 0;
+    return 0;
 
 }
 
