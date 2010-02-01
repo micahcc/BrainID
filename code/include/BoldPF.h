@@ -80,6 +80,8 @@ public:
     aux::DiracMixturePdf& getDistribution();
     int getStatus();
 
+    BoldModel& getModel() { return *model; };
+
     void setCallBack(const CallPoints& cpt, CallBackFunction cback)
     {
         callback = cback;

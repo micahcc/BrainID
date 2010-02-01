@@ -52,6 +52,7 @@ ADD_EXECUTABLE(makesine makesine.cpp)
 #ADD_EXECUTABLE(actmap activate_map.cpp)
 #ADD_EXECUTABLE(mean_filter mean_filter.cpp)
 ADD_EXECUTABLE(make_param_image make_param_image.cpp)
+ADD_EXECUTABLE(parammap_eval parammap_eval.cpp)
 
 TARGET_LINK_LIBRARIES(prune modNiftiImageIO 
     ITKAlgorithms ITKBasicFilters gsl gslcblas
@@ -74,6 +75,7 @@ TARGET_LINK_LIBRARIES(brainid tools gfortran modNiftiImageIO blas lapack mpi
 TARGET_LINK_LIBRARIES(calc_parammap segment tools gfortran modNiftiImageIO blas lapack mpi 
     boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO mpi gsl gslcblas dysii itkvnl itkvcl vullib segment)
+TARGET_LINK_LIBRARIES(parammap_eval modNiftiImageIO ITKIO ITKCommon vullib tools)
 TARGET_LINK_LIBRARIES(boldgen tools gfortran blas lapack modNiftiImageIO boost_mpi 
     BoldModel ITKAlgorithms ITKBasicFilters 
     ITKCommon ITKIO gsl gslcblas mpi dysii itkvnl itkvcl vullib)

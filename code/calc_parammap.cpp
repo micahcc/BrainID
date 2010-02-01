@@ -54,7 +54,6 @@ void fillvector(std::vector< aux::vector >& output, Image4DType* input,
         ++iter;
         i++;
     }
-    std::cerr << "Copied " << i << " doubles into vector" << std::endl;
 }
             
 
@@ -83,6 +82,9 @@ int main(int argc, char* argv[])
     if(rank == 0) {
         vul_arg_display_usage("No Warning, just echoing");
     }
+
+    const unsigned int BASICPARAMS = 7;
+    const unsigned int STATICPARAMS = 2;
 
     ///////////////////////////////////////////////////////////////////////////////
     //Done Parsing, starting main part of code
@@ -152,7 +154,7 @@ int main(int argc, char* argv[])
     *output << "Creating Output Images" << endl;
     for(int i = 0 ; i < 3 ; i++)
         outsize[i] = inImage->GetRequestedRegion().GetSize()[i];
-    outsize[3] = 7;
+    outsize[3] = BASICPARAMS + STATICPARAMS;
     
     paramMuImg = Image4DType::New();
     paramMuImg->SetRegions(outsize);
@@ -207,6 +209,7 @@ int main(int argc, char* argv[])
                 int result = 0;
                 aux::vector mu;
                 aux::vector var;
+                aux::vector a_values;
 
                 //debug
                 *output << xx << " " << yy << " " << zz << endl;
@@ -223,6 +226,9 @@ int main(int argc, char* argv[])
                     mu = boldpf.getDistribution().getDistributedExpectation();
                     aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
                     var = diag(cov);
+                
+                    a_values[0] = boldpf.getModel().getA1();
+                    a_values[1] = boldpf.getModel().getA2();
                 }
 
                 //save the output
@@ -230,8 +236,14 @@ int main(int argc, char* argv[])
                     mu = aux::vector(paramMuImg->GetRequestedRegion().GetSize()[3], -1);
                     var = aux::vector(paramMuImg->GetRequestedRegion().GetSize()[3], -1);
                 }
+                //write the calculated expected value/variance of parameters
                 writeVector<double, aux::vector>(paramMuImg, 3, mu, index4);
                 writeVector<double, aux::vector>(paramVarImg, 3, var, index4);
+
+                //write a_1 and a_2
+                index4[3] = BASICPARAMS;
+                writeVector<double, aux::vector>(paramVarImg, 3, aux::vector(2,0), index4);
+                writeVector<double, aux::vector>(paramMuImg, 3, a_values, index4);
             }
         }
     }

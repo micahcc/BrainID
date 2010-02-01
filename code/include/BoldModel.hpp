@@ -82,6 +82,9 @@ public:
         return (name < (int)GVAR_SIZE) ? name : index*LVAR_SIZE + name;
     };
 
+    double getA1() {return A1;};
+    double getA2() {return A2;};
+
 private:
     //the standard deviations for the parameters theta, which are
     //theoretically constant for the whole volume
