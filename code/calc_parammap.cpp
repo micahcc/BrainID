@@ -100,6 +100,8 @@ int main(int argc, char* argv[])
     Image3DType::Pointer rms;
     Label3DType::Pointer mask;
     Image4DType::SizeType outsize;
+
+    string tmp;
     
     ofstream ofile("/dev/null");
     ostream* output;
@@ -172,14 +174,17 @@ int main(int argc, char* argv[])
     unsigned int tlen = inImage->GetRequestedRegion().GetSize()[3];
     //Find the Tmean, and ignore elemnts whose mean is < 1
     Image3DType::Pointer tmeanImg = Tmean(inImage);
-    if(rank == 0) {
+    if(rank == 0) try {
         itk::ImageFileWriter<Image3DType>::Pointer out = 
                     itk::ImageFileWriter<Image3DType>::New();
         out->SetInput(tmeanImg);
-        string tmean = a_output();
-        out->SetFileName(tmean.append("/Tmean.nii.gz"));
-        cout << "Writing: " << tmean << endl;
+        tmp = a_output();
+        out->SetFileName(tmp.append("/Tmean.nii.gz"));
+        cout << "Writing: " << tmp << endl;
         out->Update();
+    } catch(itk::ExceptionObject) {
+        cerr << "Error opening " << tmp << endl;
+        exit(-3);
     }
 
     //detrend, find percent difference, remove the 2 times (since they are typically
@@ -187,14 +192,17 @@ int main(int argc, char* argv[])
     *output << "Conditioning FMRI Image" << endl;
     inImage = conditionFMRI(inImage, 20.0, input, a_timestep(), 2);
     /* Save detrended image */
-    if(rank == 0) {
+    if(rank == 0) try {
         itk::ImageFileWriter<Image4DType>::Pointer out = 
                     itk::ImageFileWriter<Image4DType>::New();
         out->SetInput(inImage);
-        string pfilter = a_output();
-        out->SetFileName(pfilter.append("/pfilter_input.nii.gz"));
-        cout << "Writing: " << pfilter << endl;
+        tmp = a_output();
+        out->SetFileName(tmp.append("/pfilter_input.nii.gz"));
+        cout << "Writing: " << tmp << endl;
         out->Update();
+    } catch(itk::ExceptionObject) {
+        cerr << "Error opening " << tmp << endl;
+        exit(-4);
     }
     
     //acquire rms
