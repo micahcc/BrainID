@@ -217,7 +217,7 @@ int main(int argc, char* argv[])
                 int result = 0;
                 aux::vector mu;
                 aux::vector var;
-                aux::vector a_values;
+                aux::vector a_values(2);
 
                 //debug
                 *output << xx << " " << yy << " " << zz << endl;
@@ -241,8 +241,8 @@ int main(int argc, char* argv[])
 
                 //save the output
                 if(result != 3) {
-                    mu = aux::vector(paramMuImg->GetRequestedRegion().GetSize()[3], -1);
-                    var = aux::vector(paramMuImg->GetRequestedRegion().GetSize()[3], -1);
+                    mu = aux::vector(BASICPARAMS, -1);
+                    var = aux::vector(BASICPARAMS, -1);
                 }
                 //write the calculated expected value/variance of parameters
                 writeVector<double, aux::vector>(paramMuImg, 3, mu, index4);
@@ -250,8 +250,8 @@ int main(int argc, char* argv[])
 
                 //write a_1 and a_2
                 index4[3] = BASICPARAMS;
-                writeVector<double, aux::vector>(paramVarImg, 3, aux::vector(2,0), index4);
                 writeVector<double, aux::vector>(paramMuImg, 3, a_values, index4);
+                writeVector<double, aux::vector>(paramVarImg, 3, aux::vector(2,0), index4);
             }
         }
     }
