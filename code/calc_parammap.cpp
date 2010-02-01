@@ -180,10 +180,10 @@ int main(int argc, char* argv[])
     ostream* output;
     if(rank == 0) {
         output = &cout;
-        *output << "Conditioning FMRI Image" << endl;
     } else {
         output = &ofile;
     }
+    *output << "Conditioning FMRI Image" << endl;
     inImage = conditionFMRI(inImage, 20.0, input, a_timestep(), 2);
     /* Save detrended image */
     if(rank == 0) {
@@ -206,8 +206,8 @@ int main(int argc, char* argv[])
                 Image3DType::IndexType index3 = {{xx, yy, zz}};
                 Image4DType::IndexType index4 = {{xx, yy, zz, 0}};
                 int result = 0;
-                aux::vector mu(meanImage->GetRequestedRegion().GetSize()[3]);
-                aux::vector var(meanImage->GetRequestedRegion().GetSize()[3]);
+                aux::vector mu;
+                aux::vector var;
                 
                 //debug
                 *output << xx << " " << yy << " " << zz << endl;
@@ -229,10 +229,12 @@ int main(int argc, char* argv[])
                 //write the output
                 if(rank == 0) {
                     if(result != 3) {
-                        for(unsigned int i = 0 ; i < mu.size() ; i++) 
-                            mu[i] = -1;
-                        for(unsigned int i = 0 ; i < var.size() ; i++)
-                            var[i] = -1;
+                        mu = aux::vector(meanImage->GetRequestedRegion().GetSize()[3], -1);
+                        var = aux::vector(meanImage->GetRequestedRegion().GetSize()[3], -1);
+//                        for(unsigned int i = 0 ; i < mu.size() ; i++) 
+//                            mu[i] = -1;
+//                        for(unsigned int i = 0 ; i < var.size() ; i++)
+//                            var[i] = -1;
                     }
                     writeVector<double, aux::vector>(meanImage, 3, mu, index4);
                     writeVector<double, aux::vector>(varImage, 3, var, index4);

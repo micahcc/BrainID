@@ -33,13 +33,13 @@ int main (int argc, char** argv)
 //    cout << "Manually Printing" << endl;
 
     for(size_t i=0 ; i<keys.size() ; i++) {
-        double tmpd;
-        float tmpf;
-        string tmps;
-        int tmpi;
-        unsigned int tmpu;
-        long tmpl;
-        size_t tmpz;
+        double tmpd = 0;
+        float tmpf = 0;
+        string tmps = 0;
+        int tmpi = 0;
+        unsigned int tmpu = 0;
+        long tmpl = 0;
+        size_t tmpz = 0;
         if(dict[keys[i]]->GetMetaDataObjectTypeInfo() == typeid(tmpd)) {
             itk::ExposeMetaData(dict, keys[i], tmpd);
             cout << keys[i] << " -> " << tmpd << endl;
