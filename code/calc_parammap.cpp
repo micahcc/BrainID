@@ -26,6 +26,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <ctime>
 
 #include <vcl_list.h>
 #include <vul/vul_arg.h>
@@ -209,6 +210,7 @@ int main(int argc, char* argv[])
     //acquire rms
     rms = get_rms(inImage);
     
+    clock_t prev = clock();
     for(unsigned int xx = 0 ; xx < xlen ; xx++) {
         for(unsigned int yy = 0 ; yy < ylen ; yy++) {
             for(unsigned int zz = 0 ; zz < zlen ; zz++) {
@@ -226,7 +228,7 @@ int main(int argc, char* argv[])
 
                 //run particle filter, and retry with i times as many particles
                 //as the the initial number if it fails
-                for(int i = 0 ; tmeanImg->GetPixel(index3) > 10 && 
+                for(unsigned int i = 0 ; tmeanImg->GetPixel(index3) > 10 && 
                             result != BoldPF::DONE && i < RETRIES; i++) { 
                     std::vector< aux::vector > meas(tlen);
                     fillvector(meas, inImage, index4);
@@ -254,7 +256,15 @@ int main(int argc, char* argv[])
                 //write a_1 and a_2
                 index4[3] = BASICPARAMS;
                 writeVector<double, aux::vector>(paramMuImg, 3, a_values, index4);
-                writeVector<double, aux::vector>(paramVarImg, 3, aux::vector(2,0), index4);
+                writeVector<double, aux::vector>(paramVarImg, 3, aux::vector(2,0),
+                            index4);
+            
+                clock_t tmp = clock();
+                cerr << "Elapsed: " << tmp*CLOCKS_PER_SEC << " Remaining: " 
+                            << (tmp-prev)*CLOCKS_PER_SEC/3600.*
+                            (xlen*ylen*zlen - xx*ylen*zlen + (zz+1)+yy*zlen) 
+                            << endl;
+                prev = tmp;
             }
         }
     }
