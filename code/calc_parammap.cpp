@@ -85,6 +85,7 @@ int main(int argc, char* argv[])
 
     const unsigned int BASICPARAMS = 7;
     const unsigned int STATICPARAMS = 2;
+    const unsigned int RETRIES = 3;
 
     ///////////////////////////////////////////////////////////////////////////////
     //Done Parsing, starting main part of code
@@ -223,13 +224,15 @@ int main(int argc, char* argv[])
                 *output << xx << " " << yy << " " << zz << endl;
                 *output << xx*ylen*zlen + (zz+1)+yy*zlen << "/" << xlen*ylen*zlen << endl;
 
-                //run particle filter
-                if(tmeanImg->GetPixel(index3) > 10) {
+                //run particle filter, and retry with i times as many particles
+                //as the the initial number if it fails
+                for(int i = 1 ; tmeanImg->GetPixel(index3) > 10 && 
+                            result != BoldPF::DONE && i <= RETRIES; i++) { 
                     std::vector< aux::vector > meas(tlen);
                     fillvector(meas, inImage, index4);
 
                     BoldPF boldpf(meas, input, rms->GetPixel(index3), a_timestep(),
-                            output, a_num_particles(), 1./a_divider());
+                            output, a_num_particles()*i, 1./a_divider());
                     result = boldpf.run();
                     mu = boldpf.getDistribution().getDistributedExpectation();
                     aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
@@ -240,7 +243,7 @@ int main(int argc, char* argv[])
                 }
 
                 //save the output
-                if(result != 3) {
+                if(result != BoldPF::DONE) {
                     mu = aux::vector(BASICPARAMS, -1);
                     var = aux::vector(BASICPARAMS, -1);
                 }

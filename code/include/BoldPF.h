@@ -43,6 +43,7 @@ class BoldPF
 public:
     /* Types */
     typedef indii::ml::filter::ParticleFilter<double> Filter;
+    enum Status {ERROR=-1, UNSTARTED=0, RUNNING=1, PAUSED=2, DONE=3};
     
     /* Callback types */
     struct CallPoints{
@@ -108,7 +109,6 @@ private:
     // 2, started, but paused
     // 3, done
     int status;
-    enum Status {ERROR=-1, UNSTARTED=0, RUNNING=1, PAUSED=2, DONE=3};
 
     //log output
     std::ostream* debug;
