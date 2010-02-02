@@ -226,13 +226,13 @@ int main(int argc, char* argv[])
 
                 //run particle filter, and retry with i times as many particles
                 //as the the initial number if it fails
-                for(int i = 1 ; tmeanImg->GetPixel(index3) > 10 && 
-                            result != BoldPF::DONE && i <= RETRIES; i++) { 
+                for(int i = 0 ; tmeanImg->GetPixel(index3) > 10 && 
+                            result != BoldPF::DONE && i < RETRIES; i++) { 
                     std::vector< aux::vector > meas(tlen);
                     fillvector(meas, inImage, index4);
 
                     BoldPF boldpf(meas, input, rms->GetPixel(index3), a_timestep(),
-                            output, a_num_particles()*i, 1./a_divider());
+                            output, a_num_particles()*(1<<i), 1./a_divider());
                     result = boldpf.run();
                     mu = boldpf.getDistribution().getDistributedExpectation();
                     aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
