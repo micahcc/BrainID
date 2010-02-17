@@ -21,7 +21,7 @@ Image4DType::Pointer pruneFMRI(const Image4DType::Pointer fmri_img,
             unsigned int remove);
 
 Image4DType::Pointer deSpline(const Image4DType::Pointer fmri_img,
-            double min_delay, std::vector<Activation>& stim, double dt);
+            unsigned int numknots, std::vector<Activation>& stim, double dt);
 
 Image4DType::Pointer summ(const Image4DType::Pointer fmri_img, 
             const Label3DType::Pointer labelmap, std::list<LabelType>& sections);
@@ -54,7 +54,7 @@ double get_average(const Image4DType::Pointer fmri_img,
         const Label3DType::Pointer labelmap);
 
 Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img,
-            const std::vector< std::vector<unsigned int> >& knots);
+            const std::vector<unsigned int>& knots);
 
 Image3DType::Pointer get_average(const Image4DType::Pointer fmri_img);
 Image3DType::Pointer get_variance(const Image4DType::Pointer fmri_img);

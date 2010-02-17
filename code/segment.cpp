@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <iomanip>
 #include <vector>
+#include <list>
 
 #include <itkImageFileWriter.h>
 #include <itkGDCMImageIO.h>
@@ -449,7 +450,7 @@ int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType inde
 };
 
 int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType index, 
-            const std::vector< std::vector<unsigned int> >& knots, 
+            const std::vector< unsigned int >& knots, 
             Image4DType::Pointer output)
 {
     gsl_interp_accel *acc = gsl_interp_accel_alloc();
@@ -459,15 +460,13 @@ int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType inde
     double level[knots.size()];
 
     for(unsigned int ii = 0 ; ii < knots.size() ; ii++) {
-        xpos[ii] = 0;
+        xpos[ii] = knots[ii];
         level[ii] = 0;
-        for(unsigned int jj = 0 ; jj < knots[ii].size() ; jj++) {
-            xpos[ii] += knots[ii][jj];
-            index[3] = knots[ii][jj];
+        for(unsigned int jj = -1 ; jj <= 1 ; jj++) {
+            index[3] = knots[ii];
             level[ii] += fmri_img->GetPixel(index);
         }
-        xpos[ii] /= knots[ii].size();
-        level[ii] /= knots[ii].size();
+        level[ii] /= 3.;
     }
 
 //    for(unsigned int ii = 0 ; ii < knots.size() ; ii++){
@@ -486,61 +485,100 @@ int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType inde
     return 0;
 }
 
-void getknots(std::vector< std::vector<unsigned int> >& knots, double min_delay, 
-            std::vector<Activation>& stim, double dt, unsigned int length)
+bool compare_l(Activation A, Activation B)
 {
-    //simplify activation vector to only level changes, and filter our
-    //times where level changes rapidly
-    double prev_l = stim[0].level;
-    double prev_t = -min_delay;
-    //generates list of [0, a), [b, c), [d, e) periods
-    for(unsigned int i = 0; i < stim.size() ; i++) { 
-        if(stim[i].level != prev_l) { //trigger
-            if(stim[i].time - prev_t > min_delay) {
-                //translate times to elements
-                unsigned int start = (unsigned int)(prev_t + min_delay+.5)/dt;
-                unsigned int stop = (unsigned int)(stim[i].time + .5)/dt;
-//                fprintf(stderr, "%f - %f: %u - %u\n", prev_t + min_delay, 
-//                            stim[i].time, start, stop);
+    return A.level < B.level;
+}
 
-                std::vector<unsigned int> tmp;
-                for(unsigned int i = start; i <= stop && i < length; i++) {
-                    tmp.push_back(i);
-                }
-                if(start < length)
-                    knots.push_back(tmp);
-            }
-            prev_t = stim[i].time;
-        } 
+bool compare_t(Activation A, Activation B)
+{
+    return A.time < B.time;
+}
+
+
+void getknots(std::vector<double>& knots, unsigned int num, 
+            std::vector<Activation>& stim)
+{
+    std::list<Activation> fifo;
+    std::list<Activation> mins;
+    std::vector<Activation>::iterator it = stim.begin();
+    double frame_begin = it->time;
+    double sum_prev_prev = 1;
+    double sum_prev = 0;
+    double sum = 0;
+    double time_prev = it->time;
+    while(it->time - frame_begin < 10) {
+        sum += ((it+1)->time-it->time)*(it->level);
+        fifo.push_front(*it);
+        it++;
+    }
+    sum -= (it-1)->level*(it->time-10);
+
+    Activation tmp;
+
+    while(fifo.size() != 1 || it != stim.end()) {
+        printf("Sums: %f %f %f\n", sum_prev_prev, sum_prev, sum);
+        for(std::list<Activation>::iterator tmpit = fifo.begin(); 
+                    tmpit != fifo.end(); tmpit++) {
+            printf("\t%f, %f\n", tmpit->time, tmpit->level);
+        }
+
+        if(sum > sum_prev && sum_prev < sum_prev_prev) {
+            tmp.time = time_prev;
+            tmp.level = sum_prev;
+            mins.push_back(tmp);
+        }
+
+        sum_prev_prev = sum_prev;
+        sum_prev = sum;
+        time_prev = fifo.back().time+10;
+
+        std::list<Activation>::reverse_iterator sec = ++fifo.rbegin();
+        if(it != stim.end() && it->time - fifo.back().time - 10 < 
+                    sec->time - fifo.back().time) {
+            double delta = it->time - fifo.back().time - 10;
+            sum -= fifo.back().level*delta;
+            sum += delta*fifo.front().level;
+            fifo.back().time += delta;
+            fifo.push_front(*it);
+            it++;
+        } else {
+            double delta = sec->time - fifo.back().time;
+            sum -= fifo.back().level*delta;
+            sum += delta*fifo.front().level;
+            fifo.pop_back();
+        }
     }
 
-    //if the stim runs short from the length, then add knots for the end period
-    if((length-1)*dt - prev_t > min_delay) {
-        //translate times to elements
-        unsigned int start = (unsigned int)(prev_t + min_delay+.5)/dt;
-        unsigned int stop = length-1;
-//        fprintf(stderr, "%f - %f: %u - %u\n", prev_t + min_delay, 
-//                    (length-1)*dt, start, stop);
-
-        std::vector<unsigned int> tmp;
-        for(unsigned int i = start; i <= stop && i < length; i++) {
-            tmp.push_back(i);
-        }
-        if(start < length)
-            knots.push_back(tmp);
+    //sort to shake out the lowest level areas
+    mins.sort(compare_l);
+    
+    //debug
+    fprintf(stderr, "Result:\n");
+    for(std::list<Activation>::iterator tmpit = mins.begin(); 
+            tmpit != mins.end(); tmpit++) {
+        printf("\t%f, %f\n", tmpit->time, tmpit->level);
     }
     
-    fprintf(stderr, "Knots:\n");
-    for(unsigned int i = 0 ; i < knots.size() ; i++) {
-        for(unsigned int j = 0 ; j < knots[i].size(); j++) {
-            fprintf(stderr, "%u, ", knots[i][j]);
-        }
-        fprintf(stderr,"\n");
+    //find the first element to remove, then remove all elements beyond num
+    std::list<Activation>::iterator tmpit = mins.begin();
+    for(unsigned int i = 0 ; i <= num ;i++) {
+        tmpit++;
+    }
+    mins.erase(tmpit, mins.end());
+
+    //sort by time, then place into knots vector
+    mins.sort(compare_t);
+    knots.resize(num);
+    tmpit = mins.begin();
+    for(unsigned int i = 0 ; i < knots.size() ;i++) {
+        knots[i] = tmpit->time;
+        tmpit++;
     }
 }
 
 Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img,
-            const std::vector< std::vector<unsigned int> >& knots)
+            const std::vector<unsigned int>& knots)
             
 {
     Image4DType::Pointer outimage = Image4DType::New();
@@ -573,10 +611,11 @@ Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img,
 Image4DType::Pointer normalizeByVoxel(const Image4DType::Pointer fmri_img,
             const Label3DType::Pointer mask, int nknots)
 {
-    std::vector< std::vector<unsigned int> > knots(nknots);
+    fprintf(stderr, "Warning normalizeByVoxel is deprecated\n");
+    std::vector<unsigned int> knots(nknots);
     unsigned int size = fmri_img->GetRequestedRegion().GetSize()[3];
     for(unsigned int i = 0 ; i < size; i++) {
-        knots[i*nknots/size].push_back(i);
+        knots[i] = i*nknots/size;
     }
 
     Image4DType::Pointer spline = getspline(fmri_img, knots);
@@ -1232,14 +1271,17 @@ Image4DType::Pointer pruneFMRI(const Image4DType::Pointer fmri_img,
 
 /* Uses knots at points with at least a 15 second break */
 Image4DType::Pointer deSpline(const Image4DType::Pointer fmri_img,
-            double min_delay, std::vector<Activation>& stim, double dt)
+            unsigned int numknots, std::vector<Activation>& stim, double dt)
 {
     /* Find good knots for spline */
-    std::vector< std::vector<unsigned int> > knots;
-    getknots(knots, min_delay, stim, dt, 
-                fmri_img->GetRequestedRegion().GetSize()[3]);
-
-    Image4DType::Pointer spline = getspline(fmri_img, knots);
+    std::vector<double> knots_t;
+    getknots(knots_t, numknots, stim);
+    
+    std::vector<unsigned int> knots_i(knots_t.size());
+    for(unsigned int i = 0 ; i < knots_t.size() ; i++) 
+        knots_i[i] = (unsigned int)knots_t[i]/dt;
+        
+    Image4DType::Pointer spline = getspline(fmri_img, knots_i);
     
     {
     itk::ImageFileWriter< Image4DType >::Pointer writer = 

@@ -261,7 +261,7 @@ int main(int argc, char* argv[])
     } else {
         *output << "De-trending, then dividing by mean" << endl;
         method = BoldPF::DIRECT;
-        inImage = deSpline(inImage, 10.0, input, a_timestep());
+        inImage = deSpline(inImage, 6, input, a_timestep());
     }
 
     /* Save detrended image */
