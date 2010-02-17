@@ -453,24 +453,27 @@ int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType inde
             const std::vector< unsigned int >& knots, 
             Image4DType::Pointer output)
 {
-    gsl_interp_accel *acc = gsl_interp_accel_alloc();
-    gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, knots.size());
+    static gsl_interp_accel *acc = gsl_interp_accel_alloc();
+    static gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, knots.size());
 
     double xpos[knots.size()];
     double level[knots.size()];
-
     for(unsigned int ii = 0 ; ii < knots.size() ; ii++) {
         xpos[ii] = knots[ii];
         level[ii] = 0;
-        for(unsigned int jj = -1 ; jj <= 1 ; jj++) {
-            index[3] = knots[ii];
+        for(int jj = -1 ; jj <= 1; jj++) {
+            index[3] = knots[ii]+jj;
             level[ii] += fmri_img->GetPixel(index);
+//            printf("|%f|", level[ii]);
         }
         level[ii] /= 3.;
+        
+//        printf("Index: %lu %lu %lu %lu %f\n", index[0],index[1],index[2],index[3],
+//                    fmri_img->GetPixel(index));
     }
 
 //    for(unsigned int ii = 0 ; ii < knots.size() ; ii++){
-//        fprintf(stderr, "%f => %f\n", xpos[ii], level[ii]);
+//        printf("%f => %f\n", xpos[ii], level[ii]);
 //    }
 
     itk::ImageLinearIteratorWithIndex< Image4DType > 
@@ -496,7 +499,7 @@ bool compare_t(Activation A, Activation B)
 }
 
 
-void getknots(std::vector<double>& knots, unsigned int num, 
+void getknots(std::list<double>& knots, unsigned int num, 
             std::vector<Activation>& stim)
 {
     const double RANGE = 20;
@@ -519,7 +522,6 @@ void getknots(std::vector<double>& knots, unsigned int num,
 
     while(fifo.size() != 1 || it != stim.end()) {
         if(sum > sum_prev && sum_prev <= sum_prev_prev) {
-            printf("Adding: %f %f\n", time_prev, sum_prev);
             tmp.time = time_prev;
             tmp.level = sum_prev;
             mins.push_back(tmp);
@@ -549,29 +551,37 @@ void getknots(std::vector<double>& knots, unsigned int num,
 
     //sort to shake out the lowest level areas
     mins.sort(compare_l);
-    
-    //debug
-    printf("Result:\n");
-    for(std::list<Activation>::iterator tmpit = mins.begin(); 
-            tmpit != mins.end(); tmpit++) {
-        printf("\t%f, %f\n", tmpit->time, tmpit->level);
-    }
-    
-    //find the first element to remove, then remove all elements beyond num
-    std::list<Activation>::iterator tmpit = mins.begin();
-    for(unsigned int i = 0 ; i <= num ;i++) {
-        tmpit++;
-    }
-    mins.erase(tmpit, mins.end());
 
-    //sort by time, then place into knots vector
-    mins.sort(compare_t);
-    knots.resize(num);
-    tmpit = mins.begin();
-    for(unsigned int i = 0 ; i < knots.size() ;i++) {
-        knots[i] = tmpit->time;
-        tmpit++;
+    knots.clear();
+    
+    std::list<Activation>::iterator it_min = mins.begin();
+    while(it_min != mins.end()) {
+        knots.push_back(it_min->time);
+        it_min++;
     }
+
+    //debug
+//    printf("Result:\n");
+//    for(std::list<Activation>::iterator tmpit = mins.begin(); 
+//            tmpit != mins.end(); tmpit++) {
+//        printf("\t%f, %f\n", tmpit->time, tmpit->level);
+//    }
+//    
+//    //find the first element to remove, then remove all elements beyond num
+//    std::list<Activation>::iterator tmpit = mins.begin();
+//    for(unsigned int i = 0 ; i <= num ;i++) {
+//        tmpit++;
+//    }
+//    mins.erase(tmpit, mins.end());
+//
+//    //sort by time, then place into knots vector
+//    mins.sort(compare_t);
+//    knots.resize(num);
+//    tmpit = mins.begin();
+//    for(unsigned int i = 0 ; i < knots.size() ;i++) {
+//        knots[i] = tmpit->time;
+//        tmpit++;
+//    }
 }
 
 Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img,
@@ -593,6 +603,11 @@ Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img,
     fmri_stop.SetDirection(3);
     fmri_stop.GoToBegin();
     ++fmri_stop;
+
+//    printf("Knots: \n");
+//    for(unsigned int ii = 0 ; ii < knots.size() ;ii++) {
+//        printf("%u\n", knots[ii]);
+//    }
     
     for(fmri_it.GoToBegin(); fmri_it != fmri_stop ; fmri_it.NextLine()) {
         for( ; !fmri_it.IsAtEndOfLine(); ++fmri_it) {
@@ -1271,14 +1286,22 @@ Image4DType::Pointer deSpline(const Image4DType::Pointer fmri_img,
             unsigned int numknots, std::vector<Activation>& stim, double dt)
 {
     /* Find good knots for spline */
-    std::vector<double> knots_t;
+    std::list<double> knots_t;
     getknots(knots_t, numknots, stim);
     
-    std::vector<unsigned int> knots_i(knots_t.size());
-    for(unsigned int i = 0 ; i < knots_t.size() ; i++) 
-        knots_i[i] = (unsigned int)knots_t[i]/dt;
-        
-    Image4DType::Pointer spline = getspline(fmri_img, knots_i);
+    /* Change the times into positions in the vector, and use knots in the range */
+    std::list<unsigned int> knots_i;
+    std::list<double>::iterator it = knots_t.begin();
+    while(it != knots_t.end() && knots_i.size() < numknots) {
+        if(*it/dt < fmri_img->GetRequestedRegion().GetSize()[3]-1 && *it/dt > 1) {
+            knots_i.push_back((unsigned int)(*it/dt));
+        }
+        it++;
+    }
+    knots_i.sort();
+    
+    std::vector<unsigned int> knots_final(knots_i.begin(), knots_i.end());
+    Image4DType::Pointer spline = getspline(fmri_img, knots_final);
     
     {
     itk::ImageFileWriter< Image4DType >::Pointer writer = 
@@ -1290,8 +1313,23 @@ Image4DType::Pointer deSpline(const Image4DType::Pointer fmri_img,
 
     /* Rescale (fmri - spline)/avg*/
     
+    
     Image4DType::Pointer avg = extrude(Tmean(fmri_img), 
                 fmri_img->GetRequestedRegion().GetSize()[3]);
+    {
+    itk::ImageFileWriter< Image4DType >::Pointer writer = 
+                itk::ImageFileWriter< Image4DType >::New();
+    writer->SetInput(fmri_img);
+    writer->SetFileName("fmri_img.nii.gz");
+    writer->Update();
+    }
+    {
+    itk::ImageFileWriter< Image4DType >::Pointer writer = 
+                itk::ImageFileWriter< Image4DType >::New();
+    writer->SetInput(avg);
+    writer->SetFileName("avg.nii.gz");
+    writer->Update();
+    }
     SubF4::Pointer sub = SubF4::New();   
     DivF::Pointer div = DivF::New();   
     sub->SetInput1(fmri_img);
