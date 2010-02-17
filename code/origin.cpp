@@ -6,6 +6,7 @@
 
 #include <string>
 #include <iostream>
+#include <iomanip>
 #include <vector>
 
 using namespace std;
@@ -17,29 +18,33 @@ typedef itk::ImageFileWriter< Image4DType >  ImageWriterType;
 
 int main (int argc, char** argv)
 {
-    if(argc != 2) {
-        cout << "Usage:" << endl << argv[0] << " <src> <dst> <out>" << endl;
+    if(argc != 3) {
+        cout << "Usage:" << endl << argv[0] << " <img> <out>" << endl;
     }
+
+    Image4DType::Pointer img;
+    {
     ImageReaderType::Pointer reader = ImageReaderType::New();
     reader->SetImageIO(itk::modNiftiImageIO::New());
     reader->SetFileName( argv[1] );
     reader->Update();
+    img = reader->GetOutput();
+    }
 
-    Image4DType::Pointer image = reader->GetOutput();
-    
-    ImageReaderType::Pointer reader2 = ImageReaderType::New();
-    reader2->SetImageIO(itk::modNiftiImageIO::New());
-    reader2->SetFileName( argv[2] );
-    reader2->Update();
+    Image4DType::OriginType origin;
+    Image4DType::SpacingType spacing;
+    cout << "Source: " << endl;
+    printf("Origin: %f %f %f\n", origin[0], origin[1], origin[2], origin[3]);
+    printf("Spacing: %f %f %f\n", spacing[0], spacing[1], spacing[2], spacing[3]);
 
-    Image4DType::Pointer image2 = reader2->GetOutput();
+    printf("New Origin? (4 numbers) ");
+    cin >> origin[0] >> origin[1] >> origin[2] >> origin[3];
 
-    image2->SetOrigin(image->GetOrigin());
-
+    img->SetOrigin(origin);
     ImageWriterType::Pointer writer = ImageWriterType::New();
     writer->SetImageIO(itk::modNiftiImageIO::New());
-    writer->SetFileName( argv[3] );
-    writer->SetInput( image2 );
+    writer->SetFileName( argv[2] );
+    writer->SetInput( img );
     writer->Update();
 
     return 0;
