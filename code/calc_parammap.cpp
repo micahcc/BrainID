@@ -208,7 +208,7 @@ int main(int argc, char* argv[])
     //acquire rms
     rms = get_rms(inImage);
     
-    clock_t prev = clock();
+    time_t start = time(NULL);
     for(unsigned int xx = 0 ; xx < xlen ; xx++) {
         for(unsigned int yy = 0 ; yy < ylen ; yy++) {
             for(unsigned int zz = 0 ; zz < zlen ; zz++) {
@@ -257,11 +257,11 @@ int main(int argc, char* argv[])
                 writeVector<double, aux::vector>(paramVarImg, 3, aux::vector(2,0),
                             index4);
             
-                clock_t tmp = clock();
-                cerr << "Elapsed: " << tmp*CLOCKS_PER_SEC << " Remaining: " 
-                            << (tmp-prev)*CLOCKS_PER_SEC/3600.*
-                            (xlen*ylen*zlen - xx*ylen*zlen + (zz+1)+yy*zlen) 
-                            << endl;
+                time_t tmp = time(NULL);
+                cerr << "Elapsed: " << difftime(tmp, start)/60. << " Minutes" << endl;
+                cerr << "Remaining: " << (((xx+1)*(yy+1)*(zz+1))/difftime(tmp,prev))*
+                            (xlen*ylen*zlen - xx*ylen*zlen + (zz+1)+yy*zlen)/60. 
+                            << " Minutes" << endl;
                 prev = tmp;
             }
         }
