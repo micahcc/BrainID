@@ -57,7 +57,8 @@ int callback(BoldPF* bold, void* data)
     
     callback_data* cdata = (struct callback_data*)data;
     cdata->pos[3] = bold->getDiscTimeL();
-    aux::vector meas =  bold->getDistribution().getDistributedExpectation();
+    aux::vector meas =  bold->getModel().measure(
+                bold->getDistribution().getDistributedExpectation());
     if(rank == 0) 
          cdata->image->SetPixel(cdata->pos, meas[0]);
     return 0;
