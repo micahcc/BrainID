@@ -32,16 +32,13 @@
 
 namespace aux = indii::ml::aux;
 
-/* 
- * VOID  - Some type we don't care about
- * callback - a callback function that returns a status code
-*/
 class BoldPF 
 {
 public:
     /* Types */
     typedef indii::ml::filter::ParticleFilter<double> Filter;
     enum Status {ERROR=-1, UNSTARTED=0, RUNNING=1, PAUSED=2, DONE=3};
+    enum Method {DIRECT, DELTA, PROCESS};
     
     /* Callback types */
     struct CallPoints{
@@ -63,7 +60,8 @@ public:
     BoldPF(const std::vector<aux::vector>& measurements, 
                 const std::vector<Activation>& activations,  double weightvar,
                 double longstep, std::ostream* output, 
-                unsigned int numparticles = 1000, double shortstep = 1./64);
+                unsigned int numparticles = 1000, double shortstep = 1./64,
+                unsigned int method = DIRECT);
 
     /* Destructor */
     ~BoldPF();
@@ -107,6 +105,7 @@ private:
     // 2, started, but paused
     // 3, done
     int status;
+    int method;
 
     //log output
     std::ostream* debug;
@@ -130,6 +129,9 @@ private:
 
     /* Gathers all the elements of the DiracMixturePdf to the local node */
     void gatherToNode(unsigned int dest, aux::DiracMixturePdf& input);
+    
+    /* Saves in the state variable the previous measurement, for delta */
+    void latchBold();
 };
     
     
@@ -178,6 +180,9 @@ int BoldPF::run(void* pass = NULL)
 //    boost::mpi::communicator world;
 //    const unsigned int rank = world.rank();
 //    const unsigned int size = world.size();
+
+    *debug << "mu size: " << filter->getFilteredState().getDistributedExpectation().size();
+    *debug << "dimensions: " << filter->getFilteredState().getDimensions();
     
     /* Simulation Section */
     double conttime = disctime_s*dt_s;
@@ -201,12 +206,13 @@ int BoldPF::run(void* pass = NULL)
      while(status == RUNNING && disctime_s*dt_s < dt_l*measure.size()) {
         /* time */
         conttime = disctime_s*dt_s;
-//        *debug << "."; 
+        *debug << "."; 
         
         /* Update Input if there is any*/
         while(stim_index < stim.size() && stim[stim_index].time <= conttime) {
             model->setinput(aux::vector(1, stim[stim_index].level));
             stim_index++;
+            *debug << conttime;
         }
         
 
@@ -238,17 +244,21 @@ int BoldPF::run(void* pass = NULL)
             //time to resample
             if(ess < ESS_THRESH) {
                 *debug << " ESS: " << ess << ", Stratified Resampling" << endl;
-                aux::symmetric_matrix statecov;
-                statecov = filter->getFilteredState().getDistributedCovariance();
+                aux::symmetric_matrix statecov
+                            = filter->getFilteredState().getDistributedCovariance();
                 filter->resample(&resampler);
                 
                 *debug << " ESS: " << ess << ", Regularized Resampling" << endl << endl;
-                filter->setFilteredState(
-                            resampler_reg->resample(filter->getFilteredState(), statecov));
+                filter->setFilteredState( resampler_reg->resample(
+                            filter->getFilteredState(), statecov) );
             } else {
                 *debug << " ESS: " << ess << ", No Resampling Necessary!" 
                             << endl;
             }
+
+            /* Perform updates to delta variables */
+            if(method == DELTA) 
+                latchBold();
             
             disctime_l++;
         } else { //no update available, just step update states
@@ -278,85 +288,18 @@ bool isclose(double a, double b)
     return fabs(a*1000 - b*1000) < 1;
 }
 
-/* 
- * Find the loneliest stimulus input (longest time down time before and 
- * 2 TR's of downtime after). We are then going to multiply the bold
- * level 2 TR's after this time by 86 to get the rough mean of V_0, and
- * the straight up bold/10 will be the variance used in the model
- * This is sort of BS but it gives an
- * estimate of the order of magnitude of the signal
- */
- //todo this needs to be fixed to prevent picking a point off the end of the 
-//measurement array
-double bspoint(const std::vector<Activation>& act, double TR)
+void BoldPF::latchBold()
 {
-    if(act.size() == 0) 
-        return 2*TR;
-    
-    double duration = 1/0.;
-    const double base = 0;
-    {
-    double prev = 0;
-    double start = 0;
-    //find shortest stim duration
-    double store;
-    for(unsigned int i = 0; i < act.size() ; i++) {
-        if(act[i].level != prev) {
-            prev = act[i].level;
-            if(act[i].level != base) {
-                start = act[i].time;
-            } else if(act[i].time - start < duration) {
-                duration = act[i].time - start;
-                store = start;
-            }
-        }
-    }
+    for(unsigned int ii = 0 ; ii < filter->getFilteredState().getSize(); ii++) {
+        aux::vector& p = filter->getFilteredState().get(ii);
+        aux::vector m = model->measure(p);
+        for(unsigned int jj = 0; jj < model->getMeasurementSize(); jj++)
+            p[model->getStateSize() - model->getMeasurementSize() + jj] = m[jj];
     }
 
-    double longest = 0;
-    unsigned int store = 0;
-
-    double prev = act[0].level;
-    unsigned int troughstart = 0;
-    unsigned int peakstart = 0;
-    for(unsigned int i = 0 ; i < act.size() ; i++) { 
-        //find transitions 
-        if(prev != act[i].level) {
-            prev = act[i].level;
-            //down
-            if(act[i].level == base) {
-                if(act[peakstart].time - act[troughstart].time > longest && 
-                            isclose(act[i].time - act[peakstart].time, duration)) {
-                    //last check, check there are 2TR's of nothing afterward
-                    unsigned int tmp = i;
-                    while(tmp < act.size() && act[tmp].level == base)
-                        tmp++;
-                    if(act[tmp-1].time - act[i].time > 2*TR || (tmp < act.size()
-                                && act[tmp].time - act[i].time > 2*TR)) {
-                        longest = act[peakstart].time - act[troughstart].time;
-                        store = peakstart;
-                    }
-                }
-                troughstart = i;
-            //up
-            } else {
-                peakstart = i;
-            }
-        }
-    }
-
-    return act[store].time;
-}
-
-double bspoint(const std::vector<Activation>& act)
-{
-    const double base = 0;
-    for(unsigned int i = 0 ; i < act.size(); i++) {
-        if(act[i].level != base) 
-            return act[i].time;
-    }
-    return 0;
-}
+    //make dirty
+    filter->getFilteredState().distributedNormalise();
+};
 
 /* Constructor
  * measurements - a standard vector of measurement aux::vectors
@@ -369,9 +312,9 @@ double bspoint(const std::vector<Activation>& act)
 BoldPF::BoldPF(const std::vector<aux::vector>& measurements, 
             const std::vector<Activation>& activations,  double weightvar,
             double longstep, std::ostream* output, unsigned int numparticles,
-            double shortstep) : 
+            double shortstep, unsigned int method_p) : 
             dt_l(longstep), dt_s(shortstep), 
-            disctime_l(0), disctime_s(0), status(UNSTARTED), 
+            disctime_l(0), disctime_s(0), status(UNSTARTED), method(method_p),
             measure(measurements), stim(activations), 
             ESS_THRESH(50)
 {
@@ -383,11 +326,16 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
 
     /* Initalize the model and filter*/
     aux::vector weight(measurements.front().size(), weightvar);
-    model = new BoldModel(weight, false, measurements.front().size());
+    aux::vector drift;
+    if(method == PROCESS) 
+        drift = -measurements[0];
+    else
+        drift = aux::vector(measurements.front().size(), 0);
+
+    model = new BoldModel(weight, false, measurements.front().size(), drift);
     model->setinput(aux::vector(1, 0));
     aux::DiracMixturePdf tmp(model->getStateSize());
     filter = new indii::ml::filter::ParticleFilter<double>(model, tmp);
-
     /* initialize debug/output */
     debug = output;
 

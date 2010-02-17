@@ -58,21 +58,6 @@ typedef itk::SubtractConstantFromImageFilter< Image4DType, double,
 typedef itk::DivideImageFilter< Image4DType, Image4DType, Image4DType > DivF;
 typedef itk::DivideByConstantImageFilter< Image4DType, double, Image4DType > DivCF;
 
-//sort first by increasing label, then by increasing time
-//then by increasing slice, then by dim[1] then dim[0]
-//bool compare_lt(SectionType first, SectionType second)
-//{
-//    if(first.label < second.label) 
-//        return true;
-//    if(first.label > second.label) 
-//        return false;
-//    for(int i = 3 ; i >= 0 ; i--) {
-//        if(first.point.GetIndex()[i] < second.point.GetIndex()[i]) return true;
-//        if(first.point.GetIndex()[i] > second.point.GetIndex()[i]) return false;
-//    }
-//    return false;
-//}
-
 /* Remove any elements that arent' in the reference list 
  * ref will be sorted, but otherwise will be unchanged*/
 void removeMissing(std::list<LabelType>& ref, std::list<LabelType>& mod)
@@ -1215,44 +1200,16 @@ Image4DType::Pointer read_dicom(std::string directory, double skip)
     return fmri_img;
 };
 
-//example main:
-//The labelmap should already have been masked through a maxprob image for
-//graymatter
-//int main( int argc, char **argv ) 
-//{
-//    // check arguments
-//    if(argc != 3) {
-//        printf("Usage: %s <4D fmri dir> <labels>", argv[0]);
-//        return EXIT_FAILURE;
-//    }
-//    
-//    Image4DType::Pointer fmri_img = read_dicom(argv[1]);
-//
-//    //label index
-//    itk::ImageFileReader<Image3DType>::Pointer labelmap_read = 
-//                itk::ImageFileReader<Image3DType>::New();
-//    labelmap_read->SetFileName( argv[2] );
-//    Image3DType::Pointer labelmap_img = labelmap_read->GetOutput();
-//    labelmap_img->Update();
-//
-//    std::list< SectionType* > active_voxels;
-//
-//    sort_voxels(fmri_img, labelmap_img, active_voxels);
-//    
-//    return 0;
-//}
-
-/* Uses knots at points with at least a 15 second break */
-Image4DType::Pointer conditionFMRI(const Image4DType::Pointer fmri_img,
-            double min_delay, std::vector<Activation>& stim, double dt,
+Image4DType::Pointer pruneFMRI(const Image4DType::Pointer fmri_img,
+            std::vector<Activation>& stim, double dt,
             unsigned int remove)
 {
-    /* Remove first few elements */
-    //from fmri_img
+    /* Remove first few elements... */
+    // .... from fmri_img
     Image4DType::Pointer new_img = prune<double>(fmri_img, 3, remove, 
                 fmri_img->GetRequestedRegion().GetSize()[3]);
 
-    //from stimulus, then shift times
+    // .... from stimulus, then shift times
     std::vector<Activation>::iterator it = stim.begin();
     std::vector<Activation>::iterator start = stim.begin();
     while(it != stim.end()) {
@@ -1263,19 +1220,26 @@ Image4DType::Pointer conditionFMRI(const Image4DType::Pointer fmri_img,
         }
         it++;
     }
-    start->time = dt*dt;
+    start->time = dt*remove;
     stim.erase(stim.begin(), start);
     
     for(unsigned int i = 0 ; i < stim.size() ;i++) {
         stim[i].time -= dt*remove;
     }
 
+    return new_img;
+}
+
+/* Uses knots at points with at least a 15 second break */
+Image4DType::Pointer deSpline(const Image4DType::Pointer fmri_img,
+            double min_delay, std::vector<Activation>& stim, double dt)
+{
     /* Find good knots for spline */
     std::vector< std::vector<unsigned int> > knots;
     getknots(knots, min_delay, stim, dt, 
-                new_img->GetRequestedRegion().GetSize()[3]);
+                fmri_img->GetRequestedRegion().GetSize()[3]);
 
-    Image4DType::Pointer spline = getspline(new_img, knots);
+    Image4DType::Pointer spline = getspline(fmri_img, knots);
     
     {
     itk::ImageFileWriter< Image4DType >::Pointer writer = 
@@ -1287,43 +1251,18 @@ Image4DType::Pointer conditionFMRI(const Image4DType::Pointer fmri_img,
 
     /* Rescale (fmri - spline)/avg*/
     
-    Image4DType::Pointer avg = extrude(Tmean(new_img), 
-                new_img->GetRequestedRegion().GetSize()[3]);
+    Image4DType::Pointer avg = extrude(Tmean(fmri_img), 
+                fmri_img->GetRequestedRegion().GetSize()[3]);
     SubF4::Pointer sub = SubF4::New();   
     DivF::Pointer div = DivF::New();   
-    sub->SetInput1(new_img);
+    sub->SetInput1(fmri_img);
     sub->SetInput2(spline);
     div->SetInput1(sub->GetOutput());
     div->SetInput2(avg);
     div->Update();
 
-//    /* Add 1.5 sigma */
-//    SqrtF3::Pointer sqrt = SqrtF3::New();
-//    ScaleF::Pointer scale = ScaleF::New();
-//    AddF4::Pointer add = AddF4::New();
-//    
-//    Image3DType::Pointer variance = get_variance(sub->GetOutput());
-//    {
-//    itk::ImageFileWriter< Image3DType >::Pointer writer = 
-//                itk::ImageFileWriter< Image3DType >::New();
-//    writer->SetInput(variance);
-//    writer->SetFileName("variance.nii.gz");
-//    writer->Update();
-//    }
-//    
-//    sqrt->SetInput(variance);
-//    scale->SetConstant(1.5);
-//    scale->SetInput(sqrt->GetOutput());
-//    scale->Update();
-//
-//    Image4DType::Pointer sigma1_5 = stretch<double>(scale->GetOutput(), 
-//                new_img->GetRequestedRegion().GetSize()[3]);
-//    add->SetInput1(sigma1_5);
-//    add->SetInput2(sub->GetOutput());
-//    add->Update();
-    
-    div->GetOutput()->CopyInformation(new_img);
+    div->GetOutput()->CopyInformation(fmri_img);
     div->GetOutput()->SetMetaDataDictionary(
-                new_img->GetMetaDataDictionary() );
+                fmri_img->GetMetaDataDictionary() );
     return div->GetOutput();
 }

@@ -5,30 +5,6 @@
 #include <indii/ml/filter/ParticleFilterModel.hpp>
 #include <indii/ml/aux/DiracMixturePdf.hpp>
 #include <gsl/gsl_randist.h>
-#include <iostream>
-#include <iomanip>
-#include <vector>
-
-//State Consists of Two or More Sections:
-//Theta
-//4 - tau_s
-//5 - tau_f
-//8 - epsilon
-//3 - tau_0
-//6 - alpha
-//7 - E_0
-//0 - V_0
-//Actual States
-//9+4*i+0 - v_t
-//9+4*i+1 - q_t
-//9+4*i+2 - s_t
-//9+4*i+3 - f_t
-
-typedef struct 
-{
-    unsigned int index; //start index in state variable
-    std::vector< unsigned int > slice_index; //start index of slice variables
-} SectionDesc;
 
 namespace aux = indii::ml::aux;
 
@@ -36,8 +12,8 @@ class BoldModel : public indii::ml::filter::ParticleFilterModel<double>
 {
 public:
     ~BoldModel();
-    BoldModel(aux::vector stddev, bool weightf = false,
-                size_t sections = 1);
+    BoldModel(aux::vector stddev, bool expweight, 
+                size_t sections = 1, aux::vector drift = aux::vector(1, 1e-100));
 
     unsigned int getStateSize() const { return STATE_SIZE; };
     unsigned int getStimSize() const { return INPUT_SIZE; };

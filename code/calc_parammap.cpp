@@ -8,6 +8,8 @@
 #include <itkImageLinearIteratorWithIndex.h>
 #include <itkImageSliceIteratorWithIndex.h>
 #include <itkMetaDataObject.h>
+#include <itkDivideImageFilter.h>
+#include <itkSubtractImageFilter.h>
 
 #include <indii/ml/aux/vector.hpp>
 #include <indii/ml/aux/matrix.hpp>
@@ -35,23 +37,38 @@ typedef itk::ImageFileReader< Image4DType >  ImageReaderType;
 typedef itk::ImageFileWriter< Image4DType >  WriterType;
 
 typedef itk::ImageLinearIteratorWithIndex<Image4DType> ImgIter;
+typedef itk::DivideImageFilter< Image4DType, Image4DType, Image4DType > DivF4;
+typedef itk::SubtractImageFilter< Image4DType > SubF4;
 
 namespace aux = indii::ml::aux;
 typedef indii::ml::filter::ParticleFilter<double> Filter;
 
 void fillvector(std::vector< aux::vector >& output, Image4DType* input,
-            Image4DType::IndexType pos)
+            Image4DType::IndexType pos, bool delta)
 {       
     ImgIter iter(input, input->GetRequestedRegion());
     iter.SetDirection(3);
     iter.SetIndex(pos);
 
     output.resize(input->GetRequestedRegion().GetSize()[3]);
-    int i = 0;
-    while(!iter.IsAtEndOfLine()) {
-        output[i] = aux::vector(1, iter.Get());
+    if(delta) {
+        int i = 1;
+        double prev = iter.Get();
         ++iter;
-        i++;
+        output[0] = aux::vector(1, 0);
+        while(!iter.IsAtEndOfLine()) {
+            output[i] = aux::vector(1, iter.Get()-prev);
+            prev = iter.Get();
+            ++iter;
+            i++;
+        }
+    } else {
+        int i = 0;
+        while(!iter.IsAtEndOfLine()) {
+            output[i] = aux::vector(1, iter.Get());
+            ++iter;
+            i++;
+        }
     }
 }
             
@@ -67,6 +84,10 @@ int main(int argc, char* argv[])
 
     vul_arg<string> a_input(0, "4D timeseries file");
     vul_arg<string> a_output(0, "output directory");
+    
+    vul_arg<bool> a_drift("-f", "Add drift term to model.", false);
+    vul_arg<bool> a_delta("-l", "Use deltas between measurements, this precludes"
+                "the drift option", false);
     
     vul_arg<string> a_mask("-m", "3D mask file");
     vul_arg<unsigned> a_num_particles("-p", "Number of particles.", 3000);
@@ -90,6 +111,7 @@ int main(int argc, char* argv[])
     //Done Parsing, starting main part of code
     ///////////////////////////////////////////////////////////////////////////////
     fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
+    fprintf(stderr, "Brainid Version: %s\n", BRAINID_VERSION);
 
     Image4DType::Pointer inImage;
     Image4DType::Pointer paramMuImg;
@@ -187,10 +209,33 @@ int main(int argc, char* argv[])
         exit(-3);
     }
 
-    //detrend, find percent difference, remove the 2 times (since they are typically
-    // polluted    
+    /* Set up measurements image */
     *output << "Conditioning FMRI Image" << endl;
-    inImage = conditionFMRI(inImage, 20.0, input, a_timestep(), 2);
+    //remove first 2 time step, since they are typically polluted
+    inImage = pruneFMRI(inImage, input, a_timestep(), 2);
+    unsigned int method;
+
+    //calculate %difference, which is used normally for the bold signal
+    // or the modified % difference (with spline rather than mean)
+    if(a_delta() || a_drift()) {
+        *output << "Changing Image to %difference" << endl;
+        method = a_delta() ? BoldPF::DELTA : BoldPF::PROCESS;
+        SubF4::Pointer sub = SubF4::New();   
+        DivF4::Pointer div = DivF4::New();
+        Image4DType::Pointer mean = extrude(Tmean(inImage),
+                    inImage->GetRequestedRegion().GetSize()[3]);
+        sub->SetInput1(inImage);
+        sub->SetInput2(mean);
+        div->SetInput1(sub->GetOutput());
+        div->SetInput2(mean);
+        div->Update();
+        inImage = div->GetOutput();
+    } else {
+        *output << "De-trending, then dividing by mean" << endl;
+        method = BoldPF::DIRECT;
+        inImage = deSpline(inImage, 20.0, input, a_timestep());
+    }
+
     /* Save detrended image */
     if(rank == 0) try {
         itk::ImageFileWriter<Image4DType>::Pointer out = 
@@ -222,17 +267,18 @@ int main(int argc, char* argv[])
 
                 //debug
                 *output << xx << " " << yy << " " << zz << endl;
-                *output << xx*ylen*zlen + (zz+1)+yy*zlen << "/" << xlen*ylen*zlen << endl;
+                *output << xx*ylen*zlen + (zz+1)+yy*zlen << "/" << xlen*ylen*zlen 
+                            << endl;
 
                 //run particle filter, and retry with i times as many particles
                 //as the the initial number if it fails
                 for(unsigned int i = 0 ; tmeanImg->GetPixel(index3) > 10 && 
                             result != BoldPF::DONE && i < RETRIES; i++) { 
                     std::vector< aux::vector > meas(tlen);
-                    fillvector(meas, inImage, index4);
+                    fillvector(meas, inImage, index4, a_delta());
 
                     BoldPF boldpf(meas, input, rms->GetPixel(index3), a_timestep(),
-                            output, a_num_particles()*(1<<i), 1./a_divider());
+                            output, a_num_particles()*(1<<i), 1./a_divider(), method);
                     result = boldpf.run();
                     mu = boldpf.getDistribution().getDistributedExpectation();
                     aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
@@ -258,11 +304,11 @@ int main(int argc, char* argv[])
                             index4);
             
                 time_t tmp = time(NULL);
-                cerr << "Elapsed: " << difftime(tmp, start)/60. << " Minutes" << endl;
-                cerr << "Remaining: " << (((xx+1)*(yy+1)*(zz+1))/difftime(tmp,prev))*
-                            (xlen*ylen*zlen - xx*ylen*zlen + (zz+1)+yy*zlen)/60. 
-                            << " Minutes" << endl;
-                prev = tmp;
+                double traveled = xx*yy*zz+zlen*yy+zz;
+                double total = xlen*ylen*zlen;
+                cerr << "Elapsed: " << difftime(tmp, start) << endl
+                     << "Remaining: " << (total-traveled)*difftime(tmp,start)/traveled
+                     << endl;
             }
         }
     }

@@ -18,13 +18,17 @@ std::vector<Activation> read_activations(const char* filename)
     char* input = NULL;
     size_t size = 0;
     char* curr = NULL;
+    double prev = 1/0.;
     Activation parsed;
     printf("Parsing activations\n");
     while(getline(&input, &size, fin) && !feof(fin)) {
         parsed.time = strtod(input, &curr);
         parsed.level = strtod(curr, NULL);
-
-        output.push_back(parsed);
+        
+        if(!(prev == parsed.level)) {
+            output.push_back(parsed);
+        }
+        prev = parsed.level;
         free(input);
         input = NULL;
     }

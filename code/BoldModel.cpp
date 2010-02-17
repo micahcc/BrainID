@@ -11,9 +11,10 @@
 #include <iostream>
 
 BoldModel::BoldModel(aux::vector stddev, bool expweight, 
-            size_t sections) :
+            size_t sections, aux::vector drift) :
             sigma(stddev), GVAR_SIZE(4), LVAR_SIZE(7), SIMUL_STATES(sections),
-            STATE_SIZE(GVAR_SIZE+LVAR_SIZE*SIMUL_STATES), MEAS_SIZE(SIMUL_STATES),
+            STATE_SIZE(4+7*sections + sections),
+            MEAS_SIZE(sections),
             INPUT_SIZE(1)//, segments(sections)
 {
     //this is only a problem if the user put in a bad vector
@@ -39,6 +40,11 @@ BoldModel::BoldModel(aux::vector stddev, bool expweight,
         defaultstate[indexof(S_T,ii)] = 0;
         defaultstate[indexof(F_T,ii)]= 1;
     }
+    
+    if(drift.size() != MEAS_SIZE) 
+        drift = aux::vector(MEAS_SIZE, 1e-100);
+    for(unsigned int i = 0; i < MEAS_SIZE ; i++)
+        defaultstate[STATE_SIZE-MEAS_SIZE+i] = drift[i];
 
     std::cerr << "Sizes:" << std::endl;
     std::cerr << this->GVAR_SIZE        << std::endl;
@@ -71,6 +77,7 @@ int BoldModel::transition(aux::vector& dustin, const double time,
     static aux::vector defaultvector = getdefault();
     double dotV, dotQ, dotS;
     double tmpA, tmpB;
+    double tmp = 0;
 
     //transition the actual state variables
     for(unsigned int ii=0 ; ii<SIMUL_STATES ; ii++) {
@@ -104,18 +111,14 @@ int BoldModel::transition(aux::vector& dustin, const double time,
         dustin[v_t] += dotV*delta_t;
         dustin[q_t] += dotQ*delta_t;
         dustin[s_t] += dotS*delta_t;
-
+        tmp += dustin[f_t] + dustin[v_t] + dustin[q_t] + dustin[s_t];
     }
 
     /* Check for Nan, (nan operated with anything is nan),
      * inf - inf = nan, so nan or inf in any member 
      * will cause this to fail
     */
-    double tmp = 0;
-    for(unsigned int ii = 0 ; ii < STATE_SIZE ; ii++)
-        tmp += dustin[ii] - dustin[ii];
-
-    if(isnan(tmp)) {
+    if(isnan(tmp-tmp)) {
         dustin = defaultvector;
         return -1;
     }
@@ -131,38 +134,40 @@ aux::vector BoldModel::measure(const aux::vector& s) const
                 ( A1 * ( 1 - s[indexof(Q_T,i)]) - A2 * (1 - s[indexof(V_T,i)]));
     }
     return y;
-}
-
+} 
+/* If s[STATE_SIZE-MEAS_SIZE+1] is negative, then this is working
+ * with a "drift" variable, aka an arbitrary number is being ADDED
+ * to the measurement to account for low frequency drift. In this case
+ * y should be the RAW Bold signal
+ * The drift variable will adapt in due course of the regularized particle
+ * filter, as long as there was some variance in the initial distribution of
+ * these values
+ *
+ * If s[STATE_SIZE-MEAS_SIZE+1] is positive, then it should be a difference
+ * term from a previous measurement, in which case y should be the delta
+ * in the Bold from a previous measurement. It is up to the user to make
+ * sure those s values are correctly inserted.
+ *
+ * If s[STATE_SIZE-MEAS_SIZE+1] is 0, then y should be from a signal
+ * with drift removed by some extra-pf method. The variance in these
+ * drift terms will be 0, which will result in no variance from the
+ * regularized particle filter. THus they will stay 0 perpetually.
+ *
+*/
 double BoldModel::weight(const aux::vector& s, const aux::vector& y) const
 {
-    //these are really constant throughout the execution
-    //of the program, so no need to calculate over and over
-    aux::vector location(MEAS_SIZE);
-    
-    //after computing the n-dimensional location whose density
-    //will be found on a gaussian curve, set all terms that came
-    //from y[i] = NaN1 elements to 0, thus eleminating them from the 
-    //density calculation. The effectively ignores them for weighting
-    //purposes, thus ignoring terms that received no update in this step.
-    location = y-measure(s);
-    for(size_t i = 0 ; i < y.size() ; i++) {
-        if(isnan(y[i])) {
-	    std::cerr << "Warning y had NAN in BoldMode.cpp" << std::endl;
-            location[i] = 0;
-	}
-    }
-//    fprintf(stderr, "Location calculated:\n");
-//    outputVector(std::cerr , location);
-//    fprintf(stderr, "\n");
-//    fprintf(stderr, "Weight calculated: %e\n", rng.densityAt(location));
-//    return out;
+    aux::vector meas = measure(s);
     double weight = 1;
+
     if(weightf == EXP) {
     	for(unsigned int i = 0 ; i < MEAS_SIZE ; i++)
-            weight *= gsl_ran_exponential_pdf(fabs(location(i)), sigma(i));
+            weight *= gsl_ran_exponential_pdf(
+                        fabs(y[i]-meas[i]+s[STATE_SIZE-MEAS_SIZE+i]),
+                        sigma(i));
     } else {
     	for(unsigned int i = 0 ; i < MEAS_SIZE ; i++)
-            weight *= gsl_ran_gaussian_pdf(fabs(location(i)), sigma(i));
+            weight *= gsl_ran_gaussian_pdf(y[i]-meas[i]+s[STATE_SIZE-MEAS_SIZE+i],
+                        sigma(i));
     }
     return weight;
 }
@@ -176,8 +181,7 @@ void BoldModel::generateComponent(gsl_rng* rng, aux::vector& fillme,
     //going to distribute all the state variables the same even if they are
     //in different sections
     int count = 0;
-    for(size_t i = 0 ; i< STATE_SIZE; i++) {
-//            fillme[i] = gsl_ran_gaussian(rng, k_sigma[i])+ theta_mu[i];
+    for(size_t i = 0 ; i< STATE_SIZE - MEAS_SIZE; i++) {
         if(indexof(S_T, count) == i) {
             //for S_t draw from a gaussian
             fillme[indexof(S_T, count)] = 
@@ -188,6 +192,11 @@ void BoldModel::generateComponent(gsl_rng* rng, aux::vector& fillme,
             //draw from the gama, assume independence between the variables
             fillme[i] = gsl_ran_gamma(rng, k_sigma[i], theta_mu[i]);
         }
+    }
+    
+    for(size_t i = STATE_SIZE - MEAS_SIZE; i < STATE_SIZE; i++) {
+        if(theta_mu[i] != 0) 
+            fillme[i] = gsl_ran_gaussian(rng, k_sigma[i]) + theta_mu[i];
     }
 }
     
@@ -237,6 +246,10 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
         cov(indexof(S_T,ii), indexof(S_T,ii)) = varwidth*.0001;
         cov(indexof(F_T,ii), indexof(F_T,ii)) = varwidth*.0001;
     }
+
+    for(unsigned int ii = STATE_SIZE-MEAS_SIZE ; ii < STATE_SIZE; ii++) {
+        cov(ii,ii) = mean[ii]*mean[ii]/64;
+    }
     generatePrior(x0, samples, mean, cov);
 }
 
@@ -261,6 +274,9 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
         cov(indexof(S_T,ii), indexof(S_T,ii)) = varwidth*.0001;
         cov(indexof(F_T,ii), indexof(F_T,ii)) = varwidth*.0001;
     }
+    for(unsigned int ii = STATE_SIZE-MEAS_SIZE ; ii < STATE_SIZE; ii++) {
+        cov(ii,ii) = mean[ii]*mean[ii]/64;
+    }
     
     generatePrior(x0, samples, mean, cov);
 }
@@ -278,11 +294,11 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
-
-    int count = 0;
+    
+    unsigned int count = 0;
     double k_sigma[STATE_SIZE]; 
     double theta_mu[STATE_SIZE];
-    for(unsigned int i = 0 ; i < getStateSize() ; i++) {
+    for(unsigned int i = 0 ; i < STATE_SIZE-MEAS_SIZE; i++) {
         if(indexof(S_T, count) == i) {
             count++;
             theta_mu[i] = mean(i);
@@ -293,6 +309,11 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
         }
     }
     
+    for(unsigned int i = STATE_SIZE-MEAS_SIZE; i < STATE_SIZE ; i++) {
+        theta_mu[i] = mean(i);
+        k_sigma[i] = sqrt(cov(i,i));
+    }
+
     gsl_rng* rng = gsl_rng_alloc(gsl_rng_ran3);
     {
         unsigned int seed;
@@ -315,17 +336,15 @@ bool BoldModel::reweight(aux::vector& checkme, double& weightout) const
 {
     static aux::vector defaultvector = getdefault();
     size_t count = 0;
-    for(unsigned int j = 0 ; j < checkme.size() ; j++) {
-        //only S_T is allowed to be negative
+    //only S_T and drift vars are allowed to be negative
+    for(unsigned int j = 0 ; j < STATE_SIZE-MEAS_SIZE; j++) {
         if(indexof(S_T, count) == j) {
             count++;
         } else if(checkme[j] < 0) {
-//            for(unsigned int i = 0 ; i<checkme.size() ; i++)
-//                checkme[i] = 1;
             weightout = 0.0;
             checkme = defaultvector;
             return true;
-        } 
+        }
     }
     return false;
 }

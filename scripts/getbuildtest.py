@@ -134,6 +134,15 @@ def cmakeinst(basedir, instdir, name, url, defstrings = ""):
         print "Directory %s exists, using it" % build_dir
     
     os.chdir(build_dir)
+    cmakecmd = "cmake %s -DCMAKE_INSTALL_PREFIX=%s %s" % (src_dir, instdir, " ".join(defstrings));
+    if options.debug:
+        cmakecmd = cmakecmd + " -DCMAKE_BUILD_TYPE=Release"
+    elif options.optimize:
+        cmakecmd = cmakecmd + " -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS_RELEASE=\-O3 \-march=native" + \
+                    "-DCMAKE_C_FLAGS_RELEASE=\"-O3 -march=native\""
+    else:
+        print "No special build options"
+
     if os.system("cmake %s -DCMAKE_INSTALL_PREFIX=%s %s" % (src_dir, instdir, " ".join(defstrings))) != 0:
         print "%s configuration in %s failed" % (name, build_dir)
         sys.exit()
@@ -175,6 +184,12 @@ parser = OptionParser()
 parser.add_option("-d", "--depdir", dest="depdir",
                   default="Dependencies-Build",
                   help="name of directory for dependencies")
+parser.add_option("-D", "--debug",
+                  action="store_true", dest="debug", default=False,
+                  help="Compile with debug options")
+parser.add_option("-O", "--optimize",
+                  action="store_true", dest="optimize", default=False,
+                  help="Optimize for the current CPU")
 parser.add_option("-u", "--update",
                   action="store_true", dest="update", default=False,
                   help="run svn update first")

@@ -16,9 +16,12 @@ struct SectionType{
 
 enum { AVERAGES, LOCALMIN, LOCALMAX };
 
-Image4DType::Pointer conditionFMRI(const Image4DType::Pointer fmri_img,
-            double min_delay, std::vector<Activation>& stim, double dt,
+Image4DType::Pointer pruneFMRI(const Image4DType::Pointer fmri_img,
+            std::vector<Activation>& stim, double dt,
             unsigned int remove);
+
+Image4DType::Pointer deSpline(const Image4DType::Pointer fmri_img,
+            double min_delay, std::vector<Activation>& stim, double dt);
 
 Image4DType::Pointer summ(const Image4DType::Pointer fmri_img, 
             const Label3DType::Pointer labelmap, std::list<LabelType>& sections);

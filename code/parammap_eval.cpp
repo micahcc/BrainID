@@ -175,22 +175,27 @@ void simulate(std::list<double>& sim, const std::vector<double>& params,
 /* Main Function */
 int main(int argc, char* argv[])
 {
-    vul_arg<string> a_params(0, "4D param file, in the order: TAU_0, ALPHA,"
+    vul_arg<string> a_params1(0, "4D param file, in the order: TAU_0, ALPHA,"
                 "E_0, V_0, TAU_S, TAU_F, EPSILON");
-    vul_arg<string> a_input(0, "4D Timeseries file to compare simulation with.");
+    vul_arg<string> a_params2(0, "4D param file, in the order: TAU_0, ALPHA,"
+                "E_0, V_0, TAU_S, TAU_F, EPSILON");
     vul_arg<string> a_output(0, "3D Output Image with MSE");
     
-    vul_arg<unsigned> a_divider("-d", "Intermediate Steps between samples.", 128);
+    vul_arg<double> a_shortstep("-u", "micro-Step size", 1/128.);
     vul_arg<string> a_stimfile("-s", "file containing \"<time> <value>\""
                 "pairs which give the time at which input changed", "");
-    vul_arg<double> a_timestep("-t", "TR (timesteps in 4th dimension)", 2);
+    vul_arg<double> a_timestep("-m", "macro step size (how often to compare, "
+                "can be anything down to the micro step size)", 2);
+    vul_arg<double> a_simlength("-n", "Number of comparisons to make for"
+                " simulation (so with macro step 3, and 300 comparisons,"
+                " will run for 900 seconds worth of simulation ",300);
     
     vul_arg_parse(argc, argv);
     
     vul_arg_display_usage("No Warning, just echoing");
 
-    Image4DType::Pointer compImage;
-    Image4DType::Pointer paramImage;
+    Image4DType::Pointer paramImage1;
+    Image4DType::Pointer paramImage2;
     Image3DType::Pointer output;
 
     std::vector<Activation> input;
@@ -200,29 +205,39 @@ int main(int argc, char* argv[])
     ImageReaderType::Pointer reader;
     reader = ImageReaderType::New();
     reader->SetImageIO(itk::modNiftiImageIO::New());
-    reader->SetFileName( a_params() );
+    reader->SetFileName( a_params1() );
     reader->Update();
-    paramImage = reader->GetOutput();
+    paramImage1 = reader->GetOutput();
     } catch(itk::ExceptionObject) {
-        fprintf(stderr, "Error opening %s\n", a_params().c_str());
+        fprintf(stderr, "Error opening %s\n", a_params1().c_str());
         exit(-1);
     }
-
-    try{
+    try {
     ImageReaderType::Pointer reader;
     reader = ImageReaderType::New();
     reader->SetImageIO(itk::modNiftiImageIO::New());
-    reader->SetFileName( a_input() );
+    reader->SetFileName( a_params2() );
     reader->Update();
-    compImage = reader->GetOutput();
+    paramImage2 = reader->GetOutput();
     } catch(itk::ExceptionObject) {
-        fprintf(stderr, "Error opening %s\n", a_input().c_str());
-        exit(-2);
+        fprintf(stderr, "Error opening %s\n", a_params2().c_str());
+        exit(-1);
     }
-    
-    unsigned int xlen = compImage->GetRequestedRegion().GetSize()[0];
-    unsigned int ylen = compImage->GetRequestedRegion().GetSize()[1];
-    unsigned int zlen = compImage->GetRequestedRegion().GetSize()[2];
+
+    unsigned int xlen = paramImage1->GetRequestedRegion().GetSize()[0];
+    unsigned int ylen = paramImage1->GetRequestedRegion().GetSize()[1];
+    unsigned int zlen = paramImage1->GetRequestedRegion().GetSize()[2];
+
+    if(paramImage1->GetRequestedRegion().GetSize()[0] != 
+                paramImage2->GetRequestedRegion().GetSize()[0] ||
+                paramImage1->GetRequestedRegion().GetSize()[1] != 
+                paramImage2->GetRequestedRegion().GetSize()[1] ||
+                paramImage1->GetRequestedRegion().GetSize()[2] != 
+                paramImage2->GetRequestedRegion().GetSize()[2])
+    {
+        fprintf(stderr, "Error, param images are not same size\n");
+        exit(-1);
+    }
     
     /* Open Stimulus file */
     if(!a_stimfile().empty()) {
@@ -253,15 +268,17 @@ int main(int argc, char* argv[])
                 //initialize some variables
                 Image4DType::IndexType index4 = {{xx, yy, zz, 0}};
                 Image3DType::IndexType index3 = {{xx, yy, zz}};
-                vector<double> params;
-                fillvector(params, paramImage, index4);
-                list<double> sim;
-                simulate(sim, params, 1./a_divider(), a_timestep(),input, 
-                            compImage->GetRequestedRegion().GetSize()[3]);
-                
-                list<double> comparison;
-                filllist(comparison, compImage, index4);
-                output->SetPixel(index3, mse(comparison, sim));
+                vector<double> params1;
+                vector<double> params2;
+                fillvector(params1, paramImage1, index4);
+                fillvector(params2, paramImage2, index4);
+                list<double> sim1;
+                list<double> sim2;
+                simulate(sim1, params1, a_shortstep(), a_timestep(),input, 
+                            a_simlength());
+                simulate(sim2, params2, a_shortstep(), a_timestep(),input, 
+                            a_simlength());
+                output->SetPixel(index3, mse(sim1, sim2));
             }
         }
     }

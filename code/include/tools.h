@@ -105,8 +105,6 @@ void writeVector(typename itk::OrientedImage< T, 4 >::Pointer out, int dir,
         it.Set(input[i]);
         ++it;
     }
-
-    assert(i==input.size() && it.IsAtEndOfLine());
 };
 
 //dir1 should be the first matrix dimension, dir2 the second
