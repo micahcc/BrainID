@@ -67,30 +67,33 @@ int main (int argc, char** argv)
     fprintf(stderr, "%lu,", image->GetRequestedRegion().GetSize()[0]);
     fprintf(stderr, "%lu,", image->GetRequestedRegion().GetSize()[1]);
     fprintf(stderr, "%lu,", image->GetRequestedRegion().GetSize()[2]);
+    fprintf(stderr, "%lu,", image->GetRequestedRegion().GetSize()[3]);
     fprintf(stderr, "\n");
     
     fprintf(stderr, "Index: \n");
     fprintf(stderr, "%li,", image->GetRequestedRegion().GetIndex()[0]);
     fprintf(stderr, "%li,", image->GetRequestedRegion().GetIndex()[1]);
     fprintf(stderr, "%li,", image->GetRequestedRegion().GetIndex()[2]);
+    fprintf(stderr, "%li,", image->GetRequestedRegion().GetIndex()[3]);
     fprintf(stderr, "\n");
     
     fprintf(stderr, "Spacing: \n");
     fprintf(stderr, "%f ", image->GetSpacing()[0]);
     fprintf(stderr, "%f ", image->GetSpacing()[1]);
     fprintf(stderr, "%f ", image->GetSpacing()[2]);
+    fprintf(stderr, "%f ", image->GetSpacing()[3]);
     fprintf(stderr, "\n");
     
     fprintf(stderr, "Orientation\n");
-    for(int ii = 0 ; ii < 3 ; ii++) {
-        for(int jj = 0 ; jj < 3 ; jj++) {
+    for(int ii = 0 ; ii < 4 ; ii++) {
+        for(int jj = 0 ; jj < 4 ; jj++) {
             fprintf(stderr, "%f ", image->GetDirection()(jj,ii));
         }
     }
     fprintf(stderr, "\n");
 
     fprintf(stderr, "Origin\n");
-    for(int ii = 0 ; ii < 3 ; ii++)  {
+    for(int ii = 0 ; ii < 4 ; ii++)  {
         fprintf(stderr, "%f ", image->GetOrigin()[ii]);
     }
     fprintf(stderr, "\n");
