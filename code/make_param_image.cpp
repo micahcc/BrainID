@@ -11,12 +11,13 @@
 #include <itkMultiplyImageFilter.h>
 #include <itkConnectedComponentImageFilter.h>
 #include <itkDiscreteGaussianImageFilter.h>
-#include <itkRandomImageSource.h>
+#include <itkImageLinearIteratorWithIndex.h>
 #include <itkExtractImageFilter.h>
 #include <itkBinaryThresholdImageFilter.h>
 #include <itkMaskImageFilter.h>
 #include <itkStatisticsImageFilter.h>
 #include "modNiftiImageIO.h"
+#include <gsl/gsl_rng.h>
 
 #include <sstream>
 #include <iostream>
@@ -27,18 +28,38 @@
 
 using namespace std;
 
+void randomizeImage(Image4DType::Pointer img)
+{
+    typedef itk::ImageLinearIteratorWithIndex<Image4DType> Iter;
+    
+    unsigned int seed;
+    FILE* file = fopen("/dev/urandom", "r");
+    fread(&seed, 1, sizeof(unsigned int), file);
+    fclose(file);
+    gsl_rng* rng = gsl_rng_alloc(gsl_rng_ran3);
+    gsl_rng_set(rng, seed);
+    Iter it(img, img->GetRequestedRegion());
+    it.GoToBegin();
+
+    while(!it.IsAtEnd()) {
+        while(!it.IsAtEndOfLine()) {
+            it.Set(gsl_rng_uniform(rng));
+            ++it;
+        }
+        it.NextLine();
+    }
+    
+    gsl_rng_free(rng);
+}
+
 Label4DType::Pointer createRegions(double sigma, double threshp,
             Image4DType::Pointer templ = NULL)
 {
-    itk::RandomImageSource<Image4DType>::Pointer rImage = 
-                itk::RandomImageSource<Image4DType>::New();
-    rImage->SetNumberOfThreads(10);
-    rImage->SetMax(1);
-    rImage->SetMin(0);
+    Image4DType::Pointer rImage = Image4DType::New();
     itk::BinaryThresholdImageFilter<Image4DType, Image4DType>::Pointer thresh = 
                 itk::BinaryThresholdImageFilter<Image4DType, Image4DType>::New();
 
-    unsigned long out_size[4];
+    Image4DType::SizeType out_size;
     if(templ) {
         out_size[0] = templ->GetRequestedRegion().GetSize()[0];
         out_size[1] = templ->GetRequestedRegion().GetSize()[1];
@@ -52,7 +73,9 @@ Label4DType::Pointer createRegions(double sigma, double threshp,
         
     }
     //outimage
-    rImage->SetSize(out_size);
+    rImage->SetRegions(out_size);
+    rImage->Allocate();
+    randomizeImage(rImage);
     
     /* Create a Random Field, Perform Smoothing to the set number of resels
      * then threshold, to create the regions
@@ -61,7 +84,7 @@ Label4DType::Pointer createRegions(double sigma, double threshp,
                 itk::DiscreteGaussianImageFilter<Image4DType, Image4DType>::New();
     double variance[3] = {sigma,sigma,sigma};
     gaussF->SetVariance(variance);
-    gaussF->SetInput(rImage->GetOutput());
+    gaussF->SetInput(rImage);
     
     thresh->SetInput(gaussF->GetOutput());
     thresh->SetLowerThreshold(0);

@@ -84,6 +84,6 @@ TARGET_LINK_LIBRARIES(readdicom modNiftiImageIO segment
 TARGET_LINK_LIBRARIES(applymask modNiftiImageIO segment 
     ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
     itkvcl vullib)
-TARGET_LINK_LIBRARIES(make_param_image modNiftiImageIO segment tools
+TARGET_LINK_LIBRARIES(make_param_image gsl modNiftiImageIO segment tools
     ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
     itkvcl vullib)

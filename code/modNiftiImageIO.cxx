@@ -1317,6 +1317,7 @@ int _writekey(MetaDataDictionary& dict, std::string key,
 #endif //QUAD
     } else {
       head.label = 'B';
+      head.length = sizeof(dict[key]->GetMetaDataObjectTypeInfo());
       //don't know what to do with this
     }
     memcpy(buffer, &head, 2);

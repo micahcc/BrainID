@@ -37,16 +37,16 @@ int main()
     short tmp1si = -32000;
     std::string tmp1str = "hello world";
 
-    double       tmp2d;
-    float        tmp2f;
-    int          tmp2i;
-    unsigned int tmp2u;
-    size_t       tmp2z;
-    long long int tmp2ll;
-    long long unsigned int tmp2llu;
-    unsigned short tmp2us;
-    short tmp2si;
-    std::string tmp2str;
+    double       tmp2d = 0;
+    float        tmp2f = 0;
+    int          tmp2i = 0;
+    unsigned int tmp2u = 0;
+    size_t       tmp2z = 0;
+    long long int tmp2ll = 0;
+    long long unsigned int tmp2llu = 0;
+    unsigned short tmp2us = 0;
+    short tmp2si = 0;
+    std::string tmp2str = "";
     {
         itk::EncapsulateMetaData(out->GetMetaDataDictionary(), "double", tmp1d);
         itk::EncapsulateMetaData(out->GetMetaDataDictionary(), "float", tmp1f);
