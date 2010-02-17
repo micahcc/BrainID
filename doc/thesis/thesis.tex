@@ -33,6 +33,32 @@
 \end{comment}
 
 \begin{document}
+\section*{Introduction}
+Nuclear Magnetic Resonance Imaging is a powerful tool in the analysis
+of both brain struction as well as activity. In particular Functional
+MRI gives very high spatial resolution at the cost of rather limited
+temporal resolution. Whereas other methods
+of analyzing neural signals can be invasive or ill-posed, 
+FMRI is relatively easy, and its analysis straight forward. Because of
+these benefits, FMRI has great potential for studying human cognition.
+Unfortunately, in order to achieve the speeds necessary to catch the
+Blood Oxygen Level Dependent (BOLD) signal, very little time can
+be spent allowing NMR spin to settle out, nor can much time be spent
+gathering a large region in K-Space. Because of these restrictions,
+FMRI is plagued with unidentified noise (cite) and offers a temporal
+resolution on the order of seconds rather than milliseconds.
+
+Traditional methods of analyzing FMRI images are ad-hoc and in many
+ways arbitrary. Data is often thrown out due to a lack of activation (cite),
+and there is no standard method of removing the low frequency drift
+present in all such images. Often times "activations" are looked at
+individually by taking the percent difference between the "activated"
+signal and the signal just before a stimulus was applied. Another popular
+method is a direct highpass filter, but this can attenuate actual
+signal, and introduce high frequency artifacts (cite). 
+
+The traditional method of analyzing FMRI data is to use the average
+over multiple runs, 
 
 \section*{Introduction to Modeling}
 The short term goal of current neurological models is to

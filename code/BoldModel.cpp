@@ -12,8 +12,8 @@
 
 BoldModel::BoldModel(aux::vector stddev, bool expweight, 
             size_t sections, aux::vector drift) :
-            sigma(stddev), GVAR_SIZE(4), LVAR_SIZE(7), SIMUL_STATES(sections),
-            STATE_SIZE(4+7*sections + sections),
+            sigma(stddev), SIMUL_STATES(sections),
+            STATE_SIZE(GVAR_SIZE+LVAR_SIZE*sections + sections),
             MEAS_SIZE(sections),
             INPUT_SIZE(1)//, segments(sections)
 {
@@ -349,3 +349,79 @@ bool BoldModel::reweight(aux::vector& checkme, double& weightout) const
     return false;
 }
 
+aux::vector BoldModel::defmu(unsigned int simul)
+{
+    aux::vector ret(simul+simul*LVAR_SIZE+GVAR_SIZE);
+    for(unsigned int ii = 0 ; ii < simul; ii++) {
+        ret[indexof(TAU_S, ii)] = 4.98;
+        ret[indexof(TAU_F, ii)] = 8.31;
+        ret[indexof(EPSILON, ii)] = 0.069;
+        ret[indexof(TAU_0, ii)] = 8.38;
+        ret[indexof(ALPHA, ii)] = .189;
+        ret[indexof(E_0, ii)] = .635;
+        ret[indexof(V_0, ii)] = 1.49e-2;
+
+        ret[indexof(V_T,ii)] = 1;
+        ret[indexof(Q_T,ii)] = 1;
+        ret[indexof(S_T,ii)] = 0;
+        ret[indexof(F_T,ii)]= 1;
+    }
+    
+    for(unsigned int i = 0; i < simul; i++)
+        ret[GVAR_SIZE+simul*LVAR_SIZE+i] = 0;
+    return ret;
+}
+
+aux::vector BoldModel::defvar(unsigned int simul)
+{
+    aux::vector ret(simul+simul*LVAR_SIZE+GVAR_SIZE, 0);
+    
+    for(unsigned int ii = 0 ; ii < simul ; ii++) {
+        //set the variances for all the variables to 3*sigma
+        ret(indexof(TAU_S  ,ii)) = 1.07*1.07;
+        ret(indexof(TAU_F  ,ii)) = 1.51*1.51;
+        ret(indexof(EPSILON,ii)) = 0.014*.014;
+        ret(indexof(TAU_0  ,ii)) = 1.5*1.5;
+        ret(indexof(ALPHA  ,ii)) = .004*.004;
+        ret(indexof(E_0    ,ii)) = .072*.072;
+        ret(indexof(V_0    ,ii)) = .6e-2*.6e-2;
+
+        //Assume they start at 0
+        ret(indexof(V_T,ii)) = .0001;
+        ret(indexof(Q_T,ii)) = .0001;
+        ret(indexof(S_T,ii)) = .0001;
+        ret(indexof(F_T,ii)) = .0001;
+    }
+    for(unsigned int i = 0 ; i < simul; i++) {
+        ret(GVAR_SIZE+simul*LVAR_SIZE+i) = 0;
+    }
+
+    return ret;
+}
+
+aux::symmetric_matrix BoldModel::defcov(unsigned int simul)
+{
+    aux::symmetric_matrix ret(simul+simul*LVAR_SIZE+GVAR_SIZE, 0);
+    
+    for(unsigned int ii = 0 ; ii < simul ; ii++) {
+        //set the variances for all the variables to 3*sigma
+        ret(indexof(TAU_S  ,ii), indexof(TAU_S  ,ii)) = 1.07*1.07;
+        ret(indexof(TAU_F  ,ii), indexof(TAU_F  ,ii)) = 1.51*1.51;
+        ret(indexof(EPSILON,ii), indexof(EPSILON,ii)) = 0.014*.014;
+        ret(indexof(TAU_0  ,ii), indexof(TAU_0  ,ii)) = 1.5*1.5;
+        ret(indexof(ALPHA  ,ii), indexof(ALPHA  ,ii)) = .004*.004;
+        ret(indexof(E_0    ,ii), indexof(E_0    ,ii)) = .072*.072;
+        ret(indexof(V_0    ,ii), indexof(V_0    ,ii)) = .6e-2*.6e-2;
+
+        //Assume they start at 0
+        ret(indexof(V_T,ii), indexof(V_T,ii)) = .0001;
+        ret(indexof(Q_T,ii), indexof(Q_T,ii)) = .0001;
+        ret(indexof(S_T,ii), indexof(S_T,ii)) = .0001;
+        ret(indexof(F_T,ii), indexof(F_T,ii)) = .0001;
+    }
+    for(unsigned int i = 0 ; i < simul; i++) {
+        ret(GVAR_SIZE+simul*LVAR_SIZE+i, GVAR_SIZE+simul*LVAR_SIZE+i) = 0;
+    }
+
+    return ret;
+}

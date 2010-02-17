@@ -91,7 +91,7 @@ Image3DType::Pointer get_rms(Image4DType::Pointer in);
 
 //write a vector to a dimension of an image
 template <class T, class Vector>
-void writeVector(typename itk::OrientedImage< T, 4 >::Pointer out, int dir, 
+int writeVector(typename itk::OrientedImage< T, 4 >::Pointer out, int dir, 
             const Vector& input, 
             typename itk::OrientedImage< T, 4 >::IndexType start)
 {
@@ -105,6 +105,7 @@ void writeVector(typename itk::OrientedImage< T, 4 >::Pointer out, int dir,
         it.Set(input[i]);
         ++it;
     }
+    return i;
 };
 
 //dir1 should be the first matrix dimension, dir2 the second

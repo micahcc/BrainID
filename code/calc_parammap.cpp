@@ -310,7 +310,7 @@ int main(int argc, char* argv[])
     aux::vector a_values(2);
     a_values[0] = BoldModel::getA1();
     a_values[1] = BoldModel::getA2();
-
+       
     /* Calculate parameters for every voxel */
     for(index3[0] = 0 ; index3[0] < xlen ; index3[0]++) {
         for(index3[1] = 0 ; index3[1] < ylen ; index3[1]++) {
@@ -349,10 +349,11 @@ int main(int argc, char* argv[])
                 
                 }
 
+                const int SIMUL = 1;
                 //set the output to a standard -1 if BoldPF failed
                 if(result != BoldPF::DONE) {
-                    mu = aux::vector(BASICPARAMS, -1);
-                    var = aux::vector(BASICPARAMS, -1);
+                    mu = BoldModel::defmu(SIMUL);
+                    var = 4*BoldModel::defvar(SIMUL);
                 }
                 //write the calculated expected value/variance of parameters
                 writeVector<double, aux::vector>(paramMuImg, 3, mu, index4);
@@ -379,6 +380,7 @@ int main(int argc, char* argv[])
     
     //write final output
     if(rank == 0) {
+        paramMuImg->CopyInformation(inImage);
         itk::ImageFileWriter<Image4DType>::Pointer out1 = 
                     itk::ImageFileWriter<Image4DType>::New();
         out1->SetInput(paramMuImg);
@@ -386,6 +388,7 @@ int main(int argc, char* argv[])
         cout << "Writing: param_exp.nii.gz" << endl;
         out1->Update();
 
+        paramVarImg->CopyInformation(inImage);
         itk::ImageFileWriter<Image4DType>::Pointer out2 = 
                     itk::ImageFileWriter<Image4DType>::New();
         out2->SetInput(paramVarImg);
@@ -393,6 +396,7 @@ int main(int argc, char* argv[])
         cout << "Writing: param_var.nii.gz" << endl;
         out2->Update();
         
+        measMuImg->CopyInformation(inImage);
         itk::ImageFileWriter<Image4DType>::Pointer out3 = 
                     itk::ImageFileWriter<Image4DType>::New();
         out3->SetInput(measMuImg);

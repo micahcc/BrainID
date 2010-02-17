@@ -54,12 +54,16 @@ public:
     aux::vector estMeasMean(aux::DiracMixturePdf& in) const;
 
     //goes to the index of the given state
-    inline size_t indexof(int name, int index) const {
+    static inline size_t indexof(int name, int index) {
         return (name < (int)GVAR_SIZE) ? name : index*LVAR_SIZE + name;
     };
 
     static double getA1() {return A1;};
     static double getA2() {return A2;};
+
+    static aux::vector defmu(unsigned int);
+    static aux::vector defvar(unsigned int);
+    static aux::symmetric_matrix defcov(unsigned int);
 
 private:
     //the standard deviations for the parameters theta, which are
@@ -83,8 +87,8 @@ private:
     aux::vector sigma;
     
     //Constants
-    const unsigned int GVAR_SIZE;
-    const unsigned int LVAR_SIZE;
+    static const unsigned int GVAR_SIZE = 4;
+    static const unsigned int LVAR_SIZE = 7;
     const unsigned int SIMUL_STATES;
     const unsigned int STATE_SIZE;
 
