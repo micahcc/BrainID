@@ -499,6 +499,7 @@ bool compare_t(Activation A, Activation B)
 void getknots(std::vector<double>& knots, unsigned int num, 
             std::vector<Activation>& stim)
 {
+    const double RANGE = 20;
     std::list<Activation> fifo;
     std::list<Activation> mins;
     std::vector<Activation>::iterator it = stim.begin();
@@ -506,24 +507,19 @@ void getknots(std::vector<double>& knots, unsigned int num,
     double sum_prev_prev = 1;
     double sum_prev = 0;
     double sum = 0;
-    double time_prev = it->time;
-    while(it->time - frame_begin < 10) {
+    double time_prev = RANGE;
+    while(it->time - frame_begin < RANGE) {
         sum += ((it+1)->time-it->time)*(it->level);
         fifo.push_front(*it);
         it++;
     }
-    sum -= (it-1)->level*(it->time-10);
+    sum -= (it-1)->level*(it->time-RANGE);
 
     Activation tmp;
 
     while(fifo.size() != 1 || it != stim.end()) {
-        printf("Sums: %f %f %f\n", sum_prev_prev, sum_prev, sum);
-        for(std::list<Activation>::iterator tmpit = fifo.begin(); 
-                    tmpit != fifo.end(); tmpit++) {
-            printf("\t%f, %f\n", tmpit->time, tmpit->level);
-        }
-
-        if(sum > sum_prev && sum_prev < sum_prev_prev) {
+        if(sum > sum_prev && sum_prev <= sum_prev_prev) {
+            printf("Adding: %f %f\n", time_prev, sum_prev);
             tmp.time = time_prev;
             tmp.level = sum_prev;
             mins.push_back(tmp);
@@ -531,12 +527,13 @@ void getknots(std::vector<double>& knots, unsigned int num,
 
         sum_prev_prev = sum_prev;
         sum_prev = sum;
-        time_prev = fifo.back().time+10;
+        time_prev = fifo.back().time+RANGE;
 
         std::list<Activation>::reverse_iterator sec = ++fifo.rbegin();
-        if(it != stim.end() && it->time - fifo.back().time - 10 < 
-                    sec->time - fifo.back().time) {
-            double delta = it->time - fifo.back().time - 10;
+        if(fifo.size() <= 1 || ( it != stim.end() && 
+                    it->time - fifo.back().time - RANGE < 
+                    sec->time - fifo.back().time ) ) {
+            double delta = it->time - fifo.back().time - RANGE;
             sum -= fifo.back().level*delta;
             sum += delta*fifo.front().level;
             fifo.back().time += delta;
@@ -554,7 +551,7 @@ void getknots(std::vector<double>& knots, unsigned int num,
     mins.sort(compare_l);
     
     //debug
-    fprintf(stderr, "Result:\n");
+    printf("Result:\n");
     for(std::list<Activation>::iterator tmpit = mins.begin(); 
             tmpit != mins.end(); tmpit++) {
         printf("\t%f, %f\n", tmpit->time, tmpit->level);
