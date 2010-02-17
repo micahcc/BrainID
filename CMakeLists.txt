@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
-SET(CMAKE_VERBOSE_MAKEFILE 0)
+#SET(CMAKE_VERBOSE_MAKEFILE 0)
 
 PROJECT(brainid)
 
@@ -35,21 +35,17 @@ FIND_LIBRARY(MPI_LIBRARY_DIRS NAMES mpi PATH /usr/lib)
 find_path(GSL_INCLUDE_DIRS gsl/gsl_errno.h)
 FIND_LIBRARY(GSL_LIBRARY_DIRS NAMES gsl PATH /usr/lib) 
 
-#if(EXISTS ${brainid_SOURCE_DIR}/.git)
-#    set(ARGS svn info)
-#    execute_process( COMMAND git ${ARGS} OUTPUT_VARIABLE VERSION)
-#else(EXISTS ${brainid_SOURCE_DIR}/.git)
-#    set(ARGS info)
-#    execute_process( COMMAND svn ${ARGS} OUTPUT_VARIABLE VERSION)
-#endif(EXISTS ${brainid_SOURCE_DIR}/.git)
+if(EXISTS ${brainid_SOURCE_DIR}/.git)
+    set(ARGS show-ref master --heads -s )
+    execute_process( COMMAND git ${ARGS} OUTPUT_VARIABLE VERSION)
+    string(REGEX MATCH "[0-9A-Za-z]*" VERSION ${VERSION})
+else(EXISTS ${brainid_SOURCE_DIR}/.git)
+    set(ARGS info)
+    execute_process( COMMAND svn ${ARGS} OUTPUT_VARIABLE VERSION)
+    string(REGEX MATCH "Revision: [0-9]*" VERSION2 ${VERSION})
+    string(REGEX MATCH "[0-9]+" VERSION ${VERSION2})
+endif(EXISTS ${brainid_SOURCE_DIR}/.git)
 
-#string(REGEX MATCH "Revision: [0-9]*" VERSION2 ${VERSION})
-#string(REGEX MATCH "[0-9]+" VERSION ${VERSION2})
-#set(VERSION "#define BRAINID_VERSION \"${VERSION}\"\n")
-#message("Writing version.h: ${VERSION}")
-
-#file(WRITE ${brainid_SOURCE_DIR}/code/include/version.h "${VERSION}")
-#
-#add_definitions(-DVERSION="${VERSION}")
+add_definitions(-DBRAINID_VERSION="${VERSION}")
 
 SUBDIRS(code/utils code testing)

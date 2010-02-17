@@ -221,7 +221,7 @@ except os.error:
 ##########################
 # CMake
 ##########################
-cmake_install_dir = cmakeinst(depdir, depprefix, "cmake", CMAKE_URL)
+cmake_install_dir = confmakeinst(depdir, depprefix, "cmake", CMAKE_URL)
 os.environ["PATH"] = join(cmake_install_dir, "bin") + ":"+ os.environ["PATH"]
 if not join(cmake_install_dir, "bin") in prof_bin:
     prof_bin += [join(cmake_install_dir, "bin")];
