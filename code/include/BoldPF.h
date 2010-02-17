@@ -71,6 +71,9 @@ public:
     int pause() { return status = PAUSED; };
 
     /* Accessors */
+    double getContTime() const {return disctime_s*dt_s;};
+    unsigned int getDiscTimeL() const {return disctime_l;};
+    unsigned int getDiscTimeS() const {return disctime_s;};
     int getNumParticles() const;
     double getShortStep() const;
     double getLongStep() const;
@@ -155,11 +158,6 @@ aux::DiracMixturePdf& BoldPF::getDistribution()
     return filter->getFilteredState();
 };
 
-//const Filter& getFilter()
-//{
-//    return *filter;
-//};
-
 int BoldPF::getStatus()
 {
     return status;
@@ -175,11 +173,6 @@ int BoldPF::run(void* pass = NULL)
     if(status == ERROR || status == RUNNING || status == DONE) {
         return status;
     }
-
-    /* Initialize mpi */
-//    boost::mpi::communicator world;
-//    const unsigned int rank = world.rank();
-//    const unsigned int size = world.size();
 
     *debug << "mu size: " << filter->getFilteredState().getDistributedExpectation().size();
     *debug << "dimensions: " << filter->getFilteredState().getDimensions();

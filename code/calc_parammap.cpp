@@ -43,6 +43,26 @@ typedef itk::SubtractImageFilter< Image4DType > SubF4;
 namespace aux = indii::ml::aux;
 typedef indii::ml::filter::ParticleFilter<double> Filter;
 
+struct callback_data
+{
+    Image4DType::Pointer image;
+    Image4DType::IndexType pos;
+};
+
+int callback(BoldPF* bold, void* data)
+{
+    boost::mpi::communicator world;
+    const unsigned int rank = world.rank();
+//    const unsigned int size = world.size();
+    
+    callback_data* cdata = (struct callback_data*)data;
+    cdata->pos[3] = bold->getDiscTimeL();
+    aux::vector meas =  bold->getDistribution().getDistributedExpectation();
+    if(rank == 0) 
+         cdata->image->SetPixel(cdata->pos, meas[0]);
+    return 0;
+}
+
 void fillvector(std::vector< aux::vector >& output, Image4DType* input,
             Image4DType::IndexType pos, bool delta)
 {       
@@ -114,6 +134,7 @@ int main(int argc, char* argv[])
     fprintf(stderr, "Brainid Version: %s\n", BRAINID_VERSION);
 
     Image4DType::Pointer inImage;
+    Image4DType::Pointer measMuImg;
     Image4DType::Pointer paramMuImg;
     Image4DType::Pointer paramVarImg;
 
@@ -190,6 +211,11 @@ int main(int argc, char* argv[])
     paramVarImg->Allocate();
     paramVarImg->FillBuffer(0);
     
+    measMuImg = Image4DType::New();
+    measMuImg->SetRegions(inImage->GetRequestedRegion());
+    measMuImg->Allocate();
+    measMuImg->FillBuffer(0);
+    
     unsigned int xlen = inImage->GetRequestedRegion().GetSize()[0];
     unsigned int ylen = inImage->GetRequestedRegion().GetSize()[1];
     unsigned int zlen = inImage->GetRequestedRegion().GetSize()[2];
@@ -252,6 +278,16 @@ int main(int argc, char* argv[])
     
     //acquire rms
     rms = get_rms(inImage);
+
+    //callback variables, to fill in 
+    BoldPF::CallPoints callpoints;
+    callpoints.start = false;
+    callpoints.postMeas = true;
+    callpoints.postFilter = false;
+    callpoints.end = false;
+
+    callback_data cbd;
+    cbd.image = measMuImg;
     
     time_t start = time(NULL);
     for(unsigned int xx = 0 ; xx < xlen ; xx++) {
@@ -260,6 +296,7 @@ int main(int argc, char* argv[])
                 //initialize some variables
                 Image3DType::IndexType index3 = {{xx, yy, zz}};
                 Image4DType::IndexType index4 = {{xx, yy, zz, 0}};
+                cbd.pos = index4;
                 int result = 0;
                 aux::vector mu;
                 aux::vector var;
@@ -279,7 +316,8 @@ int main(int argc, char* argv[])
 
                     BoldPF boldpf(meas, input, rms->GetPixel(index3), a_timestep(),
                             &ofile, a_num_particles()*(1<<i), 1./a_divider(), method);
-                    result = boldpf.run();
+                    boldpf.setCallBack(callpoints, &callback);
+                    result = boldpf.run(&cbd);
                     mu = boldpf.getDistribution().getDistributedExpectation();
                     aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
                     var = diag(cov);
@@ -330,6 +368,14 @@ int main(int argc, char* argv[])
         out2->SetFileName(tmp2.append("/param_var.nii.gz"));
         cout << "Writing: " << tmp2 << endl;
         out2->Update();
+        
+        itk::ImageFileWriter<Image4DType>::Pointer out3 = 
+                    itk::ImageFileWriter<Image4DType>::New();
+        out3->SetInput(measMuImg);
+        string tmp3 = a_output();
+        out3->SetFileName(tmp3.append("/meas_mu.nii.gz"));
+        cout << "Writing: " << tmp3 << endl;
+        out3->Update();
     }
                 
     return 0;
