@@ -1,6 +1,3 @@
-
-#include "version.h"
-
 #include "itkOrientedImage.h"
 #include "itkImageFileWriter.h"
 #include "itkImageLinearIteratorWithIndex.h"

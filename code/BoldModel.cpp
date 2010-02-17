@@ -8,10 +8,6 @@
 #include <cmath>
 #include <ctime>
 #include <iomanip>
-
-#define EXPONENTIAL_VAR .2
-#define GAUSSIAN_VAR .2
-
 #include <iostream>
 
 BoldModel::BoldModel(aux::vector stddev, bool expweight, 
@@ -20,11 +16,6 @@ BoldModel::BoldModel(aux::vector stddev, bool expweight,
             STATE_SIZE(GVAR_SIZE+LVAR_SIZE*SIMUL_STATES), MEAS_SIZE(SIMUL_STATES),
             INPUT_SIZE(1)//, segments(sections)
 {
-//    //determines the layout of the state variables
-//    for(unsigned int i = 0 ; i<segments.size() ; i++) {
-//        segments[i].index = i*7;
-//    }
-
     //this is only a problem if the user put in a bad vector
     //in which case the u will be overwritten with 0's
     this->input = aux::zero_vector(sections);
@@ -147,13 +138,6 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y) const
     //these are really constant throughout the execution
     //of the program, so no need to calculate over and over
     aux::vector location(MEAS_SIZE);
-//    fprintf(stderr, "Actual:\n");
-//    outputVector(std::cerr, y);
-//    fprintf(stderr, "Measure: \n");
-//    outputVector(std::cerr, measure(s));
-//    fprintf(stderr, "\nParticle:\n");
-//    outputVector(std::cerr , s);
-//    fprintf(stderr, "\n");
     
     //after computing the n-dimensional location whose density
     //will be found on a gaussian curve, set all terms that came

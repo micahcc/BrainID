@@ -2,8 +2,6 @@
 //Nonlinear estimation of the Bold Signal
 //NeuroImage 40 (2008) p. 504-514
 //by Leigh A. Johnston, Eugene Duff, Iven Mareels, and Gary F. Egan
-#include "version.h"
-
 #include <itkOrientedImage.h>
 #include <itkImageFileWriter.h>
 #include <itkImageFileReader.h>

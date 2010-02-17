@@ -1,7 +1,5 @@
 #ifndef BOLDPF_H
 #define BOLDPF_H
-#include "version.h"
-
 #include <itkOrientedImage.h>
 #include <itkImageFileWriter.h>
 #include <itkImageFileReader.h>
