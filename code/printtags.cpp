@@ -28,14 +28,10 @@ int main (int argc, char** argv)
     itk::MetaDataDictionary dict = reader->GetOutput()->GetMetaDataDictionary();
     vector<string> keys = dict.GetKeys();
 
-//    dict.Print(cout);
-
-//    cout << "Manually Printing" << endl;
-
     for(size_t i=0 ; i<keys.size() ; i++) {
         double tmpd = 0;
         float tmpf = 0;
-        string tmps = 0;
+        string tmps = "";
         int tmpi = 0;
         unsigned int tmpu = 0;
         long tmpl = 0;

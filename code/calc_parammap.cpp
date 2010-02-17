@@ -278,7 +278,7 @@ int main(int argc, char* argv[])
                     fillvector(meas, inImage, index4, a_delta());
 
                     BoldPF boldpf(meas, input, rms->GetPixel(index3), a_timestep(),
-                            output, a_num_particles()*(1<<i), 1./a_divider(), method);
+                            &ofile, a_num_particles()*(1<<i), 1./a_divider(), method);
                     result = boldpf.run();
                     mu = boldpf.getDistribution().getDistributedExpectation();
                     aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
