@@ -174,14 +174,30 @@ RegularizedParticleResamplerMod<NT, KT>::resample_help(
     double weight = 0;
 
     /* standardise particles */
+    for(unsigned int i = 0 ; i < model->getMeasurementSize() ; i++) {
+        unsigned int tmp = model->getStateSize()-i-1;
+        if(covariance(tmp, tmp) < 1e-100) {
+            std::cerr << "Warning covariance of drift (" << tmp 
+                        << ") dropped to 0, resetting" << std::endl;
+            covariance(tmp, tmp) = 1e-10;
+        }
+    }
     aux::matrix sd(covariance);
     aux::vector diag_v(sd.size1());
-    #ifndef NDEBUG
     int err = lapack::syev('V', 'U', sd, diag_v);
-    #endif
-    assert(err == 0);
-    bool verbose = false;
+    if(err != 0 ) {
+        std::cerr << "Hmm the lapack::syev returned a non-zero error" << std::endl;
+        std::cerr << "Covariance matrix: " << std::endl;
+        outputMatrix(std::cerr, covariance);
+        std::cerr << "Standard deviation: " << std::endl;
+        outputMatrix(std::cerr, sd);
+        std::cerr << "Diagonalized result: " << std::endl;
+        outputVector(std::cerr, diag_v);
+        std::cerr << std::endl;
+        exit(-1);
+    }
 
+    bool verbose = false;
     for(unsigned int i = 0 ; i<diag_v.size() ; i++) {
         if(diag_v(i) < 0) {
             if(rank == 0) {
@@ -224,7 +240,7 @@ RegularizedParticleResamplerMod<NT, KT>::resample_help(
         out.add(x, weight);
     }
     if(badcount != 0) {
-        std::cerr << "Reweighted " << badcount << "/" << p.getSize() << "particles"
+        std::cerr << "Reset " << badcount << "/" << p.getSize() << "particles"
                     << std::endl;
     }
 };

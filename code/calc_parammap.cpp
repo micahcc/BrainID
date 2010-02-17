@@ -49,6 +49,18 @@ struct callback_data
     Image4DType::IndexType pos;
 };
 
+bool checkmask(Label4DType::Pointer maskimg, Image4DType::PointType point)
+{
+    Image4DType::IndexType index;
+    maskimg->TransformPhysicalPointToIndex(point, index);
+    if(maskimg->GetRequestedRegion().IsInside(index) && 
+                    maskimg->GetPixel(index) > 0) {
+        return true;
+    }
+
+    return false;
+}
+
 int callback(BoldPF* bold, void* data)
 {
     boost::mpi::communicator world;
@@ -93,7 +105,51 @@ void fillvector(std::vector< aux::vector >& output, Image4DType* input,
         }
     }
 }
-            
+
+Image4DType::Pointer preprocess_help(Image4DType::Pointer input, 
+            std::vector<Activation>& stim, double sampletime, unsigned int erase,
+            bool nospline)
+{
+    boost::mpi::communicator world;
+    const unsigned int rank = world.rank();
+    /* Set up measurements image */
+    //*output << "Conditioning FMRI Image" << endl;
+    //remove first 2 time step, since they are typically polluted
+    input = pruneFMRI(input, stim, sampletime, erase);
+
+    //calculate %difference, which is used normally for the bold signal
+    // or the modified % difference (with spline rather than mean)
+    if(nospline) {
+//        *output << "Changing Image to %difference" << endl;
+        SubF4::Pointer sub = SubF4::New();   
+        DivF4::Pointer div = DivF4::New();
+        Image4DType::Pointer mean = extrude(Tmean(input),
+                    input->GetRequestedRegion().GetSize()[3]);
+        sub->SetInput1(input);
+        sub->SetInput2(mean);
+        div->SetInput1(sub->GetOutput());
+        div->SetInput2(mean);
+        div->Update();
+        input = div->GetOutput();
+    } else {
+//        *output << "De-trending, then dividing by mean" << endl;
+        input = deSpline(input, 15, stim, sampletime);
+    }
+
+    /* Save detrended image */
+    if(rank == 0) try {
+        itk::ImageFileWriter<Image4DType>::Pointer out = 
+                    itk::ImageFileWriter<Image4DType>::New();
+        out->SetInput(input);
+        out->SetFileName("pfilter_input.nii.gz");
+//        cout << "Writing: " << tmp << endl;
+        out->Update();
+    } catch(itk::ExceptionObject) {
+        cerr << "Error opening pfilter_input.nii.gz" << endl;
+        exit(-4);
+    }
+    return input;
+}
 
 /* Main Function */
 int main(int argc, char* argv[])
@@ -105,13 +161,12 @@ int main(int argc, char* argv[])
     const unsigned int size = world.size();
 
     vul_arg<string> a_input(0, "4D timeseries file");
-    vul_arg<string> a_output(0, "output directory");
+    vul_arg<string> a_mask(0, "3D mask file");
     
     vul_arg<bool> a_drift("-f", "Add drift term to model.", false);
     vul_arg<bool> a_delta("-l", "Use deltas between measurements, this precludes"
                 "the drift option", false);
     
-    vul_arg<string> a_mask("-m", "3D mask file");
     vul_arg<unsigned> a_num_particles("-p", "Number of particles.", 3000);
     vul_arg<unsigned> a_divider("-d", "Intermediate Steps between samples.", 128);
     vul_arg<string> a_stimfile("-s", "file containing \"<time> <value>\""
@@ -128,6 +183,7 @@ int main(int argc, char* argv[])
     const unsigned int BASICPARAMS = 7;
     const unsigned int STATICPARAMS = 2;
     const unsigned int RETRIES = 3;
+    const unsigned int ERASE = 2;
 
     ///////////////////////////////////////////////////////////////////////////////
     //Done Parsing, starting main part of code
@@ -143,11 +199,9 @@ int main(int argc, char* argv[])
     std::vector<Activation> input;
 
     Image3DType::Pointer rms;
-    Label3DType::Pointer mask;
+    Label4DType::Pointer mask;
     Image4DType::SizeType outsize;
 
-    string tmp;
-    
     ofstream ofile("/dev/null");
     ostream* output;
     if(rank == 0) {
@@ -158,26 +212,24 @@ int main(int argc, char* argv[])
 
     /* Open up the input */
     try {
-    ImageReaderType::Pointer reader;
-    reader = ImageReaderType::New();
-    reader->SetImageIO(itk::modNiftiImageIO::New());
-    reader->SetFileName( a_input() );
-    reader->Update();
-    inImage = reader->GetOutput();
+        ImageReaderType::Pointer reader;
+        reader = ImageReaderType::New();
+        reader->SetImageIO(itk::modNiftiImageIO::New());
+        reader->SetFileName( a_input() );
+        reader->Update();
+        inImage = reader->GetOutput();
     } catch(itk::ExceptionObject) {
         fprintf(stderr, "Error opening %s\n", a_input().c_str());
         exit(-1);
     }
 
     try{
-    if(!a_mask().empty()) {
-        itk::ImageFileReader<Label3DType>::Pointer reader;
-        reader = itk::ImageFileReader<Label3DType>::New();
+        itk::ImageFileReader<Label4DType>::Pointer reader;
+        reader = itk::ImageFileReader<Label4DType>::New();
         reader->SetImageIO(itk::modNiftiImageIO::New());
         reader->SetFileName( a_mask() );
         reader->Update();
         mask = reader->GetOutput();
-    }
     } catch(itk::ExceptionObject) {
         fprintf(stderr, "Error opening %s\n", a_mask().c_str());
         exit(-2);
@@ -222,62 +274,10 @@ int main(int argc, char* argv[])
     unsigned int ylen = inImage->GetRequestedRegion().GetSize()[1];
     unsigned int zlen = inImage->GetRequestedRegion().GetSize()[2];
     unsigned int tlen = inImage->GetRequestedRegion().GetSize()[3];
-    //Find the Tmean, and ignore elemnts whose mean is < 1
-    Image3DType::Pointer tmeanImg = Tmean(inImage);
-    if(rank == 0) try {
-        itk::ImageFileWriter<Image3DType>::Pointer out = 
-                    itk::ImageFileWriter<Image3DType>::New();
-        out->SetInput(tmeanImg);
-        tmp = a_output();
-        out->SetFileName(tmp.append("/Tmean.nii.gz"));
-        cout << "Writing: " << tmp << endl;
-        out->Update();
-    } catch(itk::ExceptionObject) {
-        cerr << "Error opening " << tmp << endl;
-        exit(-3);
-    }
 
-    /* Set up measurements image */
-    *output << "Conditioning FMRI Image" << endl;
-    //remove first 2 time step, since they are typically polluted
-    inImage = pruneFMRI(inImage, input, a_timestep(), 2);
-    unsigned int method;
+    inImage = preprocess_help(inImage, input, a_timestep(), ERASE, 
+                a_delta() || a_drift());
 
-    //calculate %difference, which is used normally for the bold signal
-    // or the modified % difference (with spline rather than mean)
-    if(a_delta() || a_drift()) {
-        *output << "Changing Image to %difference" << endl;
-        method = a_delta() ? BoldPF::DELTA : BoldPF::PROCESS;
-        SubF4::Pointer sub = SubF4::New();   
-        DivF4::Pointer div = DivF4::New();
-        Image4DType::Pointer mean = extrude(Tmean(inImage),
-                    inImage->GetRequestedRegion().GetSize()[3]);
-        sub->SetInput1(inImage);
-        sub->SetInput2(mean);
-        div->SetInput1(sub->GetOutput());
-        div->SetInput2(mean);
-        div->Update();
-        inImage = div->GetOutput();
-    } else {
-        *output << "De-trending, then dividing by mean" << endl;
-        method = BoldPF::DIRECT;
-        inImage = deSpline(inImage, 15, input, a_timestep());
-    }
-
-    /* Save detrended image */
-    if(rank == 0) try {
-        itk::ImageFileWriter<Image4DType>::Pointer out = 
-                    itk::ImageFileWriter<Image4DType>::New();
-        out->SetInput(inImage);
-        tmp = a_output();
-        out->SetFileName(tmp.append("/pfilter_input.nii.gz"));
-        cout << "Writing: " << tmp << endl;
-        out->Update();
-    } catch(itk::ExceptionObject) {
-        cerr << "Error opening " << tmp << endl;
-        exit(-4);
-    }
-    
     //acquire rms
     rms = get_rms(inImage);
 
@@ -290,45 +290,66 @@ int main(int argc, char* argv[])
 
     callback_data cbd;
     cbd.image = measMuImg;
+
+    unsigned int method = BoldPF::DIRECT;
+    if(a_delta()) method = BoldPF::DELTA;
+    else if(a_drift()) method = BoldPF::PROCESS;
     
+    /* Temporary variables used in the loop */
     time_t start = time(NULL);
-    for(unsigned int xx = 0 ; xx < xlen ; xx++) {
-        for(unsigned int yy = 0 ; yy < ylen ; yy++) {
-            for(unsigned int zz = 0 ; zz < zlen ; zz++) {
-                //initialize some variables
-                Image3DType::IndexType index3 = {{xx, yy, zz}};
-                Image4DType::IndexType index4 = {{xx, yy, zz, 0}};
-                cbd.pos = index4;
-                int result = 0;
-                aux::vector mu;
-                aux::vector var;
-                aux::vector a_values(2);
+    Image3DType::IndexType index3 = {{0, 0, 0}};
+    Image4DType::PointType point4;
+    Image4DType::IndexType index4 = {{0, 0, 0, 0}};
+    int result;
+    
+    aux::vector mu;
+    aux::vector var;
+    std::vector< aux::vector > meas(tlen);
+
+    /* Set constant A1, A2 */
+    aux::vector a_values(2);
+    a_values[0] = BoldModel::getA1();
+    a_values[1] = BoldModel::getA2();
+
+    /* Calculate parameters for every voxel */
+    for(index3[0] = 0 ; index3[0] < xlen ; index3[0]++) {
+        for(index3[1] = 0 ; index3[1] < ylen ; index3[1]++) {
+            for(index3[2] = 0 ; index3[2] < zlen ; index3[2]++) {
+                //initialize some indexes
+                for(int i = 0 ; i < 3 ; i++) index4[i] = index3[i];
+                index4[3] = 0;
+                inImage->TransformIndexToPhysicalPoint(index4, point4);
+
+                result = BoldPF::UNSTARTED;
 
                 //debug
-                *output << xx << " " << yy << " " << zz << endl;
-                *output << xx*ylen*zlen + (zz+1)+yy*zlen << "/" << xlen*ylen*zlen 
-                            << endl;
+                *output << index3 << endl;
+                *output << index3[0]*ylen*zlen + (index3[2]+1)+index3[1]*zlen << "/" 
+                            << xlen*ylen*zlen << endl;
 
                 //run particle filter, and retry with i times as many particles
                 //as the the initial number if it fails
-                for(unsigned int i = 0 ; tmeanImg->GetPixel(index3) > 10 && 
+                for(unsigned int i = 0 ; checkmask(mask, point4) && 
                             result != BoldPF::DONE && i < RETRIES; i++) { 
-                    std::vector< aux::vector > meas(tlen);
                     fillvector(meas, inImage, index4, a_delta());
 
+                    //create the bold particle filter
                     BoldPF boldpf(meas, input, rms->GetPixel(index3), a_timestep(),
                             &ofile, a_num_particles()*(1<<i), 1./a_divider(), method);
+                    
+                    //create the callback function
+                    cbd.pos = index4;
                     boldpf.setCallBack(callpoints, &callback);
+
+                    //run the particle filter
                     result = boldpf.run(&cbd);
                     mu = boldpf.getDistribution().getDistributedExpectation();
                     aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
                     var = diag(cov);
                 
-                    a_values[0] = boldpf.getModel().getA1();
-                    a_values[1] = boldpf.getModel().getA2();
                 }
 
-                //save the output
+                //set the output to a standard -1 if BoldPF failed
                 if(result != BoldPF::DONE) {
                     mu = aux::vector(BASICPARAMS, -1);
                     var = aux::vector(BASICPARAMS, -1);
@@ -343,11 +364,14 @@ int main(int argc, char* argv[])
                 writeVector<double, aux::vector>(paramVarImg, 3, aux::vector(2,0),
                             index4);
             
+                //run time calculation
                 time_t tmp = time(NULL);
-                double traveled = xx*yy*zz+zlen*yy+zz;
+                double traveled = index3[0]*index3[1]*index3[2]+zlen*index3[1]+index3[2];
                 double total = xlen*ylen*zlen;
                 cerr << "Elapsed: " << difftime(tmp, start) << endl
-                     << "Remaining: " << (total-traveled)*difftime(tmp,start)/traveled
+                     << "Remaining: " << (total-traveled)*difftime(tmp,start)/traveled 
+                     << endl << "Ratio: " << traveled << "/" << total << endl
+                     << "Left: " << total-traveled << "/" << total
                      << endl;
             }
         }
@@ -358,25 +382,22 @@ int main(int argc, char* argv[])
         itk::ImageFileWriter<Image4DType>::Pointer out1 = 
                     itk::ImageFileWriter<Image4DType>::New();
         out1->SetInput(paramMuImg);
-        string tmp1 = a_output();
-        out1->SetFileName(tmp1.append("/param_exp.nii.gz"));
-        cout << "Writing: " << tmp1 << endl;
+        out1->SetFileName("param_exp.nii.gz");
+        cout << "Writing: param_exp.nii.gz" << endl;
         out1->Update();
 
         itk::ImageFileWriter<Image4DType>::Pointer out2 = 
                     itk::ImageFileWriter<Image4DType>::New();
         out2->SetInput(paramVarImg);
-        string tmp2 = a_output();
-        out2->SetFileName(tmp2.append("/param_var.nii.gz"));
-        cout << "Writing: " << tmp2 << endl;
+        out2->SetFileName("param_var.nii.gz");
+        cout << "Writing: param_var.nii.gz" << endl;
         out2->Update();
         
         itk::ImageFileWriter<Image4DType>::Pointer out3 = 
                     itk::ImageFileWriter<Image4DType>::New();
         out3->SetInput(measMuImg);
-        string tmp3 = a_output();
-        out3->SetFileName(tmp3.append("/meas_mu.nii.gz"));
-        cout << "Writing: " << tmp3 << endl;
+        out3->SetFileName("meas_mu.nii.gz");
+        cout << "Writing: meas_mu.nii.gz" << endl;
         out3->Update();
     }
                 

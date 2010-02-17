@@ -41,6 +41,7 @@ ADD_EXECUTABLE(printtags printtags.cpp)
 ADD_EXECUTABLE(setorientation setorientation.cpp)
 ADD_EXECUTABLE(fmri_timeseries fmri_timeseries.cpp)
 ADD_EXECUTABLE(boldgen boldgen.cpp)
+ADD_EXECUTABLE(test test.cc)
 ADD_EXECUTABLE(concatinate concat.cpp)
 ADD_EXECUTABLE(prune prune.cpp)
 ADD_EXECUTABLE(readdicom readdicom.cpp)
@@ -72,6 +73,9 @@ TARGET_LINK_LIBRARIES(calc_parammap segment tools gfortran modNiftiImageIO blas 
     ITKCommon ITKIO mpi gsl gslcblas dysii itkvnl itkvcl vullib segment)
 TARGET_LINK_LIBRARIES(parammap_eval modNiftiImageIO ITKIO ITKCommon vullib tools)
 TARGET_LINK_LIBRARIES(boldgen tools gfortran blas lapack modNiftiImageIO boost_mpi 
+    BoldModel ITKAlgorithms ITKBasicFilters 
+    ITKCommon ITKIO gsl gslcblas mpi dysii itkvnl itkvcl vullib)
+TARGET_LINK_LIBRARIES(test tools gfortran blas lapack modNiftiImageIO boost_mpi 
     BoldModel ITKAlgorithms ITKBasicFilters 
     ITKCommon ITKIO gsl gslcblas mpi dysii itkvnl itkvcl vullib)
 TARGET_LINK_LIBRARIES(fft tools gfortran blas lapack modNiftiImageIO 

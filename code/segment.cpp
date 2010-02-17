@@ -1304,6 +1304,7 @@ Image4DType::Pointer deSpline(const Image4DType::Pointer fmri_img,
     Image4DType::Pointer spline = getspline(fmri_img, knots_final);
     
     {
+    printf("Writing spline");
     itk::ImageFileWriter< Image4DType >::Pointer writer = 
                 itk::ImageFileWriter< Image4DType >::New();
     writer->SetInput(spline);
@@ -1317,6 +1318,7 @@ Image4DType::Pointer deSpline(const Image4DType::Pointer fmri_img,
     Image4DType::Pointer avg = extrude(Tmean(fmri_img), 
                 fmri_img->GetRequestedRegion().GetSize()[3]);
     {
+    printf("Writing fmri_img");
     itk::ImageFileWriter< Image4DType >::Pointer writer = 
                 itk::ImageFileWriter< Image4DType >::New();
     writer->SetInput(fmri_img);
@@ -1324,6 +1326,7 @@ Image4DType::Pointer deSpline(const Image4DType::Pointer fmri_img,
     writer->Update();
     }
     {
+    printf("Writing avg");
     itk::ImageFileWriter< Image4DType >::Pointer writer = 
                 itk::ImageFileWriter< Image4DType >::New();
     writer->SetInput(avg);

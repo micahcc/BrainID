@@ -42,7 +42,7 @@ BoldModel::BoldModel(aux::vector stddev, bool expweight,
     }
     
     if(drift.size() != MEAS_SIZE) 
-        drift = aux::vector(MEAS_SIZE, 1e-100);
+        drift = aux::vector(MEAS_SIZE, 1e-10);
     for(unsigned int i = 0; i < MEAS_SIZE ; i++)
         defaultstate[STATE_SIZE-MEAS_SIZE+i] = drift[i];
 
