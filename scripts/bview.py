@@ -35,14 +35,13 @@ def getequivindex(point, targetimg, img2):
 
 def imshowslice(dir, slnum, time):
     if dir == 'x-y':
-        pylab.subplot(111)
-        pylab.imshow(images[0].get_data()[:,:,slnum,time])
+        data = [images[0].get_data()[:,i,slnum,time] for i in range(images[0].get_shape()[1])]
     elif dir == 'y-z':
-        pylab.subplot(111)
-        pylab.imshow(images[0].get_data()[slnum,:,:,time])
+        data = [images[0].get_data()[slnum,:,i,time] for i in range(images[0].get_shape()[2])]
     elif dir == 'x-z':
-        pylab.subplot(111)
-        pylab.imshow(images[0].get_data()[:,slnum,:,time])
+        data = [images[0].get_data()[:,slnum,i,time] for i in range(images[0].get_shape()[2])]
+    pylab.subplot(111)
+    pylab.imshow(data,cmap='gray', origin='lower')
 
 
 #Input
@@ -116,15 +115,15 @@ def mousecall(event):
             #get position
             pos = getequivindex([x,y,z], images[0], images[i])
             print pos
-            if pos[0] < 0 or pos[0] > images[i].get_header()['dim'][1]:
+            if pos[0] < 0 or pos[0] >= images[i].get_header()['dim'][1]:
                 print "Skipping, point not in image: " + sys.argv[i+1]
                 continue
             
-            if pos[1] < 0 or pos[1] > images[i].get_header()['dim'][2]:
+            if pos[1] < 0 or pos[1] >= images[i].get_header()['dim'][2]:
                 print "Skipping, point not in image: " + sys.argv[i+1]
                 continue
             
-            if pos[2] < 0 or pos[2] > images[i].get_header()['dim'][3]:
+            if pos[2] < 0 or pos[2] >= images[i].get_header()['dim'][3]:
                 print "Skipping, point not in image: " + sys.argv[i+1]
                 continue
 
