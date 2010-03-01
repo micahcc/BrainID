@@ -35,15 +35,23 @@
 \begin{document}
 \section*{Introduction}
 Functional Magnetic Resonance Imaging (FMRI) is a powerful tool in the analysis
-neural activity. At the cost of rather limited temporal resolution, FMRI gives
-high spatial for relatively cheap. Whereas other methods
-of analyzing neural signals can be invasive or ill-posed, 
-FMRI is relatively quick and easy, and its analysis straight forward. Because of
-these benefits, FMRI has great potential for studying human cognition.
-Unfortunately, FMRI does suffer from severe noise and, as previously
-mentioned, low temporal resolution. Because of the extensive noise, 
-and relative unpredictability of the absolute signal level, a large amount 
-of conditioning is necessary to obtain "valid" activation. In
+neural activity. Despite its rather limited temporal resolution, FMRI still
+is the best way of measuring neural activity deep in the brain. 
+Whereas other methods
+of analyzing neural signals can be invasive or difficult to acquire, 
+FMRI is relatively quick and cheap, and its analysis is straight forward.
+Because of these benefits, FMRI continues to have great potential for
+studying human cognition. Despite the fact that FMRI is so widely used,
+the choice of analysis tools is still relatively limited. Every widely
+available analysis tool is based on parametric modeling, which \emph{requires}
+prior knowledge of the noise, and depends on that knowledge being accurate.
+This limitation casts a long shadow over any experiment that claims to be
+able to reject the null hypothesis, no matter the P-value. While obviously
+there is a correlation between the BOLD signal and actual activity, its
+possible the current parametric tests are over-estimating the actual amount
+of activity. Its worht noting that the opposite could also be true, parametric
+based t-tests may in fact underestimate activity. 
+
 fact, typical activation detection does little to account for variations
 in the shape of the signal, but instead is a direct T-test between the measured signal
 and the expected shape of the signal. Because of these limitations,
@@ -52,33 +60,30 @@ must be very large to be detected with any confidence. This paper
 will introduce a more robust method of analyzing FMRI signals for 
 activation, by means of estimating the BOLD parameters.
 
-\section*{General Linear Model}
+\subsection*{FMRI?}
 
-\section*{BOLD Model}
+\subsection*{BOLD Physiology}
+The physiology that leads to the BOLD model has been well studied over the 
+past decade and a half. While some uncertainty remains, for instance in
+relation to the BOLD post-stimulus undershoot <papers relating to back and
+forth on post-stimulus undershoot>, generally the model fits reality very 
+well. As with every piece of tissue in the body, the brain requires oxygen
+to extract energy from glucose in the blood. This process of removing oxygen
+from red blood cells sets into motion a chain of events
 
-\subsection*{Preprocessing}
-After FMRI data has been acquired it is always necessary to modify the
-data in some way to make different runs comparable. Because FMRI signal
-levels are essentially unit-less, at the very least it is necessary to convert
-the data into \% difference from the baseline. Finding the baseline is the
-first hurdle in dealing with FMRI. Various methods exist for doing this,
-but they are all ad-hoc. It is common to treat each stimulus pulse independently,
-ignoring the long decay of the BOLD signal. By treating each input separately,
-the "base" for calculating the percent difference is merely the signal level 
-before the stimulus is applied. The problem with this is that the BOLD signal
-can be heavily delayed, and fall times can be as long as 10 or 15 seconds,
-meaning that the assumption is clearly a false one. Another popular method 
-of dealing with this problem, is to put all the time series through a high
-pass filter. This will of course remove the DC component of the signal, and 
-some amount of so called "drift". The problem with this method is that it is
-not adaptive to the input. Huge variations in drift frequencies can exist 
-in a single time-series. Thus, a single cutoff frequency could miss a significant
-drift component, or it could remove \emph{actual} signal, if the cutoff frequency is
-set too high. 
+inherently alters the local ratio of Oxygenated Hemoglobin
+to De-oxygenated hemoglobin, which of course changes the atomic makeup of the
+region. Of course MRI's contrast is based on the nuclear spin excitability of
+atoms, and so change in the amount of oxygen changes the local oxygen concentration of 
+The changes in the FMRI signal result from the changes in the ratio
+of Oxygenated Hemaglobin to Deoxygenated Hemaglobin.
 
-\subsection*{
+\section*{Current Techniques}
+\subsection*{Basic T-Test}
+\subsection*{General Linear Model}
 
-\section*{Introduction to Modeling}
+\section*{Proposed Approach}
+\subsection{Modeling}
 The short term goal of current neurological models is to
 learn something about the system being modeled.
 While control (for instance in prosthetics), or predication
@@ -109,6 +114,31 @@ sort of face validity \citep{drift}.
 By moving to models that actually "learn" the 
 parameters of the model, model error will be drastically
 reduced allowing for much more reasonable statistical thresholds.
+\subsection{Particle Filters}
+
+\section*{Methods}
+\subsection*{Preprocessing}
+After FMRI data has been acquired it is always necessary to modify the
+data in some way to make different runs comparable. Because FMRI signal
+levels are essentially unit-less, at the very least it is necessary to convert
+the data into \% difference from the baseline. Finding the baseline is the
+first hurdle in dealing with FMRI. Various methods exist for doing this,
+but they are all ad-hoc. It is common to treat each stimulus pulse independently,
+ignoring the long decay of the BOLD signal. By treating each input separately,
+the "base" for calculating the percent difference is merely the signal level 
+before the stimulus is applied. The problem with this is that the BOLD signal
+can be heavily delayed, and fall times can be as long as 10 or 15 seconds,
+meaning that the assumption is clearly a false one. Another popular method 
+of dealing with this problem, is to put all the time series through a high
+pass filter. This will of course remove the DC component of the signal, and 
+some amount of so called "drift". The problem with this method is that it is
+not adaptive to the input. Huge variations in drift frequencies can exist 
+in a single time-series. Thus, a single cutoff frequency could miss a significant
+drift component, or it could remove \emph{actual} signal, if the cutoff frequency is
+set too high. 
+
+
+\section*{Introduction to Modeling}
 
 Of course, it is well known that many of the assumptions 
 that the GLM makes about BOLD activation do not hold. 
