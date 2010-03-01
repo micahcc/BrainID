@@ -2,7 +2,7 @@
 
 import pylab as P
 import sys
-from nifti import *
+import nibabel 
 
 #t = arange(0.0, 2.0, 0.01)
 #s = sin(2*pi*t)
@@ -16,15 +16,16 @@ from nifti import *
 
 images = list();
 for arg in sys.argv[1:]:
-    images.append(image.NiftiImage(arg))
+    img = nibabel.load(arg)
+    images.append(img)
 
 leg = []
 
-for nifti in images:
-    print nifti
-    for iter in range(0,nifti.extent[0]):
-        P.plot(nifti.data[:, 0,0,iter])
-        leg = leg + [nifti.filename+":"+str(iter)]
+for i in range(0, len(images)):
+    print images[i]
+    for iter in range(0,images[i].get_shape()[3]):
+        P.plot(images[i].get_data()[:, 0,0,iter])
+        leg = leg + [sys.argv[i+1]+":"+str(iter)]
 #P.legend(sys.argv[1:])
 P.legend(leg)
 

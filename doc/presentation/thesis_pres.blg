@@ -1,0 +1,47 @@
+This is BibTeX, Version 0.99c (TeX Live 2009/Arch Linux)
+The top-level auxiliary file: thesis_pres.aux
+The style file: abbrvnat.bst
+Database file #1: references.bib
+Warning--I didn't find a database entry for "ISI:000073759600002"
+You've used 7 entries,
+            2773 wiz_defined-function locations,
+            666 strings with 6401 characters,
+and the built_in function-call counts, 4427 in all, are:
+= -- 398
+> -- 309
+< -- 2
++ -- 103
+- -- 96
+* -- 438
+:= -- 703
+add.period$ -- 36
+call.type$ -- 7
+change.case$ -- 53
+chr.to.int$ -- 7
+cite$ -- 14
+duplicate$ -- 145
+empty$ -- 304
+format.name$ -- 107
+if$ -- 910
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 7
+newline$ -- 58
+num.names$ -- 28
+pop$ -- 77
+preamble$ -- 1
+purify$ -- 46
+quote$ -- 0
+skip$ -- 115
+stack$ -- 0
+substring$ -- 215
+swap$ -- 13
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 77
+warning$ -- 0
+while$ -- 28
+width$ -- 0
+write$ -- 128
+(There was 1 warning)

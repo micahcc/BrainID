@@ -1,0 +1,8 @@
+\beamer@endinputifotherversion {3.07pt}
+\select@language {english}
+\beamer@sectionintoc {1}{FMRI Review}{3}{0}{1}
+\beamer@subsectionintoc {1}{1}{The Bold Response}{3}{0}{1}
+\beamer@sectionintoc {2}{Statistical Parametric Mapping}{7}{0}{2}
+\beamer@sectionintoc {3}{Nonlinear Regression}{10}{0}{3}
+\beamer@sectionintoc {4}{Parameter Identification}{13}{0}{4}
+\beamer@sectionintoc {5}{Conclusion}{17}{0}{5}

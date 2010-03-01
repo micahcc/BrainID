@@ -34,31 +34,49 @@
 
 \begin{document}
 \section*{Introduction}
-Nuclear Magnetic Resonance Imaging is a powerful tool in the analysis
-of both brain struction as well as activity. In particular Functional
-MRI gives very high spatial resolution at the cost of rather limited
-temporal resolution. Whereas other methods
+Functional Magnetic Resonance Imaging (FMRI) is a powerful tool in the analysis
+neural activity. At the cost of rather limited temporal resolution, FMRI gives
+high spatial for relatively cheap. Whereas other methods
 of analyzing neural signals can be invasive or ill-posed, 
-FMRI is relatively easy, and its analysis straight forward. Because of
+FMRI is relatively quick and easy, and its analysis straight forward. Because of
 these benefits, FMRI has great potential for studying human cognition.
-Unfortunately, in order to achieve the speeds necessary to catch the
-Blood Oxygen Level Dependent (BOLD) signal, very little time can
-be spent allowing NMR spin to settle out, nor can much time be spent
-gathering a large region in K-Space. Because of these restrictions,
-FMRI is plagued with unidentified noise (cite) and offers a temporal
-resolution on the order of seconds rather than milliseconds.
+Unfortunately, FMRI does suffer from severe noise and, as previously
+mentioned, low temporal resolution. Because of the extensive noise, 
+and relative unpredictability of the absolute signal level, a large amount 
+of conditioning is necessary to obtain "valid" activation. In
+fact, typical activation detection does little to account for variations
+in the shape of the signal, but instead is a direct T-test between the measured signal
+and the expected shape of the signal. Because of these limitations,
+multiple comparison tests are imperative (ref fish), and active regions
+must be very large to be detected with any confidence. This paper
+will introduce a more robust method of analyzing FMRI signals for 
+activation, by means of estimating the BOLD parameters.
 
-Traditional methods of analyzing FMRI images are ad-hoc and in many
-ways arbitrary. Data is often thrown out due to a lack of activation (cite),
-and there is no standard method of removing the low frequency drift
-present in all such images. Often times "activations" are looked at
-individually by taking the percent difference between the "activated"
-signal and the signal just before a stimulus was applied. Another popular
-method is a direct highpass filter, but this can attenuate actual
-signal, and introduce high frequency artifacts (cite). 
+\section*{General Linear Model}
 
-The traditional method of analyzing FMRI data is to use the average
-over multiple runs, 
+\section*{BOLD Model}
+
+\subsection*{Preprocessing}
+After FMRI data has been acquired it is always necessary to modify the
+data in some way to make different runs comparable. Because FMRI signal
+levels are essentially unit-less, at the very least it is necessary to convert
+the data into \% difference from the baseline. Finding the baseline is the
+first hurdle in dealing with FMRI. Various methods exist for doing this,
+but they are all ad-hoc. It is common to treat each stimulus pulse independently,
+ignoring the long decay of the BOLD signal. By treating each input separately,
+the "base" for calculating the percent difference is merely the signal level 
+before the stimulus is applied. The problem with this is that the BOLD signal
+can be heavily delayed, and fall times can be as long as 10 or 15 seconds,
+meaning that the assumption is clearly a false one. Another popular method 
+of dealing with this problem, is to put all the time series through a high
+pass filter. This will of course remove the DC component of the signal, and 
+some amount of so called "drift". The problem with this method is that it is
+not adaptive to the input. Huge variations in drift frequencies can exist 
+in a single time-series. Thus, a single cutoff frequency could miss a significant
+drift component, or it could remove \emph{actual} signal, if the cutoff frequency is
+set too high. 
+
+\subsection*{
 
 \section*{Introduction to Modeling}
 The short term goal of current neurological models is to
