@@ -78,9 +78,6 @@ TARGET_LINK_LIBRARIES(mse modNiftiImageIO ITKIO ITKCommon vullib tools)
 TARGET_LINK_LIBRARIES(boldgen tools gfortran blas lapack modNiftiImageIO boost_mpi 
     BoldModel ITKAlgorithms ITKBasicFilters 
     ITKCommon ITKIO gsl gslcblas mpi dysii itkvnl itkvcl vullib)
-TARGET_LINK_LIBRARIES(test tools gfortran blas lapack modNiftiImageIO boost_mpi 
-    BoldModel ITKAlgorithms ITKBasicFilters 
-    ITKCommon ITKIO gsl gslcblas mpi dysii itkvnl itkvcl vullib)
 TARGET_LINK_LIBRARIES(fft tools gfortran blas lapack modNiftiImageIO 
     ITKAlgorithms ITKBasicFilters 
     ITKCommon ITKIO gsl gslcblas itkvnl itkvcl vullib)
