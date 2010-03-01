@@ -73,10 +73,11 @@ int callback(BoldPF* bold, void* data)
     cdata->pos[3] = bold->getDiscTimeL();
     aux::vector mu = bold->getDistribution().getDistributedExpectation();
     aux::vector meas =  bold->getModel().measure(mu);
-    
+
     //add DC term
     if(cdata->method == BoldPF::DIRECT) {
         for(unsigned int i = 0 ; i < meas.size(); i++) {
+            std::cout << ":" << mu[mu.size()-meas.size()+i] << ": ";
             meas[i] -= mu[mu.size()-meas.size()+i];
         }
     }
@@ -382,10 +383,10 @@ int main(int argc, char* argv[])
             
                 //run time calculation
                 time_t tmp = time(NULL);
-                double traveled = index3[0]*index3[1]*index3[2]+zlen*index3[1]+index3[2];
+                double traveled = (index3[0]*ylen + index3[1])*zlen+index3[2];
                 double total = xlen*ylen*zlen;
-                cerr << "Elapsed: " << difftime(tmp, start) << endl
-                     << "Remaining: " << (total-traveled)*difftime(tmp,start)/traveled 
+                cerr << "Time Elapsed: " << difftime(tmp, start) << endl
+                     << "Time Remaining: " << (total-traveled)*difftime(tmp,start)/traveled 
                      << endl << "Ratio: " << traveled << "/" << total << endl
                      << "Left: " << total-traveled << "/" << total
                      << endl;

@@ -62,8 +62,8 @@ int main (int argc, char** argv)
     cin.clear();
     
     printf("New Direction? (16 numbers) ctr-d to skip ");
-    for(int i = 0 ; i < 3 ; i++) {
-        for(int j = 0 ; j < 3 ; j++) {
+    for(int i = 0 ; i < 4 ; i++) {
+        for(int j = 0 ; j < 4 ; j++) {
             cin >> direction(i,j);
         }
     }
@@ -71,6 +71,7 @@ int main (int argc, char** argv)
         img->SetDirection(direction);
     cin.clear();
     
+    printf("Writing\n");
     ImageWriterType::Pointer writer = ImageWriterType::New();
     writer->SetImageIO(itk::modNiftiImageIO::New());
     writer->SetFileName( argv[2] );

@@ -168,6 +168,9 @@ int BoldPF::getStatus()
 **/
 int BoldPF::run(void* pass = NULL)
 {
+    boost::mpi::communicator world;
+    unsigned int rank = world.rank();
+    unsigned int size = world.size();
     using std::endl;
 
     if(status == ERROR || status == RUNNING || status == DONE) {
@@ -242,8 +245,20 @@ int BoldPF::run(void* pass = NULL)
                 filter->resample(&resampler);
                 
                 *debug << " ESS: " << ess << ", Regularized Resampling" << endl << endl;
-                filter->setFilteredState( resampler_reg->resample(
-                            filter->getFilteredState(), statecov) );
+                try {
+                    filter->setFilteredState( resampler_reg->resample(
+                                filter->getFilteredState(), statecov) );
+                } catch(int err) {
+                    *debug << "Error: " << err << endl;
+                    *debug << "Ess: " << ess << endl;
+                    *debug << "Mu: " << filter->getFilteredState().
+                                getDistributedExpectation() << endl;
+                    *debug << "Weight: " << filter->getFilteredState().
+                                getDistributedTotalWeight() << endl;
+                    int nil = 0;
+                    boost::mpi::broadcast(world, nil, 0);
+                    exit(-1);
+                }
             } else {
                 *debug << " ESS: " << ess << ", No Resampling Necessary!" 
                             << endl;
@@ -320,10 +335,7 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     /* Initalize the model and filter*/
     aux::vector weight(measurements.front().size(), weightvar);
     aux::vector drift;
-    if(method == PROCESS) 
-        drift = -measurements[0];
-    else
-        drift = aux::vector(measurements.front().size(), 0);
+    drift = aux::vector(measurements.front().size(), 0);
 
     model = new BoldModel(weight, false, measurements.front().size(), drift);
     model->setinput(aux::vector(1, 0));
@@ -367,6 +379,9 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     call_points.postFilter = false;
     call_points.end = false;
     callback = nop;
+            
+    if(method == DELTA) 
+        latchBold();
 };
 
 /* Destructor */

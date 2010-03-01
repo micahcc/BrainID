@@ -20,37 +20,41 @@ typedef itk::SquareImageFilter< Image3DType, Image3DType > SqrF3;
 Image4DType::Pointer pctDiff(const Image4DType::Pointer input1,
             const Image4DType::Pointer input2)
 {
-    if(input1->GetRequestedRegion().GetSize() != 
-                input2->GetRequestedRegion().GetSize()) {
-        return NULL;
-    }
-    
     itk::ImageLinearConstIteratorWithIndex<Image4DType> iter1(
                 input1, input1->GetRequestedRegion());
     iter1.SetDirection(3);
     iter1.GoToBegin();
     
-    itk::ImageLinearConstIteratorWithIndex<Image4DType> iter2(
-                input2, input2->GetRequestedRegion());
-    iter2.SetDirection(3);
-    iter2.GoToBegin();
-
     Image4DType::Pointer out = Image4DType::New();
     out->SetRegions(input1->GetRequestedRegion());
     out->Allocate();
+    out->FillBuffer(1);
     
     itk::ImageLinearIteratorWithIndex<Image4DType> itero(
                 out, out->GetRequestedRegion());
     itero.SetDirection(3);
     itero.GoToBegin();
 
-    while(!iter1.IsAtEnd() && !iter2.IsAtEnd() && !itero.IsAtEnd()) {
-        while(!iter1.IsAtEndOfLine() && !iter2.IsAtEndOfLine()) {
-            itero.Set(abs((iter1.Get() - iter2.Get())/iter1.Get()));
-            ++iter1; ++iter2; ++itero;
+    Image4DType::SpacingType space = input2->GetSpacing();
+    space[3] = input1->GetSpacing()[3];
+    input2->SetSpacing(space[3]);
+
+    while(!iter1.IsAtEnd()) {
+        while(!iter1.IsAtEndOfLine()) {
+            Image4DType::PointType point;
+            input1->TransformIndexToPhysicalPoint(iter1.GetIndex(), point);
+            Image4DType::IndexType index;
+            input2->TransformPhysicalPointToIndex(point, index);
+            if(input2->GetRequestedRegion().IsInside(index)) {
+                printf("%li %li %li %li\n", iter1.GetIndex()[0], iter1.GetIndex()[1],
+                            iter1.GetIndex()[2], iter1.GetIndex()[3]);
+                itero.Set(fabs((iter1.Get() - input2->GetPixel(index))/iter1.Get()));
+                if(itero.Get() == 1) 
+                    printf("WTF: %f %f -> 0?\n", iter1.Get(), input2->GetPixel(index));
+            }
+            ++iter1; ++itero;
         }
         iter1.NextLine();
-        iter2.NextLine();
         itero.NextLine();
     }
     return out;

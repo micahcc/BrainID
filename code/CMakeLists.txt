@@ -36,7 +36,7 @@ ADD_LIBRARY(tools tools.cc)
 
 ADD_EXECUTABLE(unbias unbias.cpp)
 ADD_EXECUTABLE(brainid brainid.cpp)
-ADD_EXECUTABLE(calc_parammap calc_parammap.cpp)
+ADD_EXECUTABLE(parammap_build calc_parammap.cpp)
 ADD_EXECUTABLE(printtags printtags.cpp)
 ADD_EXECUTABLE(setorientation setorientation.cpp)
 #ADD_EXECUTABLE(fmri_timeseries fmri_timeseries.cpp)
@@ -47,8 +47,10 @@ ADD_EXECUTABLE(prune prune.cpp)
 ADD_EXECUTABLE(readdicom readdicom.cpp)
 ADD_EXECUTABLE(applymask applymask.cpp)
 ADD_EXECUTABLE(fft fft.cpp)
-ADD_EXECUTABLE(make_param_image make_param_image.cpp)
-ADD_EXECUTABLE(parammap_eval parammap_eval.cpp)
+ADD_EXECUTABLE(parammap_generate make_param_image.cpp)
+ADD_EXECUTABLE(parammap_evalrun parammap_eval.cpp)
+ADD_EXECUTABLE(parammap_evaldiff parammap_diff.cpp)
+ADD_EXECUTABLE(mse mse.cpp)
 
 TARGET_LINK_LIBRARIES(prune modNiftiImageIO 
     ITKAlgorithms ITKBasicFilters gsl gslcblas
@@ -68,10 +70,12 @@ TARGET_LINK_LIBRARIES(setorientation modNiftiImageIO ITKAlgorithms
 TARGET_LINK_LIBRARIES(brainid tools gfortran modNiftiImageIO blas lapack mpi 
     boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO mpi gsl gslcblas dysii itkvnl itkvcl vullib)
-TARGET_LINK_LIBRARIES(calc_parammap segment tools gfortran modNiftiImageIO blas lapack mpi 
+TARGET_LINK_LIBRARIES(parammap_build segment tools gfortran modNiftiImageIO blas lapack mpi 
     boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO mpi gsl gslcblas dysii itkvnl itkvcl vullib segment)
-TARGET_LINK_LIBRARIES(parammap_eval modNiftiImageIO ITKIO ITKCommon vullib tools)
+TARGET_LINK_LIBRARIES(parammap_evalrun modNiftiImageIO ITKIO ITKCommon vullib tools)
+TARGET_LINK_LIBRARIES(parammap_evaldiff modNiftiImageIO ITKIO ITKCommon vullib tools)
+TARGET_LINK_LIBRARIES(mse modNiftiImageIO ITKIO ITKCommon vullib tools)
 TARGET_LINK_LIBRARIES(boldgen tools gfortran blas lapack modNiftiImageIO boost_mpi 
     BoldModel ITKAlgorithms ITKBasicFilters 
     ITKCommon ITKIO gsl gslcblas mpi dysii itkvnl itkvcl vullib)
@@ -88,6 +92,6 @@ TARGET_LINK_LIBRARIES(readdicom modNiftiImageIO segment
 TARGET_LINK_LIBRARIES(applymask modNiftiImageIO segment 
     ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
     itkvcl vullib)
-TARGET_LINK_LIBRARIES(make_param_image gsl modNiftiImageIO segment tools
+TARGET_LINK_LIBRARIES(parammap_generate gsl modNiftiImageIO segment tools
     ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
     itkvcl vullib)

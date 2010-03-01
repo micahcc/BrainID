@@ -33,6 +33,8 @@ Image3DType::Pointer Tmean(const Image4DType::Pointer fmri_img);
 Image4DType::Pointer extrude(const Image3DType::Pointer input, unsigned int len);
 Image3DType::Pointer mse(const Image4DType::Pointer input1,
             const Image4DType::Pointer input2);
+Image4DType::Pointer pctDiff(const Image4DType::Pointer input1,
+            const Image4DType::Pointer input2);
 
 //dir1 should be the direction of several separate series
 //dir2 should be the direction that you want to get rms of

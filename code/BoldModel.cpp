@@ -195,8 +195,7 @@ void BoldModel::generateComponent(gsl_rng* rng, aux::vector& fillme,
     }
     
     for(size_t i = STATE_SIZE - MEAS_SIZE; i < STATE_SIZE; i++) {
-        if(theta_mu[i] != 0) 
-            fillme[i] = gsl_ran_gaussian(rng, k_sigma[i]) + theta_mu[i];
+        fillme[i] = gsl_ran_gaussian(rng, k_sigma[i]) + theta_mu[i];
     }
 }
     
@@ -298,6 +297,9 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
     unsigned int count = 0;
     double k_sigma[STATE_SIZE]; 
     double theta_mu[STATE_SIZE];
+    std::cout << "k_sigma: " << k_sigma << "\n";
+    std::cout << "theta_mu: " << theta_mu << "\n";
+
     for(unsigned int i = 0 ; i < STATE_SIZE-MEAS_SIZE; i++) {
         if(indexof(S_T, count) == i) {
             count++;

@@ -179,7 +179,7 @@ RegularizedParticleResamplerMod<NT, KT>::resample_help(
         if(covariance(tmp, tmp) < 1e-200) {
             std::cerr << "Warning covariance of drift (" << tmp 
                         << ") dropped to 0, resetting" << std::endl;
-            covariance(tmp, tmp) = 1e-10;
+            covariance(tmp, tmp) = 1e-100;
         }
     }
     aux::matrix sd(covariance);
@@ -194,7 +194,7 @@ RegularizedParticleResamplerMod<NT, KT>::resample_help(
         std::cerr << "Diagonalized result: " << std::endl;
         outputVector(std::cerr, diag_v);
         std::cerr << std::endl;
-        exit(-1);
+        throw(err);
     }
 
     bool verbose = false;
@@ -203,7 +203,7 @@ RegularizedParticleResamplerMod<NT, KT>::resample_help(
             if(rank == 0) {
                 verbose = true;
                 std::cerr << "Warning diagnal matrix gives non-real solution" << std::endl;
-                std::cerr << "Making variables independend" << std::endl;
+                std::cerr << "Making variables independent" << std::endl;
                 std::cerr << "Original Covariance" << std::endl;
                 outputMatrix(std::cerr, covariance);
             }
