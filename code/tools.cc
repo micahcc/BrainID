@@ -37,7 +37,7 @@ Image4DType::Pointer pctDiff(const Image4DType::Pointer input1,
 
     Image4DType::SpacingType space = input2->GetSpacing();
     space[3] = input1->GetSpacing()[3];
-    input2->SetSpacing(space[3]);
+    input2->SetSpacing(space);
 
     while(!iter1.IsAtEnd()) {
         while(!iter1.IsAtEndOfLine()) {
@@ -48,9 +48,7 @@ Image4DType::Pointer pctDiff(const Image4DType::Pointer input1,
             if(input2->GetRequestedRegion().IsInside(index)) {
                 printf("%li %li %li %li\n", iter1.GetIndex()[0], iter1.GetIndex()[1],
                             iter1.GetIndex()[2], iter1.GetIndex()[3]);
-                itero.Set(fabs((iter1.Get() - input2->GetPixel(index))/iter1.Get()));
-                if(itero.Get() == 1) 
-                    printf("WTF: %f %f -> 0?\n", iter1.Get(), input2->GetPixel(index));
+                itero.Set(fabs((input2->GetPixel(index)-iter1.Get())/input2->GetPixel(index)));
             }
             ++iter1; ++itero;
         }
