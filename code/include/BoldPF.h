@@ -189,7 +189,7 @@ int BoldPF::run(void* pass = NULL)
                 << " disctime_l: " << disctime_l 
                 << " dt_l: " << dt_l << " dt_s: " << dt_s 
                 << " measure size: " << measure.size()
-                << " stim size: " << stim.size() << endl;
+                << " stim size: " << stim.size() << "\n";
     
     if(call_points.start) 
         callback(this, pass);
@@ -202,23 +202,23 @@ int BoldPF::run(void* pass = NULL)
      while(status == RUNNING && disctime_s*dt_s < dt_l*measure.size()) {
         /* time */
         conttime = disctime_s*dt_s;
-        *debug << "."; 
+//        *debug << "."; 
         
         /* Update Input if there is any*/
         while(stim_index < stim.size() && stim[stim_index].time <= conttime) {
             model->setinput(aux::vector(1, stim[stim_index].level));
             stim_index++;
-            *debug << conttime;
+ //           *debug << conttime;
         }
         
 
         /* Check to see if it is time to update */
         if(conttime >= disctime_l*dt_l) { 
             //acquire the latest measurement
-            *debug << "Measuring at " <<  conttime << endl;
+            *debug << "Measuring at " <<  conttime << "\n";
             aux::vector meas(measure[disctime_l]);
             outputVector(*debug, meas);
-            *debug << endl;
+            *debug << "\n";
 
             //step forward in time, with measurement
             filter->filter(conttime, meas);
@@ -232,36 +232,44 @@ int BoldPF::run(void* pass = NULL)
             //for instance if all the particles go to an unreasonable value like 
             //inf/nan/neg
             if(isnan(ess) || isinf(ess)) {
-                *debug << endl << "Error! ESS was " << ess << endl;
+                *debug << "\n" << "Error! ESS was " << ess << "\n";
                 status = ERROR;
                 break;
             } 
             
             //time to resample
             if(ess < ESS_THRESH) {
-                *debug << " ESS: " << ess << ", Stratified Resampling" << endl;
+                *debug << " ESS: " << ess << ", Stratified Resampling\n";
                 aux::symmetric_matrix statecov
                             = filter->getFilteredState().getDistributedCovariance();
+                aux::vector tmpmu 
+                            = filter->getFilteredState().getDistributedExpectation();
                 filter->resample(&resampler);
                 
-                *debug << " ESS: " << ess << ", Regularized Resampling" << endl << endl;
+                *debug << " ESS: " << ess << ", Regularized Resampling\n\n";
                 try {
                     filter->setFilteredState( resampler_reg->resample(
                                 filter->getFilteredState(), statecov) );
                 } catch(int err) {
-                    *debug << "Error: " << err << endl;
-                    *debug << "Ess: " << ess << endl;
-                    *debug << "Mu: " << filter->getFilteredState().
-                                getDistributedExpectation() << endl;
-                    *debug << "Weight: " << filter->getFilteredState().
-                                getDistributedTotalWeight() << endl;
+                    aux::vector mu2 = filter->getFilteredState().
+                                getDistributedExpectation();
+                    aux::vector cov2 = filter->getFilteredState().
+                                getDistributedExpectation();
+                    if(rank == 0) {
+                        *debug << "Error: " << err << endl;
+                        *debug << "Ess: " << ess << endl;
+                        *debug << "Mu: ";
+                        outputVector(*debug, tmpmu);
+                        *debug << endl << "Cov: ";
+                        outputMatrix(*debug, statecov);
+                        *debug << endl;
+                    }
                     int nil = 0;
                     boost::mpi::broadcast(world, nil, 0);
                     exit(-1);
                 }
             } else {
-                *debug << " ESS: " << ess << ", No Resampling Necessary!" 
-                            << endl;
+                *debug << " ESS: " << ess << ", No Resampling Necessary!\n";
             }
 
             /* Perform updates to delta variables */

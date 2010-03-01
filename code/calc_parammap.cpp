@@ -74,17 +74,20 @@ int callback(BoldPF* bold, void* data)
     aux::vector mu = bold->getDistribution().getDistributedExpectation();
     aux::vector meas =  bold->getModel().measure(mu);
 
+    outputVector(std::cout, mu);
+    std::cout << "\n";
+    outputVector(std::cout, meas);
+    std::cout << "\n";
+
     //add DC term
     if(cdata->method == BoldPF::DIRECT) {
         for(unsigned int i = 0 ; i < meas.size(); i++) {
-            std::cout << ":" << mu[mu.size()-meas.size()+i] << ": ";
             meas[i] -= mu[mu.size()-meas.size()+i];
         }
     }
 
     if(rank == 0) 
          cdata->image->SetPixel(cdata->pos, meas[0]);
-    std::cout << "time: " << bold->getContTime() << "\n";
     return 0;
 }
 
@@ -351,8 +354,8 @@ int main(int argc, char* argv[])
                     fillvector(meas, inImage, index4, a_delta());
 
                     //create the bold particle filter
-                    BoldPF boldpf(meas, input, rms->GetPixel(index3), a_timestep(),
-                            &ofile, a_num_particles()*(1<<i), 1./a_divider(), method);
+                    BoldPF boldpf(meas, input, rms->GetPixel(index3)/5., a_timestep(),
+                            output, a_num_particles()*(1<<i), 1./a_divider(), method);
                     
                     //create the callback function
                     cbd.pos = index4;

@@ -118,7 +118,7 @@ int BoldModel::transition(aux::vector& dustin, const double time,
      * inf - inf = nan, so nan or inf in any member 
      * will cause this to fail
     */
-    if(isnan(tmp-tmp)) {
+    if(isnan(tmp) || isinf(tmp)) {
         dustin = defaultvector;
         return -1;
     }
