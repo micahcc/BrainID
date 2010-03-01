@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
-#SET(CMAKE_VERBOSE_MAKEFILE 0)
+#SET(CMAKE_VERBOSE_MAKEFILE 1)
 
 PROJECT(brainid)
 
@@ -46,6 +46,9 @@ else(EXISTS ${brainid_SOURCE_DIR}/.git)
     string(REGEX MATCH "[0-9]+" VERSION ${VERSION2})
 endif(EXISTS ${brainid_SOURCE_DIR}/.git)
 
-add_definitions(-DBRAINID_VERSION="${VERSION}")
+execute_process(COMMAND date +D%m_%d_%y_T%H_%M OUTPUT_VARIABLE TODAY)
+string(REGEX MATCH "[0-9A-Za-z_]*" TODAY ${TODAY})
+
+add_definitions(-DBRAINID_VERSION="${VERSION}_${TODAY}")
 
 SUBDIRS(code/utils code testing)

@@ -47,6 +47,7 @@ struct callback_data
 {
     Image4DType::Pointer image;
     Image4DType::IndexType pos;
+    unsigned int method;
 };
 
 bool checkmask(Label4DType::Pointer maskimg, Image4DType::PointType point)
@@ -68,9 +69,18 @@ int callback(BoldPF* bold, void* data)
 //    const unsigned int size = world.size();
     
     callback_data* cdata = (struct callback_data*)data;
+    
     cdata->pos[3] = bold->getDiscTimeL();
-    aux::vector meas =  bold->getModel().measure(
-                bold->getDistribution().getDistributedExpectation());
+    aux::vector mu = bold->getDistribution().getDistributedExpectation();
+    aux::vector meas =  bold->getModel().measure(mu);
+    
+    //add DC term
+    if(cdata->method == BoldPF::DIRECT) {
+        for(unsigned int i = 0 ; i < meas.size(); i++) {
+            meas[i] -= mu[mu.size()-meas.size()+i];
+        }
+    }
+
     if(rank == 0) 
          cdata->image->SetPixel(cdata->pos, meas[0]);
     std::cout << "time: " << bold->getContTime() << "\n";
@@ -108,7 +118,7 @@ void fillvector(std::vector< aux::vector >& output, Image4DType* input,
 
 Image4DType::Pointer preprocess_help(Image4DType::Pointer input, 
             std::vector<Activation>& stim, double sampletime, unsigned int erase,
-            bool nospline)
+            bool nospline, bool smart)
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
@@ -120,7 +130,7 @@ Image4DType::Pointer preprocess_help(Image4DType::Pointer input,
     //calculate %difference, which is used normally for the bold signal
     // or the modified % difference (with spline rather than mean)
     if(nospline) {
-//        *output << "Changing Image to %difference" << endl;
+        std::cerr << "Changing Image to %difference" << std::endl;
         SubF4::Pointer sub = SubF4::New();   
         DivF4::Pointer div = DivF4::New();
         Image4DType::Pointer mean = extrude(Tmean(input),
@@ -131,10 +141,14 @@ Image4DType::Pointer preprocess_help(Image4DType::Pointer input,
         div->SetInput2(mean);
         div->Update();
         input = div->GetOutput();
+    } else if(smart){
+        std::cerr << "De-trending, then dividing by mean" << endl;
+        input = deSplineByStim(input, 10, stim, sampletime);
     } else {
-//        *output << "De-trending, then dividing by mean" << endl;
-        input = deSpline(input, 15, stim, sampletime);
+        std::cerr << "De-trending, then dividing by mean" << endl;
+        input = deSplineBlind(input, 10);
     }
+    std::cerr << "Done." << endl;
 
     /* Save detrended image */
     if(rank == 0) try {
@@ -142,7 +156,7 @@ Image4DType::Pointer preprocess_help(Image4DType::Pointer input,
                     itk::ImageFileWriter<Image4DType>::New();
         out->SetInput(input);
         out->SetFileName("pfilter_input.nii.gz");
-//        cout << "Writing: " << tmp << endl;
+        cout << "Writing: " << "pfilter_output.nii.gz" << endl;
         out->Update();
     } catch(itk::ExceptionObject) {
         cerr << "Error opening pfilter_input.nii.gz" << endl;
@@ -163,9 +177,10 @@ int main(int argc, char* argv[])
     vul_arg<string> a_input(0, "4D timeseries file");
     vul_arg<string> a_mask(0, "3D mask file");
     
-    vul_arg<bool> a_drift("-f", "Add drift term to model.", false);
     vul_arg<bool> a_delta("-l", "Use deltas between measurements, this precludes"
                 "the drift option", false);
+    vul_arg<bool> a_smart("-S", "Use \"smart\" knots based on less active regions"
+                , false);
     
     vul_arg<unsigned> a_num_particles("-p", "Number of particles.", 3000);
     vul_arg<unsigned> a_divider("-d", "Intermediate Steps between samples.", 128);
@@ -251,8 +266,9 @@ int main(int argc, char* argv[])
 
     /* Create Output Images */
     *output << "Creating Output Images" << endl;
-    for(int i = 0 ; i < 3 ; i++)
-        outsize[i] = inImage->GetRequestedRegion().GetSize()[i];
+//    for(int i = 0 ; i < 3 ; i++)
+//        outsize[i] = inImage->GetRequestedRegion().GetSize()[i];
+    outsize = inImage->GetRequestedRegion().GetSize();
     outsize[3] = BASICPARAMS + STATICPARAMS;
     
     paramMuImg = Image4DType::New();
@@ -275,11 +291,14 @@ int main(int argc, char* argv[])
     unsigned int zlen = inImage->GetRequestedRegion().GetSize()[2];
     unsigned int tlen = inImage->GetRequestedRegion().GetSize()[3];
 
-    inImage = preprocess_help(inImage, input, a_timestep(), ERASE, 
-                a_delta() || a_drift());
+    inImage = preprocess_help(inImage, input, a_timestep(), ERASE, a_delta(),
+                a_smart());
 
     //acquire rms
     rms = get_rms(inImage);
+    
+    unsigned int method = BoldPF::DIRECT;
+    if(a_delta()) method = BoldPF::DELTA;
 
     //callback variables, to fill in 
     BoldPF::CallPoints callpoints;
@@ -290,10 +309,7 @@ int main(int argc, char* argv[])
 
     callback_data cbd;
     cbd.image = measMuImg;
-
-    unsigned int method = BoldPF::DIRECT;
-    if(a_delta()) method = BoldPF::DELTA;
-    else if(a_drift()) method = BoldPF::PROCESS;
+    cbd.method = method;
     
     /* Temporary variables used in the loop */
     time_t start = time(NULL);
@@ -304,7 +320,7 @@ int main(int argc, char* argv[])
     
     aux::vector mu;
     aux::vector var;
-    std::vector< aux::vector > meas(tlen);
+    std::vector< aux::vector > meas(tlen, aux::zero_vector(1));
 
     /* Set constant A1, A2 */
     aux::vector a_values(2);
@@ -349,11 +365,10 @@ int main(int argc, char* argv[])
                 
                 }
 
-                const int SIMUL = 1;
                 //set the output to a standard -1 if BoldPF failed
                 if(result != BoldPF::DONE) {
-                    mu = BoldModel::defmu(SIMUL);
-                    var = 4*BoldModel::defvar(SIMUL);
+                    mu = aux::vector(BASICPARAMS+STATICPARAMS, -1);
+                    var = aux::vector(BASICPARAMS+STATICPARAMS, -1);
                 }
                 //write the calculated expected value/variance of parameters
                 writeVector<double, aux::vector>(paramMuImg, 3, mu, index4);

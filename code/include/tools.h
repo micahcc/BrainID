@@ -29,7 +29,10 @@ std::vector<Activation> read_activations(const char* filename);
 Image4DType::Pointer conditionFMRI(const Image4DType::Pointer fmri_img,
             int knots, std::vector<Activation>& stim);
 Image3DType::Pointer Tmean(const Image4DType::Pointer fmri_img);
+//Image3DType::Pointer Tvar(const Image4DType::Pointer fmri_img);
 Image4DType::Pointer extrude(const Image3DType::Pointer input, unsigned int len);
+Image3DType::Pointer mse(const Image4DType::Pointer input1,
+            const Image4DType::Pointer input2);
 
 //dir1 should be the direction of several separate series
 //dir2 should be the direction that you want to get rms of

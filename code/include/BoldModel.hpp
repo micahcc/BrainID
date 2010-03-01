@@ -13,7 +13,7 @@ class BoldModel : public indii::ml::filter::ParticleFilterModel<double>
 public:
     ~BoldModel();
     BoldModel(aux::vector stddev, bool expweight, 
-                size_t sections = 1, aux::vector drift = aux::vector(1, 1e-100));
+                size_t sections = 1, aux::vector drift = aux::vector(1, 0));
 
     unsigned int getStateSize() const { return STATE_SIZE; };
     unsigned int getStimSize() const { return INPUT_SIZE; };
@@ -44,6 +44,8 @@ public:
     bool reweight(aux::vector& checkme, double& weight) const;
     
     //these are recurring in the state array, so V_T could be at 0,4,...16,20...
+    //also note that the last MEAS_SIZE members of the state variable are
+    //related to drift compensation
     enum StateName { TAU_0=0 , ALPHA=1, E_0=2, V_0=3, TAU_S=4, TAU_F=5, 
                 EPSILON=6, V_T=7, Q_T=8, S_T=9, F_T =10};
 

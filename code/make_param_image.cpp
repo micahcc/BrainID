@@ -112,8 +112,10 @@ vector< vector<double> > read_params(string filename)
     FILE* fin = fopen(filename.c_str(), "r");
     
     vector< vector<double> > params;
-    if(!fin) 
-        return params;
+    if(!fin) {
+        fprintf(stderr, "Error reading %s\n", filename.c_str());
+        exit(-1);
+    }
 
     char* input = NULL;
     size_t size = 0;
@@ -169,13 +171,8 @@ Image4DType::Pointer applyParams(string param_f, Label4DType::Pointer regions)
             for(size_t zz = 0 ; zz<regions->GetRequestedRegion().GetSize()[2] ; zz++) {
                 Image4DType::IndexType index = {{xx, yy, zz, 0}};
                 int i = (int)regions->GetPixel(index);
-                if(i == 0) { 
-                    writeVector<double, std::vector<double> >(out, 3, 
-                                params[0], index);
-                } else {
-                    writeVector<double, std::vector<double> >(out, 3, 
-                                params[i%(params.size()-1)+1], index);
-                }
+                writeVector<double, std::vector<double> >(out, 3, 
+                            params[i%params.size()], index);
             }
         }
     }

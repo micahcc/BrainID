@@ -39,7 +39,7 @@ ADD_EXECUTABLE(brainid brainid.cpp)
 ADD_EXECUTABLE(calc_parammap calc_parammap.cpp)
 ADD_EXECUTABLE(printtags printtags.cpp)
 ADD_EXECUTABLE(setorientation setorientation.cpp)
-ADD_EXECUTABLE(fmri_timeseries fmri_timeseries.cpp)
+#ADD_EXECUTABLE(fmri_timeseries fmri_timeseries.cpp)
 ADD_EXECUTABLE(boldgen boldgen.cpp)
 ADD_EXECUTABLE(test test.cc)
 ADD_EXECUTABLE(concatinate concat.cpp)
@@ -56,9 +56,9 @@ TARGET_LINK_LIBRARIES(prune modNiftiImageIO
 TARGET_LINK_LIBRARIES(concatinate modNiftiImageIO 
     ITKAlgorithms ITKBasicFilters gsl gslcblas
     ITKCommon ITKIO )
-TARGET_LINK_LIBRARIES(fmri_timeseries modNiftiImageIO segment 
-    ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
-    itkvcl vullib)
+#TARGET_LINK_LIBRARIES(fmri_timeseries modNiftiImageIO segment 
+#    ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
+#    itkvcl vullib)
 TARGET_LINK_LIBRARIES(segment gsl gslcblas tools)
 TARGET_LINK_LIBRARIES(unbias ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
 TARGET_LINK_LIBRARIES(printtags modNiftiImageIO ITKAlgorithms 

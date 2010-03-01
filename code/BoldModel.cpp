@@ -42,7 +42,7 @@ BoldModel::BoldModel(aux::vector stddev, bool expweight,
     }
     
     if(drift.size() != MEAS_SIZE) 
-        drift = aux::vector(MEAS_SIZE, 1e-10);
+        drift = aux::vector(MEAS_SIZE, 0);
     for(unsigned int i = 0; i < MEAS_SIZE ; i++)
         defaultstate[STATE_SIZE-MEAS_SIZE+i] = drift[i];
 
@@ -248,7 +248,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
     }
 
     for(unsigned int ii = STATE_SIZE-MEAS_SIZE ; ii < STATE_SIZE; ii++) {
-        cov(ii,ii) = mean[ii]*mean[ii]/64;
+        cov(ii,ii) = pow(sigma[ii-STATE_SIZE+MEAS_SIZE], 2);
     }
     generatePrior(x0, samples, mean, cov);
 }
@@ -275,7 +275,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
         cov(indexof(F_T,ii), indexof(F_T,ii)) = varwidth*.0001;
     }
     for(unsigned int ii = STATE_SIZE-MEAS_SIZE ; ii < STATE_SIZE; ii++) {
-        cov(ii,ii) = mean[ii]*mean[ii]/64;
+        cov(ii,ii) = pow(sigma[ii-STATE_SIZE+MEAS_SIZE], 2);
     }
     
     generatePrior(x0, samples, mean, cov);

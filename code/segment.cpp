@@ -61,26 +61,6 @@ typedef itk::DivideByConstantImageFilter< Image4DType, double, Image4DType > Div
 
 /* Remove any elements that arent' in the reference list 
  * ref will be sorted, but otherwise will be unchanged*/
-void removeMissing(std::list<LabelType>& ref, std::list<LabelType>& mod)
-{
-    ref.sort();
-    mod.sort();
-    
-    std::list<LabelType>::iterator itref = ref.begin();
-    std::list<LabelType>::iterator itmod = mod.begin();
-    while(itmod != mod.end()) {
-        if(*itmod == *itref) {
-            itmod++;
-            itref++;
-        } else if(*itmod < *itref) {
-            itmod = mod.erase(itmod);
-        } else if(itref != ref.end()){
-            itref++;
-        } else {
-            itmod = mod.erase(itmod);
-        }
-    }
-}
 
 template<class T, unsigned int SIZE>
 void outputinfo(Image4DType::Pointer in) {
@@ -299,426 +279,6 @@ int min(int before, int current, int after) {
     }
 }
 
-int detrend_lmin(const Image4DType::Pointer fmri_img, Image4DType::IndexType index, 
-            int ties, Image4DType::Pointer output)
-{
-    gsl_interp_accel *acc = gsl_interp_accel_alloc();
-    gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, ties);
-
-    /* Go to index and start at time 0 at that voxel*/
-    itk::ImageLinearConstIteratorWithIndex< Image4DType > 
-                fmri_it(fmri_img, fmri_img->GetRequestedRegion());
-    fmri_it.SetDirection(3);
-    fmri_it.SetIndex(index);
-
-    Image4DType::IndexType beforeindex = index;
-    Image4DType::IndexType afterindex = index;
-    Image4DType::IndexType tmpindex = index;
-
-    double levels[ties];
-    double xpos[ties];
-    int positions[ties];
-
-    int length = fmri_img->GetRequestedRegion().GetSize()[3];
-    positions[0] = 0;
-    positions[ties-1] = length-1;
-    for(int i = 1 ; i < ties-1 ; i++) {
-        positions[i] = positions[i-1] + (length - positions[i-1])/(ties-i);
-    }
-
-    for(int i = 0 ; i < ties ; i++) {
-        int dir = 0;
-        do{
-            beforeindex[3] = (positions[i] == 0) ? positions[i] : positions[i]-1;
-            afterindex[3] = (positions[i] == length-1) ? positions[i] : positions[i]+1;
-            tmpindex[3] = positions[i];
-
-            dir = min(fmri_img->GetPixel(beforeindex), fmri_img->GetPixel(tmpindex),
-                        fmri_img->GetPixel(afterindex));
-            positions[i] += dir;
-        } while( dir != 0 );
-    }
-    
-    for(int i = 0 ; i < ties ; i++) {
-        tmpindex[3] = positions[i];
-        levels[i] = fmri_img->GetPixel(tmpindex);
-        xpos[i] = positions[i];
-    }
-
-    itk::ImageLinearIteratorWithIndex< Image4DType > 
-                out_it(output, output->GetRequestedRegion());
-    out_it.SetDirection(3);
-    out_it.SetIndex(index);
-    gsl_spline_init(spline, xpos, levels, ties);
-    for(out_it.GoToBeginOfLine(); !out_it.IsAtEndOfLine(); ++out_it) {
-        out_it.Set(gsl_spline_eval(spline, out_it.GetIndex()[3], acc));
-    }
-
-    return 0;
-}
-
-int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType index, 
-            int knots, Image4DType::Pointer output)
-{
-    gsl_interp_accel *acc = gsl_interp_accel_alloc();
-    gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, knots);
-
-//    for(int i = 0 ; i < 4 ; i++) {
-//        fprintf(stderr, "%zu ", index[i]);
-//    }
-//    fprintf(stderr, "\n");
-
-    /* Go to index and start at time 0 at that voxel*/
-    itk::ImageLinearConstIteratorWithIndex< Image4DType > 
-                fmri_it(fmri_img, fmri_img->GetRequestedRegion());
-    fmri_it.SetDirection(3);
-    fmri_it.SetIndex(index);
-
-    double averages[knots];
-    int counts[knots];
-    int starts[knots-2];
-
-    int length = fmri_img->GetRequestedRegion().GetSize()[3];
-    double rsize = length / (knots-2);
-    for(int i = 0 ; i < (knots-2) ; i++) {
-        starts[i] = rsize*i;
-    }
-    for(int i = 0 ; i < knots ; i++) {
-        counts[i] = 0;
-        averages[i] = 0;
-    }
-    
-    int region = 0;
-    for(fmri_it.GoToBeginOfLine(); !fmri_it.IsAtEndOfLine(); ++fmri_it) {
-        /* Figure out Region */
-        if(fmri_it.GetIndex()[3] < length/((knots-2)*2)) {
-            averages[0] += fmri_it.Get();
-            counts[0]++;
-        } else if(fmri_it.GetIndex()[3] > (length - length/((knots-2)*2))) {
-            averages[(knots-2)+1] += fmri_it.Get();
-            counts[(knots-2)+1]++;
-        }
-
-        /* Check to see if the index is for the last region(since there is no)
-         * start for the region after that */
-        if(fmri_it.GetIndex()[3] > starts[(knots-2)-1]) {
-            averages[(knots-2)] += fmri_it.Get();
-            counts[(knots-2)]++;
-        /* Check to see if the index is for the next region and
-         * if that is the case, then add the data to the next region
-         * and iterate the region count*/
-        } else if(fmri_it.GetIndex()[3] > starts[region+1]) {
-            averages[region+2] += fmri_it.Get();
-            counts[region+2]++;
-            region++;
-        /* Otherwise, just go with the current region */
-        } else {
-            averages[region+1] += fmri_it.Get();
-            counts[region+1]++;
-        }
-    }
-
-    double xpos[knots];
-    xpos[0] = 0;
-    xpos[(knots-2)+1] = length-1;;
-    xpos[(knots-2)] = (length + starts[(knots-2)-1])/2;
-    for(int i = 0 ; i < (knots-2)-1 ; i++){
-        xpos[i+1] = (starts[i+1] + starts[i])/2;
-    }
-
-    for(int i = 0 ; i < knots ; i++) {
-        averages[i] /= counts[i];
-    }
-
-    itk::ImageLinearIteratorWithIndex< Image4DType > 
-                out_it(output, output->GetRequestedRegion());
-    out_it.SetDirection(3);
-    out_it.SetIndex(index);
-    gsl_spline_init(spline, xpos, averages, knots);
-    for(out_it.GoToBeginOfLine(); !out_it.IsAtEndOfLine(); ++out_it) {
-        out_it.Set(gsl_spline_eval(spline, out_it.GetIndex()[3], acc));
-    }
-
-//    for(int i = 0 ; i  < knots ; i++) {
-//        fprintf(stderr, "%i Average: %f Count: %i, pos: %f\n", i, averages[i], 
-//                    counts[i], xpos[i]);
-//    }
-//    for(int i = 0 ; i  < (knots-2) ; i++) {
-//        fprintf(stderr, "%i Starts: %i\n", i, starts[i]);
-//    }
-    return 0;
-};
-
-int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType index, 
-            const std::vector< unsigned int >& knots, 
-            Image4DType::Pointer output)
-{
-    static gsl_interp_accel *acc = gsl_interp_accel_alloc();
-    static gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, knots.size());
-
-    double xpos[knots.size()];
-    double level[knots.size()];
-    for(unsigned int ii = 0 ; ii < knots.size() ; ii++) {
-        xpos[ii] = knots[ii];
-        level[ii] = 0;
-        for(int jj = -1 ; jj <= 1; jj++) {
-            index[3] = knots[ii]+jj;
-            level[ii] += fmri_img->GetPixel(index);
-//            printf("|%f|", level[ii]);
-        }
-        level[ii] /= 3.;
-        
-//        printf("Index: %lu %lu %lu %lu %f\n", index[0],index[1],index[2],index[3],
-//                    fmri_img->GetPixel(index));
-    }
-
-//    for(unsigned int ii = 0 ; ii < knots.size() ; ii++){
-//        printf("%f => %f\n", xpos[ii], level[ii]);
-//    }
-
-    itk::ImageLinearIteratorWithIndex< Image4DType > 
-                out_it(output, output->GetRequestedRegion());
-    out_it.SetDirection(3);
-    out_it.SetIndex(index);
-    gsl_spline_init(spline, xpos, level, knots.size());
-    for(out_it.GoToBeginOfLine(); !out_it.IsAtEndOfLine(); ++out_it) {
-        out_it.Set(gsl_spline_eval(spline, out_it.GetIndex()[3], acc));
-    }
-
-    return 0;
-}
-
-bool compare_l(Activation A, Activation B)
-{
-    return A.level < B.level;
-}
-
-bool compare_t(Activation A, Activation B)
-{
-    return A.time < B.time;
-}
-
-
-void getknots(std::list<double>& knots, unsigned int num, 
-            std::vector<Activation>& stim)
-{
-    const double RANGE = 20;
-    std::list<Activation> fifo;
-    std::list<Activation> mins;
-    std::vector<Activation>::iterator it = stim.begin();
-    double frame_begin = it->time;
-    double sum_prev_prev = 1;
-    double sum_prev = 0;
-    double sum = 0;
-    double time_prev = RANGE;
-    while(it->time - frame_begin < RANGE) {
-        sum += ((it+1)->time-it->time)*(it->level);
-        fifo.push_front(*it);
-        it++;
-    }
-    sum -= (it-1)->level*(it->time-RANGE);
-
-    Activation tmp;
-
-    while(fifo.size() != 1 || it != stim.end()) {
-        if(sum > sum_prev && sum_prev <= sum_prev_prev) {
-            tmp.time = time_prev;
-            tmp.level = sum_prev;
-            mins.push_back(tmp);
-        }
-
-        sum_prev_prev = sum_prev;
-        sum_prev = sum;
-        time_prev = fifo.back().time+RANGE;
-
-        std::list<Activation>::reverse_iterator sec = ++fifo.rbegin();
-        if(fifo.size() <= 1 || ( it != stim.end() && 
-                    it->time - fifo.back().time - RANGE < 
-                    sec->time - fifo.back().time ) ) {
-            double delta = it->time - fifo.back().time - RANGE;
-            sum -= fifo.back().level*delta;
-            sum += delta*fifo.front().level;
-            fifo.back().time += delta;
-            fifo.push_front(*it);
-            it++;
-        } else {
-            double delta = sec->time - fifo.back().time;
-            sum -= fifo.back().level*delta;
-            sum += delta*fifo.front().level;
-            fifo.pop_back();
-        }
-    }
-
-    //sort to shake out the lowest level areas
-    mins.sort(compare_l);
-
-    knots.clear();
-    
-    std::list<Activation>::iterator it_min = mins.begin();
-    while(it_min != mins.end()) {
-        knots.push_back(it_min->time);
-        it_min++;
-    }
-
-    //debug
-//    printf("Result:\n");
-//    for(std::list<Activation>::iterator tmpit = mins.begin(); 
-//            tmpit != mins.end(); tmpit++) {
-//        printf("\t%f, %f\n", tmpit->time, tmpit->level);
-//    }
-//    
-//    //find the first element to remove, then remove all elements beyond num
-//    std::list<Activation>::iterator tmpit = mins.begin();
-//    for(unsigned int i = 0 ; i <= num ;i++) {
-//        tmpit++;
-//    }
-//    mins.erase(tmpit, mins.end());
-//
-//    //sort by time, then place into knots vector
-//    mins.sort(compare_t);
-//    knots.resize(num);
-//    tmpit = mins.begin();
-//    for(unsigned int i = 0 ; i < knots.size() ;i++) {
-//        knots[i] = tmpit->time;
-//        tmpit++;
-//    }
-}
-
-Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img,
-            const std::vector<unsigned int>& knots)
-            
-{
-    Image4DType::Pointer outimage = Image4DType::New();
-    outimage->SetRegions(fmri_img->GetRequestedRegion());
-    outimage->Allocate();
-    outimage->FillBuffer(0);
-
-    /* Fmri Iterators */
-    itk::ImageLinearConstIteratorWithIndex< Image4DType > 
-                fmri_it(fmri_img, fmri_img->GetRequestedRegion());
-    fmri_it.SetDirection(0);
-    
-    itk::ImageLinearConstIteratorWithIndex< Image4DType >
-                fmri_stop(fmri_img, fmri_img->GetRequestedRegion());
-    fmri_stop.SetDirection(3);
-    fmri_stop.GoToBegin();
-    ++fmri_stop;
-
-//    printf("Knots: \n");
-//    for(unsigned int ii = 0 ; ii < knots.size() ;ii++) {
-//        printf("%u\n", knots[ii]);
-//    }
-    
-    for(fmri_it.GoToBegin(); fmri_it != fmri_stop ; fmri_it.NextLine()) {
-        for( ; !fmri_it.IsAtEndOfLine(); ++fmri_it) {
-            detrend_avg(fmri_img, fmri_it.GetIndex(), knots, outimage);
-        }
-    }
-
-    outimage->CopyInformation(fmri_img);
-    outimage->SetMetaDataDictionary(fmri_img->GetMetaDataDictionary());
-    return outimage;
-}
-
-Image4DType::Pointer normalizeByVoxel(const Image4DType::Pointer fmri_img,
-            const Label3DType::Pointer mask, int nknots)
-{
-    fprintf(stderr, "Warning normalizeByVoxel is deprecated\n");
-    std::vector<unsigned int> knots(nknots);
-    unsigned int size = fmri_img->GetRequestedRegion().GetSize()[3];
-    for(unsigned int i = 0 ; i < size; i++) {
-        knots[i] = i*nknots/size;
-    }
-
-    Image4DType::Pointer spline = getspline(fmri_img, knots);
-    
-    {
-    itk::ImageFileWriter< Image4DType >::Pointer writer = 
-                itk::ImageFileWriter< Image4DType >::New();
-    writer->SetInput(spline);
-    writer->SetFileName("spline.nii.gz");
-    writer->Update();
-    }
-
-    Image3DType::Pointer average = get_average(fmri_img);
-    double globalmean = get_average(fmri_img, mask);
-    /* Rescale (fmri - spline)/avg*/
-
-    SubF4::Pointer sub = SubF4::New();   
-    DivCF::Pointer div = DivCF::New();
-    sub->SetInput1(fmri_img);
-    sub->SetInput2(spline);
-    div->SetInput(sub->GetOutput());
-    div->SetConstant(globalmean);
-    div->Update();
-    
-    /* Add 1.5 sigma */
-    SqrtF3::Pointer sqrt = SqrtF3::New();
-    ScaleF::Pointer scale = ScaleF::New();
-    AddF4::Pointer add = AddF4::New();
-    
-    Image3DType::Pointer variance = get_variance(div->GetOutput());
-    {
-    itk::ImageFileWriter< Image3DType >::Pointer writer = 
-                itk::ImageFileWriter< Image3DType >::New();
-    writer->SetInput(variance);
-    writer->SetFileName("variance.nii.gz");
-    writer->Update();
-    }
-    
-    sqrt->SetInput(variance);
-    scale->SetConstant(1.5);
-    scale->SetInput(sqrt->GetOutput());
-    scale->Update();
-
-    Image4DType::Pointer sigma1_5 = stretch<double>(scale->GetOutput(), 
-                fmri_img->GetRequestedRegion().GetSize()[3]);
-    add->SetInput1(sigma1_5);
-    add->SetInput2(div->GetOutput());
-    add->Update();
-    
-    add->GetOutput()->CopyInformation(fmri_img);
-    add->GetOutput()->SetMetaDataDictionary(
-                fmri_img->GetMetaDataDictionary() );
-    return add->GetOutput();
-}
-
-Image3DType::Pointer get_variance(const Image4DType::Pointer fmri_img)
-{
-    Image3DType::Pointer average = get_average(fmri_img);
-
-    /* Used to zero out the addfilter */
-    Image3DType::Pointer zero = extract(fmri_img, 0);
-    zero->FillBuffer(0);
-    
-    /* Initialize the Addition */
-    AddF3::Pointer add = AddF3::New();
-    add->GraftOutput(zero);
-    add->SetInput2(add->GetOutput());
-    
-    /* Initialize Subtraction */
-    SubF3::Pointer sub = SubF3::New();   
-    
-    /* Initialize Subtraction */
-    SqrF3::Pointer sqr = SqrF3::New();   
-    
-    /* Calculate Sum of Images */
-    //SUM( (X_i - mu)^2 )
-    for(size_t ii = 0 ; ii < fmri_img->GetRequestedRegion().GetSize()[3] ; ii++) {
-        sub->SetInput1(extract(fmri_img, ii));
-        sub->SetInput2(average);
-        sqr->SetInput(sub->GetOutput());
-        add->SetInput1(sqr->GetOutput());
-        add->Update();
-    }
-
-    /* Calculate Average of Images */
-    ScaleF::Pointer scale = ScaleF::New();
-    scale->SetInput(add->GetOutput());
-    scale->SetConstant(1./fmri_img->GetRequestedRegion().GetSize()[3]);
-    scale->Update();
-    return scale->GetOutput();
-}
 
 Image3DType::Pointer get_average(const Image4DType::Pointer fmri_img)
 {
@@ -773,244 +333,6 @@ double get_average(const Image4DType::Pointer fmri_img,
         return stats->GetMean(0);
 }
 
-Image4DType::Pointer normalizeByGlobal(const Image4DType::Pointer fmri_img,
-            const Label3DType::Pointer label_img)
-{
-    double mean = get_average(fmri_img, label_img);
-    
-    SubCF::Pointer sub = SubCF::New();
-    DivCF::Pointer div = DivCF::New();
-    sub->SetConstant(mean);
-    sub->SetInput(fmri_img);
-
-    div->SetConstant(mean);
-    div->SetInput(sub->GetOutput());
-    div->Update();
-    
-    div->GetOutput()->CopyInformation(fmri_img);
-    div->GetOutput()->SetMetaDataDictionary(fmri_img->GetMetaDataDictionary());
-    return div->GetOutput();
-}
-
-Image4DType::Pointer summGlobalNorm(const Image4DType::Pointer fmri_img,
-            const Label3DType::Pointer labelmap, std::list<LabelType>& labels)
-{
-    std::ostringstream oss;
-
-    double mean = get_average(fmri_img, labelmap); 
-    /******************************************************* 
-     * Calculate the average for each label at each timepoint
-     */
-    StatF3D::Pointer stats = StatF3D::New();
-    stats->SetLabelInput(labelmap);
-
-    /* Setup mapping of labels to indexes, and go ahead and add the first
-     * time step to the output image
-     */
-    stats->SetInput(extract(fmri_img, 0));
-    stats->Update();
-    
-    std::list<LabelType> rlabels = stats->GetLabels();
-    if(!labels.empty()) {
-        removeMissing(labels, rlabels);
-    }
-    
-    Image4DType::Pointer output = initTimeSeries(fmri_img, rlabels.size());
-
-    double result = 0;
-    int label = 0;
-    int index = 0;
-    Image4DType::IndexType fullindex = {{index, 0, 0, 0}};
-
-    for(std::list<LabelType>::iterator it = rlabels.begin() ; 
-                    it != rlabels.end(); it++) {
-        label = *it;
-        if(label != 0) {
-            /* Map the section to the index */
-            oss.str("");
-            oss << "section:" << std::setfill('0') << std::setw(5) << label;
-            itk::EncapsulateMetaData(output->GetMetaDataDictionary(), oss.str(),
-                        index);
-            fprintf(stderr, "%s -> %i\n", oss.str().c_str(), index);
-            
-            /* Map the index to the section */
-            oss.str("");
-            oss << "index:" << std::setfill('0') << std::setw(5) << index;
-            itk::EncapsulateMetaData(output->GetMetaDataDictionary(), oss.str(),
-                        label);
-            fprintf(stderr, "%s -> %i\n", oss.str().c_str(), label);
-            fprintf(stderr, "%lu Voxels\n", stats->GetCount(label));
-            
-            /* Fill in the data in the output */
-            result = (mean == 0) ? 0 : (stats->GetMean(label)-mean)/mean;
-            fullindex[SECTIONDIM] = index;
-            output->SetPixel( fullindex, result);
-            index++;
-        }
-    }
-    
-    /* For the rest of the timesteps the index/sections are already mapped */
-    for(size_t ii = 1 ; ii < fmri_img->GetRequestedRegion().GetSize()[3] ; ii++) {
-        stats->SetInput(extract(fmri_img, ii));
-        stats->Update();
-            
-        fullindex[TIMEDIM] = ii;
-
-        /* Write out the normalized value of each label */
-        for(std::list<LabelType>::iterator it=rlabels.begin() ; 
-                        it!=rlabels.end(); it++) {
-            label = *it;
-            if(label != 0) {
-                oss.str("");
-                oss << "section:" << std::setfill('0') << std::setw(5) << label;
-                itk::ExposeMetaData(output->GetMetaDataDictionary(), oss.str(),
-                            index);
-            
-                /* Fill in the data in the output */
-                result = (mean == 0) ? 0 : (stats->GetMean(label)-mean)/mean;
-                fullindex[SECTIONDIM] = index;
-                output->SetPixel(fullindex, result);
-            }
-        }
-        
-    }
-
-    return output;
-}
-
-Image4DType::Pointer summ(const Image4DType::Pointer fmri_img,
-            std::list<int>& voxels)
-{
-    std::ostringstream oss;
-    std::list<Image4DType::IndexType> positions;
-    Image4DType::IndexType pos;
-    for(std::list<int>::iterator it = voxels.begin() ; 
-                    it != voxels.end();) {
-        pos[0] = *it;
-        it++;
-        pos[1] = *it;
-        it++;
-        pos[2] = *it;
-        it++;
-        pos[3] = 0;
-        positions.push_back(pos);
-    }
-
-    //initialize output
-    Image4DType::Pointer output = initTimeSeries(fmri_img, positions.size());
-
-    Image4DType::IndexType inindex;
-    Image4DType::IndexType outindex = {{0, 0, 0, 0}};
-    
-    for(size_t ii = 0 ; ii < fmri_img->GetRequestedRegion().GetSize()[3] ; ii++) {
-        /* Write out the normalized value of each label */
-        int jj = 0;
-        for(std::list<Image4DType::IndexType>::iterator it = positions.begin() ; 
-                        it != positions.end(); it++) {
-            inindex = *it;
-            inindex[TIMEDIM] = ii;
-
-            outindex[0] = jj;
-            outindex[TIMEDIM] = ii;
-            
-            /* Fill in the data in the output */
-            fprintf(stderr, "%lu %lu %lu %lu -> %lu %lu %lu %lu\n", inindex[0], inindex[1],
-                        inindex[2], inindex[3], outindex[0], outindex[1], 
-                        outindex[2], outindex[3]);
-            output->SetPixel(outindex, fmri_img->GetPixel(inindex));
-            jj++;
-        }
-    }
-
-    return output;
-}
-
-Image4DType::Pointer summ(const Image4DType::Pointer fmri_img,
-            const Label3DType::Pointer labelmap, std::list<LabelType>& labels)
-{
-    std::ostringstream oss;
-
-    StatF3D::Pointer stats = StatF3D::New();
-    stats->SetLabelInput(labelmap);
-
-    /* **************************************************************
-     * Initialize Image,
-     * Get a list of labels that need to be added
-     * Setup mapping of labels to indexes, 
-     * go ahead and add the first time step to the output image
-     */
-    stats->SetInput(extract(fmri_img, 0));
-    stats->Update();
-    
-    /* Find the common labels between the input and the actual */
-    std::list<LabelType> rlabels = stats->GetLabels();
-    if(!labels.empty())
-        removeMissing(labels, rlabels);
-
-    //initialize output
-    Image4DType::Pointer output = initTimeSeries(fmri_img, rlabels.size());
-
-    int label = 0;
-    int index = 0;
-    Image4DType::IndexType fullindex = {{index, 0, 0, 0}};
-    
-    for(std::list<LabelType>::iterator it = rlabels.begin() ; 
-                    it != rlabels.end(); it++) {
-        label = *it;
-        if(label != 0) {
-            /* Map the section to the index */
-            oss.str("");
-            oss << "section:" << std::setfill('0') << std::setw(5) << label;
-            itk::EncapsulateMetaData(output->GetMetaDataDictionary(), oss.str(),
-                        index);
-            fprintf(stderr, "%s -> %i\n", oss.str().c_str(), index);
-            
-            /* Map the index to the section */
-            oss.str("");
-            oss << "index:" << std::setfill('0') << std::setw(5) << index;
-            itk::EncapsulateMetaData(output->GetMetaDataDictionary(), oss.str(),
-                        label);
-            fprintf(stderr, "%s -> %i\n", oss.str().c_str(), label);
-            fprintf(stderr, "%lu Voxels\n", stats->GetCount(label));
-            
-            /* Fill in the data in the output */
-            fullindex[SECTIONDIM] = index;
-            output->SetPixel( fullindex, stats->GetMean(label));
-            index++;
-        }
-    }
-    
-    /*******************************************************************
-     * For the rest of the timesteps the index/sections are already mapped */
-    for(size_t ii = 1 ; ii < fmri_img->GetRequestedRegion().GetSize()[3] ; ii++) {
-        stats->SetInput(extract(fmri_img, ii));
-        stats->Update();
-            
-        fullindex[TIMEDIM] = ii;
-
-        /* Write out the normalized value of each label */
-        for(std::list<LabelType>::iterator it = rlabels.begin() ; 
-                        it != rlabels.end(); it++) {
-            label = *it;
-            if(label != 0) {
-                oss.str("");
-                oss << "section:" << std::setfill('0') << std::setw(5) << label;
-                itk::ExposeMetaData(output->GetMetaDataDictionary(), oss.str(),
-                            index);
-            
-                /* Fill in the data in the output */
-                fullindex[SECTIONDIM] = index;
-                output->SetPixel(fullindex, stats->GetMean(label));
-            }
-        }
-        
-    }
-
-    return output;
-}
-
-
-
 /* ???? */
 Image4DType::Pointer splitByRegion(const Image4DType::Pointer fmri_img,
             const Label3DType::Pointer labelmap, int label)
@@ -1029,117 +351,6 @@ Image4DType::Pointer splitByRegion(const Image4DType::Pointer fmri_img,
 
     return applymask<DataType, 4, LabelType, 3>(fmri_img, thresh->GetOutput());
 }
-
-/* ???? */
-Image4DType::Pointer summRegionNorm(const Image4DType::Pointer fmri_img,
-            const Label3DType::Pointer labelmap, std::list<LabelType>& sections)
-{
-    std::ostringstream oss;
-
-    Image3DType::Pointer perVoxAvg = get_average(fmri_img);
-    double globalmean = get_average(fmri_img, labelmap); 
-
-    /* Take the average of the average of the voxels in each region */
-    StatF3D::Pointer totalstats = StatF3D::New();
-    totalstats->SetLabelInput(labelmap);
-    totalstats->SetInput(perVoxAvg);
-    totalstats->Update();
-
-    /******************************************************* 
-     * Calculate the average for each label at each timepoint
-     */
-    StatF3D::Pointer stats = StatF3D::New();
-    stats->SetLabelInput(labelmap);
-
-    /* Setup mapping of labels to indexes, and go ahead and add the first
-     * time step to the output image
-     */
-    stats->SetInput(extract(fmri_img, 0));
-    stats->Update();
-
-    double result = 0;
-    int label = 0;
-    int index = 0;
-    Image4DType::IndexType fullindex = {{index, 0, 0, 0}};
-
-    std::list<LabelType> rlabels = stats->GetLabels();
-    if(!sections.empty()) {
-        removeMissing(sections, rlabels);
-    }
-    
-    Image4DType::Pointer output = initTimeSeries(fmri_img, rlabels.size());
-    
-    for(std::list<LabelType>::iterator it=rlabels.begin() ;
-                    it!=rlabels.end(); it++) {
-        label = *it;
-        if(label != 0) {
-            /* Map the section to the index */
-            oss.str("");
-            oss << "section:" << std::setfill('0') << std::setw(5) << label;
-            itk::EncapsulateMetaData(output->GetMetaDataDictionary(), oss.str(),
-                        index);
-            fprintf(stderr, "%s -> %i\n", oss.str().c_str(), index);
-            
-            /* Map the index to the section */
-            oss.str("");
-            oss << "index:" << std::setfill('0') << std::setw(5) << index;
-            itk::EncapsulateMetaData(output->GetMetaDataDictionary(), oss.str(),
-                        label);
-            fprintf(stderr, "%s -> %i\n", oss.str().c_str(), label);
-            fprintf(stderr, "%lu Voxels\n", stats->GetCount(label));
-            
-            /* Fill in the data in the output */
-            result = (stats->GetMean(label)-totalstats->GetMean(label))/globalmean;
-//            if(isnan(result) || isinf(result) || index == 0) {
-//                fprintf(stderr, "*%f %f %li %f %f\n", result, 
-//                        totalstats->GetSum(label), totalstats->GetCount(label),
-//                        stats->GetMean(label), totalstats->GetMaximum(label));
-//            }
-            fullindex[SECTIONDIM] = index;
-            output->SetPixel( fullindex, result);
-            index++;
-        }
-    }
-    
-    /* For the rest of the timesteps the index/sections are already mapped */
-    for(size_t ii = 1 ; ii < fmri_img->GetRequestedRegion().GetSize()[3] ; ii++) {
-        stats->SetInput(extract(fmri_img, ii));
-        stats->Update();
-            
-        fullindex[TIMEDIM] = ii;
-
-        /* Write out the normalized value of each label */
-        for(std::list<LabelType>::iterator it=rlabels.begin() ; 
-                        it!=rlabels.end(); it++) {
-            label = *it;
-            if(label != 0) {
-                oss.str("");
-                oss << "section:" << std::setfill('0') << std::setw(5) << label;
-                itk::ExposeMetaData(output->GetMetaDataDictionary(), oss.str(),
-                            index);
-//                fprintf(stderr, "%s -> %i\n", oss.str().c_str(), index);
-            
-                /* Fill in the data in the output */
-                result = (stats->GetMean(label)-totalstats->GetMean(label))/globalmean;
-//                if(isnan(result) || isinf(result)) {
-//                    fprintf(stderr, "%f %f\n", totalstats->GetMean(label), 
-//                                stats->GetMean(label));
-//                }
-                fullindex[SECTIONDIM] = index;
-//                if(isnan(result) || isinf(result) || index == 0) {
-//                    fprintf(stderr, "*%f %f %li %f %f\n", result, 
-//                            totalstats->GetSum(label), totalstats->GetCount(label),
-//                            stats->GetMean(label), totalstats->GetMaximum(label));
-//                }
-                output->SetPixel(fullindex, result);
-            }
-        }
-        
-    }
-
-    return output;
-}
-
 
 //Reads a dicom directory then returns a pointer to the image
 //does some of this memory need to be freed??
@@ -1281,26 +492,410 @@ Image4DType::Pointer pruneFMRI(const Image4DType::Pointer fmri_img,
     return new_img;
 }
 
+/**************************************************************************
+ * Blind Spline Generation
+**************************************************************************/
+int detrend_lmin(const Image4DType::Pointer fmri_img, Image4DType::IndexType index, 
+            int ties, Image4DType::Pointer output)
+{
+    gsl_interp_accel *acc = gsl_interp_accel_alloc();
+    gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, ties);
+
+    /* Go to index and start at time 0 at that voxel*/
+    itk::ImageLinearConstIteratorWithIndex< Image4DType > 
+                fmri_it(fmri_img, fmri_img->GetRequestedRegion());
+    fmri_it.SetDirection(3);
+    fmri_it.SetIndex(index);
+
+    Image4DType::IndexType beforeindex = index;
+    Image4DType::IndexType afterindex = index;
+    Image4DType::IndexType tmpindex = index;
+
+    double levels[ties];
+    double xpos[ties];
+    int positions[ties];
+
+    int length = fmri_img->GetRequestedRegion().GetSize()[3];
+    positions[0] = 0;
+    positions[ties-1] = length-1;
+    for(int i = 1 ; i < ties-1 ; i++) {
+        positions[i] = positions[i-1] + (length - positions[i-1])/(ties-i);
+    }
+
+    for(int i = 0 ; i < ties ; i++) {
+        int dir = 0;
+        do{
+            beforeindex[3] = (positions[i] == 0) ? positions[i] : positions[i]-1;
+            afterindex[3] = (positions[i] == length-1) ? positions[i] : positions[i]+1;
+            tmpindex[3] = positions[i];
+
+            dir = min(fmri_img->GetPixel(beforeindex), fmri_img->GetPixel(tmpindex),
+                        fmri_img->GetPixel(afterindex));
+            positions[i] += dir;
+        } while( dir != 0 );
+    }
+    
+    for(int i = 0 ; i < ties ; i++) {
+        tmpindex[3] = positions[i];
+        levels[i] = fmri_img->GetPixel(tmpindex);
+        xpos[i] = positions[i];
+    }
+
+    itk::ImageLinearIteratorWithIndex< Image4DType > 
+                out_it(output, output->GetRequestedRegion());
+    out_it.SetDirection(3);
+    out_it.SetIndex(index);
+    gsl_spline_init(spline, xpos, levels, ties);
+    for(out_it.GoToBeginOfLine(); !out_it.IsAtEndOfLine(); ++out_it) {
+        out_it.Set(gsl_spline_eval(spline, out_it.GetIndex()[3], acc));
+    }
+
+    return 0;
+}
+
+int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType index, 
+            int knots, Image4DType::Pointer output)
+{
+    gsl_interp_accel *acc = gsl_interp_accel_alloc();
+    gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, knots);
+
+    /* Go to index and start at time 0 at that voxel*/
+    itk::ImageLinearConstIteratorWithIndex< Image4DType > 
+                fmri_it(fmri_img, fmri_img->GetRequestedRegion());
+    fmri_it.SetDirection(3);
+    fmri_it.SetIndex(index);
+
+    double averages[knots];
+    int counts[knots];
+    int starts[knots-2];
+
+    int length = fmri_img->GetRequestedRegion().GetSize()[3];
+    double rsize = length / (knots-2);
+    for(int i = 0 ; i < (knots-2) ; i++) {
+        starts[i] = rsize*i;
+    }
+    for(int i = 0 ; i < knots ; i++) {
+        counts[i] = 0;
+        averages[i] = 0;
+    }
+    
+    int region = 0;
+    for(fmri_it.GoToBeginOfLine(); !fmri_it.IsAtEndOfLine(); ++fmri_it) {
+        /* Figure out Region */
+        if(fmri_it.GetIndex()[3] < length/((knots-2)*2)) {
+            averages[0] += fmri_it.Get();
+            counts[0]++;
+        } else if(fmri_it.GetIndex()[3] > (length - length/((knots-2)*2))) {
+            averages[(knots-2)+1] += fmri_it.Get();
+            counts[(knots-2)+1]++;
+        }
+
+        /* Check to see if the index is for the last region(since there is no)
+         * start for the region after that */
+        if(fmri_it.GetIndex()[3] > starts[(knots-2)-1]) {
+            averages[(knots-2)] += fmri_it.Get();
+            counts[(knots-2)]++;
+        /* Check to see if the index is for the next region and
+         * if that is the case, then add the data to the next region
+         * and iterate the region count*/
+        } else if(fmri_it.GetIndex()[3] > starts[region+1]) {
+            averages[region+2] += fmri_it.Get();
+            counts[region+2]++;
+            region++;
+        /* Otherwise, just go with the current region */
+        } else {
+            averages[region+1] += fmri_it.Get();
+            counts[region+1]++;
+        }
+    }
+
+    double xpos[knots];
+    xpos[0] = 0;
+    xpos[(knots-2)+1] = length-1;;
+    xpos[(knots-2)] = (length + starts[(knots-2)-1])/2;
+    for(int i = 0 ; i < (knots-2)-1 ; i++){
+        xpos[i+1] = (starts[i+1] + starts[i])/2;
+    }
+
+    for(int i = 0 ; i < knots ; i++) {
+        averages[i] /= counts[i];
+    }
+
+    itk::ImageLinearIteratorWithIndex< Image4DType > 
+                out_it(output, output->GetRequestedRegion());
+    out_it.SetDirection(3);
+    out_it.SetIndex(index);
+    gsl_spline_init(spline, xpos, averages, knots);
+    for(out_it.GoToBeginOfLine(); !out_it.IsAtEndOfLine(); ++out_it) {
+        out_it.Set(gsl_spline_eval(spline, out_it.GetIndex()[3], acc));
+    }
+
+    return 0;
+};
+
+Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img, 
+            unsigned int knots)
+{
+    Image4DType::Pointer outimage = Image4DType::New();
+    outimage->SetRegions(fmri_img->GetRequestedRegion());
+    outimage->Allocate();
+    outimage->FillBuffer(0);
+
+    /* Fmri Iterators */
+    itk::ImageLinearConstIteratorWithIndex< Image4DType > 
+                fmri_it(fmri_img, fmri_img->GetRequestedRegion());
+    fmri_it.SetDirection(0);
+    
+    itk::ImageLinearConstIteratorWithIndex< Image4DType >
+                fmri_stop(fmri_img, fmri_img->GetRequestedRegion());
+    fmri_stop.SetDirection(3);
+    fmri_stop.GoToBegin();
+    ++fmri_stop;
+
+    for(fmri_it.GoToBegin(); fmri_it != fmri_stop ; fmri_it.NextLine()) {
+        for( ; !fmri_it.IsAtEndOfLine(); ++fmri_it) {
+            detrend_avg(fmri_img, fmri_it.GetIndex(), knots, outimage);
+        }
+    }
+
+    outimage->CopyInformation(fmri_img);
+    outimage->SetMetaDataDictionary(fmri_img->GetMetaDataDictionary());
+    return outimage;
+}
+
+Image4DType::Pointer deSplineBlind(const Image4DType::Pointer fmri_img,
+            unsigned int numknots)
+{
+    std::cerr << "Making Spline" << std::endl;
+    Image4DType::Pointer spline = getspline(fmri_img, numknots);
+    
+    {
+    printf("Writing spline\n");
+    itk::ImageFileWriter< Image4DType >::Pointer writer = 
+                itk::ImageFileWriter< Image4DType >::New();
+    writer->SetInput(spline);
+    writer->SetFileName("spline.nii.gz");
+    writer->Update();
+    }
+
+    /* Rescale (fmri - spline)/avg*/
+    Image4DType::Pointer avg = extrude(Tmean(fmri_img), 
+                fmri_img->GetRequestedRegion().GetSize()[3]);
+    {
+    printf("Writing fmri_img\n");
+    itk::ImageFileWriter< Image4DType >::Pointer writer = 
+                itk::ImageFileWriter< Image4DType >::New();
+    writer->SetInput(fmri_img);
+    writer->SetFileName("fmri_img.nii.gz");
+    writer->Update();
+    }
+    {
+    printf("Writing avg\n");
+    itk::ImageFileWriter< Image4DType >::Pointer writer = 
+                itk::ImageFileWriter< Image4DType >::New();
+    writer->SetInput(avg);
+    writer->SetFileName("avg.nii.gz");
+    writer->Update();
+    }
+    SubF4::Pointer sub = SubF4::New();   
+    DivF::Pointer div = DivF::New();   
+    sub->SetInput1(fmri_img);
+    sub->SetInput2(spline);
+    div->SetInput1(sub->GetOutput());
+    div->SetInput2(avg);
+    div->Update();
+
+    div->GetOutput()->CopyInformation(fmri_img);
+    div->GetOutput()->SetMetaDataDictionary(
+                fmri_img->GetMetaDataDictionary() );
+    return div->GetOutput();
+}
+
+/**************************************************************************
+ * Informed Spline Generation
+**************************************************************************/
+int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType index, 
+            const std::vector< unsigned int >& knots, 
+            Image4DType::Pointer output)
+{
+    static gsl_interp_accel *acc = gsl_interp_accel_alloc();
+    static gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, knots.size());
+
+    double xpos[knots.size()];
+    double level[knots.size()];
+    for(unsigned int ii = 0 ; ii < knots.size() ; ii++) {
+        xpos[ii] = knots[ii];
+        level[ii] = 0;
+        for(int jj = -1 ; jj <= 1; jj++) {
+            index[3] = knots[ii]+jj;
+            level[ii] += fmri_img->GetPixel(index);
+        }
+        level[ii] /= 3.;
+        
+    }
+
+    itk::ImageLinearIteratorWithIndex< Image4DType > 
+                out_it(output, output->GetRequestedRegion());
+    out_it.SetDirection(3);
+    out_it.SetIndex(index);
+    gsl_spline_init(spline, xpos, level, knots.size());
+    for(out_it.GoToBeginOfLine(); !out_it.IsAtEndOfLine(); ++out_it) {
+        out_it.Set(gsl_spline_eval(spline, out_it.GetIndex()[3], acc));
+    }
+
+    return 0;
+}
+
+bool compare_l(Activation A, Activation B)
+{
+    return A.level < B.level;
+}
+
+bool compare_t(Activation A, Activation B)
+{
+    return A.time < B.time;
+}
+
+
+void getknots(std::list<Activation>& mins, 
+            std::vector<Activation>& stim)
+{
+    const double RANGE = 20;
+    std::list<Activation> fifo;
+    std::vector<Activation>::iterator it = stim.begin();
+    double frame_begin = it->time;
+    double sum_prev_prev = 1;
+    double sum_prev = 0;
+    double sum = 0;
+    double time_prev = RANGE;
+    while(it->time - frame_begin < RANGE) {
+        sum += ((it+1)->time-it->time)*(it->level);
+        fifo.push_front(*it);
+        it++;
+    }
+    sum -= (it-1)->level*(it->time-RANGE);
+
+    Activation tmp;
+
+    while(fifo.size() != 1 || it != stim.end()) {
+        //find local minima
+        if(sum > sum_prev && sum_prev <= sum_prev_prev) {
+            tmp.time = time_prev;
+            tmp.level = sum_prev;
+            mins.push_back(tmp);
+        }
+
+        sum_prev_prev = sum_prev;
+        sum_prev = sum;
+        time_prev = fifo.back().time+RANGE;
+
+        std::list<Activation>::reverse_iterator sec = ++fifo.rbegin();
+        if(fifo.size() <= 1 || ( it != stim.end() && 
+                    it->time - fifo.back().time - RANGE < 
+                    sec->time - fifo.back().time ) ) {
+            double delta = it->time - fifo.back().time - RANGE;
+            sum -= fifo.back().level*delta;
+            sum += delta*fifo.front().level;
+            fifo.back().time += delta;
+            fifo.push_front(*it);
+            it++;
+        } else {
+            double delta = sec->time - fifo.back().time;
+            sum -= fifo.back().level*delta;
+            sum += delta*fifo.front().level;
+            fifo.pop_back();
+        }
+    }
+}
+
+Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img,
+            const std::vector<unsigned int>& knots)
+            
+{
+    Image4DType::Pointer outimage = Image4DType::New();
+    outimage->SetRegions(fmri_img->GetRequestedRegion());
+    outimage->Allocate();
+    outimage->FillBuffer(0);
+
+    /* Fmri Iterators */
+    itk::ImageLinearConstIteratorWithIndex< Image4DType > 
+                fmri_it(fmri_img, fmri_img->GetRequestedRegion());
+    fmri_it.SetDirection(0);
+    
+    itk::ImageLinearConstIteratorWithIndex< Image4DType >
+                fmri_stop(fmri_img, fmri_img->GetRequestedRegion());
+    fmri_stop.SetDirection(3);
+    fmri_stop.GoToBegin();
+    ++fmri_stop;
+
+    std::cerr << "Knots:" << std::endl;
+    for(unsigned int ii = 0 ; ii < knots.size() ;ii++) {
+        std::cerr << knots[ii] << std::endl;
+    }
+    
+    for(fmri_it.GoToBegin(); fmri_it != fmri_stop ; fmri_it.NextLine()) {
+        for( ; !fmri_it.IsAtEndOfLine(); ++fmri_it) {
+            detrend_avg(fmri_img, fmri_it.GetIndex(), knots, outimage);
+        }
+    }
+
+    outimage->CopyInformation(fmri_img);
+    outimage->SetMetaDataDictionary(fmri_img->GetMetaDataDictionary());
+    return outimage;
+}
+
+
 /* Uses knots at points with at least a 15 second break */
-Image4DType::Pointer deSpline(const Image4DType::Pointer fmri_img,
+Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
             unsigned int numknots, std::vector<Activation>& stim, double dt)
 {
     /* Find good knots for spline */
-    std::list<double> knots_t;
-    getknots(knots_t, numknots, stim);
+    std::list<Activation> knots_a;
+    std::list<Activation> knots_b;
+
+    std::cerr << "Getting knots" << std::endl;
+    getknots(knots_a, stim);
     
-    /* Change the times into positions in the vector, and use knots in the range */
-    std::list<unsigned int> knots_i;
-    std::list<double>::iterator it = knots_t.begin();
-    while(it != knots_t.end() && knots_i.size() < numknots) {
-        if(*it/dt < fmri_img->GetRequestedRegion().GetSize()[3]-1 && *it/dt > 1) {
-            knots_i.push_back((unsigned int)(*it/dt));
+    std::cerr << "Picking good knots" << std::endl;
+    //sort by l, then start adding elements to knots_b
+    //before inserting a knot, make sure there are no knots
+    //close in time, if there are, throw the knot out
+    knots_a.sort(compare_l);
+
+    for(std::list<Activation>::iterator it = knots_a.begin() ; 
+                    it != knots_a.end() && knots_b.size() < numknots; it++) {
+        //check that the point is valid
+        if(it->time/dt >= fmri_img->GetRequestedRegion().GetSize()[3]-1 ||
+                        it->time/dt <= 1) 
+            continue;
+
+        //check that the point isn't too close to any other point
+        std::list<Activation>::iterator it2 = knots_b.begin();
+        while(it2 != knots_b.end()) {
+            if(it->time < it2->time + 8*dt && it->time > it2->time - 8*dt) {
+                break;
+            }
+            it2++;
         }
-        it++;
+
+        //no nearby points, go ahead and add
+        if(it2 == knots_b.end()) 
+            knots_b.push_back(*it);
     }
-    knots_i.sort();
+
+    knots_b.sort(compare_t);
+
+    /* Change the times into positions in the vector, and use knots in the range */
+    std::vector<unsigned int> knots_final(knots_b.size());
+    std::list<Activation>::iterator itb = knots_b.begin();
+    std::vector<unsigned int>::iterator itf = knots_final.begin();
+    while(itb != knots_b.end()) {
+        *itf = (unsigned int)itb->time/dt;
+        itb++;
+        itf++;
+    }
     
-    std::vector<unsigned int> knots_final(knots_i.begin(), knots_i.end());
+    std::cerr << "Making Spline" << std::endl;
     Image4DType::Pointer spline = getspline(fmri_img, knots_final);
     
     {

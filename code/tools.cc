@@ -6,6 +6,99 @@
 #include <itkComplexToPhaseImageFilter.h>
 #include <itkFFTRealToComplexConjugateImageFilter.h>
 
+#include <itkAddImageFilter.h>
+#include <itkSubtractImageFilter.h>
+#include <itkSquareImageFilter.h>
+
+typedef itk::AddImageFilter< Image3DType > AddF3;
+typedef itk::SubtractImageFilter< Image3DType > SubF3;
+typedef itk::SquareImageFilter< Image3DType, Image3DType > SqrF3;
+
+/* Calculates the percent difference between input1, and input2,
+ * using input1 as the reference
+ */
+Image4DType::Pointer pctDiff(const Image4DType::Pointer input1,
+            const Image4DType::Pointer input2)
+{
+    if(input1->GetRequestedRegion().GetSize() != 
+                input2->GetRequestedRegion().GetSize()) {
+        return NULL;
+    }
+    
+    itk::ImageLinearConstIteratorWithIndex<Image4DType> iter1(
+                input1, input1->GetRequestedRegion());
+    iter1.SetDirection(3);
+    iter1.GoToBegin();
+    
+    itk::ImageLinearConstIteratorWithIndex<Image4DType> iter2(
+                input2, input2->GetRequestedRegion());
+    iter2.SetDirection(3);
+    iter2.GoToBegin();
+
+    Image4DType::Pointer out = Image4DType::New();
+    out->SetRegions(input1->GetRequestedRegion());
+    out->Allocate();
+    
+    itk::ImageLinearIteratorWithIndex<Image4DType> itero(
+                out, out->GetRequestedRegion());
+    itero.SetDirection(3);
+    itero.GoToBegin();
+
+    while(!iter1.IsAtEnd() && !iter2.IsAtEnd() && !itero.IsAtEnd()) {
+        while(!iter1.IsAtEndOfLine() && !iter2.IsAtEndOfLine()) {
+            itero.Set(abs((iter1.Get() - iter2.Get())/iter1.Get()));
+            ++iter1; ++iter2; ++itero;
+        }
+        iter1.NextLine();
+        iter2.NextLine();
+        itero.NextLine();
+    }
+    return out;
+}
+
+Image3DType::Pointer mse(const Image4DType::Pointer input1,
+            const Image4DType::Pointer input2)
+{
+    if(input1->GetRequestedRegion().GetSize() != 
+                input2->GetRequestedRegion().GetSize()) {
+        return NULL;
+    }
+    
+    itk::ImageLinearConstIteratorWithIndex<Image4DType> iter1(
+                input1, input1->GetRequestedRegion());
+    iter1.SetDirection(3);
+    iter1.GoToBegin();
+    
+    itk::ImageLinearConstIteratorWithIndex<Image4DType> iter2(
+                input2, input2->GetRequestedRegion());
+    iter2.SetDirection(3);
+    iter2.GoToBegin();
+
+    Image4DType::IndexType index4;
+    Image3DType::Pointer out = Image3DType::New();
+    Image4DType::SizeType size4 = input1->GetRequestedRegion().GetSize();
+    {
+        Image3DType::SizeType size3 = {{size4[0], size4[1], size4[2]}};
+        out->SetRegions(size3);
+        out->Allocate();
+    }
+
+    while(!iter1.IsAtEnd() && !iter2.IsAtEnd()) {
+        index4 = iter1.GetIndex();
+        double mean = 0;
+        while(!iter1.IsAtEndOfLine() && !iter2.IsAtEndOfLine()) {
+            mean += pow(iter1.Get() - iter2.Get(), 2);
+            ++iter1; ++iter2;
+        }
+        index4 = iter1.GetIndex();
+        Image3DType::IndexType index3 = {{index4[0], index4[1], index4[2]}};
+        out->SetPixel(index3, mean/size4[3]);
+        iter1.NextLine();
+        iter2.NextLine();
+    }
+    return out;
+}
+
 std::vector<Activation> read_activations(const char* filename)
 {
     FILE* fin = fopen(filename, "r");
@@ -201,6 +294,46 @@ Image3DType::Pointer Tmean(const Image4DType::Pointer fmri_img)
     }
     return out;
 }
+
+//Image3DType::Pointer Tvar(const Image4DType::Pointer fmri_img)
+//{
+//    Image3DType::Pointer average = Tmean(fmri_img);
+//
+//    /* Used to zero out the addfilter */
+//    Image3DType::Pointer zero = Image3DType::New();
+//    zero->SetRegions(average->GetRequestedRegion());
+//    zero->Allocate();
+//    zero->FillBuffer(0);
+//    
+//    /* Initialize the Addition */
+//    AddF3::Pointer add = AddF3::New();
+//    add->GraftOutput(zero);
+//    add->SetInput2(add->GetOutput());
+//    
+//    /* Initialize Subtraction */
+//    SubF3::Pointer sub = SubF3::New();   
+//    
+//    /* Initialize Subtraction */
+//    SqrF3::Pointer sqr = SqrF3::New();   
+//    
+//    /* Calculate Sum of Images */
+//    //SUM( (X_i - mu)^2 )
+//    for(size_t ii = 0 ; ii < fmri_img->GetRequestedRegion().GetSize()[3] ; ii++) {
+//        sub->SetInput1(extract(fmri_img, ii));
+//        sub->SetInput2(average);
+//        sqr->SetInput(sub->GetOutput());
+//        add->SetInput1(sqr->GetOutput());
+//        add->Update();
+//    }
+//
+//    /* Calculate Average of Images */
+//    ScaleF::Pointer scale = ScaleF::New();
+//    scale->SetInput(add->GetOutput());
+//    scale->SetConstant(1./fmri_img->GetRequestedRegion().GetSize()[3]);
+//    scale->Update();
+//    return scale->GetOutput();
+//}
+
 
 Image4DType::Pointer extrude(const Image3DType::Pointer input, unsigned int len)
 {
