@@ -48,7 +48,7 @@ Image4DType::Pointer pctDiff(const Image4DType::Pointer input1,
             if(input2->GetRequestedRegion().IsInside(index)) {
                 printf("%li %li %li %li\n", iter1.GetIndex()[0], iter1.GetIndex()[1],
                             iter1.GetIndex()[2], iter1.GetIndex()[3]);
-                itero.Set(fabs((input2->GetPixel(index)-iter1.Get())/input2->GetPixel(index)));
+                itero.Set((input2->GetPixel(index)-iter1.Get())/input2->GetPixel(index));
             }
             ++iter1; ++itero;
         }
@@ -151,11 +151,6 @@ void outputMatrix(std::ostream& out, indii::ml::aux::matrix mat)
   }
 }
 
-void fftline()
-{
-
-}
-
 unsigned int round_power_2(unsigned int in) 
 {
     unsigned int count = 0;
@@ -227,7 +222,7 @@ itk::OrientedImage<double, 4>::Pointer fft_image(
 
     //Round up the nearest power of 2 for image length
     //and create a temporary image for FFT's
-    lineSize[0] = round_power_2(inSize[3]);
+    lineSize[0] = round_power_2(inSize[3])*4;
     Real4DT::SizeType timeSizeOut = {{1, 1, 1, lineSize[0]}};
     Real1DT::Pointer working = Real1DT::New();
     working->SetRegions(lineSize);

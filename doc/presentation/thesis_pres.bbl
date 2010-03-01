@@ -1,31 +1,11 @@
-\begin{thebibliography}{7}
+\begin{thebibliography}{4}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi: #1}\else
   \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
 
-\bibitem[Buxton et~al.(2004)Buxton, Uludag, Dubowitz, and Liu]{Buxton2004S220}
-R.~B. Buxton, K.~Uludag, D.~J. Dubowitz, and T.~T. Liu.
-\newblock Modeling the hemodynamic response to brain activation.
-\newblock \emph{NeuroImage}, 23\penalty0 (Supplement 1):\penalty0 S220 -- S233,
-  2004.
-\newblock ISSN 1053-8119.
-\newblock \doi{DOI: 10.1016/j.neuroimage.2004.07.013}.
-\newblock URL
-  \url{http://www.sciencedirect.com/science/article/B6WNP-4D98255-3/2/1bd7e28b%
-57ff7243e1c32b07b94fc911}.
-\newblock Mathematics in Brain Imaging.
-
-\bibitem[Chen and Pike({2009})]{ISI:000265938700001}
-J.~J. Chen and G.~B. Pike.
-\newblock {Origins of the BOLD post-stimulus undershoot}.
-\newblock \emph{{NEUROIMAGE}}, {46}\penalty0 ({3}):\penalty0 {559--568}, {JUL
-  1} {2009}.
-\newblock ISSN {1053-8119}.
-\newblock \doi{{10.1016/j.neuroimage.2009.03.015}}.
-
-\bibitem[Deneux and Faugeras({2006})]{ISI:000240969200015}
+\bibitem[Deneux and Faugeras({2006})]{comparison}
 T.~Deneux and O.~Faugeras.
 \newblock {Using nonlinear models in fMRI data analysis: Model selection and
   activation detection}.
@@ -34,8 +14,15 @@ T.~Deneux and O.~Faugeras.
 \newblock ISSN {1053-8119}.
 \newblock \doi{{10.1016/j.neuroimage.2006.03.006}}.
 
+\bibitem[Klaas({2009})]{spm_pipeline}
+S.~Klaas.
+\newblock {General Linear Model}, {2009}.
+\newblock URL
+  \url{http://www.sciencedirect.com/science/article/B6WNP-47DKV9V-2/2/ccfad2db%
+718319db51008a47c71ca54a}.
+
 \bibitem[Riera et~al.({2004})Riera, Watanabe, Kazuki, Naoki, Aubert, Ozaki, and
-  Kawashima]{ISI:000189252300007}
+  Kawashima]{nonlinearfiltering}
 J.~Riera, J.~Watanabe, T.~Kazuki, M.~Naoki, E.~Aubert, T.~Ozaki, and
   R.~Kawashima.
 \newblock {A state-space model of the hemodynamic approach: nonlinear filtering
@@ -45,32 +32,13 @@ J.~Riera, J.~Watanabe, T.~Kazuki, M.~Naoki, E.~Aubert, T.~Ozaki, and
 \newblock ISSN {1053-8119}.
 \newblock \doi{{10.1016/j.neuroimaging.2003.09.052}}.
 
-\bibitem[Smith et~al.({1999})Smith, Lewis, Ruttimann, Ye, Sinnwell, Yang, Duyn,
-  and Frank]{ISI:000080539300008}
-A.~Smith, B.~Lewis, U.~Ruttimann, F.~Ye, T.~Sinnwell, Y.~Yang, J.~Duyn, and
-  J.~Frank.
-\newblock {Investigation of low frequency drift in fMRI signal}.
-\newblock \emph{{NEUROIMAGE}}, {9}\penalty0 ({5}):\penalty0 {526--533}, {MAY}
-  {1999}.
+\bibitem[Tanabe et~al.({2002})Tanabe, Miller, Tregellas, Freedman, and
+  Meyer]{detrending}
+J.~Tanabe, D.~Miller, J.~Tregellas, R.~Freedman, and F.~Meyer.
+\newblock {Comparison of detrending methods for optimal fMRI preprocessing}.
+\newblock \emph{{NEUROIMAGE}}, {15}\penalty0 ({4}):\penalty0 {902--907}, {APR}
+  {2002}.
 \newblock ISSN {1053-8119}.
-
-\bibitem[Smith et~al.({2007})Smith, Singh, and Balsters]{ISI:000246766700003}
-A.~T. Smith, K.~D. Singh, and J.~H. Balsters.
-\newblock {A comment on the severity of the effects of non-white noise in fMRI
-  time-series}.
-\newblock \emph{{NEUROIMAGE}}, {36}\penalty0 ({2}):\penalty0 {282--288}, {JUN}
-  {2007}.
-\newblock ISSN {1053-8119}.
-\newblock \doi{{10.1016/j.neuroimage.2006.09.044}}.
-
-\bibitem[Zheng et~al.({2005})Zheng, Johnston, Berwick, Chen, Billings, and
-  Mayhew]{ISI:000234015300018}
-Y.~Zheng, D.~Johnston, J.~Berwick, D.~Chen, S.~Billings, and J.~Mayhew.
-\newblock {A three-compartment model of the hemodynamic response and oxygen
-  delivery to brain}.
-\newblock \emph{{NEUROIMAGE}}, {28}\penalty0 ({4}):\penalty0 {925--939}, {DEC}
-  {2005}.
-\newblock ISSN {1053-8119}.
-\newblock \doi{{10.1016/j.neuroimage.2005.06.042}}.
+\newblock \doi{{10.1006/nimg.2002.1053}}.
 
 \end{thebibliography}

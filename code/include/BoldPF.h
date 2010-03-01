@@ -38,7 +38,7 @@ public:
     /* Types */
     typedef indii::ml::filter::ParticleFilter<double> Filter;
     enum Status {ERROR=-1, UNSTARTED=0, RUNNING=1, PAUSED=2, DONE=3};
-    enum Method {DIRECT, DELTA, PROCESS};
+    enum Method {DIRECT, DELTA, DC};
     
     /* Callback types */
     struct CallPoints{
@@ -61,7 +61,7 @@ public:
                 const std::vector<Activation>& activations,  double weightvar,
                 double longstep, std::ostream* output, 
                 unsigned int numparticles = 1000, double shortstep = 1./64,
-                unsigned int method = DIRECT);
+                unsigned int method = DIRECT, bool exp = false);
 
     /* Destructor */
     ~BoldPF();
@@ -118,6 +118,8 @@ private:
     RegularizedParticleResamplerMod<aux::Almost2Norm, aux::AlmostGaussianKernel>*
                 resampler_reg;
 
+    void generatePrior(aux::DiracMixturePdf& out, double scale, int count);
+
     //input and measurement vectors
     std::vector<aux::vector> measure;
     std::vector<Activation> stim;
@@ -162,6 +164,7 @@ int BoldPF::getStatus()
 {
     return status;
 };
+    
 
 /* Run - runs the particle filter
  * pass - variable to pass to callback function
@@ -250,13 +253,8 @@ int BoldPF::run(void* pass = NULL)
                 try {
                     filter->setFilteredState( resampler_reg->resample(
                                 filter->getFilteredState(), statecov) );
-                } catch(int err) {
-                    aux::vector mu2 = filter->getFilteredState().
-                                getDistributedExpectation();
-                    aux::vector cov2 = filter->getFilteredState().
-                                getDistributedExpectation();
-                    if(rank == 0) {
-                        *debug << "Error: " << err << endl;
+                } catch(...) {
+                    if(rank == 0){
                         *debug << "Ess: " << ess << endl;
                         *debug << "Mu: ";
                         outputVector(*debug, tmpmu);
@@ -264,9 +262,8 @@ int BoldPF::run(void* pass = NULL)
                         outputMatrix(*debug, statecov);
                         *debug << endl;
                     }
-                    int nil = 0;
-                    boost::mpi::broadcast(world, nil, 0);
-                    exit(-1);
+                    status = ERROR;
+                    break;
                 }
             } else {
                 *debug << " ESS: " << ess << ", No Resampling Necessary!\n";
@@ -328,7 +325,7 @@ void BoldPF::latchBold()
 BoldPF::BoldPF(const std::vector<aux::vector>& measurements, 
             const std::vector<Activation>& activations,  double weightvar,
             double longstep, std::ostream* output, unsigned int numparticles,
-            double shortstep, unsigned int method_p) : 
+            double shortstep, unsigned int method_p, bool exp) : 
             dt_l(longstep), dt_s(shortstep), 
             disctime_l(0), disctime_s(0), status(UNSTARTED), method(method_p),
             measure(measurements), stim(activations), 
@@ -345,7 +342,7 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     aux::vector drift;
     drift = aux::vector(measurements.front().size(), 0);
 
-    model = new BoldModel(weight, false, measurements.front().size(), drift);
+    model = new BoldModel(weight, exp, measurements.front().size(), drift);
     model->setinput(aux::vector(1, 0));
     aux::DiracMixturePdf tmp(model->getStateSize());
     filter = new indii::ml::filter::ParticleFilter<double>(model, tmp);
@@ -362,9 +359,33 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     if(rank == (size-1))
         localparticles += numparticles - localparticles*size;
 
-    //prior is (2*sigma)^2, by having each rank generate its own particles,
-    //a decent amount of time is saved
-    model->generatePrior(filter->getFilteredState(), localparticles, 4); 
+    /* Generate Prior */
+    aux::symmetric_matrix cov(model->getStateSize());
+    for(unsigned int ii = 0 ; ii < model->getMeasurementSize(); ii++) {
+        //set the variances for all the variables to 3*sigma
+        cov(model->indexof(model->TAU_S  ,ii), model->indexof(model->TAU_S  ,ii)) = 6*1.07*1.07;
+        cov(model->indexof(model->TAU_F  ,ii), model->indexof(model->TAU_F  ,ii)) = 6*1.51*1.51;
+        cov(model->indexof(model->EPSILON,ii), model->indexof(model->EPSILON,ii)) = 6*.014*.014;
+        cov(model->indexof(model->TAU_0  ,ii), model->indexof(model->TAU_0  ,ii)) = 6*1.5*1.5;
+        cov(model->indexof(model->ALPHA  ,ii), model->indexof(model->ALPHA  ,ii)) = 6*.004*.004;
+        cov(model->indexof(model->E_0    ,ii), model->indexof(model->E_0    ,ii)) = 6*.072*.072;
+        cov(model->indexof(model->V_0    ,ii), model->indexof(model->V_0    ,ii)) = 6*.6e-2*.6e-2;
+
+        //Assume they start at 0
+        cov(model->indexof(model->V_T,ii), model->indexof(model->V_T,ii)) = 6*.0001;
+        cov(model->indexof(model->Q_T,ii), model->indexof(model->Q_T,ii)) = 6*.0001;
+        cov(model->indexof(model->S_T,ii), model->indexof(model->S_T,ii)) = 6*.0001;
+        cov(model->indexof(model->F_T,ii), model->indexof(model->F_T,ii)) = 6*.0001;
+    }
+
+    for(unsigned int ii = model->getStateSize()-model->getMeasurementSize(); 
+                    ii < model->getStateSize(); ii++) {
+        if(method == DC)
+            cov(ii,ii) = pow(weight[ii-model->getStateSize()+model->getMeasurementSize()]/.2, 2);
+        else
+            cov(ii,ii) = 0;
+    }
+    model->generatePrior(filter->getFilteredState(), localparticles, cov); 
 
     //Redistribute - doesn't cost anything if distrib. was already fine 
     *debug << "Redistributing" << endl;

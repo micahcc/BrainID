@@ -47,12 +47,29 @@ BoldModel::BoldModel(aux::vector stddev, bool expweight,
         defaultstate[STATE_SIZE-MEAS_SIZE+i] = drift[i];
 
     std::cerr << "Sizes:" << std::endl;
-    std::cerr << this->GVAR_SIZE        << std::endl;
-    std::cerr << this->LVAR_SIZE        << std::endl;
-    std::cerr << this->SIMUL_STATES     << std::endl;
-    std::cerr << this->STATE_SIZE       << std::endl;
-    std::cerr << this->MEAS_SIZE        << std::endl;
-    std::cerr << this->INPUT_SIZE       << std::endl;
+    std::cerr << "GVAR_SIZE    " << this->GVAR_SIZE    << std::endl;
+    std::cerr << "LVAR_SIZE    " << this->LVAR_SIZE    << std::endl;
+    std::cerr << "SIMUL_STATES " << this->SIMUL_STATES << std::endl;
+    std::cerr << "STATE_SIZE   " << this->STATE_SIZE   << std::endl;
+    std::cerr << "MEAS_SIZE    " << this->MEAS_SIZE    << std::endl;
+    std::cerr << "INPUT_SIZE   " << this->INPUT_SIZE   << std::endl;
+
+    for(unsigned int i = 0 ; i < 3 ; i++) {
+        std::cerr << "indexof(TAU_0, " << i << ") " << indexof(TAU_0, i) << std::endl;
+        std::cerr << "indexof(ALPHA, " << i << ") " << indexof(ALPHA, i) << std::endl;
+        std::cerr << "indexof(E_0  , " << i << ") " << indexof(E_0  , i) << std::endl;
+        std::cerr << "indexof(V_0  , " << i << ") " << indexof(V_0  , i) << std::endl;
+        std::cerr << "indexof(TAU_S, " << i << ") " << indexof(TAU_S, i) << std::endl;
+        std::cerr << "indexof(TAU_F, " << i << ") " << indexof(TAU_F, i) << std::endl;
+        std::cerr << "indexof(EPSILON, " << i << ") " << indexof(EPSILON, i) << std::endl;
+        std::cerr << "indexof(V_T  , " << i << ") " << indexof(V_T  , i) << std::endl;
+        std::cerr << "indexof(Q_T  , " << i << ") " << indexof(Q_T  , i) << std::endl;
+        std::cerr << "indexof(S_T  , " << i << ") " << indexof(S_T  , i) << std::endl;
+        std::cerr << "indexof(F_T  , " << i << ") " << indexof(F_T  , i) << std::endl;
+    }
+    for(unsigned int i = 0 ; i < MEAS_SIZE; i++) {
+        std::cerr << "Extra vars: " << i << " -> " << STATE_SIZE-MEAS_SIZE+i;
+    }
 
     std::cerr << "Sigma:" << std::endl;
     for(unsigned int i = 0 ; i < sigma.size() ; i++)

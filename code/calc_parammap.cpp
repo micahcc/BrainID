@@ -66,18 +66,12 @@ int callback(BoldPF* bold, void* data)
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
-//    const unsigned int size = world.size();
     
     callback_data* cdata = (struct callback_data*)data;
     
     cdata->pos[3] = bold->getDiscTimeL();
     aux::vector mu = bold->getDistribution().getDistributedExpectation();
     aux::vector meas =  bold->getModel().measure(mu);
-
-    outputVector(std::cout, mu);
-    std::cout << "\n";
-    outputVector(std::cout, meas);
-    std::cout << "\n";
 
     //add DC term
     if(cdata->method == BoldPF::DIRECT) {
@@ -181,6 +175,7 @@ int main(int argc, char* argv[])
     vul_arg<string> a_input(0, "4D timeseries file");
     vul_arg<string> a_mask(0, "3D mask file");
     
+    vul_arg<bool> a_dc("-c", "Calculate DC gain as a state variable", false);
     vul_arg<bool> a_delta("-l", "Use deltas between measurements, this precludes"
                 "the drift option", false);
     vul_arg<bool> a_smart("-S", "Use \"smart\" knots based on less active regions"
@@ -190,7 +185,7 @@ int main(int argc, char* argv[])
     vul_arg<unsigned> a_divider("-d", "Intermediate Steps between samples.", 128);
     vul_arg<string> a_stimfile("-s", "file containing \"<time> <value>\""
                 "pairs which give the time at which input changed", "");
-    vul_arg<bool> a_expweight("-e", "Use exponential weighting function", false);
+    vul_arg<bool> a_expweight("-e", "Use exponential weighting function", true);
     vul_arg<double> a_timestep("-t", "TR (timesteps in 4th dimension)", 2);
     
     vul_arg_parse(argc, argv);
@@ -303,6 +298,7 @@ int main(int argc, char* argv[])
     
     unsigned int method = BoldPF::DIRECT;
     if(a_delta()) method = BoldPF::DELTA;
+    else if(a_dc()) method = BoldPF::DC;
 
     //callback variables, to fill in 
     BoldPF::CallPoints callpoints;
@@ -355,7 +351,8 @@ int main(int argc, char* argv[])
 
                     //create the bold particle filter
                     BoldPF boldpf(meas, input, rms->GetPixel(index3)/5., a_timestep(),
-                            output, a_num_particles()*(1<<i), 1./a_divider(), method);
+                            output, a_num_particles()*(1<<i), 1./a_divider(), method,
+                            a_expweight());
                     
                     //create the callback function
                     cbd.pos = index4;

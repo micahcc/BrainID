@@ -174,14 +174,14 @@ RegularizedParticleResamplerMod<NT, KT>::resample_help(
     double weight = 0;
 
     /* standardise particles */
-    for(unsigned int i = 0 ; i < model->getMeasurementSize() ; i++) {
-        unsigned int tmp = model->getStateSize()-i-1;
-        if(covariance(tmp, tmp) < 1e-200) {
-            std::cerr << "Warning covariance of drift (" << tmp 
-                        << ") dropped to 0, resetting" << std::endl;
-            covariance(tmp, tmp) = 1e-100;
-        }
-    }
+//    for(unsigned int i = 0 ; i < model->getMeasurementSize() ; i++) {
+//        unsigned int tmp = model->getStateSize()-i-1;
+//        if(covariance(tmp, tmp) < 1e-200) {
+//            std::cerr << "Warning covariance of drift (" << tmp 
+//                        << ") dropped to 0, resetting" << std::endl;
+//            covariance(tmp, tmp) = 1e-100;
+//        }
+//    }
     aux::matrix sd(covariance);
     aux::vector diag_v(sd.size1());
     int err = lapack::syev('V', 'U', sd, diag_v);
