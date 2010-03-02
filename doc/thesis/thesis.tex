@@ -35,22 +35,27 @@
 \begin{document}
 \section*{Introduction}
 Functional Magnetic Resonance Imaging (FMRI) is a powerful tool in the analysis
-neural activity. Despite its rather limited temporal resolution, FMRI still
-is the best way of measuring neural activity deep in the brain. 
+of neural activity. Despite its rather limited temporal resolution, FMRI is still
+the best way of measuring neural activity deep in the brain. 
 Whereas other methods
 of analyzing neural signals can be invasive or difficult to acquire, 
 FMRI is relatively quick and cheap, and its analysis is straight forward.
-Because of these benefits, FMRI continues to have great potential for
-studying human cognition. Despite the fact that FMRI is so widely used,
+Because of these benefits, FMRI continues to be crucial to the study of human 
+cognition. Despite the fact that FMRI is so widely used,
 the choice of analysis tools is still relatively limited. Every widely
-available analysis tool is based on parametric modeling, which \emph{requires}
-prior knowledge of the noise, and depends on that knowledge being accurate.
-This limitation casts a long shadow over any experiment that claims to be
+available analysis tool is based on parametric modeling, which requires
+prior knowledge of the noise distribution. Indeed, the linear methods
+usually applied are known not to be robust to non-gaussian, non-white
+noise, which is why so many pre-processing steps are necessary.
+These limitations cast a long shadow over any experiment that claims to be
 able to reject the null hypothesis, no matter the P-value. While obviously
 there is a correlation between the BOLD signal and actual activity, its
 possible the current parametric tests are over-estimating the actual amount
-of activity. Its worht noting that the opposite could also be true, parametric
-based t-tests may in fact underestimate activity. 
+of activity. Its also possible that the current methods underestimate
+actual activity. In this paper we propose a robust model-based approach to 
+activation detection that makes no assumptions about the underlying noise
+model.
+
 
 fact, typical activation detection does little to account for variations
 in the shape of the signal, but instead is a direct T-test between the measured signal
@@ -60,27 +65,128 @@ must be very large to be detected with any confidence. This paper
 will introduce a more robust method of analyzing FMRI signals for 
 activation, by means of estimating the BOLD parameters.
 
-\subsection*{FMRI?}
+\subsection*{FMRI}
+Before going further, it is necessary to discuss Functional MRI,
+and what it measures. All MRI works by exciting nuclear spin away
+from a steady state controlled by a large electromagnet. Different 
+nuclei respond to RF impulses based on their natural frequency
+of oscillation. Therefore contrast in MRI is based on the aggregate
+nuclear composition of a given region. Thus, regions with more oxygen
+will respond differently from regions with proportionately less 
+oxygen. This exact difference is what causes the changes over time
+in the MR signal in functional MRI. Unfortunately, it takes a significant
+amount of time for nuclear spin to return to equilibrium. Thus instead
+of waiting, a type of imaging called Echo Planar Imaging (EPI) is used,
+wherein a single excitation is used, and then as quickly as possible
+every voxel (3 Dimensional Pixel) in a particular region is read. 
+Because "reading" a particular region requires the switching on of a
+gradient magnetic field, it takes a decent amount of time to perform
+measurements. Problematically, the signal from the original excitation
+drops exponentially, thus the signal to noise ratio can be very low
+even at modest resolutions. Eventually the signal becomes unreadable,
+and a new excitation must be applied. As more measurements are made, and thus
+as the spatial resolution increases, the rate at which entire volumes
+can be acquired drops. Typically volumes can be acquired every two to
+three seconds, at resolutions of about 64 by 64 by 32, but their signal
+to noise ratio is often poor. Other imaging modalities such as EEG and
+MEG are capable of much faster measurements, but are unable to isolate
+measurement locations so precisely as FMRI. As with all biological systems,
+noise is much higher than in human designed systems, and yet these 
+biological systems are capable of performing amazing feats.
 
 \subsection*{BOLD Physiology}
 The physiology that leads to the BOLD model has been well studied over the 
-past decade and a half. While some uncertainty remains, for instance in
+past decade and a half. While some uncertainty remains (for instance in
 relation to the BOLD post-stimulus undershoot <papers relating to back and
-forth on post-stimulus undershoot>, generally the model fits reality very 
+forth on post-stimulus undershoot>) generally the model fits reality very 
 well. As with every piece of tissue in the body, the brain requires oxygen
 to extract energy from glucose in the blood. This process of removing oxygen
-from red blood cells sets into motion a chain of events
+from red blood cells sets into motion a chain of events that locally 
+alters the composition of the blood. Inactive neurons can be thought of
+as a slingshot cocked and ready to fire. As soon as a signal moves up
+the axon and causes the neuron to fire (and thus changes the state
+of a membrane at that location), ions quickly move across the altered
+membrane to compensate for a high charge imbalance between the interior
+and exterior of the cell. This process, similar to allowing a stretched
+rubber band to contract leaves the system at a lower energy state. This cannot
+last though, because the neuron needs to be ready to fire again rather quickly.
+To return the cell to a ready position the membrane becomes impermeable
+to the ions again, and then begins pumping ions back into the cell. This
+process takes a large amount of energy, whereas the actual firing takes
+very little energy. Thus, after firing, glucose is burned, removing oxygen
+from the blood and thus causing a dip in the ratio of oxygenated hemoglobin to 
+de-oxygenated hemoglobin. This is the first potentially measurable effect
+that MRI can see, although it usually lasts fewer than 2 seconds making it
+difficult for FMRI to catch. As a result of the decreased amount of local oxygen,
+the capillaries compensate by increasing blood flow to that region. Because,
+of the quickly increased blood flow into local capillaries, the blood
+volume increases in addition to the local oxygen content. This leads to a Windkessel
+effect which further lags the normalization of oxygen content. The effect of
+all this is an overshoot in the oxygen content above the initial level. After
+the work of recharging is done, there may be a prolonged undershoot lasting
+as much as 90 seconds \cite{spatial_poststim}, though the reason for this
+is debated \cite{origin_poststim}.
 
-inherently alters the local ratio of Oxygenated Hemoglobin
-to De-oxygenated hemoglobin, which of course changes the atomic makeup of the
-region. Of course MRI's contrast is based on the nuclear spin excitability of
-atoms, and so change in the amount of oxygen changes the local oxygen concentration of 
-The changes in the FMRI signal result from the changes in the ratio
-of Oxygenated Hemaglobin to Deoxygenated Hemaglobin.
+All these effects are generally accepted as the cause of the BOLD signal, 
+but FMRI doesn't detect this happening in one neuron, but rather as the 
+aggregate over hundreds or millions of cells. Though local neurons act
+"together" (i.e. around the same time), the density of neurons, the
+density of capillaries, and slight differences in activation across 
+a particular voxel can all lead to signal attenuation or noise. 
+A particularly insidious type of noise present in FMRI is a low frequncey
+drift, characterized by a Weiner process. Though not present in all
+regions, it is prevalent enough to cause problems \cite{detrend}. It is still not
+clear where exactly this noise comes although it is possible it is 
+the result of magnets heating up, or some distortion in magnetic
+fields. It is clear that this drift signal is not due to a true physiological
+effects however, given its presence in cadavers and phantoms\cite{drift}.
 
 \section*{Current Techniques}
 \subsection*{Basic T-Test}
+The most basic method of analyzing FMRI data is through a basic T-test
+between "resting state" and "active state" samples. This is done by 
+taking the average and variance of the inactive period, and the 
+active period separately then treating them both as gaussian distributions.
+If they are in fact Gaussian distributions, then a basic t-test will
+give the likelihood that the samples came from the same distribution
+(the p-value). Of course, this test is fraught with problems; even if
+the drift mentioned earlier has been removed, there is little reason
+to believe that the noise is Gaussian, or even stable. Additionally, 
+even if the noise were Gaussian, a t-test with a p-value of .05 over
+5000 or more samples is on average going to generate $.05*5000$ false
+positives. To compensate for this, bonferoni correction, also known as
+multiple comparison tests are performed; essentially p-values are 
+divided by the number of independent
+tests being run. This, however, leads to extremely low p-values, so
+low that it would be impossible for any biological system to satisfy. To
+compensate, a Gaussian kernel is applied to the image, thus reducing
+variance (and thus separating the active and inactive distributions)
+as well as decreasing the effective number of voxels. Since t-tests are
+now no longer being applied to n <I need to define n> independent voxels,
+the factor by which the p-value must be divided by can be decreased.
+<Do I need to mathematically define all this?> The derivation and application
+of random field theory, and its use can be found in various papers \cite{univ_mult_rft}.
+
 \subsection*{General Linear Model}
+
+\subsection*{Whats wrong with these techniques}
+There are a few problems with the techniques mentioned in the 
+previous sections. First, they essentially ignore prior knowledge about
+the system. The physiological models for the BOLD signal are quite good
+and based in physics. Thus the parameters may be constrained by reality,
+which crucially reduces model variance. Additionally, lacking real world
+parameters means that the parameters have no clear physiological meaning,
+so they are less useful in identifying pathologies.
+
+Secondly, these methods are still merely t-tests, which notoriously
+lack robustness to non-Gaussian noise. While different techniques 
+exist for imposing Gaussianity, those techniques are incapable of
+discriminating noise from signal, otherwise analyzing FMRI would be
+relatively simple. There is no way to know how much signal is removed
+by various smoothing techniques, or even if entire regions have been
+smoothed into oblivion. Instead of extensively filtering data to 
+remove noise, the analysis method itself must be robust to noise,
+which is why we propose here the use of particle filters.
 
 \section*{Proposed Approach}
 \subsection{Modeling}

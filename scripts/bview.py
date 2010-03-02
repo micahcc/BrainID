@@ -13,23 +13,15 @@ global g_timeSlide
 global g_dir
 
 def getequivindex(point, targetimg, img2):
-#    trans = [targetimg.get_header()['srow_x'], targetimg.get_header()['srow_x'], \
-#                targetimg.get_header()['srow_x']]
-#    nibabel.orientations.apply_orientation(point, trans)
-#    print targetimg, img2
     head1 = targetimg.get_header()
     forward = numpy.matrix([head1['srow_x'][0:3], head1['srow_y'][0:3], head1['srow_z'][0:3]])
     point = forward*(numpy.matrix(point).T)
     point = point + numpy.matrix([head1['qoffset_x'], head1['qoffset_y'], head1['qoffset_z']]).T
-#    print point
     #going to other ...
     head2 = img2.get_header()
     reverse = numpy.matrix([head2['srow_x'][0:3], head2['srow_y'][0:3], head2['srow_z'][0:3]]).I
-#    print reverse
     point = point - numpy.matrix([head2['qoffset_x'], head2['qoffset_y'], head2['qoffset_z']]).T
-#    print point
     point = reverse*point
-#    print point
     return [round(num) for num in point[:,0]]
 
 
@@ -143,13 +135,6 @@ def mousecall(event):
         pylab.show()
 
 cid = fig3d.canvas.mpl_connect('button_press_event', mousecall)
-
-#resetax = pylab.axes([0.8, 0.025, 0.1, 0.04])
-#button = Button(resetax, 'Reset', color=axcolor, hovercolor='0.975')
-#def reset(event):
-#    sfreq.reset()
-#    samp.reset()
-#button.on_clicked(reset)
 
 #!======================
 #! Interactive - Direction
