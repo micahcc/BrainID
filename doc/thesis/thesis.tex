@@ -142,7 +142,7 @@ fields. It is clear that this drift signal is not due to a true physiological
 effects however, given its presence in cadavers and phantoms\cite{drift}.
 
 \section*{Current Techniques}
-\subsection*{Basic T-Test}
+\subsection*{Basic Statistical Parametric Mapping}
 The most basic method of analyzing FMRI data is through a basic T-test
 between "resting state" and "active state" samples. This is done by 
 taking the average and variance of the inactive period, and the 
@@ -168,6 +168,41 @@ the factor by which the p-value must be divided by can be decreased.
 of random field theory, and its use can be found in various papers \cite{univ_mult_rft}.
 
 \subsection*{General Linear Model}
+The most used form of FMRI analysis is still based on Statistical Parametric
+Mapping, but is able to account for several different levels or types
+of activation. By adding a General Linear Model to the analysis, the
+output signal timeseries (what FMRI detects) is regressed over the weighted
+sum of various confound timeseries. The equation for a general linear
+model is then
+\begin{equation}
+Y(t) = X(t)\beta + \epsilon(t)
+\end{equation}
+where $Y(t)$ is the smoothed or detrended timeseries of measurements,
+$X(t)$ is a row vector of stimuli, $\beta$ is a column vector of weights,
+and $\epsilon$ is the error. Thus for every time, the measurement is
+assumed to be a weighted sum of the inputs plus some error. The calculation
+of $\beta$ then is merely a gradient descent search to minimize the
+mean squared error. 
+
+<Image of GLM>
+
+Of course, a square wave input is not going to result in a square wave
+in the activation of brain regions. Thus, various methods are used to 
+smooth $X(t)$ through time, and bandlimit the input. The best technique
+is convolving the stimulus input with a hemodynamic response function,
+which mimicks the basic shape of BOLD activation, including a delay
+due to rise time and fall time. This hemodynamic signal is static however,
+so every region of the brain still gets matched to the same signal,
+although the weights of various stimulus or confounds (such as attention)
+are allowed to vary. 
+
+<Image of Hemodynamic Response Function>
+
+Ultimately, activation due to a particular stimuli is decided by the 
+$\beta$ value corresponding to that stimuli's column of $X(t)$.
+<Need to check this>
+The null hypothesis as to whether the outcome was random is then
+based on a t-test of the $\epsilon(t)$ timeseries. 
 
 \subsection*{Whats wrong with these techniques}
 There are a few problems with the techniques mentioned in the 
@@ -181,29 +216,46 @@ so they are less useful in identifying pathologies.
 Secondly, these methods are still merely t-tests, which notoriously
 lack robustness to non-Gaussian noise. While different techniques 
 exist for imposing Gaussianity, those techniques are incapable of
-discriminating noise from signal, otherwise analyzing FMRI would be
-relatively simple. There is no way to know how much signal is removed
+discriminating noise from signal. There is no way to know how much 
+signal is removed
 by various smoothing techniques, or even if entire regions have been
 smoothed into oblivion. Instead of extensively filtering data to 
-remove noise, the analysis method itself must be robust to noise,
-which is why we propose here the use of particle filters.
+remove noise, the analysis method itself must be robust arbitrary
+types of noise, which is why we propose here the use of particle filters.
 
 \section*{Proposed Approach}
-\subsection{Modeling}
-The short term goal of current neurological models is to
-learn something about the system being modeled.
-While control (for instance in prosthetics), or predication
-(such as BlueBrain) may some day be feasible, in the
-short run we still have a great deal to learn about how our
-brain works. By learning about specific systems (the dynamics
-of a single person's brain), we may be able to diagnose diseases,
-find their causes and even someday rectify the cause. Of course
-by learning about various specific systems we can also learn 
-about the general way our brains work. The reason then, for 
-studying the BOLD model then is
-to be able to derive the various system parameters and understand
-why one brain region (say a voxel) reacts in one way, when another
-acts completely differently.
+\subsection{Goal}
+The ultimate goal of modeling neural activation is to learn something
+new about how the brain works. The General Linear Model, and 
+SPM's goal is to find a correlation between input, or what a 
+person is thinking, and which regions are active. This is an 
+important task, but it misses the potential of FMRI. FMRI's 
+greatest weakeness as a tool for studying neural activity is that
+it is connected to neurons through a long chain of events. But
+what if, in addition to seeing which brain regions are active
+for which stimuli, we could also study pathologies such as poor
+blood flow, or derive physical parameters such as blood vessel
+compliance? By using a realistic physical model as the basis for
+discovering the relation between the outside world and FMRI 
+signal, the path to detecting activation gives all those other
+things for free, precisely \emph{because} FMRI is the result of such
+a long chain of events. It is actually quite common to use models to derive
+the values of physiological parameters. For instance, blood volume
+is often measured by injecting a dye into the blood stream and then
+assuming that the dye is removed at a rate proportional to the
+concentration in the blood. By performing a simple regression it is
+possible to estimate blood volume quite accurately. While for
+this particular project I don't claim that the results will give 
+physiologically plausible results, with some tuning of the algorithm
+it would very possible. 
+
+While the General Linear Model has historically done well with
+detecting activation, it is limited to scaling the entire input
+signal up or down. This leaves out even basic effects such as 
+longer or shorter time constants, as well as nonlinear effects which
+are known to be present in the BOLD system. 
+**
+
 
 While the General Linear Model has been extremely effective at
 gleaning information about which voxels are "active" and which
