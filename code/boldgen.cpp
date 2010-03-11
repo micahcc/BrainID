@@ -62,6 +62,35 @@ void init4DImage(Image4DType::Pointer& out, size_t xlen, size_t ylen,
 }
 
 
+void add_drift(Image4DType::Pointer in, double snr, gsl_rng* rng, int series) 
+{
+    itk::ImageSliceIteratorWithIndex<Image4DType> 
+                iter(in, in->GetRequestedRegion());
+    iter.SetFirstDirection(SERIES_DIR);
+    iter.SetSecondDirection(TIME_DIR);
+    iter.GoToBegin();
+    
+    Image3DType::Pointer var = Tvar(in);
+    double prev = 0;
+
+    iter.GoToBegin();
+    while(!iter.IsAtEndOfSlice()) {
+        size_t ii=0;
+        Image4DType::IndexType index4 = iter.GetIndex();
+        Image3DType::IndexType index3 = {{index4[0], index4[1], index4[2]}};
+        //move through series'
+        while(!iter.IsAtEndOfLine()) {
+            prev += gsl_ran_gaussian(rng, sqrt(var->GetPixel(index3)/snr)/4.);
+            iter.Value() += prev;
+            //change series
+            ++iter;
+            ii++; 
+        }
+        //move through time
+        iter.NextLine();
+    }
+}
+
 void add_noise(Image4DType::Pointer in, double snr, gsl_rng* rng, int series) 
 {
     itk::ImageSliceIteratorWithIndex<Image4DType> 
@@ -99,7 +128,7 @@ int main (int argc, char** argv)
     fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
 //    srand(1333);
 
-    vul_arg<string> a_boldfile("-bf", "boldfile to write to (image) - boldfine with noise"
+    vul_arg<string> a_boldfile("-bf", "boldfile to write to (image) - boldfile with noise"
                 " will be the same name but with \"noise-\" prefixed", "");
     vul_arg<double> a_outstep("-ot", "How often to sample", 2);
     vul_arg<double> a_simstep("-st", "Step size for sim, smaller is more accurate",
@@ -117,6 +146,8 @@ int main (int argc, char** argv)
     vul_arg<double> a_randstim_p("-rstimp", "probability of high stimulus, for "
                 "stim generation", .5);
     vul_arg<double> a_noise_snr("-snr", "SNR of Gaussian Noise to apply to bold"
+                " signal", 0);
+    vul_arg<double> a_drift_snr("-drift", "SNR of Gaussian Noise process to apply to bold"
                 " signal", 0);
     vul_arg<string> a_paramfile("-X0file", "File with initial conditions for "
                 "simulation", "");
@@ -316,7 +347,15 @@ int main (int argc, char** argv)
         }
         
     }
-
+    
+    if(!a_boldfile().empty()) {
+        itk::ImageFileWriter< Image4DType >::Pointer writer = 
+            itk::ImageFileWriter< Image4DType >::New();
+        writer->SetImageIO(itk::modNiftiImageIO::New());
+        writer->SetFileName(a_boldfile());  
+        writer->SetInput(measImage);
+        writer->Update();
+    }
     {
         AddF::Pointer add = AddF::New();
         MultF::Pointer mul = MultF::New();
@@ -332,7 +371,9 @@ int main (int argc, char** argv)
         itk::ImageFileWriter< Image4DType >::Pointer writer = 
             itk::ImageFileWriter< Image4DType >::New();
         writer->SetImageIO(itk::modNiftiImageIO::New());
-        writer->SetFileName(a_boldfile());  
+        ostringstream oss("");
+        oss << "carrier-" << a_boldfile();
+        writer->SetFileName(oss.str());  
         writer->SetInput(measImage);
         writer->Update();
     }
@@ -341,7 +382,7 @@ int main (int argc, char** argv)
         fout.close();
     }
     
-    if(a_noise_snr() != 0) {
+    if(a_noise_snr() != 0 && !a_boldfile().empty()) {
         gsl_rng* rng = gsl_rng_alloc(gsl_rng_taus);;
         {
             unsigned int seed;
@@ -357,6 +398,29 @@ int main (int argc, char** argv)
             writer->SetImageIO(itk::modNiftiImageIO::New());
             ostringstream oss("");
             oss << "noise-" << a_boldfile();
+            writer->SetFileName(oss.str());  
+            writer->SetInput(measImage);
+            writer->Update();
+        }
+        gsl_rng_free(rng);
+    } 
+    
+    if(a_drift_snr() != 0 && !a_boldfile().empty()) {
+        gsl_rng* rng = gsl_rng_alloc(gsl_rng_taus);;
+        {
+            unsigned int seed;
+            FILE* file = fopen("/dev/urandom", "r");
+            fread(&seed, 1, sizeof(unsigned int), file);
+            fclose(file);
+            gsl_rng_set(rng, seed);
+        }
+        add_drift(measImage, a_drift_snr(), rng, a_series());
+        if(!a_boldfile().empty()) {
+            itk::ImageFileWriter< Image4DType >::Pointer writer = 
+                itk::ImageFileWriter< Image4DType >::New();
+            writer->SetImageIO(itk::modNiftiImageIO::New());
+            ostringstream oss("");
+            oss << "drift-" << a_boldfile();
             writer->SetFileName(oss.str());  
             writer->SetInput(measImage);
             writer->Update();

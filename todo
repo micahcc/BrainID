@@ -2,8 +2,12 @@ Todo List:
 -Do a measure of gaussianity on the particles.
 -Look at Most likely instead instead of average
 -graph of particle filter converging for a small number of particles
+    -save every particle at every time
 -graph of nonlinearities, and a linear fit to a nonlinear activation
+    -code to generate timeseries with +-10% for each parameter and the hemodynamic response for that
 -tests comparing delta/direct/dc
     -need tool to create a timeseries, add noise and add drift
     -need to compare estimated signal with timeseries before noise/drift
 -graph of error and variance decreasing for a correct convergeance and a bad convergeance
+    -variance exists
+    -node code to save %diff between estimated and real over time

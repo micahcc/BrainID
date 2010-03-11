@@ -1,4 +1,5 @@
 #include "BoldModel.hpp"
+#include "tools.h"
 
 #include <indii/ml/aux/matrix.hpp>
 #include <indii/ml/aux/GaussianPdf.hpp>
@@ -314,8 +315,6 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
     unsigned int count = 0;
     double k_sigma[STATE_SIZE]; 
     double theta_mu[STATE_SIZE];
-    std::cout << "k_sigma: " << k_sigma << "\n";
-    std::cout << "theta_mu: " << theta_mu << "\n";
 
     for(unsigned int i = 0 ; i < STATE_SIZE-MEAS_SIZE; i++) {
         if(indexof(S_T, count) == i) {
@@ -342,6 +341,13 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
         gsl_rng_set(rng, seed^rank);
         std::cout << "Seeding with " << (unsigned int)(seed^rank) << "\n";
     }
+    std::cout << "k_sigma: ";
+    for(unsigned int i = 0 ; i < STATE_SIZE ; i++)
+        std::cout << " " << k_sigma[i];
+    std::cout << "\ntheta_mu: ";
+    for(unsigned int i = 0 ; i < STATE_SIZE ; i++)
+        std::cout << " " << theta_mu[i];
+    std::cout <<  "\n";
     aux::vector comp(STATE_SIZE);
     for(int i = 0 ; i < samples; i ++) {
         generateComponent(rng, comp, k_sigma, theta_mu);

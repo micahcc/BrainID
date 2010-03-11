@@ -234,7 +234,7 @@ int main(int argc, char* argv[])
         exit(-1);
     }
     
-    if(!a_mask()) try {
+    if(!a_mask().empty()) try {
         itk::ImageFileReader<Label4DType>::Pointer reader;
         reader = itk::ImageFileReader<Label4DType>::New();
         reader->SetImageIO(itk::modNiftiImageIO::New());
@@ -246,9 +246,9 @@ int main(int argc, char* argv[])
         exit(-1);
     }
 
-    unsigned int xlen = paramImage1->GetRequestedRegion().GetSize()[0];
-    unsigned int ylen = paramImage1->GetRequestedRegion().GetSize()[1];
-    unsigned int zlen = paramImage1->GetRequestedRegion().GetSize()[2];
+    unsigned int xlen = pEst->GetRequestedRegion().GetSize()[0];
+    unsigned int ylen = pEst->GetRequestedRegion().GetSize()[1];
+    unsigned int zlen = pEst->GetRequestedRegion().GetSize()[2];
     
     /* Open Stimulus file */
     if(!a_stimfile().empty()) {
@@ -282,14 +282,14 @@ int main(int argc, char* argv[])
                 Image4DType::IndexType maskindex;
                 Image4DType::IndexType img2index;;
                 Image4DType::PointType point;
-                paramImage1->TransformIndexToPhysicalPoint(index4, point);
-                paramImage2->TransformPhysicalPointToIndex(point, img2index);
+                pEst->TransformIndexToPhysicalPoint(index4, point);
+                pTrue->TransformPhysicalPointToIndex(point, img2index);
                 maskImage->TransformPhysicalPointToIndex(point, maskindex);
                 
                 cout << "image1 index: " << index4 << endl;
                 cout << "image2 index: " << img2index << endl;
                 cout << "mask index: " << maskindex << endl;
-                if(!paramImage2->GetRequestedRegion().IsInside(img2index) ||
+                if(!pTrue->GetRequestedRegion().IsInside(img2index) ||
                             !maskImage->GetRequestedRegion().IsInside(maskindex)
                             || maskImage->GetPixel(maskindex) == 0){
                     output->SetPixel(index3, 1);
@@ -298,8 +298,8 @@ int main(int argc, char* argv[])
 
                 vector<double> params1;
                 vector<double> params2;
-                fillvector(params1, paramImage1, index4);
-                fillvector(params2, paramImage2, index4);
+                fillvector(params1, pEst, index4);
+                fillvector(params2, pTrue, index4);
                 list<double> sim1;
                 list<double> sim2;
                 simulate(sim1, params1, a_shortstep(), a_timestep(),input, 
