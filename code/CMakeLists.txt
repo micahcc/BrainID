@@ -46,6 +46,7 @@ ADD_EXECUTABLE(prune prune.cpp)
 ADD_EXECUTABLE(readdicom readdicom.cpp)
 ADD_EXECUTABLE(applymask applymask.cpp)
 ADD_EXECUTABLE(fft fft.cpp)
+ADD_EXECUTABLE(parammap_preprocess preprocess.cpp)
 ADD_EXECUTABLE(parammap_generate make_param_image.cpp)
 ADD_EXECUTABLE(parammap_evalrun parammap_eval.cpp)
 ADD_EXECUTABLE(parammap_evaldiff parammap_diff.cpp)
@@ -69,6 +70,9 @@ TARGET_LINK_LIBRARIES(setorientation modNiftiImageIO ITKAlgorithms
 TARGET_LINK_LIBRARIES(brainid tools gfortran modNiftiImageIO blas lapack mpi 
     boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO mpi gsl gslcblas dysii itkvnl itkvcl vullib)
+TARGET_LINK_LIBRARIES(parammap_preprocess segment tools gfortran modNiftiImageIO blas lapack mpi 
+    boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
+    ITKCommon ITKIO mpi gsl gslcblas dysii itkvnl itkvcl vullib segment)
 TARGET_LINK_LIBRARIES(parammap_build segment tools gfortran modNiftiImageIO blas lapack mpi 
     boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO mpi gsl gslcblas dysii itkvnl itkvcl vullib segment)

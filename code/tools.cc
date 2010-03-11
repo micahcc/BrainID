@@ -262,6 +262,36 @@ itk::OrientedImage<double, 4>::Pointer fft_image(
     return out;
 };
 
+Image3DType::Pointer Tvar(const Image4DType::Pointer fmri_img)
+{
+    Image3DType::Pointer mean = Tmean(fmri_img);
+    itk::ImageLinearConstIteratorWithIndex<Image4DType> iter(
+                fmri_img, fmri_img->GetRequestedRegion());
+    iter.SetDirection(3);
+    iter.GoToBegin();
+    Image4DType::IndexType index4;
+    Image3DType::Pointer out = Image3DType::New();
+    Image4DType::SizeType size4 = fmri_img->GetRequestedRegion().GetSize();
+    {
+        Image3DType::SizeType size3 = {{size4[0], size4[1], size4[2]}};
+        out->SetRegions(size3);
+        out->Allocate();
+    }
+
+    while(!iter.IsAtEnd()) {
+        index4 = iter.GetIndex();
+        Image3DType::IndexType index3 = {{index4[0], index4[1], index4[2]}};
+        double average = 0;
+        while(!iter.IsAtEndOfLine()) {
+            average += pow(iter.Get()-mean->GetPixel(index3),2);
+            ++iter;
+        }
+        out->SetPixel(index3, average/size4[3]);
+        iter.NextLine();
+    }
+    return out;
+}
+
 Image3DType::Pointer Tmean(const Image4DType::Pointer fmri_img)
 {
     itk::ImageLinearConstIteratorWithIndex<Image4DType> iter(

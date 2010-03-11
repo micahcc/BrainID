@@ -52,6 +52,8 @@ struct callback_data
 
 bool checkmask(Label4DType::Pointer maskimg, Image4DType::PointType point)
 {
+    if(!maskimg) return true;
+
     Image4DType::IndexType index;
     maskimg->TransformPhysicalPointToIndex(point, index);
     if(maskimg->GetRequestedRegion().IsInside(index) && 
@@ -173,8 +175,8 @@ int main(int argc, char* argv[])
     const unsigned int size = world.size();
 
     vul_arg<string> a_input(0, "4D timeseries file");
-    vul_arg<string> a_mask(0, "3D mask file");
     
+    vul_arg<string> a_mask("-m", "3D mask file");
     vul_arg<bool> a_dc("-c", "Calculate DC gain as a state variable", false);
     vul_arg<bool> a_delta("-l", "Use deltas between measurements, this precludes"
                 "the drift option", false);
@@ -237,7 +239,7 @@ int main(int argc, char* argv[])
         exit(-1);
     }
 
-    try{
+    if(!a_mask().empty()) try{
         itk::ImageFileReader<Label4DType>::Pointer reader;
         reader = itk::ImageFileReader<Label4DType>::New();
         reader->SetImageIO(itk::modNiftiImageIO::New());

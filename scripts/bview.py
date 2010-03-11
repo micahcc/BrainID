@@ -33,7 +33,7 @@ def imshowslice(dir, slnum, time):
     elif dir == 'x-z':
         data = [images[0].get_data()[:,slnum,i,time] for i in range(images[0].get_shape()[2])]
     pylab.subplot(111)
-    pylab.imshow(data,cmap='gray', origin='lower')
+    pylab.imshow(data,cmap='gray', origin='lower', interpolation='nearest')
 
 
 #Input

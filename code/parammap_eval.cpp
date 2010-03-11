@@ -175,12 +175,20 @@ void simulate(std::list<double>& sim, const std::vector<double>& params,
 /* Main Function */
 int main(int argc, char* argv[])
 {
-    vul_arg<string> a_params1(0, "4D param file, should be smaller image, "
-                "in the order: TAU_0, ALPHA, E_0, V_0, TAU_S, TAU_F, EPSILON");
-    vul_arg<string> a_params2(0, "4D param file, in the order: TAU_0, ALPHA,"
-                "E_0, V_0, TAU_S, TAU_F, EPSILON");
-    vul_arg<string> a_mask(0, "3 or 4D mask file (vol 0 will be used)");
-    vul_arg<string> a_output(0, "3D Output Image with MSE");
+    vul_arg<string> a_pEst(0, "4/5D param file, should be smaller (first 3 Dims) image, "
+                "with the 4th dimension as time and the 5th dimension in the order "
+                "TAU_0, ALPHA, E_0, V_0, TAU_S, TAU_F, EPSILON");
+    vul_arg<string> a_pTrue(0, "True parameters, Either: \n\t\t4D param file, in the "
+                "order: TAU_0, ALPHA, E_0, V_0, TAU_S, TAU_F, EPSILON, "
+                "OR, \n\t\ttext file with parameters in the same order, one set");
+    vul_arg<string> a_output(0, "3D Output Image with MSE, or if first parameter is "
+                " 5D then this will be 4D with the MSE over time");
+    vul_arg<string> a_mask("-m", "3 or 4D mask file (vol 0 will be used)");
+    vul_arg<string> a_timeseries("-t", "timeseries prefix. Will print out each voxel's "
+                "timseries. TRUE_<this> will be the timeseries from the true values, "
+                "if first input is 5D then PARAM_[T]<this> will be the timeseries from "
+                "the parameters at time T. If first input is 4D then this will just have "
+                "one image for the single times worth of parameters");
     
     vul_arg<double> a_shortstep("-u", "micro-Step size", 1/128.);
     vul_arg<string> a_stimfile("-s", "file containing \"<time> <value>\""
@@ -196,8 +204,8 @@ int main(int argc, char* argv[])
     vul_arg_display_usage("No Warning, just echoing");
 
     Label4DType::Pointer maskImage;
-    Image4DType::Pointer paramImage1;
-    Image4DType::Pointer paramImage2;
+    Image4DType::Pointer pEst;
+    Image4DType::Pointer pTrue;
     Image3DType::Pointer output;
 
     std::vector<Activation> input;
@@ -207,32 +215,32 @@ int main(int argc, char* argv[])
     ImageReaderType::Pointer reader;
     reader = ImageReaderType::New();
     reader->SetImageIO(itk::modNiftiImageIO::New());
-    reader->SetFileName( a_params1() );
+    reader->SetFileName( a_pEst() );
     reader->Update();
-    paramImage1 = reader->GetOutput();
+    pEst = reader->GetOutput();
     } catch(itk::ExceptionObject) {
-        fprintf(stderr, "Error opening %s\n", a_params1().c_str());
+        fprintf(stderr, "Error opening %s\n", a_pEst().c_str());
         exit(-1);
     }
     try {
     ImageReaderType::Pointer reader;
     reader = ImageReaderType::New();
     reader->SetImageIO(itk::modNiftiImageIO::New());
-    reader->SetFileName( a_params2() );
+    reader->SetFileName( a_pTrue() );
     reader->Update();
-    paramImage2 = reader->GetOutput();
+    pTrue = reader->GetOutput();
     } catch(itk::ExceptionObject) {
-        fprintf(stderr, "Error opening %s\n", a_params2().c_str());
+        fprintf(stderr, "Error opening %s\n", a_pTrue().c_str());
         exit(-1);
     }
     
-    try {
-    itk::ImageFileReader<Label4DType>::Pointer reader;
-    reader = itk::ImageFileReader<Label4DType>::New();
-    reader->SetImageIO(itk::modNiftiImageIO::New());
-    reader->SetFileName( a_mask() );
-    reader->Update();
-    maskImage = reader->GetOutput();
+    if(!a_mask()) try {
+        itk::ImageFileReader<Label4DType>::Pointer reader;
+        reader = itk::ImageFileReader<Label4DType>::New();
+        reader->SetImageIO(itk::modNiftiImageIO::New());
+        reader->SetFileName( a_mask() );
+        reader->Update();
+        maskImage = reader->GetOutput();
     } catch(itk::ExceptionObject) {
         fprintf(stderr, "Error opening %s\n", a_mask().c_str());
         exit(-1);

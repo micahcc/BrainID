@@ -29,12 +29,14 @@ std::vector<Activation> read_activations(const char* filename);
 Image4DType::Pointer conditionFMRI(const Image4DType::Pointer fmri_img,
             int knots, std::vector<Activation>& stim);
 Image3DType::Pointer Tmean(const Image4DType::Pointer fmri_img);
+Image3DType::Pointer Tvar(const Image4DType::Pointer fmri_img);
 //Image3DType::Pointer Tvar(const Image4DType::Pointer fmri_img);
 Image4DType::Pointer extrude(const Image3DType::Pointer input, unsigned int len);
 Image3DType::Pointer mse(const Image4DType::Pointer input1,
             const Image4DType::Pointer input2);
 Image4DType::Pointer pctDiff(const Image4DType::Pointer input1,
             const Image4DType::Pointer input2);
+Image3DType::Pointer get_rms(Image4DType::Pointer in);
 
 //dir1 should be the direction of several separate series
 //dir2 should be the direction that you want to get rms of
@@ -92,7 +94,6 @@ void get_rms(itk::OrientedImage<double,4>::Pointer in, size_t dir1, size_t dir2,
     }
 };
 
-Image3DType::Pointer get_rms(Image4DType::Pointer in);
 
 //write a vector to a dimension of an image
 template <class T, class Vector>

@@ -340,7 +340,10 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     /* Initalize the model and filter*/
     aux::vector weight(measurements.front().size(), weightvar);
     aux::vector drift;
-    drift = aux::vector(measurements.front().size(), 0);
+    if(method_p == DC)
+        drift = aux::vector(measurements.front().size(), -weightvar);
+    else
+        drift = aux::vector(measurements.front().size(), 0);
 
     model = new BoldModel(weight, exp, measurements.front().size(), drift);
     model->setinput(aux::vector(1, 0));

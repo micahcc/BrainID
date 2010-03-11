@@ -1,16 +1,9 @@
 Todo List:
--Preprocessing
--Generate version.h from subversion/git, then add version information to all nifti files and 
-  anything else output.
--Deal with weiner process
--Save histogram.
--Should the covariance be given for every measurement diemnsion?
-
-Potential improvements
--Maybe assumptions should be made about the starting location of the 4
-mobile variables. Resting state maybe?
-
--Maybe try settling out to different levels of stimuli.
-
 -Do a measure of gaussianity on the particles.
 -Look at Most likely instead instead of average
+-graph of particle filter converging for a small number of particles
+-graph of nonlinearities, and a linear fit to a nonlinear activation
+-tests comparing delta/direct/dc
+    -need tool to create a timeseries, add noise and add drift
+    -need to compare estimated signal with timeseries before noise/drift
+-graph of error and variance decreasing for a correct convergeance and a bad convergeance

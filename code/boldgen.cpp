@@ -70,31 +70,22 @@ void add_noise(Image4DType::Pointer in, double snr, gsl_rng* rng, int series)
     iter.SetSecondDirection(TIME_DIR);
     iter.GoToBegin();
     
-    vector<double> rms(series, 0);
-
-    //calculate rms of image over time
-    get_rms(in, SERIES_DIR, TIME_DIR, rms);
-    for(size_t ii= 0 ; ii<rms.size() ; ii++) {
-        cout << "RMS: " << ii << ":" << rms[ii] << endl;
-    }
+    Image3DType::Pointer var = Tvar(in);
 
     iter.GoToBegin();
     while(!iter.IsAtEndOfSlice()) {
         size_t ii=0;
+        Image4DType::IndexType index4 = iter.GetIndex();
+        Image3DType::IndexType index3 = {{index4[0], index4[1], index4[2]}};
         //move through series'
         while(!iter.IsAtEndOfLine()) {
-            iter.Value() += gsl_ran_gaussian(rng, rms[ii]/sqrt(snr));
+            iter.Value() += gsl_ran_gaussian(rng, sqrt(var->GetPixel(index3)/snr));
             //change series
             ++iter;
             ii++; 
         }
         //move through time
         iter.NextLine();
-    }
-    
-    get_rms(in, SERIES_DIR, TIME_DIR, rms);
-    for(size_t ii= 0 ; ii<rms.size() ; ii++) {
-        cout << "RMS: " << ii << " " << rms[ii] << endl;
     }
 }
 
