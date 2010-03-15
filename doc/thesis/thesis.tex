@@ -125,7 +125,34 @@ effect which further lags the normalization of oxygen content. The effect of
 all this is an overshoot in the oxygen content above the initial level. After
 the work of recharging is done, there may be a prolonged undershoot lasting
 as much as 90 seconds \cite{spatial_poststim}, though the reason for this
-is debated \cite{origin_poststim}.
+is debated \cite{origin_poststim}. 
+
+A large number of models have been proposed for the BOLD signal with varying
+amounts of complexity. The simplest model is the so called "Balloon Model"
+which first proposed the windkessel effect as a factor the BOLD response.
+The model we will use is the model proposed by Buxton Et. Al. and later used
+in Riera et. al. \cite{Riera}. The model has four state variables, $s$, $f$,
+$v$, $q$, representing flow inducing signal, cerebral blood flow, cerebral
+blood volume and deoxyhemaglobin to hemaglobin ratio, respectively. The 
+state variables change over time, given by the state evolution equations:
+\begin{equation}
+\dot{s} = \epsilon u -  
+\end{equation}
+
+\begin{equation}
+\dot{f} = s
+\end{equation}
+
+\begin{equation}
+\dot{v} = 
+\end{equation}
+
+\begin{equation}
+\dot{q} = 
+\end{equation}
+
+Additional papers have added such things as
+....
 
 All these effects are generally accepted as the cause of the BOLD signal, 
 but FMRI doesn't detect this happening in one neuron, but rather as the 
@@ -170,9 +197,9 @@ of random field theory, and its use can be found in various papers \cite{univ_mu
 \subsection*{General Linear Model}
 The most used form of FMRI analysis is still based on Statistical Parametric
 Mapping, but is able to account for several different levels or types
-of activation. By adding a General Linear Model to the analysis, the
+of stimulus. By adding a General Linear Model to the analysis, the
 output signal timeseries (what FMRI detects) is regressed over the weighted
-sum of various confound timeseries. The equation for a general linear
+sum of the various confound's timeseries. The equation for a general linear
 model is then
 \begin{equation}
 Y(t) = X(t)\beta + \epsilon(t)
@@ -192,9 +219,8 @@ smooth $X(t)$ through time, and bandlimit the input. The best technique
 is convolving the stimulus input with a hemodynamic response function,
 which mimicks the basic shape of BOLD activation, including a delay
 due to rise time and fall time. This hemodynamic signal is static however,
-so every region of the brain still gets matched to the same signal,
-although the weights of various stimulus or confounds (such as attention)
-are allowed to vary. 
+so every region of the brain gets the same design matrices (X(t)), 
+although the weights of various stimulus or confounds are allowed to vary. 
 
 <Image of Hemodynamic Response Function>
 
@@ -207,26 +233,130 @@ based on a t-test of the $\epsilon(t)$ timeseries.
 \subsection*{Whats wrong with these techniques}
 There are a few problems with the techniques mentioned in the 
 previous sections. First, they essentially ignore prior knowledge about
-the system. The physiological models for the BOLD signal are quite good
-and based in physics. Thus the parameters may be constrained by reality,
-which crucially reduces model variance. Additionally, lacking real world
-parameters means that the parameters have no clear physiological meaning,
-so they are less useful in identifying pathologies.
+the system. Although the most advanced form of the general linear model includes
+a "Hemodynamic Response Function," that hemodynamic response function is
+static across every region of the brain. It is well known that capillary beds
+are not uniform and so blood perfusion cannot possible be static across the
+brain. Thus, if extra information were available a-priori, that information
+could not be incorporated without modifications to the General Linear Model.
+Similarly heart rate could not be added either. It would obviously be advantageous
+to have true physiological parameters as entry points for these various other
+model parameters. The physiological models for the BOLD signal are quite good
+and based on realistic physics. While the exact connection between a stimulus
+and the flow inducing signal is not precisely known, model fits are actually
+quite good \cite{ModelCompareison}. Regardless, being based on some real 
+physiological 
+parameter would allow for the establishment of reasonable priors and decrease
+model variance without breaking a sweat. Of course, using real parameters 
+has the additional
+bonus of potentially providing information about physical pathologies. It
+is quite possible that physical properties such as decreased compliance of
+blood vessels could indicate a neurological condition that is not easily
+seen in a T1 or T2 map. In essence, this could make FMRI a much more 
+useful clinical tool than it is now. The other problem with linear models
+is that they are a linear fit to a nonlinear signal. It is not uncommon
+for data to be thrown out in FMRI studies because no significant activation
+has been seen. However, if, for whatever reason, the BOLD response
+was acting more nonlinear than in other patients it would be completely
+possible for SPM to miss that activation. 
 
-Secondly, these methods are still merely t-tests, which notoriously
+<Image with two different $\alpha$s>
+
+<image comparing the results of 10\% changes in various signals>
+
+Secondly, these methods are still based on t-tests, which notoriously
 lack robustness to non-Gaussian noise. While different techniques 
 exist for imposing Gaussianity, those techniques are incapable of
 discriminating noise from signal. There is no way to know how much 
-signal is removed
-by various smoothing techniques, or even if entire regions have been
-smoothed into oblivion. Instead of extensively filtering data to 
-remove noise, the analysis method itself must be robust arbitrary
-types of noise, which is why we propose here the use of particle filters.
+signal is removed by various smoothing techniques, or even if entire 
+regions have been smoothed into oblivion. Instead of extensively filtering data to 
+remove noise, the analysis method itself must be robust a wide range of noise,
+which is why we propose here the use of particle filters.
 
 \section*{Proposed Approach}
-\subsection{Goal}
-The ultimate goal of modeling neural activation is to learn something
-new about how the brain works. The General Linear Model, and 
+\subsection*{Goal}
+The ultimate goal of this project is to provide a new set of tools
+for analyzing FMRI data. Whereas SPM techniques have been highly 
+successful at finding macroscopic regions of activation, linear 
+modeling can carry significant bias error due to lack of model
+flexibility. While adding parameters can significantly increase
+error due to model variance, this effect is mitigated by the fact
+that we plan to use a model that is based on first principals. The
+purpose of this paper is thus to evaluate the potential of using
+a particle filter along with the BOLD model to derive physical 
+parameters. In so doing, we hope to be able to show that neuronal
+efficacy, $\epsilon$ is a sutiable variable for estimating voxel 
+activation from a standard FMRI image. We also hope to show that 
+estimated posterior distribution of the parameters, derived from
+the particle filter, is able to provide an accurate measure of the
+confidence interval.
+
+\subsection*{Introduction to Particle Filters}
+Particle filters, also known as Sequential Monte-Carlo methods (SMC),
+are essentially an on-line version of the Markov-Chain Monte Carlo (MCMC)
+algorithm. Similar to MCMC, Particle Filters assume the Markov Assumption
+holds, in essence that 
+\begin{equation}
+P(X_t | X_{t-1}, X_{t-2}, ... X_{0}) = P(X_t | X_{t-1})$
+\end{equation}
+for a time evolving parameter, $X_t$. This is actually a very good
+assumption in most biological systems, since chemicals driving physiological
+parameters rarely have memory. Unlike MCMC algorithms, particle filters
+only calculate the posterior distribution:
+\begin{equation}
+P(X_t | y_t, y_{t-1}, ... y_0)
+\end{equation}
+for $t$ measurements, $y_t, ... y_0$. This frees the algorith from having
+to calculate, or even keep track of the values of $X$ at times other than
+$t$, and significantly reducing computation time. This also easily lends
+the particle filter to solving stochastic differential equations (SDE's). 
+
+...
+
+\subsection*{My Specific Particle Filte}
+Although particle filters are well defined, significant design decisions
+are application dependent. The most important choice is the weighting function,
+$w(y_t - y(\theta_t))$. Obviously the function should weight $0$ maximally,
+the drop off rate is extremely important. A very thin gaussian probability 
+distribution function has nice properties, but thin tails. As a result, large
+outliers in the measurement vector could easily force all the particles to
+have near 0 weights, thus forcing the particle filter to converge improperly. 
+On the other end of the spectrum, a cauchy pdf may not
+weight particles in the middle enough, preventing the particles to never 
+converge. Of course, the scale factor, or variance, also plays a signifcant
+role in the convergeance rate. The importance of the weighting function
+cannot be overstated, as this is the primary factor in deciding the rate at
+which the particle filter converges. As part of the simulations, I compare
+a gaussian based weighting function with an exponential weightin function.
+In both cases, I scaled the width of the weighting functions automatically based
+on the signal variance.
+
+Dealing with low frequency noise is also a crucial part of the tests. 
+I tested two different methods of dealing with this noise. Various methods
+are used to deal with this problem in other toolsets. The most common method
+is to apply a high-pass filter to the measurement vector. Although this makes
+sense in many applications, in this case it may not be adaptive enough for
+a random walk type noise. On the other hand, it has been shown that a spline
+de-trending method is able to better deal with the low frequency noise
+typically present in FMRI. Thus, my first method
+was to use a spline fit with knots every 80 or 90 measurements to trance
+the basic shape of the drift. I then added an extra DC gain parameter to
+the model to account for the fact that the de-trended signal tended to have 
+a mean of 0, rather than some positive value. 
+
+My second method of dealing with low frequency drift was to counteract
+it by weighting particles based on $(y_t-y_{t-1}) - (y(\theta_t)-y(\theta_{t_1}))$ 
+rather than directly on $y_t - y(\theta_t)$. It is generally believed that the noise present in 
+FMRI has approximately gaussian steps, which means that this method only
+has to deal with gaussian white noise. Such a technique is usually not considered a
+good idea because high frequency noise is almost exclusively assumed in
+systems theory. In this case however; the noise is all in the lower frequency
+range, so performing a differentiation like operation, which magnifies high
+frequency signals, is exactly what we want. 
+
+... more specifics...
+
+The General Linear Model, and 
 SPM's goal is to find a correlation between input, or what a 
 person is thinking, and which regions are active. This is an 
 important task, but it misses the potential of FMRI. FMRI's 
