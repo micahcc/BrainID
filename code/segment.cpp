@@ -381,6 +381,9 @@ Image4DType::Pointer read_dicom(std::string directory, double skip)
     Image4DType::SpacingType space4;
     Image4DType::DirectionType direc; //c = labels->GetDirection();
     Image4DType::PointType origin; //c = labels->GetDirection();
+        
+    itk::GDCMImageIO::Pointer dicomIO;
+    std::string value;
 
     double temporalres = 2;
     //reorder the input based on temporal number.
@@ -389,7 +392,7 @@ Image4DType::Pointer read_dicom(std::string directory, double skip)
         itk::ImageSeriesReader<Image3DType>::Pointer tmp_reader = 
                     itk::ImageSeriesReader<Image3DType>::New();
 
-        itk::GDCMImageIO::Pointer dicomIO = itk::GDCMImageIO::New();
+        dicomIO = itk::GDCMImageIO::New();
         tmp_reader->SetImageIO(dicomIO);
 
         std::vector<std::string> fileNames;
@@ -407,7 +410,6 @@ Image4DType::Pointer read_dicom(std::string directory, double skip)
 //        itk::MetaDataDictionary& dict = 
 //                    tmp_reader->GetOutput()->GetMetaDataDictionary();
         
-        std::string value;
         dicomIO->GetValueFromTag("0020|0100", value);
         printf("Temporal Number: %s\n", value.c_str());
         
@@ -457,7 +459,23 @@ Image4DType::Pointer read_dicom(std::string directory, double skip)
     fmri_img->SetDirection(direc);
     fmri_img->SetSpacing(space4);
     fmri_img->Update();
-    
+        
+    const std::vector<std::string>& keys = dicomIO->GetMetaDataDictionary().GetKeys();
+    std::string label;
+    for(size_t i = 0 ; i < keys.size() ;i++) {
+        if(dicomIO->GetValueFromTag(keys[i], value)) {
+            fprintf(stdout, "%s", keys[i].c_str());
+            if(dicomIO->GetLabelFromTag(keys[i], label)){
+                fprintf(stdout, " -> %s: %s\n", label.c_str(), value.c_str());
+                itk::EncapsulateMetaData(fmri_img->GetMetaDataDictionary(), label, value);
+            } else {
+                fprintf(stdout, ": %s\n", value.c_str());
+                itk::EncapsulateMetaData(fmri_img->GetMetaDataDictionary(), keys[i], value);
+            }
+        }
+    }
+   
+
     delete[] reader;
     return fmri_img;
 };

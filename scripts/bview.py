@@ -7,6 +7,9 @@ import nibabel
 import time
 import numpy
 
+class Struct:
+    def __init__(self, **entries): self.__dict__.update(entries)
+
 global g_axslice
 global g_sliceSlide
 global g_timeSlide
@@ -26,12 +29,20 @@ def getequivindex(point, targetimg, img2):
 
 
 def imshowslice(dir, slnum, time):
-    if dir == 'x-y':
-        data = [images[0].get_data()[:,i,slnum,time] for i in range(images[0].get_shape()[1])]
-    elif dir == 'y-z':
-        data = [images[0].get_data()[slnum,:,i,time] for i in range(images[0].get_shape()[2])]
-    elif dir == 'x-z':
-        data = [images[0].get_data()[:,slnum,i,time] for i in range(images[0].get_shape()[2])]
+    try:
+        if dir == 'x-y':
+             data = [images[0].get_data()[:,i,slnum,time] for i in range(images[0].get_shape()[1])]
+        elif dir == 'y-z':
+            data = [images[0].get_data()[slnum,:,i,time] for i in range(images[0].get_shape()[2])]
+        elif dir == 'x-z':
+            data = [images[0].get_data()[:,slnum,i,time] for i in range(images[0].get_shape()[2])]
+    except:
+        if dir == 'x-y':
+             data = [images[0].get_data()[:,i,slnum] for i in range(images[0].get_shape()[1])]
+        elif dir == 'y-z':
+            data = [images[0].get_data()[slnum,:,i] for i in range(images[0].get_shape()[2])]
+        elif dir == 'x-z':
+            data = [images[0].get_data()[:,slnum,i] for i in range(images[0].get_shape()[2])]
     pylab.subplot(111)
     pylab.imshow(data,cmap='gray', origin='lower', interpolation='nearest')
 
@@ -53,11 +64,28 @@ imshowslice(g_dir, 0, 0)
 # Initialize sliders
 # - - - - - - - - - - 
 axcolor = 'lightgoldenrodyellow'
+
+#time select
+if images[0].get_header()['dim'][0] > 3:
+    global g_timeSlide
+    def timecall(val):
+        global g_sliceSlide
+        global g_dir
+        imshowslice(g_dir, g_sliceSlide.val, val)
+        pylab.draw()
+    
+    axtime = pylab.axes([0.25, 0.15, 0.65, 0.03], axisbg=axcolor)
+    g_timeSlide = Slider(axtime, 'Time', 0 , images[0].get_shape()[3]-1, valinit=0, \
+                valfmt='%3i')
+
+    g_timeSlide.on_changed(timecall)
+else:
+    global g_timeSlide
+    g_timeSlide = Struct(val = 0)
+
+#slice select
 g_axslice = pylab.axes([0.25, 0.1, 0.65, 0.03], axisbg=axcolor)
 g_sliceSlide = Slider(g_axslice, 'slice', 0 , images[0].get_shape()[2]-1, valinit=0, \
-            valfmt='%3i')
-axtime = pylab.axes([0.25, 0.15, 0.65, 0.03], axisbg=axcolor)
-g_timeSlide = Slider(axtime, 'Time', 0 , images[0].get_shape()[3]-1, valinit=0, \
             valfmt='%3i')
 
 # Create callbacks
@@ -66,16 +94,7 @@ def slicecall(val):
     global g_timeSlide
     imshowslice(g_dir, val, g_timeSlide.val)
     pylab.draw()
-
-def timecall(val):
-    global g_sliceSlide
-    global g_dir
-    imshowslice(g_dir, g_sliceSlide.val, val)
-    pylab.draw()
-
-# Attach callbacks
 g_sliceSlide.on_changed(slicecall)
-g_timeSlide.on_changed(timecall)
 
 # ------------------------
 # Initialize Mouse Buttons

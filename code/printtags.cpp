@@ -38,25 +38,25 @@ int main (int argc, char** argv)
         size_t tmpz = 0;
         if(dict[keys[i]]->GetMetaDataObjectTypeInfo() == typeid(tmpd)) {
             itk::ExposeMetaData(dict, keys[i], tmpd);
-            cout << keys[i] << " -> " << tmpd << endl;
+            cout << keys[i] << " d -> " << tmpd << endl;
         } else if(dict[keys[i]]->GetMetaDataObjectTypeInfo() == typeid(tmpf)) {
             itk::ExposeMetaData(dict, keys[i], tmpf);
-            cout << keys[i] << " -> " << tmpf << endl;
+            cout << keys[i] << " f -> " << tmpf << endl;
         } else if(dict[keys[i]]->GetMetaDataObjectTypeInfo() == typeid(tmps)) {
             itk::ExposeMetaData(dict, keys[i], tmps);
-            cout << keys[i] << " -> " << tmps << endl;
+            cout << keys[i] << " s -> " << tmps << endl;
         } else if(dict[keys[i]]->GetMetaDataObjectTypeInfo() == typeid(tmpi)) {
             itk::ExposeMetaData(dict, keys[i], tmpi);
-            cout << keys[i] << " -> " << tmpi << endl;
+            cout << keys[i] << " i -> " << tmpi << endl;
         } else if(dict[keys[i]]->GetMetaDataObjectTypeInfo() == typeid(tmpu)) {
             itk::ExposeMetaData(dict, keys[i], tmpu);
-            cout << keys[i] << " -> " << tmpu << endl;
+            cout << keys[i] << " u -> " << tmpu << endl;
         } else if(dict[keys[i]]->GetMetaDataObjectTypeInfo() == typeid(tmpz)) {
             itk::ExposeMetaData(dict, keys[i], tmpz);
-            cout << keys[i] << " -> " << tmpz << endl;
+            cout << keys[i] << " z -> " << tmpz << endl;
         } else if(dict[keys[i]]->GetMetaDataObjectTypeInfo() == typeid(tmpl)) {
             itk::ExposeMetaData(dict, keys[i], tmpl);
-            cout << keys[i] << " -> " << tmpl << endl;
+            cout << keys[i] << " l -> " << tmpl << endl;
         } else {
             cout << "Type unhandled:" << dict[keys[i]]->GetMetaDataObjectTypeName()
                         << endl;
