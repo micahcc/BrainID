@@ -36,7 +36,7 @@ ADD_LIBRARY(tools tools.cc)
 
 ADD_EXECUTABLE(unbias unbias.cpp)
 ADD_EXECUTABLE(brainid brainid.cpp)
-ADD_EXECUTABLE(parammap_build calc_parammap.cpp)
+ADD_EXECUTABLE(parammap_calc calc_parammap.cpp)
 ADD_EXECUTABLE(printtags printtags.cpp)
 ADD_EXECUTABLE(setorientation setorientation.cpp)
 #ADD_EXECUTABLE(fmri_timeseries fmri_timeseries.cpp)
@@ -73,7 +73,7 @@ TARGET_LINK_LIBRARIES(brainid tools gfortran modNiftiImageIO blas lapack mpi
 TARGET_LINK_LIBRARIES(parammap_preprocess segment tools gfortran modNiftiImageIO blas lapack mpi 
     boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO mpi gsl gslcblas dysii itkvnl itkvcl vullib segment)
-TARGET_LINK_LIBRARIES(parammap_build segment tools gfortran modNiftiImageIO blas lapack mpi 
+TARGET_LINK_LIBRARIES(parammap_calc segment tools gfortran modNiftiImageIO blas lapack mpi 
     boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO mpi gsl gslcblas dysii itkvnl itkvcl vullib segment)
 TARGET_LINK_LIBRARIES(parammap_evalrun modNiftiImageIO ITKIO ITKCommon vullib tools)

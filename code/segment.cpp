@@ -553,6 +553,86 @@ int detrend_lmin(const Image4DType::Pointer fmri_img, Image4DType::IndexType ind
     return 0;
 }
 
+int detrend_median(const Image4DType::Pointer fmri_img, Image4DType::IndexType index, 
+            int knots, Image4DType::Pointer output)
+{
+    gsl_interp_accel *acc = gsl_interp_accel_alloc();
+    gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, knots);
+
+    /* Go to index and start at time 0 at that voxel*/
+    itk::ImageLinearConstIteratorWithIndex< Image4DType > 
+                fmri_it(fmri_img, fmri_img->GetRequestedRegion());
+    fmri_it.SetDirection(3);
+    fmri_it.SetIndex(index);
+
+    double xpos[knots];
+    double medians[knots];
+
+    int length = fmri_img->GetRequestedRegion().GetSize()[3];
+    double rsize = (double)length / (knots-1);
+
+    std::vector< std::list<double> > points(knots);
+    
+    for(fmri_it.GoToBeginOfLine(); !fmri_it.IsAtEndOfLine(); ++fmri_it) {
+        unsigned int i = fmri_it.GetIndex()[3];
+        if(i < rsize/2) {
+//            printf("%u -> 0\n", i);
+            points.front().push_back(fmri_it.Get());
+        } else if(i > length - rsize/2) {
+//            printf("%u -> last (%zu)\n", i, points.size());
+            points.back().push_back(fmri_it.Get());
+        } else {
+//            printf("%u -> %i\n", i, 1+(int)(i/rsize-1./2));
+            points[1+(int)(i/rsize-1./2)].push_back(fmri_it.Get());
+        }
+    }
+
+    for(unsigned int i = 0 ; i < points.size() ; i++) {
+        points[i].sort();
+        if(points[i].size()%2 == 0) {
+            std::list<double>::iterator it = points[i].begin();
+            for(unsigned int j = 0 ; j != points[i].size()/2-1 ; j++)
+                it++;
+            medians[i] = *it;
+            it++;
+            medians[i] += *it;
+            medians[i] /= 2.;
+        } else {
+            std::list<double>::iterator it = points[i].begin();
+            for(unsigned int j = 0 ; j != points[i].size()/2 ; j++)
+                it++;
+            medians[i] = *it;
+        }
+
+//        printf("Median of: ");
+//        std::list<double>::iterator it = points[i].begin();
+//        while(it != points[i].end()) {
+//            printf("%f, ", *it);
+//            it++;
+//        }
+//        printf("\nis %f\n", medians[i]);
+    }
+
+    xpos[0] = 0;
+    xpos[knots-1] = length-1;
+
+    for(int i = 1 ; i < knots-1; i++) {
+        xpos[i] = rsize/2+(i-1)*rsize+rsize/2;
+        printf("xpos %i: %f\n", i, xpos[i]);
+    }
+    
+    itk::ImageLinearIteratorWithIndex< Image4DType > 
+                out_it(output, output->GetRequestedRegion());
+    out_it.SetDirection(3);
+    out_it.SetIndex(index);
+    gsl_spline_init(spline, xpos, medians, knots);
+    for(out_it.GoToBeginOfLine(); !out_it.IsAtEndOfLine(); ++out_it) {
+        out_it.Set(gsl_spline_eval(spline, out_it.GetIndex()[3], acc));
+    }
+
+    return 0;
+};
+
 int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType index, 
             int knots, Image4DType::Pointer output)
 {
@@ -663,11 +743,42 @@ Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img,
     return outimage;
 }
 
+Image4DType::Pointer getspline_m(const Image4DType::Pointer fmri_img, 
+            unsigned int knots)
+{
+    Image4DType::Pointer outimage = Image4DType::New();
+    outimage->SetRegions(fmri_img->GetRequestedRegion());
+    outimage->Allocate();
+    outimage->FillBuffer(0);
+
+    /* Fmri Iterators */
+    itk::ImageLinearConstIteratorWithIndex< Image4DType > 
+                fmri_it(fmri_img, fmri_img->GetRequestedRegion());
+    fmri_it.SetDirection(0);
+    
+    itk::ImageLinearConstIteratorWithIndex< Image4DType >
+                fmri_stop(fmri_img, fmri_img->GetRequestedRegion());
+    fmri_stop.SetDirection(3);
+    fmri_stop.GoToBegin();
+    ++fmri_stop;
+
+    for(fmri_it.GoToBegin(); fmri_it != fmri_stop ; fmri_it.NextLine()) {
+        for( ; !fmri_it.IsAtEndOfLine(); ++fmri_it) {
+            detrend_median(fmri_img, fmri_it.GetIndex(), knots, outimage);
+        }
+    }
+
+    outimage->CopyInformation(fmri_img);
+    outimage->SetMetaDataDictionary(fmri_img->GetMetaDataDictionary());
+    return outimage;
+}
+
 Image4DType::Pointer deSplineBlind(const Image4DType::Pointer fmri_img,
             unsigned int numknots)
 {
     std::cerr << "Making Spline" << std::endl;
-    Image4DType::Pointer spline = getspline(fmri_img, numknots);
+//    Image4DType::Pointer spline = getspline(fmri_img, numknots);
+    Image4DType::Pointer spline = getspline_m(fmri_img, numknots);
     
     {
     printf("Writing spline\n");

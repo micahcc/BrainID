@@ -12,6 +12,10 @@ int main(int argc, char* argv[])
     if(argc != 5) {
         printf("Usage:\n%s <input> <output> <start> <stop>\n", 
                     argv[0]);
+        printf("Where start and stop are expressed in indexes, and "
+                " are inclusive (so the result is [start, stop]. "
+                " Indexes are moved to 0 and size-1 as necessary, so"
+                " go ahead and use -1 or 1000000000 if you want\n");
         exit(1);
     }
     

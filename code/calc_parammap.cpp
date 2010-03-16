@@ -43,12 +43,38 @@ typedef itk::SubtractImageFilter< Image4DType > SubF4;
 namespace aux = indii::ml::aux;
 typedef indii::ml::filter::ParticleFilter<double> Filter;
 
-struct callback_data
+struct cb_meas_data
 {
     Image4DType::Pointer image;
     Image4DType::IndexType pos;
     unsigned int method;
 };
+
+int cb_meas(BoldPF* bold, void* data)
+{
+    boost::mpi::communicator world;
+    const unsigned int rank = world.rank();
+    
+    cb_meas_data* cdata = (struct cb_meas_data*)data;
+    
+    cdata->pos[3] = bold->getDiscTimeL();
+    aux::vector mu = bold->getDistribution().getDistributedExpectation();
+    aux::vector meas =  bold->getModel().measure(mu);
+
+    //add DC term
+//    std::cout << "Disctime: " << bold->getDiscTimeL();
+//    std::cout << "\nmeas: " << meas[0];
+//    std::cout << "\ndrift: " << mu[mu.size()-meas.size()] << "\n";
+//    if(cdata->method == BoldPF::DC) {
+//        for(unsigned int i = 0 ; i < meas.size(); i++) {
+//            meas[i] -= mu[mu.size()-meas.size()+i];
+//        }
+//    }
+
+    if(rank == 0) 
+         cdata->image->SetPixel(cdata->pos, meas[0]);
+    return 0;
+}
 
 bool checkmask(Label4DType::Pointer maskimg, Image4DType::PointType point)
 {
@@ -62,29 +88,6 @@ bool checkmask(Label4DType::Pointer maskimg, Image4DType::PointType point)
     }
 
     return false;
-}
-
-int callback(BoldPF* bold, void* data)
-{
-    boost::mpi::communicator world;
-    const unsigned int rank = world.rank();
-    
-    callback_data* cdata = (struct callback_data*)data;
-    
-    cdata->pos[3] = bold->getDiscTimeL();
-    aux::vector mu = bold->getDistribution().getDistributedExpectation();
-    aux::vector meas =  bold->getModel().measure(mu);
-
-    //add DC term
-    if(cdata->method == BoldPF::DIRECT) {
-        for(unsigned int i = 0 ; i < meas.size(); i++) {
-            meas[i] -= mu[mu.size()-meas.size()+i];
-        }
-    }
-
-    if(rank == 0) 
-         cdata->image->SetPixel(cdata->pos, meas[0]);
-    return 0;
 }
 
 void fillvector(std::vector< aux::vector >& output, Image4DType* input,
@@ -146,7 +149,7 @@ Image4DType::Pointer preprocess_help(Image4DType::Pointer input,
         input = deSplineByStim(input, 10, stim, sampletime);
     } else {
         std::cerr << "De-trending, then dividing by mean" << endl;
-        input = deSplineBlind(input, 10);
+        input = deSplineBlind(input, input->GetRequestedRegion().GetSize()[3]/80);
     }
     std::cerr << "Done." << endl;
 
@@ -187,7 +190,7 @@ int main(int argc, char* argv[])
     vul_arg<unsigned> a_divider("-d", "Intermediate Steps between samples.", 128);
     vul_arg<string> a_stimfile("-s", "file containing \"<time> <value>\""
                 "pairs which give the time at which input changed", "");
-    vul_arg<bool> a_expweight("-e", "Use exponential weighting function", true);
+    vul_arg<bool> a_expweight("-e", "Use exponential weighting function", false);
     vul_arg<double> a_timestep("-t", "TR (timesteps in 4th dimension)", 2);
     
     vul_arg_parse(argc, argv);
@@ -309,7 +312,7 @@ int main(int argc, char* argv[])
     callpoints.postFilter = false;
     callpoints.end = false;
 
-    callback_data cbd;
+    cb_meas_data cbd;
     cbd.image = measMuImg;
     cbd.method = method;
     
@@ -358,7 +361,7 @@ int main(int argc, char* argv[])
                     
                     //create the callback function
                     cbd.pos = index4;
-                    boldpf.setCallBack(callpoints, &callback);
+                    boldpf.setCallBack(callpoints, &cb_meas);
 
                     //run the particle filter
                     result = boldpf.run(&cbd);

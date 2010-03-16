@@ -314,6 +314,22 @@ void BoldPF::latchBold()
     filter->getFilteredState().distributedNormalise();
 };
 
+aux::vector bold_mean(const std::vector<aux::vector>& in)
+{
+    aux::vector sum(in.back().size(), 0);
+    for(size_t i = 0 ; i < in.size() ; i++) 
+        sum = sum + in[i];
+    return sum/in.size();
+}
+
+aux::vector bold_stddev(const std::vector<aux::vector>& in, const aux::vector& mean)
+{
+    aux::vector sum(in.back().size(), 0);
+    for(size_t i = 0 ; i < in.size() ; i++)
+        sum = sum + scalar_pow(mean - in[i], 2);
+    return element_sqrt(sum/in.size());
+}
+
 /* Constructor
  * measurements - a standard vector of measurement aux::vectors
  * activations  - a std::vector of Activation structs, time/level pairs
@@ -336,21 +352,23 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     const unsigned int size = world.size();
     
     using std::endl;
+    /* initialize debug/output */
+    debug = output;
 
     /* Initalize the model and filter*/
-    aux::vector weight(measurements.front().size(), weightvar);
     aux::vector drift;
-    if(method_p == DC)
-        drift = aux::vector(measurements.front().size(), -weightvar);
-    else
+    aux::vector boldmu = bold_mean(measurements);
+    aux::vector boldstd = bold_stddev(measurements, boldmu);
+    if(method_p == DC) {
+        drift = (measurements[0] + measurements[1] + measurements[2])/3.;
+    } else
         drift = aux::vector(measurements.front().size(), 0);
 
+    aux::vector weight(measurements.front().size(), weightvar);
     model = new BoldModel(weight, exp, measurements.front().size(), drift);
     model->setinput(aux::vector(1, 0));
     aux::DiracMixturePdf tmp(model->getStateSize());
     filter = new indii::ml::filter::ParticleFilter<double>(model, tmp);
-    /* initialize debug/output */
-    debug = output;
 
     /* 
      * Particles Setup 
@@ -375,16 +393,16 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
         cov(model->indexof(model->V_0    ,ii), model->indexof(model->V_0    ,ii)) = 6*.6e-2*.6e-2;
 
         //Assume they start at 0
-        cov(model->indexof(model->V_T,ii), model->indexof(model->V_T,ii)) = 6*.0001;
-        cov(model->indexof(model->Q_T,ii), model->indexof(model->Q_T,ii)) = 6*.0001;
-        cov(model->indexof(model->S_T,ii), model->indexof(model->S_T,ii)) = 6*.0001;
-        cov(model->indexof(model->F_T,ii), model->indexof(model->F_T,ii)) = 6*.0001;
+        cov(model->indexof(model->V_T,ii), model->indexof(model->V_T,ii)) = 0;
+        cov(model->indexof(model->Q_T,ii), model->indexof(model->Q_T,ii)) = 0;
+        cov(model->indexof(model->S_T,ii), model->indexof(model->S_T,ii)) = 0;
+        cov(model->indexof(model->F_T,ii), model->indexof(model->F_T,ii)) = 0;
     }
 
     for(unsigned int ii = model->getStateSize()-model->getMeasurementSize(); 
                     ii < model->getStateSize(); ii++) {
         if(method == DC)
-            cov(ii,ii) = pow(weight[ii-model->getStateSize()+model->getMeasurementSize()]/.2, 2);
+            cov(ii,ii) = pow(boldstd[ii-model->getStateSize()+model->getMeasurementSize()]/.4, 2);
         else
             cov(ii,ii) = 0;
     }
