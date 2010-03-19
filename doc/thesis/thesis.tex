@@ -285,33 +285,99 @@ that we plan to use a model that is based on first principals. The
 purpose of this paper is thus to evaluate the potential of using
 a particle filter along with the BOLD model to derive physical 
 parameters. In so doing, we hope to be able to show that neuronal
-efficacy, $\epsilon$ is a sutiable variable for estimating voxel 
+efficacy, $\epsilon$ is a suitable variable for estimating voxel 
 activation from a standard FMRI image. We also hope to show that 
 estimated posterior distribution of the parameters, derived from
 the particle filter, is able to provide an accurate measure of the
 confidence interval.
 
 \subsection*{Introduction to Particle Filters}
-Particle filters, also known as Sequential Monte-Carlo methods (SMC),
-are essentially an on-line version of the Markov-Chain Monte Carlo (MCMC)
-algorithm. Similar to MCMC, Particle Filters assume the Markov Assumption
-holds, in essence that 
+Particle filters, also known as Sequential Monte Carlo (SMC) methods
+are a powerful way of estimating the posterior probability distribution
+of a set of parameters. Unlike Markov Chain Monte Carlo estimation, particle
+filters extend relatively easily to any finite impulse response (FIR) system.
+And unlike Variational Bayes or other gradient descent algorithms, particle
+filters can be run online, with relatively lower cost. The idea of the particle
+filter is to start with a wide mixture PDF of possible parameter sets, 
+and then, as measurements come in, to weight more heavily parameter sets 
+that tend to give good estimations of the measurements. The reliance on
+an initial mixture PDF obviously introduces bias; however, it is often quite
+easy to establish a reasonable range of parameters, especially when the
+model being used has a physical meaning. Suppose either a set or stream
+of measurements $y_t$ are made at discrete times $t = 0, 1, ... $, where
+$y_t$ could be a vector of measurements. Then the goal is to find the set
+of parameters $\hat{\theta}$ that give the best estimate, $\hat{y}_t$, of $y_t$.
+In a biological case, with a model based on first principals, there is 
+presumably some true set of parameters, $\theta$, a true model $f$
+and a true observation equation, $g$ that dictate how the stimulus 
+produce noisy measurements,
 \begin{equation}
-P(X_t | X_{t-1}, X_{t-2}, ... X_{0}) = P(X_t | X_{t-1})$
-\end{equation}
-for a time evolving parameter, $X_t$. This is actually a very good
-assumption in most biological systems, since chemicals driving physiological
-parameters rarely have memory. Unlike MCMC algorithms, particle filters
-only calculate the posterior distribution:
-\begin{equation}
-P(X_t | y_t, y_{t-1}, ... y_0)
-\end{equation}
-for $t$ measurements, $y_t, ... y_0$. This frees the algorith from having
-to calculate, or even keep track of the values of $X$ at times other than
-$t$, and significantly reducing computation time. This also easily lends
-the particle filter to solving stochastic differential equations (SDE's). 
+\dot{x}(t) = f(t, x(t), u(t), \theta) + \nu_d
 
-...
+y(t) = g(t, x(t), u(t), \theta) + \nu_s
+\end{equation}
+
+Where $x(t)$ is a vector of state variables, $\theta$ is a vector of system
+constants, $\nu_d$ is drift noise (such as a Weiner process), $\nu_s$ is additive noise, $y(t)$ is
+the vector of observations. $\nu_d$ may be driven by unknown changes in 
+cerebral blood flow, or blood oxygen content, and is assumed to be zero mean.
+Similarly $\nu_s$, stationary
+noise could be driven by unknown changes due to the heart beat and is also assumed
+to be zero mean. There are also non-biological effects that could drive these
+noise terms such as inherent MR noise. 
+
+Although not generally necessary for particle filters, we will make a few
+assumptions based on the particular type of systems faced in biological 
+processes. First, that $\theta$ is time invariant. This assumption is 
+based on the idea that most physiological parameters don't change in the 
+short run unless they are driven by some other stimulus. The obvious exception
+might be something like the heart; however, period between heartbeats vary
+quickly enough that accurately accounting for heart beats necessitates a 
+new set of model parameters, or direct outside information. In short we
+assume no parameters are time varying, because not information exists to
+describe any of theme in that way. Luckily particle filters are capable 
+of dealing with non-white, non-Gaussian noise, suck unanticipated influence
+may be re-factored as noise. Secondly we assume that input cannot directly
+influence the output, which in the case of the BOLD signal is a good assumption.
+%Third, through some sort of preprocessing, we will assume that $\nu_d$ can be
+%decreased or completely removed, since it 
+Finally, $x(t)$ will include $\theta$, the unknown model constants, although
+obviously that will mean that the vector $\dot{x}$ will always have some members
+that are 0. The state space equations are then simplified to:
+\begin{equation}
+\dot{x}(t) = f(x(t), u(t)) + \nu_d
+
+y(t) = g(x(t)) + \nu_s
+\end{equation}
+
+The goal of the particle filter, is then to derive the true value of $x(t)$
+for each time, given known inputs $u(t), u(t-1), ... u(0)$  and noise 
+measurements produced by the system, $y(t), ... , y(0)$ (every time up to
+$t$). To begin with then, the particle filter starts with a prior distribution,
+which is used to build a Dirac Mixture Probability Distribution function:
+
+\begin{equation}
+P(\hat{x}(0)) = \frac{1}{N}\Sigma_0^{N-1} \delta(x_(0) - \hat{x}_i(0))
+\end{equation}
+
+where $\hat{x}(0)$ is an empirical representation of the prior, and $\hat{x}_i(0)$
+is the $i^{th}$ particle, a single possible representation of the system at time 0.
+Initially, since each $\hat{x}_i$ has been drawn form the prior, and no measurements
+have been made, the particles are all equally weighted. When a measurement becomes
+available, that information is then incorporated into the posterior by re-weighting
+the particles .
+
+\begin{equation}
+\dot{y} = -ky
+\end{equation}
+$\theta_i$ would have an estimate for $k$ \emph{and} $y$. Of course in many cases
+the model is a potentially non-linear differential equation with no closed
+form solution. Initially every $\theta_i$ will have the same weight, because
+there isn't yet anything to base a weighting on. Note that this doesn't mean
+that the particles have been evenly distributed, so the distribution is not 
+necessarily "flat" just because all the particles are equaly weighted. When a
+new measurement is available, the particles are then reweighted based on how
+well they predicted the new measurement. 
 
 \subsection*{My Specific Particle Filte}
 Although particle filters are well defined, significant design decisions
@@ -398,7 +464,7 @@ Studies showing activation
 in Cadavers of Phantoms highlight the inherant problem with the 
 General Linear Model: a problem that mandates multiple
 comparison testing with very high thresholds to ensure any 
-sort of face validity \citep{drift}.
+sort of face validity \cite{drift}.
 By moving to models that actually "learn" the 
 parameters of the model, model error will be drastically
 reduced allowing for much more reasonable statistical thresholds.
@@ -433,10 +499,10 @@ that the GLM makes about BOLD activation do not hold.
 The General Linear Model ignores
 the fact that the BOLD response is nonlinear, contains non-gaussian
 noise and most importantly that brain networks are 
-so called "Small World Networks" \citep{smallworld}, \citep{noise}. 
+so called "Small World Networks" \cite{smallworld}, \cite{noise}. 
 Merely accounting for
 nonlinearities in the time-series of the BOLD response can
-result in significantly better estimation as shown in \citep{nonlinearmodels}.
+result in significantly better estimation as shown in \cite{nonlinearmodels}.
 But even more crucial is the recent movements away from mass-
 univariate models. Current mass-univariate models 
 assume uniform connectivity from input to every voxel; yet
@@ -446,13 +512,13 @@ requires us to be more conservative, the lack of any method
 to switch brain circuits on and off means that any model
 we make for brain regions would not be Turing complete;
 in effect implying that humans are incapable of 
-thought \citep{turing}.
+thought \cite{turing}.
 
 So called Dynamic Causal Modeling is the beginning of 
 the next phase of neurology. DCM is the first 
 brain study to show any significant connection between 
 diffusion tensor imaging and actual function layout in
-the human brain \citep{dti_dcm}. By incorporating connections
+the human brain \cite{dti_dcm}. By incorporating connections
 between regions and a realistic activation model, DCM
 corrects two of the largest problems with the GLM. While
 there are other techniques that may be useful in the future,
