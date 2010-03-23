@@ -292,74 +292,90 @@ the particle filter, is able to provide an accurate measure of the
 confidence interval.
 
 \subsection*{Introduction to Particle Filters}
-Particle filters, also known as Sequential Monte Carlo (SMC) methods
+Particle filters, a type of Sequential Monte Carlo (SMC) methods
 are a powerful way of estimating the posterior probability distribution
 of a set of parameters give a timeseries of measurements. Unlike Markov 
-Chain Monte Carlo estimation, particle
-filters extend relatively easily to any finite impulse response (FIR) system.
-Unlike Variational Bayes or simple gradient descent algorithms, particle
-filters can be run online, with relatively lower cost. The idea of the particle
+Chain Monte Carlo estimation, Sequential Monte-Carlo methods are designed
+to be used with parameters that vary with time. Unlike variations of the
+Kalman filter, particle filters do not make the assumption that noise
+is Gaussian. Thus particle filters are often the best solution to bayesian 
+tracking for non-linear, non-gaussian systems. 
+%todo: might need to reference attempts to model a system of our type with
+%unscented kalman filter
+The idea of the particle
 filter is to start with a wide mixture PDF of possible parameter sets, 
 and then, as measurements come in, to weight more heavily parameter sets 
 that tend to give good estimations of the measurements. The reliance on
-an initial mixture PDF obviously introduces bias; however, it is often quite
+an initial mixture PDF obviously introduces bias; however, every gradient
+descent must choose starting points and it is often quite
 easy to establish a reasonable range of parameters, especially when the
-model being used has a physical meaning. Suppose either a set or stream
-of measurements $y_t$ are made at discrete times $t = 0, 1, ... $, where
-$y_t$ could be a vector of measurements. Then the goal is to find the set
-of parameters $\hat{\theta}$ that give the best estimate, $\hat{y}_t$, of $y_t$.
-In a biological case, with a model based on first principals, there is 
-presumably some true set of parameters, $\theta$, a true model $f$
-and a true observation equation, $g$ that dictate how the stimulus 
-produce noisy measurements,
+model being used has a physical meaning. Suppose a set or stream of measurements
+are given, $\{y(t), t = 1, 2, 3, ... T\}$, where $T$ is permitted to go
+ to infinity. Then the goal is to find the 
+parameters, $\hat{\theta}$, and underlying state time series, $\hat{x}[0:T]$
+that minimize the difference between $\hat{y}[0:T]$
+and $y[0:T]$. In our case, we will assume that we know the form
+of the model, which is based on first principals, and that
+there is some true $\theta$ and a true time-series of underlying
+state variable, $x[0:T]$ that drives $y[0:T]$. Assuming a model form 
+such as we do here reduces model variance, potentially at the cost of increased
+bias (or systematic) error. We will assume a basic state space model:
+
 \begin{equation}
-\dot{x}(t) = f(t, x(t), u(t), \theta) + \nu_d
+\dot{x}(t) = f(t, x(t), u(t), \theta, \nu_d)
 \end{equation}
 
 \begin{equation}
-y(t) = g(t, x(t), u(t), \theta) + \nu_s
+y(t) = g(t, x(t), u(t), \theta, \nu_s)
 \end{equation}
 
 Where $x(t)$ is a vector of state variables, $\theta$ is a vector of system
-constants, $\nu_d$ and $\nu_s$ are bother stationary zero-mean distributions, $u(t)$
-is timeseries of stimuli and
-$y(t)$ is the vector of observations. $\nu_d$, which produces a drift term in $y(t)$
-may be driven by unknown changes in 
-cerebral blood flow, or blood oxygen content. $\nu_s$ will produce standard
-stationary white noise in $y(t)$ and may encapsulate noise by unknown changes due 
-to the heart beat. There are also significant non-biological effects that 
-could drive these noise terms such as inherent MR noise. 
+constants, $u(t)$ is a stimulus, $y(t)$ an observation, and
+$\nu_x$ and $\nu_y$ are random variates. Obviously any one of these could
+be a vector, so for instance $u(t)$ could encode multiple types of stimuli.
 
 Although not generally necessary for particle filters, we will make a few
 assumptions based on the particular type of systems faced in biological 
-processes. First, that $\theta$ is time invariant. This assumption is 
-based on the idea that most physiological parameters don't change in the 
-short run unless they are driven by some other stimulus. The obvious exception
-might be something like the heart; however, period between heartbeats vary quickly enough that accurately accounting for them would necessitate an entirely
-new set of model parameters, or direct outside information. In short we
+processes. First, the systems are assumed to be time invariant. This 
+assumption is based on the idea that if you froze the system for $\delta t$
+seconds, when unfrozen the system would continue as if nothing happend. 
+Few biological systems are predictible enough for them to be summarized
+by a time varying function. Although the heart may seem like an obvious
+exception, period between heartbeats vary often enough that prediction
+would necessate another state-space model. In short, we
 assume no parameters are time varying, because not enough information exists to
 describe any of theme in that way. Luckily particle filters are capable 
-of dealing with non-white, non-Gaussian noise, so ananticipated influence
+of dealing with non-white, non-Gaussian noise, so unanticipated influence
 may be re-factored as noise. Secondly we assume that input cannot directly
 influence the output, which in the case of the BOLD signal is a good assumption.
 %Third, through some sort of preprocessing, we will assume that $\nu_d$ can be
 %decreased or completely removed, since it 
-Finally, $x(t)$ will include $\theta$, the unknown model constants, although
-obviously that will mean that the vector $\dot{x}$ will always have some members
-that are constant and 0. The state space equations are then simplified to:
+Third, we will assume noise is additive.
+Finally, $x(t)$ will encapsulate $\theta$, the unknown model constants, which
+means that the vector $\dot{x}$ will always have members
+that are 0. The results of these assumptions are a simplified version of the
+state space equations:
+
 \begin{equation}
-\dot{x}(t) = f(x(t), u(t)) + \nu_d
+\dot{x}(t) = f(x(t), u(t)) + \nu_x
 \end{equation}
 
 \begin{equation}
-y(t) = g(x(t)) + \nu_s
+y(t) = g(x(t)) + \nu_y
 \end{equation}
 
-The goal of the particle filter, is then to derive the probably distribution
-of the value of $x(t)$
-for each time, given known inputs $u(t), u(t-1), ... u(0)$  and noise 
-measurements produced by the system, $y(t), ... , y(0)$ (every time up to
-$t$). To begin with then, the particle filter starts with a prior distribution,
+$\nu_x$ will result in something akin to adding a weiner process to $y[0:T]$, and thus
+will include low frequency noise. $\nu_y$ on the other hand will cause i.i.d. noise
+in $y[0:T]$. For some tests I will use de-trending methods to reduce the effects of 
+$\nu_x$, the remainder of which gets re-factored into $\nu_y$. Both $\nu_x$ and $\nu_y$
+have biological and non-biological sources. MR can lead to both types of noise, 
+as demonstrated in \cite{drift}. Meanwhile changes in metabolism, heart rate, or
+other biochemical intervention could all lead to either $\nu_x$ or $\nu_y$.
+
+The goal of the particle filter to evolve a probably distribution $\hat{x}(T)$,
+that asymptotically approaches the probability distribution of $x(t)$,
+given known inputs, $u[0:T]$ and noisy readings $y[0:T]$.
+To begin with, the particle filter starts with a prior distribution,
 which is used to build a Dirac Mixture Probability Distribution Function (PDF):
 
 \begin{equation}
@@ -377,12 +393,48 @@ Initially, since each $\hat{x}_i$ has been drawn from the prior, and no measurem
 have been made, the particles are all equally weighted. When a measurement becomes
 available, that information is then incorporated into the posterior by re-weighting
 the particles according to how well they estimated this new measurement. 
+
+The estimated posterior of $\hat{x}(t)$, for discrete time, $t$ (before incorporating
+any measurement that might be available at $t$) is then:
 \begin{equation}
-Pr[\hat{x}_i(t) | y(0:t-1)] = \int Pr[\hat{x}_i(t) | \hat{x}_i(t-1), y(0:t-1)]Pr[\hat{x}_i(t-1)
+\Pr\{\hat{x}(t) | y[0:t-1]\} =  \int \Pr\{\hat{x}(t), \hat{x}(t-1) | y[0:t-1]\} d\hat{x}(t-1)
+\end{equation}
+
+and by bayes theorem $\Pr\{\hat{x}(t), \hat{x}(t-1) | y[0:t-1]\} = 
+\Pr\{\hat{x}(t) | \hat{x}(t-1), y[0:t-1]\}\Pr\{\hat{x}(t-1) | y[0:t-1]\}$,
+therefore 
+\begin{equation}
+\Pr\{\hat{x}(t) | y[0:t-1]\} =  \int \Pr\{\hat{x}(t) | \hat{x}(t-1) ,y[0:t-1]\}\Pr\{\hat{x}(t-1) | y[0:t-1]\}  d\hat{x}(t-1)
+\end{equation}
+
+Since in this work we will only deal with markov processes, we assume that 
+$\Pr\{\hat{x}(t) | \hat{x}(t-1), y[0:t-1]\} = \Pr\{\hat{x}(t) | \hat{x}(t-1)\}$
+
+thus the posterior becomes:
+\begin{equation}
+\Pr\{\hat{x}(t) | y[0:t-1]\} =  \int \Pr\{\hat{x}(t) | \hat{x}(t-1)\}\Pr\{\hat{x}(t-1) | y[0:t-1]\}  d\hat{x}(t-1)
+\end{equation}
+
+Therefore in between measurements, there is no need to know previous measurements in
+order to make predictions about the internal state. This is important because it means makes
+particle filters significantly more memory efficient, and although it isn't useful in this
+case, it means a particle filter could theoretically be run indefinitely without the
+need to store old data.
+
+As stated previously, new measurements may be incorporated by reweighting particles.
+To find the updated distribution, $\Pr\{\hat{x}(t) | y[0:t]\}$, bayes theorem is
+again applied:
+\begin{equation}
+\Pr\{\hat{x}(t) | y[0:t]\} = \Pr\{\hat{x}(t) | y[0:t-1], y(t)\} = \frac{\Pr\{y(t) | \hat{x}(t), y[0:t-1]\}\Pr\{\hat{x}(t) | y[0:t-1]\}}
+{\Pr\{y(t) | y[0:t-1]\}}
+\end{equation}
+
+\begin{equation}
+\Pr\{\hat{x}_i(t) | y[0:t-1]\} = \int \Pr\{\hat{x}_i(t) | \hat{x}_i(t-1), y[0:t-1]\}\Pr[\hat{x}_i(t-1)
 \end{equation}
 Since $\hat{x}(t) = \hat{x}(t-1) + \int_{t-1}^t f(x(t), u(t))dt + \int_{t-1}^t\nu_d dt$, 
 \begin{equation}
-Pr[\hat{x}_i(t) | \hat{x}_i(t-1)] = Pr[\int{t-1}^t \nu_d]
+\Pr\{\hat{x}_i(t) | \hat{x}_i(t-1)\} = \Pr\{\int{t-1}^t \nu_d\}
 \end{equation}
 
 of course $\int_{t-1}^t f(x(t), u(t))dt$ may need to be evaluated numerically. Therefore,
