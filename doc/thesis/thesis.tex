@@ -306,8 +306,9 @@ The idea of the particle
 filter is to start with a wide mixture PDF of possible parameter sets, 
 and then, as measurements come in, to weight more heavily parameter sets 
 that tend to give good estimations of the measurements. The reliance on
-an initial mixture PDF obviously introduces bias; however, every gradient
-descent must choose starting points and it is often quite
+an initial mixture PDF can introduce bias; however, this effect can be
+minimized by alterring the initial weights in the mixture pdf. Of course
+every gradient descent must choose starting points and it is often quite
 easy to establish a reasonable range of parameters, especially when the
 model being used has a physical meaning. Suppose a set or stream of measurements
 are given, $\{y(t), t = 1, 2, 3, ... T\}$, where $T$ is permitted to go
@@ -337,7 +338,7 @@ be a vector, so for instance $u(t)$ could encode multiple types of stimuli.
 Although not generally necessary for particle filters, we will make a few
 assumptions based on the particular type of systems faced in biological 
 processes. First, the systems are assumed to be time invariant. This 
-assumption is based on the idea that if you froze the system for $\delta t$
+assumption is based on the idea that if you froze the system for $\Delta t$
 seconds, when unfrozen the system would continue as if nothing happend. 
 Few biological systems are predictible enough for them to be summarized
 by a time varying function. Although the heart may seem like an obvious
@@ -364,28 +365,76 @@ state space equations:
 y(t) = g(x(t)) + \nu_y
 \end{equation}
 
-$\nu_x$ will result in something akin to adding a weiner process to $y[0:T]$, and thus
+$\nu_x$ will result in something akin to adding a Weiner process to $y[0:T]$, and thus
 will include low frequency noise. $\nu_y$ on the other hand will cause i.i.d. noise
-in $y[0:T]$. For some tests I will use de-trending methods to reduce the effects of 
-$\nu_x$, the remainder of which gets re-factored into $\nu_y$. Both $\nu_x$ and $\nu_y$
+in $y[0:T]$. For some of the tests, I will use de-trending methods to reduce the effects of 
+$\nu_x$, the remainder of which should be re-factored into $\nu_y$. Both $\nu_x$ and $\nu_y$
 have biological and non-biological sources. MR can lead to both types of noise, 
 as demonstrated in \cite{drift}. Meanwhile changes in metabolism, heart rate, or
 other biochemical intervention could all lead to either $\nu_x$ or $\nu_y$.
 
-The goal of the particle filter to evolve a probably distribution $\hat{x}(T)$,
-that asymptotically approaches the probability distribution of $x(t)$,
-given known inputs, $u[0:T]$ and noisy readings $y[0:T]$.
-To begin with, the particle filter starts with a prior distribution,
-which is used to build a Dirac Mixture Probability Distribution Function (PDF):
+The goal of the particle filter is to evolve a probably distribution 
+$Pr(\hat{x}(T) | u[0:T], y[0:T])$,
+that asymptotically approaches the probability distribution $Pr(x(T) | u[0:T])$.
+Considering that $y$ contains measurement noise and noise in $x$ can drive
+changes in $y$, it is clear that $Pr(x(t) | u[0:T]$ is not a single true value
+but a true posterior. 
+To begin with, the particle filter starts with a proposal distribution, and $N_p$
+particles need to be drawn from that distribution, $q(x)$:
+\begin{equation}
+\{[\hat{x}_i(0),w_i] : \hat{x}_i(0) \sim q(x), w_i = \frac{1}{N_p}, i \in \{1, 2, ... , N_p\} \}
+\end{equation}
+
+Where $N_p$ is the number of particles or points used to describe the prior 
+using a Mixture PDF. 
 
 \begin{equation}
-\hat{x}(0) \sim p(X = x) = \frac{1}{n}\sum_{i = 0}^{n-1}p_i(x)
+Pr(\hat{x}(0) = x(0)) = \sum_{i=1}^{N_p} w_i\delta(x(0) - \hat{x}_i(0) ) dx
 \end{equation}
-where $p_i(x)$ is some probability density function centered at $\hat{x}_i(0)$, particle
-$i$ at time $0$. Thus the sum of the density at $x$ from each particles' PDF is the density
-at $x$. If
-the distributions are infinitely thin, then the distribution will be discrete, otherwise
-it will be continuous. 
+
+where
+
+\begin{equation}
+w_i(0) \propto \frac{p(x_i(0))}{q(x_i(0))}
+\end{equation}
+
+is the \emph{normalized} initial weights. Note that initially $p(x_i(0)$ is
+an approximation of the proposal distribution, $q(x)$, thus by dividing
+by $q(x_i(0))$, the bias effect of the proposal distribution is negated.
+For the BOLD signal all the parameters have been studied and have relatively well
+known mean and variance, so a prior bias is actually preferred, so in our
+case we did not initially normalize the particle weights. Note however, that
+when updating weights it is necessary to use this equation, but in that case
+$q$ will not be the prior distribution but $p(\hat{x}(T) | \hat{x}(T-1)$
+
+this the definition of the weight, so when weights are updated it is necessary
+to divide by the proposal distributionto converge
+to the true distribution it is necessary to divide by the proposal distribution.
+
+Where $\delta(x-x_0)$ is 1 when $x = x_0$ (the Kronecker delta function).
+For strictly positive parameters we used a gamma distribution,
+whereas for parameters that could be negative, we used a Gaussian distribution. Both
+distributions utilized standard deviations twice that found in previous studies.
+
+Once the probability, $Pr(\hat{x}(T) | \hat{x}[0:T-1], y[0:T-1]$ has been found
+(initially this is just Mixture approximating the prior since no measurements are 
+available and no previous probabilities are available), its possible to approximate
+the probability for short times between before a measurement is available, by shifting
+the probability according the progression of the state equations. This is only 
+an approximate, since integrating $\nu_x$ should increase uncertainty as more 
+time without a measurement passes. 
+\begin{equation}
+Pr(\hat{x}(T+\Delta t)) \approx 
+\sum_{i=1}^{N_p} w_i\delta\left(x - (\hat{x}_i(T) + \int_T^{T+\Delta} \dot{\hat{x}}_i(t) dt) \right) dx
+\end{equation}
+
+When a measurement becomes available it is incorporated into the probability,
+which should eventually cause the probability to converge. 
+Since the weights are the probability of of $x(t)$ being exactly $x_i(t)$, 
+the weights are defined as
+\begin{equation}
+  d
+\end{equation}
 
 Thus $\hat{x}(0)$ is an empirical representation of the prior, and $\hat{x}_i(0)$
 is the $i^{th}$ particle, a single possible representation of the system at time 0.
