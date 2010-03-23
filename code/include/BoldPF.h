@@ -393,10 +393,10 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
         cov(model->indexof(model->V_0    ,ii), model->indexof(model->V_0    ,ii)) = 6*.6e-2*.6e-2;
 
         //Assume they start at 0
-        cov(model->indexof(model->V_T,ii), model->indexof(model->V_T,ii)) = 0;
-        cov(model->indexof(model->Q_T,ii), model->indexof(model->Q_T,ii)) = 0;
-        cov(model->indexof(model->S_T,ii), model->indexof(model->S_T,ii)) = 0;
-        cov(model->indexof(model->F_T,ii), model->indexof(model->F_T,ii)) = 0;
+        cov(model->indexof(model->V_T,ii), model->indexof(model->V_T,ii)) = 1e-20;
+        cov(model->indexof(model->Q_T,ii), model->indexof(model->Q_T,ii)) = 1e-20;
+        cov(model->indexof(model->S_T,ii), model->indexof(model->S_T,ii)) = 1e-20;
+        cov(model->indexof(model->F_T,ii), model->indexof(model->F_T,ii)) = 1e-20;
     }
 
     for(unsigned int ii = model->getStateSize()-model->getMeasurementSize(); 

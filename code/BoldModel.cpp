@@ -258,10 +258,10 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
         cov(indexof(E_0    ,ii), indexof(E_0    ,ii)) = varwidth*.072*.072;
         cov(indexof(V_0    ,ii), indexof(V_0    ,ii)) = varwidth*.6e-2*.6e-2;
 
-        cov(indexof(V_T,ii), indexof(V_T,ii)) = 0;
-        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = 0;
-        cov(indexof(S_T,ii), indexof(S_T,ii)) = 0;
-        cov(indexof(F_T,ii), indexof(F_T,ii)) = 0;
+        cov(indexof(V_T,ii), indexof(V_T,ii)) = 1e-20;
+        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = 1e-20;
+        cov(indexof(S_T,ii), indexof(S_T,ii)) = 1e-20;
+        cov(indexof(F_T,ii), indexof(F_T,ii)) = 1e-20;
     }
 
     for(unsigned int ii = STATE_SIZE-MEAS_SIZE ; ii < STATE_SIZE; ii++) {
@@ -286,10 +286,10 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
         cov(indexof(V_0    ,ii), indexof(V_0    ,ii)) = varwidth*.6e-2*.6e-2;
 
         //Assume they start at 0
-        cov(indexof(V_T,ii), indexof(V_T,ii)) = 0;
-        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = 0;
-        cov(indexof(S_T,ii), indexof(S_T,ii)) = 0;
-        cov(indexof(F_T,ii), indexof(F_T,ii)) = 0;
+        cov(indexof(V_T,ii), indexof(V_T,ii)) = 1e-20;
+        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = 1e-20;
+        cov(indexof(S_T,ii), indexof(S_T,ii)) = 1e-20;
+        cov(indexof(F_T,ii), indexof(F_T,ii)) = 1e-20;
     }
     for(unsigned int ii = STATE_SIZE-MEAS_SIZE ; ii < STATE_SIZE; ii++) {
         cov(ii,ii) = pow(sigma[ii-STATE_SIZE+MEAS_SIZE], 2);
@@ -412,10 +412,10 @@ aux::vector BoldModel::defvar(unsigned int simul)
         ret(indexof(V_0    ,ii)) = .6e-2*.6e-2;
 
         //Assume they start at 0
-        ret(indexof(V_T,ii)) = .0001;
-        ret(indexof(Q_T,ii)) = .0001;
-        ret(indexof(S_T,ii)) = .0001;
-        ret(indexof(F_T,ii)) = .0001;
+        ret(indexof(V_T,ii)) = 1e-20;
+        ret(indexof(Q_T,ii)) = 1e-20;
+        ret(indexof(S_T,ii)) = 1e-20;
+        ret(indexof(F_T,ii)) = 1e-20;
     }
     for(unsigned int i = 0 ; i < simul; i++) {
         ret(GVAR_SIZE+simul*LVAR_SIZE+i) = 0;
@@ -439,10 +439,10 @@ aux::symmetric_matrix BoldModel::defcov(unsigned int simul)
         ret(indexof(V_0    ,ii), indexof(V_0    ,ii)) = .6e-2*.6e-2;
 
         //Assume they start at 0
-        ret(indexof(V_T,ii), indexof(V_T,ii)) = 0;
-        ret(indexof(Q_T,ii), indexof(Q_T,ii)) = 0;
-        ret(indexof(S_T,ii), indexof(S_T,ii)) = 0;
-        ret(indexof(F_T,ii), indexof(F_T,ii)) = 0;
+        ret(indexof(V_T,ii), indexof(V_T,ii)) = 1e-20;
+        ret(indexof(Q_T,ii), indexof(Q_T,ii)) = 1e-20;
+        ret(indexof(S_T,ii), indexof(S_T,ii)) = 1e-20;
+        ret(indexof(F_T,ii), indexof(F_T,ii)) = 1e-20;
     }
     for(unsigned int i = 0 ; i < simul; i++) {
         ret(GVAR_SIZE+simul*LVAR_SIZE+i, GVAR_SIZE+simul*LVAR_SIZE+i) = 0;

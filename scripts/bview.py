@@ -144,7 +144,10 @@ def mousecall(event):
             xpoints = range(0, stop, dt)[0:images[i].get_header()['dim'][4]]
 
             #plot
-            pylab.plot(xpoints, images[i].get_data()[pos[0],pos[1], pos[2],:])
+            if i == 0:
+                pylab.plot(xpoints, images[i].get_data()[pos[0],pos[1], pos[2],:], '*-')
+            else:
+                pylab.plot(xpoints, images[i].get_data()[pos[0],pos[1], pos[2],:])
             pylab.xlabel('Time (seconds)')
 
             leg.append(sys.argv[i+1] + str(pos))
