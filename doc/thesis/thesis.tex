@@ -10,6 +10,7 @@
 \usepackage{amssymb}
 \usepackage{setspace}
 \usepackage{graphicx}
+\usepackage{cancel}
 
 %\doublespacing
 
@@ -377,7 +378,7 @@ The goal of the particle filter is to evolve a probably distribution
 $Pr(\hat{x}(T) | u[0:T], y[0:T])$,
 that asymptotically approaches the probability distribution $Pr(x(T) | u[0:T])$.
 Considering that $y$ contains measurement noise and noise in $x$ can drive
-changes in $y$, it is clear that $Pr(x(t) | u[0:T]$ is not a single true value
+changes in $y$, it is clear that $Pr(x(t) | u[0:T])$ is not a single true value
 but a true posterior. 
 To begin with, the particle filter starts with a proposal distribution, and $N_p$
 particles need to be drawn from that distribution, $\alpha(x)$:
@@ -412,7 +413,7 @@ distributions utilized standard deviations twice that found in previous studies.
 
 Note that all the probability's implicitly depend on $u[0:T]$, so those terms 
 will be left off for simplicity.
-Once the probability, $Pr(\hat{x}(T) | \hat{x}[0:T-1], y[0:T-1]$ has been found
+Once the probability, $Pr(\hat{x}(T) | \hat{x}[0:T-1], y[0:T-1])$ has been found
 (initially this is just Mixture approximating the prior since no measurements are 
 available and no previous probabilities are available), its possible to approximate
 the probability for short times between before a measurement is available, by shifting
@@ -431,15 +432,17 @@ and eventually causes the probability to converge. The weight is defined
 as
 
 \begin{equation}
+\label{weightfunc}
 w_i(T) \propto \frac{Pr(x_i[0:T] | y[0:T])}{q(x_i)}
 \end{equation}
 
-where $q$ is called an \emph{importance density}, which means it decides where
+where $q$ is called an \emph{importance density}, meaning it decides where
 the support points for $\hat{x}(T)$ are located. To remove the bias due to the
 location of the support points, we divide by $q(\hat{x}_i)$. By dividing by 
-the density of the support points (particles), the location of the points are removed
-from the probability density. As a result the weight is dependent solely based
-on $Pr(x_i[0:T] | y[0:T]$, the probability of the $i^{th}$ particle's measurements
+the density of the support points (particles), the effect of the particle 
+distribution may be removed from the posterior density. As a result the weight
+is dependent solely based
+on $Pr(x_i[0:T] | y[0:T])$, the probability of the $i^{th}$ particle's measurements
 being different from $y[0:T]$ due to noise alone.
 An example of an importance density would be drawing a large
 number of points from the standard normal, $N(0,1)$ and then weighting each point, $l$ by 
@@ -449,7 +452,46 @@ be a quantization error, and that part of the density can't be modeled.
 
 For this work we used $q(x_i) = Pr(x_i(T) | x_i[0:T-1]) = Pr(x_i(T) | x_i(T-1))$,
 based on the Markov assumption, and the belief that the state space model is 
-at least close to correct.  
+able to approximate the true state. The weight is also based on $Pr(x_i[0:K] | y[0:K])$,
+which may be broken up as follows.
+\begin{eqnarray}
+Pr(x[0:T] | y[0:T]) & = & \frac{Pr(y[0:T], x[0:T])}{Pr(y[0:T])} \nonumber \\
+ & = & \frac{Pr(y(T), x[0:T] | y[0:T-1]) \cancel{Pr(y[0:T-1])}}{Pr(y(T) | y[0:T-1]) \cancel{Pr(y[0:T-1])}} \nonumber \\
+ & = & \frac{Pr(y(T)| x[0:T], y[0:T-1]) Pr(x[0:T] | y[0:T-1])}{Pr(y(T) | y[0:T-1]) } \nonumber \\
+ & = & \frac{Pr(y(T)| x[0:T], y[0:T-1]) Pr(x(T) | x[0:T-1], y[0:T-1]) Pr(x[0:T-1] | y[0:T-1])}{Pr(y(T) | y[0:T-1])} \nonumber \\
+\end{eqnarray}
+
+Using the assumption that $y(t)$ is fully constrained by $x(t)$,
+and that $x(t)$ is fully constrained by $x(t-1)$, we are able to
+make the reasonably good assumptions that:
+\begin{equation}
+Pr(y(T) | x[0:T], y[0:T-1]) = Pr(y(T) | x(T))
+\end{equation}
+
+\begin{equation}
+Pr(x(T) | x[0:T], y[0:T-1]) = Pr(x(T) | x(T-1))
+\end{equation}
+
+Additionally, for the particle filter $y(T)$ and $y[0:T-1]$ are 
+given, and therefore constant across all particles. Thus $Pr(x[0:T] | y[0:T]$
+may be simplified to:
+\begin{eqnarray}
+Pr(x[0:T] | y[0:T]) & = & \frac{Pr(y(T)| x[0:T], y[0:T-1]) Pr(x(T) | x[0:T-1], y[0:T-1]) 
+            Pr(x[0:T-1] | y[0:T-1])}{Pr(y(T) | y[0:T-1])} \nonumber \\
+& = & \frac{Pr(y(T)| x(T)) Pr(x(T) | x(T-1)) Pr(x[0:T-1] | y[0:T-1])}{Pr(y(T) | y[0:T-1])} \nonumber \\
+& \propto & Pr(y(T)| x(T)) Pr(x(T) | x(T-1)) Pr(x[0:T-1] | y[0:T-1])
+\end{eqnarray}
+
+Plugging this into \ref{weightfunc} leads to:
+\begin{eqnarray}
+w_i(T) & \propto & \frac{Pr(y(T)| x(T)) Pr(x(T) | x(T-1)) Pr(x[0:T-1] | y[0:T-1])}{q(x(T) | y[0:T])q(x[0:T-1] | y[0:Tjk:wq
+} \nonumber \\
+& \propto & Pr(y(T)| x(T)) Pr(x[0:T-1] | y[0:T-1]) \\
+& \propto & \frac{Pr(y(T)| x(T)) \cancel{Pr(x(T) | x(T-1))} Pr(x[0:T-1] | y[0:T-1])}{\cancel{Pr(x(T) | x(T-1))}} \nonumber \\
+& \propto & Pr(y(T)| x(T)) Pr(x[0:T-1] | y[0:T-1]) \\
+\end{eqnarray}
+
+and of course, since ....wait?
 %<stopped here>
 This has the added benefit that it is not necessary to
 re-draw points from a $q$ function at every time step, which is faster. 
