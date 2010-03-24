@@ -380,9 +380,9 @@ Considering that $y$ contains measurement noise and noise in $x$ can drive
 changes in $y$, it is clear that $Pr(x(t) | u[0:T]$ is not a single true value
 but a true posterior. 
 To begin with, the particle filter starts with a proposal distribution, and $N_p$
-particles need to be drawn from that distribution, $q(x)$:
+particles need to be drawn from that distribution, $\alpha(x)$:
 \begin{equation}
-\{[\hat{x}_i(0),w_i] : \hat{x}_i(0) \sim q(x), w_i = \frac{1}{N_p}, i \in \{1, 2, ... , N_p\} \}
+\{[\hat{x}_i(0),w_i] : \hat{x}_i(0) \sim \alpha(x), w_i = \frac{1}{N_p}, i \in \{1, 2, ... , N_p\} \}
 \end{equation}
 
 Where $N_p$ is the number of particles or points used to describe the prior 
@@ -392,46 +392,72 @@ using a Mixture PDF.
 Pr(\hat{x}(0) = x(0)) = \sum_{i=1}^{N_p} w_i\delta(x(0) - \hat{x}_i(0) ) dx
 \end{equation}
 
-where
-
-\begin{equation}
-w_i(0) \propto \frac{p(x_i(0))}{q(x_i(0))}
-\end{equation}
-
-is the \emph{normalized} initial weights. Note that initially $p(x_i(0)$ is
-an approximation of the proposal distribution, $q(x)$, thus by dividing
-by $q(x_i(0))$, the bias effect of the proposal distribution is negated.
-For the BOLD signal all the parameters have been studied and have relatively well
-known mean and variance, so a prior bias is actually preferred, so in our
-case we did not initially normalize the particle weights. Note however, that
-when updating weights it is necessary to use this equation, but in that case
-$q$ will not be the prior distribution but $p(\hat{x}(T) | \hat{x}(T-1)$
-
-this the definition of the weight, so when weights are updated it is necessary
-to divide by the proposal distributionto converge
-to the true distribution it is necessary to divide by the proposal distribution.
-
 Where $\delta(x-x_0)$ is 1 when $x = x_0$ (the Kronecker delta function).
-For strictly positive parameters we used a gamma distribution,
+
+If a true prior is preferred, then the weights
+should all be $1/N_p$, and since $\hat{x}_i$ was drawn from the prior, this will
+be an approximation of the prior distribution. If a relatively flat prior is 
+preferred, then each particle's weight could be divided by the density, $\alpha(\hat{x}_i)$,
+which creates a flat prior with support points in the region of $\alpha(x)$. Either
+way, $\alpha(x)$ should be much broader than the true posterior, $Pr(x(0))$, since the
+choice of support points is crucial to the convergence of any sampling importance
+algorithm. 
+For the BOLD signal all the parameters have been studied and have relatively well
+known mean and variance, so a prior bias is actually preferred. In our
+case we did not initially flatten the distributions, but instead used 
+distributions that fit what was known about the parameters.  
+For strictly positive parameters (members of $\hat{x}$) we used a gamma distribution,
 whereas for parameters that could be negative, we used a Gaussian distribution. Both
 distributions utilized standard deviations twice that found in previous studies.
 
+Note that all the probability's implicitly depend on $u[0:T]$, so those terms 
+will be left off for simplicity.
 Once the probability, $Pr(\hat{x}(T) | \hat{x}[0:T-1], y[0:T-1]$ has been found
 (initially this is just Mixture approximating the prior since no measurements are 
 available and no previous probabilities are available), its possible to approximate
 the probability for short times between before a measurement is available, by shifting
 the probability according the progression of the state equations. This is only 
-an approximate, since integrating $\nu_x$ should increase uncertainty as more 
+an approximate, since integrating $\nu_x$ should increase uncertainty as
 time without a measurement passes. 
+
 \begin{equation}
 Pr(\hat{x}(T+\Delta t)) \approx 
 \sum_{i=1}^{N_p} w_i\delta\left(x - (\hat{x}_i(T) + \int_T^{T+\Delta} \dot{\hat{x}}_i(t) dt) \right) dx
 \end{equation}
 
-When a measurement becomes available it is incorporated into the probability,
-which should eventually cause the probability to converge. 
-Since the weights are the probability of of $x(t)$ being exactly $x_i(t)$, 
-the weights are defined as
+When a measurement becomes available it is incorporated into the probability.
+This process of incorporating new data is called sequential importance sampling,
+and eventually causes the probability to converge. The weight is defined
+as
+
+\begin{equation}
+w_i(T) \propto \frac{Pr(x_i[0:T] | y[0:T])}{q(x_i)}
+\end{equation}
+
+where $q$ is called an \emph{importance density}, which means it decides where
+the support points for $\hat{x}(T)$ are located. To remove the bias due to the
+location of the support points, we divide by $q(\hat{x}_i)$. By dividing by 
+the density of the support points (particles), the location of the points are removed
+from the probability density. As a result the weight is dependent solely based
+on $Pr(x_i[0:T] | y[0:T]$, the probability of the $i^{th}$ particle's measurements
+being different from $y[0:T]$ due to noise alone.
+An example of an importance density would be drawing a large
+number of points from the standard normal, $N(0,1)$ and then weighting each point, $l$ by 
+$1/\beta(l), \beta \sim N(0,1)$. Of course if there is a far off peak in
+the posterior that $q$ does not allocate support points in, there will essentially
+be a quantization error, and that part of the density can't be modeled. 
+
+For this work we used $q(x_i) = Pr(x_i(T) | x_i[0:T-1]) = Pr(x_i(T) | x_i(T-1))$,
+based on the Markov assumption, and the belief that the state space model is 
+at least close to correct.  
+%<stopped here>
+This has the added benefit that it is not necessary to
+re-draw points from a $q$ function at every time step, which is faster. 
+this the definition of the weight, so when weights are updated it is necessary
+to divide by the proposal distributionto converge
+to the true distribution it is necessary to divide by the proposal distribution.
+
+
 \begin{equation}
   d
 \end{equation}
