@@ -255,7 +255,9 @@ int BoldPF::run(void* pass = NULL)
             //time to resample
             if(ess < ESS_THRESH) {
                 *debug << " ESS: " << ess << ", Stratified Resampling\n";
-                aux::symmetric_matrix statecov = calcCov(filter->getFilteredState());
+//                aux::symmetric_matrix statecov = calcCov(filter->getFilteredState());
+                aux::symmetric_matrix statecov = filter->getFilteredState().
+                            getDistributedCovariance();
                 aux::vector tmpmu 
                             = filter->getFilteredState().getDistributedExpectation();
                 filter->resample(&resampler);

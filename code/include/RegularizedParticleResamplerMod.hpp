@@ -174,6 +174,7 @@ RegularizedParticleResamplerMod<NT, KT>::resample_help(
     double weight = 0;
 
     /* standardise particles */
+    aux::lower_triangular_matrix sd = p.getDistributedStandardDeviation();
 //    for(unsigned int i = 0 ; i < model->getMeasurementSize() ; i++) {
 //        unsigned int tmp = model->getStateSize()-i-1;
 //        if(covariance(tmp, tmp) < 1e-200) {
@@ -182,50 +183,49 @@ RegularizedParticleResamplerMod<NT, KT>::resample_help(
 //            covariance(tmp, tmp) = 1e-100;
 //        }
 //    }
-    aux::matrix sd(covariance);
-    aux::vector diag_v(sd.size1());
-    int err = lapack::syev('V', 'U', sd, diag_v);
-    if(err != 0 ) {
-        if(rank == 0) {
-            std::cerr << "Hmm the lapack::syev returned a non-zero error" << std::endl;
-            std::cerr << "Covariance matrix: " << std::endl;
-            outputMatrix(std::cerr, covariance);
-            std::cerr << std::endl << "Standard deviation: " << std::endl;
-            outputMatrix(std::cerr, sd);
-            std::cerr << std::endl << "Diagonalized result: " << std::endl;
-            outputVector(std::cerr, diag_v);
-            std::cerr << std::endl;
-        }
-        throw(err);
-    }
-
-    bool broken = false;
-    for(unsigned int i = 0 ; i<diag_v.size() ; i++) {
-        if(diag_v(i) < 0) {
-            broken = true;
-        }
-    }
-
-    if(broken) {
-        if(rank == 0) {
-            std::cerr << "Warning diagnal matrix gives non-real solution" << std::endl;
-            std::cerr << "Making variables independent" << std::endl;
-            std::cerr << "Original Covariance" << std::endl;
-            outputMatrix(std::cerr, covariance);
-        }
-    }
-
-    diag_v = element_sqrt(diag_v);
-    ublas::diagonal_matrix<double, ublas::column_major, 
-                ublas::unbounded_array<double> > diag_dm(diag_v.size(), diag_v.data());
-    aux::matrix diag_m(diag_dm);
-    
-    aux::matrix tmp = prod(sd,diag_m);
-    sd = prod(tmp, trans(sd));
-    if(broken) {
-        std::cerr << "Standard Deviation" << std::endl;
-        outputMatrix(std::cerr, sd);
-    }
+//    aux::vector diag_v(sd.size1());
+//    int err = lapack::syev('V', 'U', sd, diag_v);
+//    if(err != 0 ) {
+//        if(rank == 0) {
+//            std::cerr << "Hmm the lapack::syev returned a non-zero error" << std::endl;
+//            std::cerr << "Covariance matrix: " << std::endl;
+//            outputMatrix(std::cerr, covariance);
+//            std::cerr << std::endl << "Standard deviation: " << std::endl;
+//            outputMatrix(std::cerr, sd);
+//            std::cerr << std::endl << "Diagonalized result: " << std::endl;
+//            outputVector(std::cerr, diag_v);
+//            std::cerr << std::endl;
+//        }
+//        throw(err);
+//    }
+//
+//    bool broken = false;
+//    for(unsigned int i = 0 ; i<diag_v.size() ; i++) {
+//        if(diag_v(i) < 0) {
+//            broken = true;
+//        }
+//    }
+//
+//    if(broken) {
+//        if(rank == 0) {
+//            std::cerr << "Warning diagnal matrix gives non-real solution" << std::endl;
+//            std::cerr << "Making variables independent" << std::endl;
+//            std::cerr << "Original Covariance" << std::endl;
+//            outputMatrix(std::cerr, covariance);
+//        }
+//    }
+//
+//    diag_v = element_sqrt(diag_v);
+//    ublas::diagonal_matrix<double, ublas::column_major, 
+//                ublas::unbounded_array<double> > diag_dm(diag_v.size(), diag_v.data());
+//    aux::matrix diag_m(diag_dm);
+//    
+//    aux::matrix tmp = prod(sd,diag_m);
+//    sd = prod(tmp, trans(sd));
+//    if(broken) {
+//        std::cerr << "Standard Deviation" << std::endl;
+//        outputMatrix(std::cerr, sd);
+//    }
     size_t badcount = 0;
     /* rebuild distribution with kernel noise */
     for (unsigned int i = 0; i < p.getSize(); i++) {

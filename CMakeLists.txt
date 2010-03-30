@@ -50,5 +50,6 @@ execute_process(COMMAND date +D%m_%d_%y_T%H_%M OUTPUT_VARIABLE TODAY)
 string(REGEX MATCH "[0-9A-Za-z_]*" TODAY ${TODAY})
 
 add_definitions(-DBRAINID_VERSION="${VERSION}_${TODAY}")
+message("${VERSION}_${TODAY}")
 
 SUBDIRS(code/utils code testing)
