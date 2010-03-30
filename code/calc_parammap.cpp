@@ -71,8 +71,11 @@ int cb_meas(BoldPF* bold, void* data)
 //        }
 //    }
 
-    if(rank == 0) 
+    if(rank == 0) {
          cdata->image->SetPixel(cdata->pos, meas[0]);
+         outputVector(std::cout, mu);
+         std::cout << endl << meas[0] << endl;
+    }
     return 0;
 }
 
@@ -355,7 +358,7 @@ int main(int argc, char* argv[])
                     fillvector(meas, inImage, index4, a_delta());
 
                     //create the bold particle filter
-                    BoldPF boldpf(meas, input, rms->GetPixel(index3)/5., a_timestep(),
+                    BoldPF boldpf(meas, input, rms->GetPixel(index3)/20., a_timestep(),
                             output, a_num_particles()*(1<<i), 1./a_divider(), method,
                             a_expweight());
                     

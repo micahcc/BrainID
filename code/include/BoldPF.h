@@ -164,7 +164,19 @@ int BoldPF::getStatus()
 {
     return status;
 };
-    
+
+aux::matrix calcCov(indii::ml::aux::DiracMixturePdf& p)
+{
+    boost::mpi::communicator world;
+    aux::vector mu = p.getDistributedExpectation();
+    aux::matrix sum(mu.size(), 0);
+
+    for(unsigned int i = 0 ; i < p.getSize() ;i++) {
+        sum += p.getWeight(i)*outer_prod(p.get(i)-mu, p.get(i)-mu);
+    }
+    sum = boost::mpi::all_reduce(world, sum, std::plus<matrix>());
+    return sum/p.getDistributedTotalWeight();
+}
 
 /* Run - runs the particle filter
  * pass - variable to pass to callback function
@@ -173,7 +185,7 @@ int BoldPF::run(void* pass = NULL)
 {
     boost::mpi::communicator world;
     unsigned int rank = world.rank();
-    unsigned int size = world.size();
+//    unsigned int size = world.size();
     using std::endl;
 
     if(status == ERROR || status == RUNNING || status == DONE) {
@@ -243,8 +255,7 @@ int BoldPF::run(void* pass = NULL)
             //time to resample
             if(ess < ESS_THRESH) {
                 *debug << " ESS: " << ess << ", Stratified Resampling\n";
-                aux::symmetric_matrix statecov
-                            = filter->getFilteredState().getDistributedCovariance();
+                aux::symmetric_matrix statecov = calcCov(filter->getFilteredState());
                 aux::vector tmpmu 
                             = filter->getFilteredState().getDistributedExpectation();
                 filter->resample(&resampler);

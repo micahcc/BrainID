@@ -158,19 +158,6 @@ RegularizedParticleResamplerMod<NT, KT>::resample(
     return out;
 }
 
-aux::matrix calcPrintCov(indii::ml::aux::DiracMixturePdf& p)
-{
-    boost::mpi::communicator world;
-    indii::ml::aux::vector mu = p.getDistributedExpectation();
-    aux::matrix sum(mu.size(), mu.size(), 0);
-
-    for(unsigned int i = 0 ; i < p.getSize() ;i++) {
-        sum += p.getWeight(i)*outer_prod(p.get(i), p.get(i));
-    }
-    sum = boost::mpi::all_reduce(world, sum, std::plus<matrix>());
-    return sum/p.getDistributedTotalWeight() - outer_prod(mu, mu);
-}
-
 template <class NT, class KT>
 void
 RegularizedParticleResamplerMod<NT, KT>::resample_help(
@@ -199,7 +186,7 @@ RegularizedParticleResamplerMod<NT, KT>::resample_help(
     aux::vector diag_v(sd.size1());
     int err = lapack::syev('V', 'U', sd, diag_v);
     if(err != 0 ) {
-        for(int i = 0 ; i < world.size() ; i++) {
+        if(rank == 0) {
             std::cerr << "Hmm the lapack::syev returned a non-zero error" << std::endl;
             std::cerr << "Covariance matrix: " << std::endl;
             outputMatrix(std::cerr, covariance);
@@ -208,26 +195,7 @@ RegularizedParticleResamplerMod<NT, KT>::resample_help(
             std::cerr << std::endl << "Diagonalized result: " << std::endl;
             outputVector(std::cerr, diag_v);
             std::cerr << std::endl;
-            boost::mpi::broadcast(world, i, 0);
         }
-
-        sd = calcPrintCov(p);
-        for(int i = 0 ; i < world.size() ; i++) {
-            std::cerr << "My Covariance matrix: " << std::endl;
-            outputMatrix(std::cerr, sd);
-            
-            int err = lapack::syev('V', 'U', sd, diag_v);
-            std::cerr << "New Error: " << err << std::endl;
-            
-            std::cerr << "Standard deviation: " << std::endl;
-            outputMatrix(std::cerr, sd);
-            
-            std::cerr << std::endl << "Diagonalized result: " << std::endl;
-            outputVector(std::cerr, diag_v);
-            std::cerr << std::endl;
-            boost::mpi::broadcast(world, i, 0);
-        }
-
         throw(err);
     }
 
@@ -244,23 +212,6 @@ RegularizedParticleResamplerMod<NT, KT>::resample_help(
             std::cerr << "Making variables independent" << std::endl;
             std::cerr << "Original Covariance" << std::endl;
             outputMatrix(std::cerr, covariance);
-        }
-
-        sd = calcPrintCov(p);
-        for(int i = 0 ; i < world.size() ; i++) {
-            std::cerr << "My Covariance matrix: " << std::endl;
-            outputMatrix(std::cerr, sd);
-
-            int err = lapack::syev('V', 'U', sd, diag_v);
-            std::cerr << "New Error: " << err << std::endl;
-
-            std::cerr << "Standard deviation: " << std::endl;
-            outputMatrix(std::cerr, sd);
-
-            std::cerr << std::endl << "Diagonalized result: " << std::endl;
-            outputVector(std::cerr, diag_v);
-            std::cerr << std::endl;
-            boost::mpi::broadcast(world, i, 0);
         }
     }
 

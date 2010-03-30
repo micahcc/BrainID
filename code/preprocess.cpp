@@ -56,7 +56,7 @@ Image4DType::Pointer preprocess_help(Image4DType::Pointer input,
             bool nospline, bool smart)
 {
     boost::mpi::communicator world;
-    const unsigned int rank = world.rank();
+//    const unsigned int rank = world.rank();
     /* Set up measurements image */
     //*output << "Conditioning FMRI Image" << endl;
     //remove first 2 time step, since they are typically polluted

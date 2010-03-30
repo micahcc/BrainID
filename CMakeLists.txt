@@ -36,7 +36,7 @@ find_path(GSL_INCLUDE_DIRS gsl/gsl_errno.h)
 FIND_LIBRARY(GSL_LIBRARY_DIRS NAMES gsl PATH /usr/lib) 
 
 if(EXISTS ${brainid_SOURCE_DIR}/.git)
-    set(ARGS show-ref master --heads -s )
+    set(ARGS log -n 1 --format=%H)
     execute_process( COMMAND git ${ARGS} OUTPUT_VARIABLE VERSION)
     string(REGEX MATCH "[0-9A-Za-z]*" VERSION ${VERSION})
 else(EXISTS ${brainid_SOURCE_DIR}/.git)
