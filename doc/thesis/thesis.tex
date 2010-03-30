@@ -556,6 +556,7 @@ Monte Carlo Methods for Dynamical Systems", 1998), which is based on the "true w
 of each particle. Of course the true weight is unknown, so a heuristic approximating 
 $N_{eff}$ is used:
 \begin{equation}
+\label{neff}
 N_{eff} \approx \frac{N_p}{\sum_{i=1}^{N_p} w_i^2}
 \end{equation}
 Any quick run of a particle filter will reveal that unless the prior is particularly accurate,
@@ -570,11 +571,74 @@ $N_p$ points are drawn from the posterior,
 then $\hat{x} \sim x$. Unfortunately this isn't necessarily the truth: since the support is
 still limited to the original particles, the number of unique particles may only go down.
 This effect, often dubbed "particle impoverishment" can result in excessive quantization
-errors in the final distribution. 
-
-
+errors in the final distribution. However, by instead sampling from a smoothed version of
+the discrete distribution, sample impoverishment is prevented. The question then is how to 
+decide on the smoothing kernel. 
+Often times the easiest way to sample from the continous distribution is to break the 
+re-sampling down into two steps. First a member of the discrete distribution is randomly
+selected based on the weights, and then based on the smoothing a nearby state variable 
+is selected. The process of the selection will be defined as:
+\begin{equation}
+x'_i = x_i + h\sigma \epsilon
+\end{equation}
+Where $h$ is the bandwidth, $\sigma$ is the standard deviation such that $\sigma \sigma^T = cov(x)$
+and $\epsilon$ is drawn from the chosen kernel.
+It has been proven that when all the elements of the mixture
+have the same weight, as is the case after basic re-sampling, the kernel that minimizes the 
+MSE between the estimated and true posterior is the Epanechnikov Kernel (cite Improving Regularised
+Particle Filters, C Musso, N Oudjane and F LeGrand). 
+\begin{equation}
+K = \left\{
+\begin{array}{lr}
+\frac{n_x+2}{2c_{n_x}}(1-\|x\|^2) & if\ \|x\| < 1\\
+0 & otherwise
+\end{array}\right.
+\end{equation}
 %<more here>
 
+If the noise is assumed to be Gaussian then it is possible to further optimize. Obviously,
+its very possible that distribution will deviate from that assumption, however in this
+case assuming a Gaussian still allows a great deal of flexibility, since the distribution
+is a mixture. Thus we let $h$ be defines as:
+\begin{eqnarray}
+h = [N_s8c^{-1}_{n_x}(n_x + 4)(2\sqrt{\pi})^{n_x}]^{\frac{1}{n_x +4}}
+\end{eqnarray}
+and although it is very possible the underlying noise is non-gaussian, the Gaussian
+may still be a good choice. Its worth noting that as $n_x$, the number of dimensions in
+$x$ go to infinity, the standard deviation based approximation becomes inefective according
+ to (cite a Tutorial on Particle Filters for on-line non-linear non-gaussian bayesian
+ tracking, sanjeev arulampalam, simon maskell, neil gordon...). Because our regularized 
+ resampling method is based on particle variance, resampling very often will slow down 
+ convergeance, because the resampling itself can lead to increased variance. Thus, for
+ the most part the resulting algorith is the basic particle filter, except for when the
+ $N_{eff}$ drops very low (say less than 50), at which point regularized resampling is 
+ performed. The resulting algorthm is as follows:
+
+ \begin{algorithmic}
+\STATE Initialize $N_p$ Particles: 
+        $\{x_i(0),w_i(0) : x_i(0) \sim \alpha(x), w_i(0) = \frac{1}{N_p}, i \in \{1, 2, ... , N_p\} \}$
+\STATE $T$ = \{Set of Measurement Times\}
+\FOR{$t$ in $T$}
+    \FOR{$i$ in $N_p$}
+        \STATE $x_i(t) = x_i(t-1) + \int_{t-1}^t f(x(\tau), u(\tau)) d\tau $
+        \STATE $w_i(t) = w_i(t-1)\hat{Pr}(y(t) | x(t))$
+    \ENDFOR
+
+    \STATE Calculate $N_{eff}$ with \eqref{neff}
+    \IF{$N_{eff} < N_R$ (recommend $N_R = min(50, .1N_p)$ )}
+        \STATE Calculate empirical $\sigma$ 
+        \STATE Redraw particles using basic resampling
+        \FOR{$i$ in $N_p$}
+            \STATE Draw $\epsilon \sim K$
+            \STATE $x_i = x_i + h \sigma \epsilon$
+        \ENDFOR
+    \ENDIF
+\ENDFOR
+
+\STATE At $t + \Delta t$, $t \in T$, $\hat{Pr}(x(t+\Delta t)) \approx 
+\sum_{i=1}^{N_p} w_i(t)\delta\left(x - (x_i(t) + \int_t^{t+\Delta t} f(x(\tau), u(\tau)) d\tau) \right)$
+
+ \end{algorithmic}
 
 The ultimate effect of this regularized resampling is a convergence similar to simulated annealing
 or a genetic algorithm. "Fit" versions of $x$ spawn more children nearby which allow
@@ -582,90 +646,14 @@ for more accurate estimation near points of high likelihood. As the variance of 
 $x$'s decrease the radius in which children are spawned also decreases. Eventually the radius
 will approach the width of the $\nu_x$ and $\nu_y$.
 
+\subsubsection{Choosing $\hat{Pr}(y(T) | x(T))$}
+Analysis of Gaussian versus exponential
+
+Discussion of optimality (or lack thereof)
+
+Discussion of using a gaussian mixture pdf to describe a non-gaussian distribution
+
 %<stopped here>
-This has the added benefit that it is not necessary to
-re-draw points from a $q$ function at every time step, which is faster. 
-this the definition of the weight, so when weights are updated it is necessary
-to divide by the proposal distributionto converge
-to the true distribution it is necessary to divide by the proposal distribution.
-
-
-Thus $\hat{x}(0)$ is an empirical representation of the prior, and $\hat{x}_i(0)$
-is the $i^{th}$ particle, a single possible representation of the system at time 0.
-Initially, since each $\hat{x}_i$ has been drawn from the prior, and no measurements
-have been made, the particles are all equally weighted. When a measurement becomes
-available, that information is then incorporated into the posterior by re-weighting
-the particles according to how well they estimated this new measurement. 
-
-The estimated posterior of $\hat{x}(t)$, for discrete time, $t$ (before incorporating
-any measurement that might be available at $t$) is then:
-\begin{equation}
-\Pr\{\hat{x}(t) | y[0:t-1]\} =  \int \Pr\{\hat{x}(t), \hat{x}(t-1) | y[0:t-1]\} d\hat{x}(t-1)
-\end{equation}
-
-and by bayes theorem $\Pr\{\hat{x}(t), \hat{x}(t-1) | y[0:t-1]\} = 
-\Pr\{\hat{x}(t) | \hat{x}(t-1), y[0:t-1]\}\Pr\{\hat{x}(t-1) | y[0:t-1]\}$,
-therefore 
-\begin{equation}
-\Pr\{\hat{x}(t) | y[0:t-1]\} =  \int \Pr\{\hat{x}(t) | \hat{x}(t-1) ,y[0:t-1]\}\Pr\{\hat{x}(t-1) | y[0:t-1]\}  d\hat{x}(t-1)
-\end{equation}
-
-Since in this work we will only deal with markov processes, we assume that 
-$\Pr\{\hat{x}(t) | \hat{x}(t-1), y[0:t-1]\} = \Pr\{\hat{x}(t) | \hat{x}(t-1)\}$
-
-thus the posterior becomes:
-\begin{equation}
-\Pr\{\hat{x}(t) | y[0:t-1]\} =  \int \Pr\{\hat{x}(t) | \hat{x}(t-1)\}\Pr\{\hat{x}(t-1) | y[0:t-1]\}  d\hat{x}(t-1)
-\end{equation}
-
-Therefore in between measurements, there is no need to know previous measurements in
-order to make predictions about the internal state. This is important because it means makes
-particle filters significantly more memory efficient, and although it isn't useful in this
-case, it means a particle filter could theoretically be run indefinitely without the
-need to store old data.
-
-As stated previously, new measurements may be incorporated by reweighting particles.
-To find the updated distribution, $\Pr\{\hat{x}(t) | y[0:t]\}$, bayes theorem is
-again applied:
-\begin{equation}
-\Pr\{\hat{x}(t) | y[0:t]\} = \Pr\{\hat{x}(t) | y[0:t-1], y(t)\} = \frac{\Pr\{y(t) | \hat{x}(t), y[0:t-1]\}\Pr\{\hat{x}(t) | y[0:t-1]\}}
-{\Pr\{y(t) | y[0:t-1]\}}
-\end{equation}
-
-\begin{equation}
-\Pr\{\hat{x}_i(t) | y[0:t-1]\} = \int \Pr\{\hat{x}_i(t) | \hat{x}_i(t-1), y[0:t-1]\}\Pr[\hat{x}_i(t-1)
-\end{equation}
-Since $\hat{x}(t) = \hat{x}(t-1) + \int_{t-1}^t f(x(t), u(t))dt + \int_{t-1}^t\nu_d dt$, 
-\begin{equation}
-\Pr\{\hat{x}_i(t) | \hat{x}_i(t-1)\} = \Pr\{\int{t-1}^t \nu_d\}
-\end{equation}
-
-of course $\int_{t-1}^t f(x(t), u(t))dt$ may need to be evaluated numerically. Therefore,
-to estimate the posterior probability at $t$, it is just necessary to propagate
-each particle forward in time according to a state space function. To form 
-the posterior probability around the true $x(t)$, each particle is weighted
-based on 
-
-
-
-This
-then results in the expected value of $\hat{y}(t)$:
-\begin{equation}
-E[\hat{y}_i(t) | \hat{x}_i(t-1)] = E[\hat{x}_i(t)]
-\end{equation}
-
-\begin{equation}
-\dot{y} = -ky
-\end{equation}
-$\theta_i$ would have an estimate for $k$ \emph{and} $y$. Of course in many cases
-the model is a potentially non-linear differential equation with no closed
-form solution. Initially every $\theta_i$ will have the same weight, because
-there isn't yet anything to base a weighting on. Note that this doesn't mean
-that the particles have been evenly distributed, so the distribution is not 
-necessarily "flat" just because all the particles are equaly weighted. When a
-new measurement is available, the particles are then reweighted based on how
-well they predicted the new measurement. 
-
 \subsection{My Specific Particle Filte}
 Although particle filters are well defined, significant design decisions
 are application dependent. The most important choice is the weighting function,
