@@ -326,11 +326,11 @@ such as we do here reduces model variance, potentially at the cost of increased
 bias (or systematic) error. We will assume a basic state space model:
 
 \begin{equation}
-\dot{x}(t) = f(t, x(t), u(t), \theta, \nu_d)
+\dot{x}(t) = f(t, x(t), u(t), \theta, \nu_x)
 \end{equation}
 
 \begin{equation}
-y(t) = g(t, x(t), u(t), \theta, \nu_s)
+y(t) = g(t, x(t), u(t), \theta, \nu_y)
 \end{equation}
 
 Where $x(t)$ is a vector of state variables, $\theta$ is a vector of system
@@ -354,7 +354,9 @@ may be re-factored as noise. Secondly we assume that input cannot directly
 influence the output, which in the case of the BOLD signal is a good assumption.
 %Third, through some sort of preprocessing, we will assume that $\nu_d$ can be
 %decreased or completely removed, since it 
-Third, we will assume noise is additive.
+Third, we will assume noise is additive, and that $\nu_x$ may be projected into
+a weiner, or other summing process that is additive with $g$ and $\nu_y$, which
+will be named $\nu_d$.
 Finally, $x(t)$ will encapsulate $\theta$, the unknown model constants, which
 means that the vector $\dot{x}$ will always have members
 that are 0. The results of these assumptions are a simplified version of the
@@ -362,21 +364,21 @@ state space equations:
 
 \begin{equation}
 \label{stateass}
-\dot{x}(t) = f(x(t), u(t)) + \nu_x
+\dot{x}(t) = f(x(t), u(t))
 \end{equation}
 
 \begin{equation}
 \label{measass}
-y(t) = g(x(t)) + \nu_y
+y(t) = g(x(t)) + \nu_y + \nu_d
 \end{equation}
 
-$\nu_x$ will result in something akin to adding a Weiner process to $y[0:T]$, and thus
+Because $\nu_d$ is something akin to and additive Weiner process $y[0:T]$, it 
 will include low frequency noise. $\nu_y$ on the other hand will cause i.i.d. noise
 in $y[0:T]$. For some of the tests, I will use de-trending methods to reduce the effects of 
-$\nu_x$, the remainder of which should be re-factored into $\nu_y$. Both $\nu_x$ and $\nu_y$
+$\nu_d$, the remainder of which will be re-factored into $\nu_y$. Both $\nu_d$ and $\nu_y$
 have biological and non-biological sources. MR can lead to both types of noise, 
 as demonstrated in \cite{drift}. Meanwhile changes in metabolism, heart rate, or
-other biochemical intervention could all lead to either $\nu_x$ or $\nu_y$.
+other biochemical intervention could all lead to either $\nu_d$ or $\nu_y$.
 
 \subsubsection{Prior}
 
@@ -422,7 +424,7 @@ Once the probability, $\hat{Pr}(x(T) | x[0:T-1], y[0:T-1])$ has been found
 available and no previous probabilities are available), its possible to approximate
 the probability for short times between times when measurement is available, by shifting
 the probability according the progression of the state equations. This is only 
-an approximate, since integrating $\nu_x$ should increase uncertainty as
+an approximate, since integrating $\nu_d$ should increase uncertainty as
 time without a measurement passes. 
 
 \begin{equation}
@@ -516,7 +518,7 @@ density  is easy and requires almost no knowledge of noise distribution.
 \begin{enumerate}
 \item $f(t, x(t), u(t)) = f(x(t), u(t))$ and $g(t, x(t), u(t)) = g(x(t))$ provide 
 a sufficiently flexible model to encapsulate the true time series.
-\item $E[\nu_x] = 0$ and $E[\nu_y] = 0$, and $\nu_x$ and $\nu_y$ are stationary
+\item $E[\nu_d] = 0$ and $E[\nu_y] = 0$, and $\nu_x = d\nu_d$, $\nu_y$ are stationary
 \item The PDF $q(x_i(0))$ (the prior) fully covers $Pr(x_i(0))$
 \item Markov Assumption: $Pr(x(T) | x[0:T]) = Pr(x(T) | x(T-1))$
 \item $q(x[0:T-1] | y[0:T]) = q(x[0:T-1] | y[0:T-1])$
@@ -557,34 +559,35 @@ of each particle. Of course the true weight is unknown, so a heuristic approxima
 $N_{eff}$ is used:
 \begin{equation}
 \label{neff}
-N_{eff} \approx \frac{N_p}{\sum_{i=1}^{N_p} w_i^2}
+\hat{N}_{eff} \approx \frac{N_p}{\sum_{i=1}^{N_p} w_i^2}
 \end{equation}
 Any quick run of a particle filter will reveal that unless the prior is particularly accurate,
 $N_{eff}$ drops precipitously.  To alleviate this problem
 a common technique known as resampling must be applied. The idea of re-sampling is to 
 draw from the approximate posterior, thus generating a replica of the posterior with 
-a support more suited to the posterior. Thus, if weights are all set to $1/N_p$, and 
+a support more suited to the distribution. Thus, if weights are all set to $1/N_p$, and 
 $N_p$ points are drawn from the posterior,
 \begin{equation}
-\hat{x}_j \sim \left(\sum_{i=1}^{N_p} w_i(t)\delta(x - x_i(t))\right), j \in \{1, ..., N_p\}
+\hat{\chi}_j \sim \left(\sum_{i=1}^{N_p} w_i(t)\delta(x - x_i(t))\right), j \in \{1, ..., N_p\}
 \end{equation}
-then $\hat{x} \sim x$. Unfortunately this isn't necessarily the truth: since the support is
-still limited to the original particles, the number of unique particles may only go down.
+then $\hat{\chi} \sim \hat{x}$ should hold. Unfortunately, this isn't necessarily the truth: since the support is
+still limited to the original particles, the number of unique particles can only go down.
 This effect, often dubbed "particle impoverishment" can result in excessive quantization
-errors in the final distribution. However, by instead sampling from a smoothed version of
-the discrete distribution, sample impoverishment is prevented. The question then is how to 
-decide on the smoothing kernel. 
+errors in the final distribution. However, there is a solution. Instead of sampling from the
+discrete distribution, a smoothing kernel is applied, and $\hat{\chi}_j$ are drawn from
+that distribution. Because the distribution is continuous, there is no way for a collapse
+of the particles to occur. The question then, is how to decide on the smoothing kernel. 
 Often times the easiest way to sample from the continous distribution is to break the 
 re-sampling down into two steps. First a member of the discrete distribution is randomly
 selected based on the weights, and then based on the smoothing a nearby state variable 
 is selected. The process of the selection will be defined as:
 \begin{equation}
-x'_i = x_i + h\sigma \epsilon
+\chi_i = x_i + h\sigma \epsilon
 \end{equation}
 Where $h$ is the bandwidth, $\sigma$ is the standard deviation such that $\sigma \sigma^T = cov(x)$
 and $\epsilon$ is drawn from the chosen kernel.
 It has been proven that when all the elements of the mixture
-have the same weight, as is the case after basic re-sampling, the kernel that minimizes the 
+have the same weight, as is the case after basic resampling, the kernel that minimizes the 
 MSE between the estimated and true posterior is the Epanechnikov Kernel (cite Improving Regularised
 Particle Filters, C Musso, N Oudjane and F LeGrand). 
 \begin{equation}
@@ -604,15 +607,26 @@ is a mixture. Thus we let $h$ be defines as:
 h = [N_s8c^{-1}_{n_x}(n_x + 4)(2\sqrt{\pi})^{n_x}]^{\frac{1}{n_x +4}}
 \end{eqnarray}
 and although it is very possible the underlying noise is non-gaussian, the Gaussian
-may still be a good choice. Its worth noting that as $n_x$, the number of dimensions in
-$x$ go to infinity, the standard deviation based approximation becomes inefective according
- to (cite a Tutorial on Particle Filters for on-line non-linear non-gaussian bayesian
- tracking, sanjeev arulampalam, simon maskell, neil gordon...). Because our regularized 
- resampling method is based on particle variance, resampling very often will slow down 
- convergeance, because the resampling itself can lead to increased variance. Thus, for
- the most part the resulting algorith is the basic particle filter, except for when the
- $N_{eff}$ drops very low (say less than 50), at which point regularized resampling is 
- performed. The resulting algorthm is as follows:
+may work, but sub-optimally. It has been proposed that (Monte Carlo Approximations for
+General State-Space Models, markus Hurzeler and Hans R. Kunsch) if the underlying 
+distribution is non-Gaussian, then using this bandwidth will oversmooth. 
+At the same time, as $n_x$, the number of dimensions in
+$x$, goes to infinity, the standard deviation based approximation becomes less effective
+(cite a Tutorial on Particle Filters for on-line non-linear non-gaussian bayesian
+tracking, sanjeev arulampalam, simon maskell, neil gordon...). In reality over smoothing
+should not be too great an issue because the smoothing is only being applied to find new
+particles. If the distribution is over smoothed then the algorithm may not converge as rapidly;
+however, because the bandwidth is still based on particle variance, which will decay as 
+particles are ruled out, it is still able to converge. In fact over smoothing is preferrable
+to under smoothing, since the latter would result in false negatives, but the previous does
+not result in false anything. Additionally, because of the high dimensionality of our system,
+and limited measurements, it is helpful to have a broader bandwidth to explore with. Because 
+of the potentially wide smoothing factor applied by regularized resampling, performing this
+step at every measurement would allow particles a great deal of mobility. This mobility is
+the opposite of convergence, which is why regularized resampling should only be done when
+$\hat{N}_{eff}$ drops very low (say less than 50). Other than the periodic regularized
+resampling then, the regularized particle filter is nearly identical to the basic sampling
+importance sampling filter (SIS). 
 
  \begin{algorithmic}
 \STATE Initialize $N_p$ Particles: 
@@ -627,7 +641,8 @@ $x$ go to infinity, the standard deviation based approximation becomes inefectiv
     \STATE Calculate $N_{eff}$ with \eqref{neff}
     \IF{$N_{eff} < N_R$ (recommend $N_R = min(50, .1N_p)$ )}
         \STATE Calculate empirical $\sigma$ 
-        \STATE Redraw particles using basic resampling
+        \STATE $h = [N_s8c^{-1}_{n_x}(n_x + 4)(2\sqrt{\pi})^{n_x}]^{\frac{1}{n_x +4}}$
+        \STATE Redraw particles using (stratified) basic resampling
         \FOR{$i$ in $N_p$}
             \STATE Draw $\epsilon \sim K$
             \STATE $x_i = x_i + h \sigma \epsilon$
@@ -641,109 +656,142 @@ $x$ go to infinity, the standard deviation based approximation becomes inefectiv
  \end{algorithmic}
 
 The ultimate effect of this regularized resampling is a convergence similar to simulated annealing
-or a genetic algorithm. "Fit" versions of $x$ spawn more children nearby which allow
+or a genetic algorithm. Versions of $x$ that are "fit", or give good measurements, spawn more children 
+nearby which allow
 for more accurate estimation near points of high likelihood. As the variance of the estimated
 $x$'s decrease the radius in which children are spawned also decreases. Eventually the radius
 will approach the width of the $\nu_x$ and $\nu_y$.
 
-\subsubsection{Choosing $\hat{Pr}(y(T) | x(T))$}
-Analysis of Gaussian versus exponential
+\subsection{Choosing $\hat{Pr}(y(T) | x(T))$}
+Choosing a representation of an unknown distribution is certainly tricky,
+and so the fact that $\hat{Pr}(y(T) | x(T)) = \nu_d + \nu_y$ means that
+there is a significant piece of the algorithm that is based on conjecture.
+Studies of the noise in FMRI typically attribute noise to a Gaussian random
+variable or an additive noise process with Gaussian steps. 
 
-Discussion of optimality (or lack thereof)
+\subsubsection{Classical De-trending}
+The non-stationary
+aspect of a Weiner process is difficult to compensate for, and so various methods
+have been developed to compensate for it. \cite{detrend} and \cite{drift} have
+demonstrated that this component is prevalent, and may in fact just be a characteristic
+of FMRI. In some studies, as many as half the voxels benefit from detrending, meaning
+that this is certainly a serious barrier to inference. All the existing methods are performed
+during the preprocessing stage, rather than as an integral part of analyzing the BOLD
+signal. There is no shortage of theories on the "best" method of detrending, however
+a head to head comparison, \cite{detrend}, showed that in most cases subtracting off
+a spline works the best. The benefit of the spline versus wavelets, high pass 
+filtering or other DC removal techniques is that the frequency response is not set.
+A spline is able to move quickly when the signal is moving quickly, and move more
+slowly when the signal moves more slowly. That said, the spline will still remove some
+amount of signal, just like all of these methods. 
 
-Discussion of using a gaussian mixture pdf to describe a non-gaussian distribution
+<image of de-spline'd lines with "true" lines>
 
-%<stopped here>
-\subsection{My Specific Particle Filte}
-Although particle filters are well defined, significant design decisions
-are application dependent. The most important choice is the weighting function,
-$w(y_t - y(\theta_t))$. Obviously the function should weight $0$ maximally,
-the drop off rate is extremely important. A very thin gaussian probability 
+\subsubsection{Delta Based Inference}
+I also propose and test a different method of dealing with the so called "drift". 
+Instead of comparing the direct output of the particle filter with the direct
+measurement, the algorith compares the change in signal over that period of time.
+In most signal processing cases this would foolish, but that is because the 
+general assumption that all noise is high frequency noise does not hold up here.
+In fact, every pipelines for the analysis of BOLD signal uses a high pass filter,
+but low poss filters are rarely applied, because it is a well known fact that 
+most of the signal is in the high frequency range. The particle filter is an 
+extremely robust method of inference, and so I would assert that the particle
+filter ought to be given as raw data as possible. While taking direct measurements
+without de-trending would give awful results, using the difference removes the 
+DC component and turns a Weiner process into a Gaussian random variable. 
+
+\begin{equation}
+\label{measass}
+\Delta y = y(t) - y(t-1) = g(x(t)) - g(x(t-1)) + \nu_y(t) - \nu_y(t-1) + \nu_d(t) - \nu(t-1)
+\end{equation}
+
+Because $\nu_d$ is a Weiner process, then $\nu_d(t) - \nu_d(t-1)$ is simply Gaussian. If
+$\nu_d$ is some other additive process, the difference will still be one of a few stable
+distributions. If $\nu_y$ is i.i.d. then the resulting distribution will still be zero mean
+with a maximum variance of twice the original variance. All the assumptions made originally
+for the particle filter hold, and all of the parameters may be distringuished based on
+the step sizes, thus it is not unreasonable to attempt to match the string of step sizes
+rather than direct signal level. 
+
+\subsubsection{Weighting Function}
+Because $\hat{Pr}(y(T) | x(T))$, what I will call the weighting funciton,
+is based on an unknown distribution, it is necessary to decide on a function
+that will approximate $\hat{Pr}(y(t) | x(T))$. Obviously the function, $\omega(y(t), f(x(t))$
+needs to centered at zero and have a scale comparable to the signal levels.
+While a Gaussian function is the natural choice, we also wanted to try a distribution
+with wider tails, so that outliers don't completely destroy particle's weights.
+Therefore, we tried three weighting functions; Gaussian, exponential and 
+the Cauchy distribution. The standard deviations (or scale) was set to 
+$\sigma_y/5$, where $\sigma_y$ is the variance of all $y[0:\infty]$. Of course 
+since the particle filter requires a weighting function to run, this means that
+before the particle filter starts all the measurements have to be in. In cases where
+this is impossible, a heuristic based on a small sample may work just as well.
+
+The shape of the weighting function is extremely important, because it essentially decides
+the rejection rate of particles. A very thin gaussian probability 
 distribution function has nice properties, but thin tails. As a result, large
 outliers in the measurement vector could easily force all the particles to
 have near 0 weights, thus forcing the particle filter to converge improperly. 
-On the other end of the spectrum, a cauchy PDF may not
-weight particles in the middle enough, preventing the particles to never 
-converge. Of course, the scale factor, or variance, also plays a signifcant
-role in the convergeance rate. The importance of the weighting function
+On the other end of the spectrum, a cauchy PDF, has relatively fat tails, and
+may not weight central particles high enough, preventing the particles from 
+converging at a reasonable rate. Exponetials have the benefit of having an 
+extremely smooth drop to zero, and a slope of 1 at the origin. Having a non-zero
+slope at the origin is beneficial because it discriminates all the way up until
+the measured and predicted $y$ are the same. The importance of the weighting function
 cannot be overstated, as this is the primary factor in deciding the rate at
-which the particle filter converges. As part of the simulations, I compare
-a gaussian based weighting function with an exponential weightin function.
-In both cases, I scaled the width of the weighting functions automatically based
-on the signal variance.
-
-Dealing with low frequency noise is also a crucial part of the tests. 
-I tested two different methods of dealing with this noise. Various methods
-are used to deal with this problem in other toolsets. The most common method
-is to apply a high-pass filter to the measurement vector. Although this makes
-sense in many applications, in this case it may not be adaptive enough for
-a random walk type noise. On the other hand, it has been shown that a spline
-de-trending method is able to better deal with the low frequency noise
-typically present in FMRI. Thus, my first method
-was to use a spline fit with knots every 80 or 90 measurements to trance
-the basic shape of the drift. I then added an extra DC gain parameter to
-the model to account for the fact that the de-trended signal tended to have 
-a mean of 0, rather than some positive value. 
-
-My second method of dealing with low frequency drift was to counteract
-it by weighting particles based on $(y_t-y_{t-1}) - (y(\theta_t)-y(\theta_{t_1}))$ 
-rather than directly on $y_t - y(\theta_t)$. It is generally believed that the noise present in 
-FMRI has approximately gaussian steps, which means that this method only
-has to deal with gaussian white noise. Such a technique is usually not considered a
-good idea because high frequency noise is almost exclusively assumed in
-systems theory. In this case however; the noise is all in the lower frequency
-range, so performing a differentiation like operation, which magnifies high
-frequency signals, is exactly what we want. 
-
-... more specifics...
-
-The General Linear Model, and 
-SPM's goal is to find a correlation between input, or what a 
-person is thinking, and which regions are active. This is an 
-important task, but it misses the potential of FMRI. FMRI's 
-greatest weakeness as a tool for studying neural activity is that
-it is connected to neurons through a long chain of events. But
-what if, in addition to seeing which brain regions are active
-for which stimuli, we could also study pathologies such as poor
-blood flow, or derive physical parameters such as blood vessel
-compliance? By using a realistic physical model as the basis for
-discovering the relation between the outside world and FMRI 
-signal, the path to detecting activation gives all those other
-things for free, precisely \emph{because} FMRI is the result of such
-a long chain of events. It is actually quite common to use models to derive
-the values of physiological parameters. For instance, blood volume
-is often measured by injecting a dye into the blood stream and then
-assuming that the dye is removed at a rate proportional to the
-concentration in the blood. By performing a simple regression it is
-possible to estimate blood volume quite accurately. While for
-this particular project I don't claim that the results will give 
-physiologically plausible results, with some tuning of the algorithm
-it would very possible. 
-
-While the General Linear Model has historically done well with
-detecting activation, it is limited to scaling the entire input
-signal up or down. This leaves out even basic effects such as 
-longer or shorter time constants, as well as nonlinear effects which
-are known to be present in the BOLD system. 
-**
+which the particle filter converges. 
 
 
-While the General Linear Model has been extremely effective at
-gleaning information about which voxels are "active" and which
-are not, its purpose is only to say which regions are "statistically
-significant". However, considering that voxels consist of millions
-of neurons, the reality is that a
-region could be active, but at some other level or time constant
-than expected; and be completely missed by the linear model. 
-Studies showing activation
-in Cadavers of Phantoms highlight the inherant problem with the 
-General Linear Model: a problem that mandates multiple
-comparison testing with very high thresholds to ensure any 
-sort of face validity \cite{drift}.
-By moving to models that actually "learn" the 
-parameters of the model, model error will be drastically
-reduced allowing for much more reasonable statistical thresholds.
-\subsection{Particle Filters}
+%... more specifics...
+%
+%The General Linear Model, and 
+%SPM's goal is to find a correlation between input, or what a 
+%person is thinking, and which regions are active. This is an 
+%important task, but it misses the potential of FMRI. FMRI's 
+%greatest weakeness as a tool for studying neural activity is that
+%it is connected to neurons through a long chain of events. But
+%what if, in addition to seeing which brain regions are active
+%for which stimuli, we could also study pathologies such as poor
+%blood flow, or derive physical parameters such as blood vessel
+%compliance? By using a realistic physical model as the basis for
+%discovering the relation between the outside world and FMRI 
+%signal, the path to detecting activation gives all those other
+%things for free, precisely \emph{because} FMRI is the result of such
+%a long chain of events. It is actually quite common to use models to derive
+%the values of physiological parameters. For instance, blood volume
+%is often measured by injecting a dye into the blood stream and then
+%assuming that the dye is removed at a rate proportional to the
+%concentration in the blood. By performing a simple regression it is
+%possible to estimate blood volume quite accurately. While for
+%this particular project I don't claim that the results will give 
+%physiologically plausible results, with some tuning of the algorithm
+%it would very possible. 
+%
+%While the General Linear Model has historically done well with
+%detecting activation, it is limited to scaling the entire input
+%signal up or down. This leaves out even basic effects such as 
+%longer or shorter time constants, as well as nonlinear effects which
+%are known to be present in the BOLD system. 
+%**
+%
+%
+%While the General Linear Model has been extremely effective at
+%gleaning information about which voxels are "active" and which
+%are not, its purpose is only to say which regions are "statistically
+%significant". However, considering that voxels consist of millions
+%of neurons, the reality is that a
+%region could be active, but at some other level or time constant
+%than expected; and be completely missed by the linear model. 
+%Studies showing activation
+%in Cadavers of Phantoms highlight the inherant problem with the 
+%General Linear Model: a problem that mandates multiple
+%comparison testing with very high thresholds to ensure any 
+%sort of face validity \cite{drift}.
+%By moving to models that actually "learn" the 
+%parameters of the model, model error will be drastically
+%reduced allowing for much more reasonable statistical thresholds.
+%\subsection{Particle Filters}
 
 \section{Methods}
 \subsection{Preprocessing}
