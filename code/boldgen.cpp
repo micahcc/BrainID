@@ -62,7 +62,8 @@ void init4DImage(Image4DType::Pointer& out, size_t xlen, size_t ylen,
 }
 
 
-void add_drift(Image4DType::Pointer in, double snr, gsl_rng* rng, int series) 
+void add_drift(Image4DType::Pointer in, Image3DType::Pointer var, gsl_rng* rng, 
+            double snr) 
 {
     itk::ImageSliceIteratorWithIndex<Image4DType> 
                 iter(in, in->GetRequestedRegion());
@@ -70,7 +71,6 @@ void add_drift(Image4DType::Pointer in, double snr, gsl_rng* rng, int series)
     iter.SetSecondDirection(TIME_DIR);
     iter.GoToBegin();
     
-    Image3DType::Pointer var = Tvar(in);
     double prev = 0;
 
     iter.GoToBegin();
@@ -91,7 +91,8 @@ void add_drift(Image4DType::Pointer in, double snr, gsl_rng* rng, int series)
     }
 }
 
-void add_noise(Image4DType::Pointer in, double snr, gsl_rng* rng, int series) 
+void add_noise(Image4DType::Pointer in, Image3DType::Pointer var, gsl_rng* rng, 
+            double snr)
 {
     itk::ImageSliceIteratorWithIndex<Image4DType> 
                 iter(in, in->GetRequestedRegion());
@@ -99,8 +100,6 @@ void add_noise(Image4DType::Pointer in, double snr, gsl_rng* rng, int series)
     iter.SetSecondDirection(TIME_DIR);
     iter.GoToBegin();
     
-    Image3DType::Pointer var = Tvar(in);
-
     iter.GoToBegin();
     while(!iter.IsAtEndOfSlice()) {
         size_t ii=0;
@@ -382,6 +381,8 @@ int main (int argc, char** argv)
         fout.close();
     }
     
+    Image3DType::Pointer var = Tvar(measImage);
+    
     if(a_noise_snr() != 0 && !a_boldfile().empty()) {
         gsl_rng* rng = gsl_rng_alloc(gsl_rng_taus);;
         {
@@ -391,7 +392,7 @@ int main (int argc, char** argv)
             fclose(file);
             gsl_rng_set(rng, seed);
         }
-        add_noise(measImage, a_noise_snr(), rng, a_series());
+        add_noise(measImage, var, rng, a_noise_snr());
         if(!a_boldfile().empty()) {
             itk::ImageFileWriter< Image4DType >::Pointer writer = 
                 itk::ImageFileWriter< Image4DType >::New();
@@ -414,7 +415,7 @@ int main (int argc, char** argv)
             fclose(file);
             gsl_rng_set(rng, seed);
         }
-        add_drift(measImage, a_drift_snr(), rng, a_series());
+        add_drift(measImage, var, rng, a_drift_snr());
         if(!a_boldfile().empty()) {
             itk::ImageFileWriter< Image4DType >::Pointer writer = 
                 itk::ImageFileWriter< Image4DType >::New();
