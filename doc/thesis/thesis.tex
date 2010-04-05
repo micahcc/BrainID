@@ -158,7 +158,7 @@ Additional papers have added such things as
 
 All these effects are generally accepted as the cause of the BOLD signal, 
 but FMRI doesn't detect this happening in one neuron, but rather as the 
-aggregate over hundreds or millions of cells. Though local neurons act
+aggregate over millions of cells. Though local neurons act
 "together" (i.e. around the same time), the density of neurons, the
 density of capillaries, and slight differences in activation across 
 a particular voxel can all lead to signal attenuation or noise. 
@@ -599,10 +599,8 @@ K = \left\{
 \end{equation}
 %<more here>
 
-If the noise is assumed to be Gaussian then it is possible to further optimize. Obviously,
-its very possible that distribution will deviate from that assumption, however in this
-case assuming a Gaussian still allows a great deal of flexibility, since the distribution
-is a mixture. Thus we let $h$ be defines as:
+If the noise is assumed to be Gaussian then it is possible to further optimize. 
+Thus we let $h$ be defines as:
 \begin{eqnarray}
 h = [N_s8c^{-1}_{n_x}(n_x + 4)(2\sqrt{\pi})^{n_x}]^{\frac{1}{n_x +4}}
 \end{eqnarray}
@@ -610,20 +608,22 @@ and although it is very possible the underlying noise is non-gaussian, the Gauss
 may work, but sub-optimally. It has been proposed that (Monte Carlo Approximations for
 General State-Space Models, markus Hurzeler and Hans R. Kunsch) if the underlying 
 distribution is non-Gaussian, then using this bandwidth will oversmooth. 
-At the same time, as $n_x$, the number of dimensions in
-$x$, goes to infinity, the standard deviation based approximation becomes less effective
-(cite a Tutorial on Particle Filters for on-line non-linear non-gaussian bayesian
-tracking, sanjeev arulampalam, simon maskell, neil gordon...). In reality over smoothing
+In reality over smoothing
 should not be too great an issue because the smoothing is only being applied to find new
 particles. If the distribution is over smoothed then the algorithm may not converge as rapidly;
 however, because the bandwidth is still based on particle variance, which will decay as 
 particles are ruled out, it is still able to converge. In fact over smoothing is preferrable
-to under smoothing, since the latter would result in false negatives, but the previous does
-not result in false anything. Additionally, because of the high dimensionality of our system,
-and limited measurements, it is helpful to have a broader bandwidth to explore with. Because 
+to under smoothing, since the latter would result in false negatives, but the previous only
+results in a slower decay of the variance. 
+At the same time, as $n_x$, the number of dimensions in
+$x$, goes to infinity, the standard deviation based approximation becomes less effective
+(cite a Tutorial on Particle Filters for on-line non-linear non-gaussian bayesian
+tracking, sanjeev arulampalam, simon maskell, neil gordon...).  Because of the high dimensionality of our system,
+and limited measurements, it is helpful to have a broader bandwidth to explore the distribution. 
+Nevertheless, because 
 of the potentially wide smoothing factor applied by regularized resampling, performing this
 step at every measurement would allow particles a great deal of mobility. This mobility is
-the opposite of convergence, which is why regularized resampling should only be done when
+the enemy of convergence, which is why regularized resampling should only be done when
 $\hat{N}_{eff}$ drops very low (say less than 50). Other than the periodic regularized
 resampling then, the regularized particle filter is nearly identical to the basic sampling
 importance sampling filter (SIS). 
@@ -656,24 +656,24 @@ importance sampling filter (SIS).
  \end{algorithmic}
 
 The ultimate effect of this regularized resampling is a convergence similar to simulated annealing
-or a genetic algorithm. Versions of $x$ that are "fit", or give good measurements, spawn more children 
-nearby which allow
-for more accurate estimation near points of high likelihood. As the variance of the estimated
-$x$'s decrease the radius in which children are spawned also decreases. Eventually the radius
-will approach the width of the $\nu_x$ and $\nu_y$.
+or a genetic algorithm. Versions of $x$ that are "fit" (give good measurements) spawn more children 
+nearby which allow for more accurate estimation near points of high likelihood. 
+As the variance of the estimated
+$x$'s decrease, the radius in which children are spawned also decreases. Eventually the radius
+will approach the width of the underlying uncertainty, $\nu_x$ and $\nu_y$.
 
 \subsection{Choosing $\hat{Pr}(y(T) | x(T))$}
 Choosing a representation of an unknown distribution is certainly tricky,
 and so the fact that $\hat{Pr}(y(T) | x(T)) = \nu_d + \nu_y$ means that
-there is a significant piece of the algorithm that is based on conjecture.
+there is a significant piece of the algorithm that is based primarily conjecture.
 Studies of the noise in FMRI typically attribute noise to a Gaussian random
 variable or an additive noise process with Gaussian steps. 
 
 \subsubsection{Classical De-trending}
 The non-stationary
-aspect of a Weiner process is difficult to compensate for, and so various methods
+aspect of a Weiner process as with $\nu_d$ is difficult to compensate for, and so various methods
 have been developed to compensate for it. \cite{detrend} and \cite{drift} have
-demonstrated that this component is prevalent, and may in fact just be a characteristic
+demonstrated that this component is prevalent, and may in fact be a characteristic
 of FMRI. In some studies, as many as half the voxels benefit from detrending, meaning
 that this is certainly a serious barrier to inference. All the existing methods are performed
 during the preprocessing stage, rather than as an integral part of analyzing the BOLD
@@ -690,14 +690,15 @@ amount of signal, just like all of these methods.
 \subsubsection{Delta Based Inference}
 I also propose and test a different method of dealing with the so called "drift". 
 Instead of comparing the direct output of the particle filter with the direct
-measurement, the algorith compares the change in signal over that period of time.
+measurement, the algorith compares the change in signal over a single TR. 
 In most signal processing cases this would foolish, but that is because the 
-general assumption that all noise is high frequency noise does not hold up here.
-In fact, every pipelines for the analysis of BOLD signal uses a high pass filter,
+general assumption that all noise is high frequency is not the case here.
+In fact, every pipeline for the analysis of BOLD signal uses a high pass filter,
 but low poss filters are rarely applied, because it is a well known fact that 
-most of the signal is in the high frequency range. The particle filter is an 
+most of the signal is in the high frequency range and most of the noise is actually 
+in the low frequency range. The particle filter is an 
 extremely robust method of inference, and so I would assert that the particle
-filter ought to be given as raw data as possible. While taking direct measurements
+filter ought to be given as \emph{raw} data as possible. While taking direct measurements
 without de-trending would give awful results, using the difference removes the 
 DC component and turns a Weiner process into a Gaussian random variable. 
 
@@ -706,13 +707,15 @@ DC component and turns a Weiner process into a Gaussian random variable.
 \Delta y = y(t) - y(t-1) = g(x(t)) - g(x(t-1)) + \nu_y(t) - \nu_y(t-1) + \nu_d(t) - \nu(t-1)
 \end{equation}
 
-Because $\nu_d$ is a Weiner process, then $\nu_d(t) - \nu_d(t-1)$ is simply Gaussian. If
+Because $\nu_d$ is a Weiner process, then $\nu_d(t) - \nu_d(t-1)$ is simply a Gaussian step. If
 $\nu_d$ is some other additive process, the difference will still be one of a few stable
 distributions. If $\nu_y$ is i.i.d. then the resulting distribution will still be zero mean
 with a maximum variance of twice the original variance. All the assumptions made originally
 for the particle filter hold, and all of the parameters may be distringuished based on
 the step sizes, thus it is not unreasonable to attempt to match the string of step sizes
-rather than direct signal level. 
+rather than string of direct readings. 
+
+<frequncy response graphs, highlighting noise frequency range and signal frequency range>
 
 \subsubsection{Weighting Function}
 Because $\hat{Pr}(y(T) | x(T))$, what I will call the weighting funciton,
@@ -742,204 +745,146 @@ the measured and predicted $y$ are the same. The importance of the weighting fun
 cannot be overstated, as this is the primary factor in deciding the rate at
 which the particle filter converges. 
 
+Obviously the optimal $\hat{Pr}(y(T) | x(T))$ is the true $Pr(y(T) | x(T))$; however
+since that is unknown, I tested multiple different distributions. As stated previous,
+because the exact scale of $Pr(y(T) | x(T))$ it not even known, the exponential distribution
+has the added benefit of having a negative slope all the way form zeo to infinity. Thus
+even if the scale is completely wrong, particles will still be well differentiated. 
 
-%... more specifics...
-%
-%The General Linear Model, and 
-%SPM's goal is to find a correlation between input, or what a 
-%person is thinking, and which regions are active. This is an 
-%important task, but it misses the potential of FMRI. FMRI's 
-%greatest weakeness as a tool for studying neural activity is that
-%it is connected to neurons through a long chain of events. But
-%what if, in addition to seeing which brain regions are active
-%for which stimuli, we could also study pathologies such as poor
-%blood flow, or derive physical parameters such as blood vessel
-%compliance? By using a realistic physical model as the basis for
-%discovering the relation between the outside world and FMRI 
-%signal, the path to detecting activation gives all those other
-%things for free, precisely \emph{because} FMRI is the result of such
-%a long chain of events. It is actually quite common to use models to derive
-%the values of physiological parameters. For instance, blood volume
-%is often measured by injecting a dye into the blood stream and then
-%assuming that the dye is removed at a rate proportional to the
-%concentration in the blood. By performing a simple regression it is
-%possible to estimate blood volume quite accurately. While for
-%this particular project I don't claim that the results will give 
-%physiologically plausible results, with some tuning of the algorithm
-%it would very possible. 
-%
-%While the General Linear Model has historically done well with
-%detecting activation, it is limited to scaling the entire input
-%signal up or down. This leaves out even basic effects such as 
-%longer or shorter time constants, as well as nonlinear effects which
-%are known to be present in the BOLD system. 
-%**
-%
-%
-%While the General Linear Model has been extremely effective at
-%gleaning information about which voxels are "active" and which
-%are not, its purpose is only to say which regions are "statistically
-%significant". However, considering that voxels consist of millions
-%of neurons, the reality is that a
-%region could be active, but at some other level or time constant
-%than expected; and be completely missed by the linear model. 
-%Studies showing activation
-%in Cadavers of Phantoms highlight the inherant problem with the 
-%General Linear Model: a problem that mandates multiple
-%comparison testing with very high thresholds to ensure any 
-%sort of face validity \cite{drift}.
-%By moving to models that actually "learn" the 
-%parameters of the model, model error will be drastically
-%reduced allowing for much more reasonable statistical thresholds.
-%\subsection{Particle Filters}
+<Q-Q plot of real fmri data with Gaussian, DC>
+<Q-Q plot of real fmri data with Gaussian, deltas>
 
 \section{Methods}
+This paper describes two types of experiments; first we will cover
+simulations which have the benefit of a ground truth, then we will
+cover the methods used in the use of the particle filter on real data.
+
 \subsection{Preprocessing}
+As discussed in the section on de-trending, the normal pipeline for analyzing
+FMRI involves a great deal of preprocessing. In this paper we make an effort to
+minimize any type of preprocessing that will degrade the signal. 
 After FMRI data has been acquired it is always necessary to modify the
 data in some way to make different runs comparable. Because FMRI signal
-levels are essentially unit-less, at the very least it is necessary to convert
-the data into \% difference from the baseline. Finding the baseline is the
-first hurdle in dealing with FMRI. Various methods exist for doing this,
-but they are all ad-hoc. It is common to treat each stimulus pulse independently,
-ignoring the long decay of the BOLD signal. By treating each input separately,
-the "base" for calculating the percent difference is merely the signal level 
-before the stimulus is applied. The problem with this is that the BOLD signal
-can be heavily delayed, and fall times can be as long as 10 or 15 seconds,
-meaning that the assumption is clearly a false one. Another popular method 
-of dealing with this problem, is to put all the time series through a high
-pass filter. This will of course remove the DC component of the signal, and 
-some amount of so called "drift". The problem with this method is that it is
+levels are unit-less, at the very least it is necessary to convert
+the data into \% difference from the baseline. This process removes no data
+from signal since it merely subtracting then dividing by a constant. This
+is the signal that was input into the delta based particle filter.
+Of course there are much more advanced ways of performing this task.
+The generally accepted standard is actually to use a high pass filter, although the
+cutoff frequency is application dependent and often applied haphazardly.
+The high pass filter thus removes the DC component of the signal, and 
+some amount of the so called "drift". The problem with this method is that it is
 not adaptive to the input. Huge variations in drift frequencies can exist 
 in a single time-series. Thus, a single cutoff frequency could miss a significant
 drift component, or it could remove \emph{actual} signal, if the cutoff frequency is
-set too high. 
+set too high. This is why, as I mentioned in the De-trending section, a spline
+based detrending method will generally give better results. 
 
+For simulated and real images (tests with multiple time-series), tests were 
+also run with and without Gaussian filtering with sigma of %not sure todo
+were run, since it is standard
+practice to apply a Gaussian spatial filter to the images at each timestep. Obviously
+a spatial filter such as Gaussian filtering increased SNR but can also lead to less
+precision in the output maps.
 
-\section{Introduction to Modeling}
+\subsection{Simulation}
+We performed two types of simulations. First, we simulated a single BOLD time-series based
+on a random chosen set of model parameters. This process was relatively straight forward
+given the state-space equations for the BOLD signal. After a "true" signal was generated,
+we then added a carrier level, since BOLD is typically measured as a \% difference from the
+base level. Finally, we added Gaussian noise, and a Weiner Process to the clean signal. The
+variance of the Gaussian noise may be expressed in terms of the desired noise SNR, $R$ as:
+\begin{equation}
+var(y_{noisy}) = var(y) / R
+\end{equation}
+Since SNR doesn't have quite the same meaning for a Wiener process based noise, the variance 
+of the Gaussian steps was set to be:
+\begin{equation}
+var(y_{noisy}) = var(y) / (4R)
+\end{equation}
+Once this noisy simulated time series was generated, the exact same particle filter algorithm
+that would later be run on full sized images, was run on this single voxel image. We ran
+a series of tests to determine the convergence rate of the particle filter, the number
+of particles that were required, how weighting functions compared, how different de-trending
+methods compared with each other and, finally the variance of the result. By running the exact
+time-series with different noise realizations, it was possible to determine the model variance.
+As the reader may know, the error of an estimator may be calculated as:
+\begin{equation}
+MSE(\Theta) = Var(\Theta) + Bias(\Theta)^2
+\end{equation}
+The variance is an expression of how much the result would change for different noise realizations,
+whereas the bias is an expression of how well the model matches the true underlying model. In
+this case, because the same model is being used in the particle filter and underlying simulation,
+the bias is actually zero. Obviously when this is calculated using \emph{real} data with an unknown
+underlying state space equation, there will be some amount of bias error, but assuming that the
+noise is similar to the noise used in these tests, the model variance will actually be about the
+same. Thus calculating the model variance is extremely helpful in calculating how well determined
+our model is, and how consistent it will be for real data. A single timeseries, as opposed to the
+thousands present in a real image, makes it easier to 
+compare the output with the ground truth, with various parameters. 
 
-Of course, it is well known that many of the assumptions 
-that the GLM makes about BOLD activation do not hold. 
-The General Linear Model ignores
-the fact that the BOLD response is nonlinear, contains non-gaussian
-noise and most importantly that brain networks are 
-so called "Small World Networks" \cite{smallworld}, \cite{noise}. 
-Merely accounting for
-nonlinearities in the time-series of the BOLD response can
-result in significantly better estimation as shown in \cite{nonlinearmodels}.
-But even more crucial is the recent movements away from mass-
-univariate models. Current mass-univariate models 
-assume uniform connectivity from input to every voxel; yet
-this is obviously not the case. While
-violating linearity assumptions or Gaussian assumptions 
-requires us to be more conservative, the lack of any method
-to switch brain circuits on and off means that any model
-we make for brain regions would not be Turing complete;
-in effect implying that humans are incapable of 
-thought \cite{turing}.
+Second we used a modified version of the FSL tool 
+POSSUM to generate an entire FMRI image from a parameter map. The parameter map was generated
+by creating a random image, smoothing it with a large Gaussian kernel, then thresholding
+the results. Finally connected regions were each given a set of parameters from a finite
+list of randomly chosen parameter sets. The result was a four dimensional (length x width
+x height x parameter) image with spatially varying parameters. Time-series of activation level
+was generated for each set of parameters, then activation levels were fed into POSSUM's 
+function for generating frequency domain data. The patche for POSSUM will be made available.
+For each time-series in the simulate FMRI image, the final \emph{static} parameters are saved
+into a parameter map. This parameter map may then be compared to the map used to generate the 
+simulated data; additionally a new simulation using the calculated parameters may also be 
+generated to test the functional difference between the two maps. This would give an absolute 
+quantitative difference between the two parameter sets irrespective to parameter slopiness.
+So for instance, if $V_0$ is halved, $\epsilon$ doubling may very well give a similar result.
+In this case the \% difference between the parameters will be large in each case, but the functional
+difference between the parameters will not be great. This is obviously a bad situation, which
+is why we wanted to test for it.
 
-So called Dynamic Causal Modeling is the beginning of 
-the next phase of neurology. DCM is the first 
-brain study to show any significant connection between 
-diffusion tensor imaging and actual function layout in
-the human brain \cite{dti_dcm}. By incorporating connections
-between regions and a realistic activation model, DCM
-corrects two of the largest problems with the GLM. While
-there are other techniques that may be useful in the future,
-they either lack physiological analogs (Artificial Neural
-Networks) or are extremely computationally expensive 
-(mutual information).  Given that much of the 
-potential of the GLM has been exhausted, and that DCM 
-is one of the first well defined methods capable of learning 
-complicated brain circuits DCM is crucial to the future
-of FMRI and our understanding of the human brain.
+\subsection{Real Data}
+Finally, we also performed inference based on real FMRI data. The scanner we used...
+%... more specifics...
+
+The final result from calculating parameters with the real data was similar to that
+from the results from the POSSUM simulated data. The difference being that there was
+no ground truth the check it with. 
 
 \section{Results}
-The particle filter shows great promise in being able 
-to learn a variety of different regional activation
-parameters. We have performed tests with a random binary
-pulse train as input to a simulated region and then tested
-the particle filter's ability to estimate the signal
-parameters. Additionally random gaussian noise with an
-Signal-To-Noise ratio of 2.0 was added. Figure 1 shows
-the pulse train, the clean signal and the noisy signal, which
-was the input to the particle filter. A random set of 
-system parameters was chosen to simulate the region,
-which the particle filter had no knowledge of other than
-a mean and rough variance.
-The tests were performed using 10,000 particles and took
-approximately 4 minutes to compute.
+\subsection{Single Time-Series Simulation}
 
-%figure 1
-\begin{figure}
-\includegraphics[width=8in,height=4in]{noise.png}
-\caption{Simulated time-series for a single region. The red line
-shows the input stimulus, the blue line shows the base BOLD 
-response, and the green line is the BOLD response with Gaussian
-white noise added at SNR of 2}
-\label{fig:noise}
-\end{figure}
+Graphs: 
 
-%figure 2
-\begin{figure}
-\includegraphics[width=8in,height=4in]{bold.png}
-\caption{Particle Filter Results. The blue line is the "true"
-(simulated) BOLD response, the red line
-is the output of the particle filter with 2 standard deviations
-in green. Note that the error bar for time 0 is outside the scope
-of the image and is approximately $\pm .003$.}
-\label{fig:bold}
-\end{figure}
+For \{delta, DC/Spline\}, \{exponential, gaussian, cauchy\}, \{biased, unbiased initial\},
+\{100, 500, 1000\} particles
+\begin{enumerate}
+\item Comparison with a linear system with similar number of degrees of freedom
+\item Ground truth vs. Estimated signal during particle filter run
+\item Ground truth vs. Estimated signal with final parameter set
+\item True Parameters vs. Final Parameter Sets
+\item Variance of final parameters when faced with same ground truth, different noise
+\item Variance of final parameters when faced with same ground truth, different noise
+\item MSE of (a new timeseries based on X(t) vs. ground truth) for all t
+\item Estimator Variance based on different noise runs
+\end{enumerate}
 
-%figure 3
-\begin{figure}
-\includegraphics[width=8in,height=4in]{state.png}
-\caption{Particle Filter Results. The blue line is the "true"
-parameter and the green line is the estimated value for the parameter.
-Note that the timescale for $S_t$ is different to highlight an typical
-stimulus response. Again 2 standard deviations are shown.}
-\label{fig:state}
-\end{figure}
+%note to self, epsilon should probably be uniform between 0 and something
+\subsection{Simulated Volume}
+\begin{enumerate}
+\item Parameter Map 
+\item Error map of parameters
+\item Histogram of \%errors between parameters
+\item Activation Map based on a single region with high $\epsilon$, compared with linear
+\end{enumerate}
 
-Figure 2 shows the estimated BOLD response versus the simulated
-data (without noise). It is clear that as the estimated BOLD
-response converges to the true BOLD as time progresses. This
-is because more and more potential states are eliminated by system's
-response to new input sequences. Convergence depends highly on 
-the input signal and the weighting function thus choice of both
-are extremely important. We have found that an impulse train
-(emulated with .1 second width square waves) gives a very good
-response. It is also important to choose an input with
-some longer hold times, at least as long as than the 
-expected time constants, which in this case was around 
-8 seconds. The weighting function we have chosen is based
-on the exponential distribution, with a variance equal to
-the RMS of the signal. While it is important to converge
-by the end of the time-series, it is often the case that 
-converging too fast will harm the state estimation by over-
-emphasizing the measurements of single time points. The rate
-of convergence is well within control of the user of the 
-particle filter based on the weighting function and the frequency
-of re-sampling. Note that resampling can cause quantization
-errors due to the nature of estimating a long tailed 
-distribution with a finite number of samples. 
+\subsection{FMRI Data}
+....
 
-Figure 3 shows the estimated versus simulated values for
-several key parameters. Notice how the variance drops as
-the particle filter continues. The parameters shown are
-$V_0$ which is a scaling parameter, $\tau_s$, and $\tau_f$
-which are both time constants and $s_t$ which is a hidden
-state variable, estimating the flow inducing signal. Note that
-even though some of the parameters don't converge to the exact
-value, that the estimated $s_t$ still matches the true
-$s_t$ relatively well. It is often the cast that although a
-few parameters don't converge to their true value, one 
-parameter may pick up the slack for another. It is of
-note that $\tau_s$ and $\tau_f$ do converge at least close
-to their true values, because they cannot be determined
-from steady state. 
+image comparing epsilon-map with GLM activation map
+
+\section{Conclusion}
 
 \bibliographystyle{abbrvnat}
-\bibliography{proposal_micah}
+\bibliography{references}
 
 
 \end{document}
