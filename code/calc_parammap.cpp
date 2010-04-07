@@ -20,6 +20,7 @@
 #include "tools.h"
 #include "modNiftiImageIO.h"
 #include "BoldPF.h"
+#include "callbacks.h"
 
 #include <vector>
 #include <cmath>
@@ -42,42 +43,6 @@ typedef itk::SubtractImageFilter< Image4DType > SubF4;
 
 namespace aux = indii::ml::aux;
 typedef indii::ml::filter::ParticleFilter<double> Filter;
-
-struct cb_meas_data
-{
-    Image4DType::Pointer image;
-    Image4DType::IndexType pos;
-    unsigned int method;
-};
-
-int cb_meas(BoldPF* bold, void* data)
-{
-    boost::mpi::communicator world;
-    const unsigned int rank = world.rank();
-    
-    cb_meas_data* cdata = (struct cb_meas_data*)data;
-    
-    cdata->pos[3] = bold->getDiscTimeL();
-    aux::vector mu = bold->getDistribution().getDistributedExpectation();
-    aux::vector meas =  bold->getModel().measure(mu);
-
-    //add DC term
-//    std::cout << "Disctime: " << bold->getDiscTimeL();
-//    std::cout << "\nmeas: " << meas[0];
-//    std::cout << "\ndrift: " << mu[mu.size()-meas.size()] << "\n";
-//    if(cdata->method == BoldPF::DC) {
-//        for(unsigned int i = 0 ; i < meas.size(); i++) {
-//            meas[i] -= mu[mu.size()-meas.size()+i];
-//        }
-//    }
-
-    if(rank == 0) {
-         cdata->image->SetPixel(cdata->pos, meas[0]);
-         outputVector(std::cout, mu);
-         std::cout << endl << meas[0] << endl;
-    }
-    return 0;
-}
 
 bool checkmask(Label4DType::Pointer maskimg, Image4DType::PointType point)
 {
@@ -182,6 +147,7 @@ int main(int argc, char* argv[])
 
     vul_arg<string> a_input(0, "4D timeseries file");
     
+    vul_arg<unsigned> a_level("-a", "amount of output: 0 - basics, 1 - all particles", 0);
     vul_arg<string> a_mask("-m", "3D mask file");
     vul_arg<bool> a_dc("-c", "Calculate DC gain as a state variable", false);
     vul_arg<bool> a_delta("-l", "Use deltas between measurements, this precludes"
@@ -202,6 +168,7 @@ int main(int argc, char* argv[])
         vul_arg_display_usage("No Warning, just echoing");
     }
 
+    const unsigned int FILTER_PARAMS = 12; //11 normal plus drift
     const unsigned int BASICPARAMS = 7;
     const unsigned int STATICPARAMS = 2;
     const unsigned int RETRIES = 3;
@@ -214,7 +181,6 @@ int main(int argc, char* argv[])
     fprintf(stderr, "Brainid Version: %s\n", BRAINID_VERSION);
 
     Image4DType::Pointer inImage;
-    Image4DType::Pointer measMuImg;
     Image4DType::Pointer paramMuImg;
     Image4DType::Pointer paramVarImg;
 
@@ -288,10 +254,6 @@ int main(int argc, char* argv[])
     paramVarImg->Allocate();
     paramVarImg->FillBuffer(0);
     
-    measMuImg = Image4DType::New();
-    measMuImg->SetRegions(inImage->GetRequestedRegion());
-    measMuImg->Allocate();
-    measMuImg->FillBuffer(0);
     
     unsigned int xlen = inImage->GetRequestedRegion().GetSize()[0];
     unsigned int ylen = inImage->GetRequestedRegion().GetSize()[1];
@@ -310,14 +272,21 @@ int main(int argc, char* argv[])
 
     //callback variables, to fill in 
     BoldPF::CallPoints callpoints;
-    callpoints.start = false;
-    callpoints.postMeas = true;
-    callpoints.postFilter = false;
-    callpoints.end = false;
+    void* cbdata = NULL;
+    int (*cbfunc)(BoldPF*, void*) = NULL;
+    if(a_level() == 0) {
+        cb_meas_data* cbd = new cb_meas_data;
+        cb_meas_init(cbd, &callpoints, inImage->GetRequestedRegion().GetSize());
+        cbdata = (void*)cbd;
+        cbfunc = cb_meas_call;
+    } else {
+        cb_part_data* cbd = new cb_part_data;
+        cb_part_init(cbd, &callpoints, FILTER_PARAMS, a_num_particles(), 
+                    inImage->GetRequestedRegion().GetSize()[3]);
+        cbdata = (void*)cbd;
+        cbfunc = cb_part_call;
 
-    cb_meas_data cbd;
-    cbd.image = measMuImg;
-    cbd.method = method;
+    }
     
     /* Temporary variables used in the loop */
     time_t start = time(NULL);
@@ -355,6 +324,7 @@ int main(int argc, char* argv[])
                 //as the the initial number if it fails
                 for(unsigned int i = 0 ; checkmask(mask, point4) && 
                             result != BoldPF::DONE && i < RETRIES; i++) { 
+                    *output << "RESTARTING!!!!\n" ;
                     fillvector(meas, inImage, index4, a_delta());
 
                     //create the bold particle filter
@@ -362,12 +332,13 @@ int main(int argc, char* argv[])
                             output, a_num_particles()*(1<<i), 1./a_divider(), method,
                             a_expweight());
                     
-                    //create the callback function
-                    cbd.pos = index4;
-                    boldpf.setCallBack(callpoints, &cb_meas);
+                    //set the callback function
+                    for(unsigned int j = 0; j < 3 ; j++)
+                        ((cb_data*)cbdata)->pos[j] = index4[j];
+                    boldpf.setCallBack(callpoints, cbfunc);
 
                     //run the particle filter
-                    result = boldpf.run(&cbd);
+                    result = boldpf.run(cbdata);
                     mu = boldpf.getDistribution().getDistributedExpectation();
                     aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
                     var = diag(cov);
@@ -420,14 +391,25 @@ int main(int argc, char* argv[])
         cout << "Writing: param_var.nii.gz" << endl;
         out2->Update();
         
-        measMuImg->CopyInformation(inImage);
-        itk::ImageFileWriter<Image4DType>::Pointer out3 = 
-                    itk::ImageFileWriter<Image4DType>::New();
-        out3->SetInput(measMuImg);
-        out3->SetFileName("meas_mu.nii.gz");
-        cout << "Writing: meas_mu.nii.gz" << endl;
-        out3->Update();
+        std::ostringstream oss("");
+        //write final position or measurement image, 
+        if(a_level() == 1) {
+            cb_part_data* cdata  = (cb_part_data*)cbdata;
+            for(int i = 0 ; i < 3 ; i++)
+                oss << cdata->prev[i] << "_";
+            oss << ".nii";
+        } else {
+            oss << "meas_mu.nii.gz";
+        }
+
+        itk::ImageFileWriter<itk::OrientedImage<float, 4> >::Pointer writer3 = 
+                    itk::ImageFileWriter<itk::OrientedImage<float, 4> >::New();
+        writer3->SetFileName(oss.str());
+        writer3->SetInput(((cb_data*)cbdata)->image);
+        writer3->Update();
+        cout << "Writing " << oss.str();
     }
+
                 
     return 0;
 
