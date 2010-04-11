@@ -147,19 +147,19 @@ int main(int argc, char* argv[])
 
     vul_arg<string> a_input(0, "4D timeseries file");
     
-    vul_arg<bool> a_particle("-a", "save all particles?", false);
+    vul_arg<int> a_particle("-a", "save all particles?", false);
     vul_arg<string> a_mask("-m", "3D mask file");
-    vul_arg<bool> a_dc("-c", "Calculate DC gain as a state variable", false);
-    vul_arg<bool> a_delta("-l", "Use deltas between measurements, this precludes"
+    vul_arg<int> a_dc("-c", "Calculate DC gain as a state variable", false);
+    vul_arg<int> a_delta("-l", "Use deltas between measurements, this precludes"
                 "the drift option", false);
-    vul_arg<bool> a_smart("-S", "Use \"smart\" knots based on less active regions"
+    vul_arg<int> a_smart("-S", "Use \"smart\" knots based on less active regions"
                 , false);
     
     vul_arg<unsigned> a_num_particles("-p", "Number of particles.", 3000);
     vul_arg<unsigned> a_divider("-d", "Intermediate Steps between samples.", 128);
     vul_arg<string> a_stimfile("-s", "file containing \"<time> <value>\""
                 "pairs which give the time at which input changed", "");
-    vul_arg<bool> a_flat("-f", "Flatten prior?", true);
+    vul_arg<int> a_flat("-f", "Flatten prior?", true);
     vul_arg<int> a_weight("-w", "Use weight function: 0:Normal, 1:Laplace, "
                 "2:Hyperbolic, 3:Cauchy", 0);
     vul_arg<double> a_timestep("-t", "TR (timesteps in 4th dimension)", 2);
