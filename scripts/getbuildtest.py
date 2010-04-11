@@ -10,16 +10,13 @@ import time
 
 
 # some user modifiable constants
-CMAKE_URL="http://www.cmake.org/files/v2.6/cmake-2.6.2.tar.gz"
+CMAKE_URL="http://www.cmake.org/files/v2.8/cmake-2.8.1.tar.gz"
 DYSII_URL="http://www.indii.org/files/dysii/releases/dysii-1.4.0.tar.gz"
 GSL_URL="ftp://ftp.gnu.org/gnu/gsl/gsl-1.9.tar.gz"
-#BOOST_URL="http://downloads.sourceforge.net/boost/boost_1_38_0.tar.gz?use_mirror=voxel"
-BOOST_URL="http://voxel.dl.sourceforge.net/sourceforge/boost/boost_1_38_0.tar.gz"
+BOOST_URL="http://sodium.resophonic.com/boost-cmake/1.41.0.cmake0/boost-1.41.0.cmake0.tar.gz"
 BINDINGS_URL="http://mathema.tician.de/news.tiker.net/download/software/boost-numeric-bindings/boost-numeric-bindings-20081116.tar.gz"
-#ITK_URL="http://voxel.dl.sourceforge.net/sourceforge/itk/InsightToolkit-3.12.0.tar.gz"
 ITK_URL="http://voxel.dl.sourceforge.net/sourceforge/itk/InsightToolkit-3.16.0.tar.gz"
-#OPENMPI_URL="http://www.open-mpi.org/software/ompi/v1.3/downloads/openmpi-1.3.1.tar.gz"
-OPENMPI_URL="http://www.open-mpi.org/software/ompi/v1.2/downloads/openmpi-1.2.9.tar.gz"
+OPENMPI_URL="http://www.open-mpi.org/software/ompi/v1.4/downloads/openmpi-1.4.1.tar.gz"
 LAPACK_URL="http://www.netlib.org/lapack/lapack-3.2.1.tgz"
 MATLAB_NIFTI="http://www.pc.rhul.ac.uk/staff/J.Larsson/software/cbiNifti/cbiNifti.tar.gz"
 
@@ -52,49 +49,29 @@ def getep(basedir, name, url):
 
 #defstrings should be a tuple of string arguments to pass to configure
 def buildboost(basedir, instdir, name, url):
+    FILENAME = "./boost-1.41.0/"
     topdir = os.getcwd()
-    src_dir = getep(basedir, name, url)
-#    install_dir = join(instdir, name)
-    
     print "building %s" % name
-    os.chdir(src_dir)
-    if  os.system("./configure --prefix=%s %s" % (instdir, "--with-libraries=serialization,mpi,program_options")) != 0:
-        print "%s configuration failed" % name
-        sys.exit()
-    os.system("echo using mpi \; >> %s/user-config.jam" % src_dir)
-    os.system("echo BJAM_CONFIG=\"--layout=system\" >> %s/Makefile" % src_dir)
-    if os.system("make -j%i" % ncpus()) != 0:
-        print "build in %s failed" % src_dir
-        sys.exit()
-    
-    if os.system("make install") != 0:
-        print "make install in %s failed" % src_dir
-        sys.exit()
+    instdir = cmakeinst(basedir, instdir, name, url)
     print "build of %s completed" % name
     
     os.chdir(join(instdir, "lib"));
-    liblist = [];
-    for file in os.listdir("./"):
-        try:
-            os.readlink(file)
+    for file in os.listdir(FILENAME):
+        newname = file.split("-mt")
+        newname = "".join(newname)
+        print newname
+        try: 
+            print "Symlinking %s -> %s" % (newname, FILENAME + file)
+            os.symlink(FILENAME + file, newname);
+            print "Symlinking %s -> %s" % (file, FILENAME + file)
+            os.symlink(FILENAME + file, newname);
         except os.error:
-            liblist.append(file)
-
-    for file in liblist:
-        if splitext(file)[1] == ".a":
-            print "Symlinking %s -> %s" % (file.split("-")[0] + ".a", file)
-            try: 
-                os.symlink(file, file.split("-")[0] +".a");
-            except os.error:
-                pass
-        else:
-            print "Symlinking %s -> %s" % (file.split("-")[0] + ".so", file)
-            try: 
-                os.symlink(file, file.split("-")[0] + ".so");
-            except os.error:
-                pass
+            pass
     
     os.chdir(topdir)
+    
+    os.system("mv %s/include/boost*/boost %s/include/boost" % (instdir, instdir))
+    
     return instdir
 
 #defstrings should be a tuple of string arguments to pass to configure
@@ -217,7 +194,7 @@ if platform == 'Darwin':
 
 
 if os.path.exists(depprefix):
-    print "Directory " + depprefix + " exists, removing in..."
+    print "Directory " + depprefix + " exists, removing it..."
     print "3"
     time.sleep(1);
     print "2"

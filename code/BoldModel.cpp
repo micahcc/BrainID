@@ -11,9 +11,9 @@
 #include <iomanip>
 #include <iostream>
 
-BoldModel::BoldModel(aux::vector stddev, bool expweight, 
-            size_t sections, aux::vector drift) :
-            sigma(stddev), SIMUL_STATES(sections),
+BoldModel::BoldModel(aux::vector stddev, int weightfunc, 
+            size_t sections, aux::vector drift) : 
+            weightf(weightfunc), sigma(stddev), SIMUL_STATES(sections),
             STATE_SIZE(GVAR_SIZE+LVAR_SIZE*sections + sections),
             MEAS_SIZE(sections),
             INPUT_SIZE(1)//, segments(sections)
@@ -22,9 +22,6 @@ BoldModel::BoldModel(aux::vector stddev, bool expweight,
     //in which case the u will be overwritten with 0's
     this->input = aux::zero_vector(sections);
     
-    if(expweight) 
-        this->weightf = EXP;;
-
     defaultstate.resize(STATE_SIZE, false);
     //set the averages of the variables
     for(unsigned int ii = 0 ; ii < SIMUL_STATES; ii++) {
@@ -73,7 +70,7 @@ BoldModel::BoldModel(aux::vector stddev, bool expweight,
     }
 
     std::cerr << "Sigma:" << std::endl;
-    for(unsigned int i = 0 ; i < sigma.size() ; i++)
+    for(unsigned int i = 0 ; i < this->sigma.size() ; i++)
         std::cerr << this->sigma(i) << std::endl;
 }
 
@@ -176,16 +173,32 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y) const
 {
     aux::vector meas = measure(s);
     double weight = 1;
-
-    if(weightf == EXP) {
+    switch (weightf) {
+        /* Cauchyt Distribution */
+        case CAUCHY:
     	for(unsigned int i = 0 ; i < MEAS_SIZE ; i++)
-            weight *= gsl_ran_exponential_pdf(
-                        fabs(y[i]-meas[i]+s[STATE_SIZE-MEAS_SIZE+i]),
-                        sigma(i));
-    } else {
+            weight *= gsl_ran_cauchy_pdf( fabs(y[i]-meas[i]+
+                        s[STATE_SIZE-MEAS_SIZE+i]), sigma(i));
+        break;
+        /* Hyperbolic "Distribution" */
+        case HYP:
     	for(unsigned int i = 0 ; i < MEAS_SIZE ; i++)
-            weight *= gsl_ran_gaussian_pdf(y[i]-meas[i]+s[STATE_SIZE-MEAS_SIZE+i],
-                        sigma(i));
+            weight *= sigma(i)/(fabs(y[i]-meas[i]+
+                        s[STATE_SIZE-MEAS_SIZE+i]));
+        break;
+        /* Exponential Distribution */
+        case EXP:
+    	for(unsigned int i = 0 ; i < MEAS_SIZE ; i++)
+            weight *= gsl_ran_exponential_pdf( fabs(y[i]-meas[i]+
+                        s[STATE_SIZE-MEAS_SIZE+i]), sigma(i));
+        break;
+        /* Normal Distribution (default) */
+        case NORM:
+    	for(unsigned int i = 0 ; i < MEAS_SIZE ; i++)
+            weight *= gsl_ran_gaussian_pdf( fabs(y[i]-meas[i]+
+                        s[STATE_SIZE-MEAS_SIZE+i]), sigma(i));
+        default:
+        break;
     }
     return weight;
 }

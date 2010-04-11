@@ -30,7 +30,7 @@ int cb_meas_call(BoldPF* bold, void* data)
     itk::OrientedImage<float, 4>::IndexType index;
     for(unsigned int i = 0 ; i < 3 ; i++)
         index[i] = cdata->pos[i];
-    cdata->pos[3] = bold->getDiscTimeL();
+    index[3] = bold->getDiscTimeL();
     
     aux::vector mu = bold->getDistribution().getDistributedExpectation();
     aux::vector meas =  bold->getModel().measure(mu);
@@ -123,7 +123,7 @@ int cb_part_call(BoldPF* bold, void* data)
     index[0] = 0; //param
     index[1] = 0; //particle
     index[2] = 0;
-    cdata->pos[3] = bold->getDiscTimeL();
+    index[3] = bold->getDiscTimeL();
   
     std::vector< std::vector< DiracPdf > > xsFull;
     std::vector< aux::vector > wsFull;

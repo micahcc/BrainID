@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
 
     vul_arg<string> a_input(0, "4D timeseries file");
     
-    vul_arg<unsigned> a_level("-a", "amount of output: 0 - basics, 1 - all particles", 0);
+    vul_arg<bool> a_particle("-a", "save all particles?", false);
     vul_arg<string> a_mask("-m", "3D mask file");
     vul_arg<bool> a_dc("-c", "Calculate DC gain as a state variable", false);
     vul_arg<bool> a_delta("-l", "Use deltas between measurements, this precludes"
@@ -159,7 +159,8 @@ int main(int argc, char* argv[])
     vul_arg<unsigned> a_divider("-d", "Intermediate Steps between samples.", 128);
     vul_arg<string> a_stimfile("-s", "file containing \"<time> <value>\""
                 "pairs which give the time at which input changed", "");
-    vul_arg<bool> a_expweight("-e", "Use exponential weighting function", false);
+    vul_arg<bool> a_weight("-w", "Use weight function: 0:Normal, 1:Exponential, "
+                "2:Hyperbolic, 3:Cauchy", 0);
     vul_arg<double> a_timestep("-t", "TR (timesteps in 4th dimension)", 2);
     
     vul_arg_parse(argc, argv);
@@ -274,7 +275,7 @@ int main(int argc, char* argv[])
     BoldPF::CallPoints callpoints;
     void* cbdata = NULL;
     int (*cbfunc)(BoldPF*, void*) = NULL;
-    if(a_level() == 0) {
+    if(!a_particle()) {
         cb_meas_data* cbd = new cb_meas_data;
         cb_meas_init(cbd, &callpoints, inImage->GetRequestedRegion().GetSize());
         cbdata = (void*)cbd;
@@ -330,7 +331,7 @@ int main(int argc, char* argv[])
                     //create the bold particle filter
                     BoldPF boldpf(meas, input, rms->GetPixel(index3)/5., a_timestep(),
                             output, a_num_particles()*(1<<i), 1./a_divider(), method,
-                            a_expweight());
+                            a_weight());
                     
                     //set the callback function
                     for(unsigned int j = 0; j < 3 ; j++)
@@ -393,7 +394,7 @@ int main(int argc, char* argv[])
         
         std::ostringstream oss("");
         //write final position or measurement image, 
-        if(a_level() == 1) {
+        if(a_particle()) {
             cb_part_data* cdata  = (cb_part_data*)cbdata;
             for(int i = 0 ; i < 3 ; i++)
                 oss << cdata->prev[i] << "_";

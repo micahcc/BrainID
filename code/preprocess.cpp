@@ -5,15 +5,9 @@
 #include <itkAddImageFilter.h>
 #include <itkSubtractImageFilter.h>
 
-#include <indii/ml/aux/vector.hpp>
-#include <indii/ml/aux/matrix.hpp>
-
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-
 #include "tools.h"
+#include "segment.h"
 #include "modNiftiImageIO.h"
-#include "BoldPF.h"
 
 #include <vector>
 #include <cmath>
@@ -35,10 +29,8 @@ using namespace std;
 
 void writeImage(Image4DType::Pointer image, std::string filename)
 {
-    boost::mpi::communicator world;
-    const unsigned int rank = world.rank();
     
-    if(rank == 0) try {
+    try {
         itk::ImageFileWriter<Image4DType>::Pointer out = 
             itk::ImageFileWriter<Image4DType>::New();
         out->SetInput(image);
@@ -55,10 +47,7 @@ Image4DType::Pointer preprocess_help(Image4DType::Pointer input,
             std::vector<Activation>& stim, double sampletime, unsigned int erase,
             bool nospline, bool smart)
 {
-    boost::mpi::communicator world;
-//    const unsigned int rank = world.rank();
     /* Set up measurements image */
-    //*output << "Conditioning FMRI Image" << endl;
     //remove first 2 time step, since they are typically polluted
     input = pruneFMRI(input, stim, sampletime, erase);
     writeImage(input, "pruned_input.nii.gz");
@@ -103,12 +92,6 @@ Image4DType::Pointer preprocess_help(Image4DType::Pointer input,
 /* Main Function */
 int main(int argc, char* argv[])
 {
-    /* Initialize mpi */
-    boost::mpi::environment env(argc, argv);
-    boost::mpi::communicator world;
-    const unsigned int rank = world.rank();
-    const unsigned int size = world.size();
-
     vul_arg<string> a_input(0, "4D timeseries file");
     
     vul_arg<bool> a_smart("-S", "Use \"smart\" knots based on less active regions"
@@ -122,30 +105,19 @@ int main(int argc, char* argv[])
     
     vul_arg_parse(argc, argv);
     
-    if(rank == 0) {
-        vul_arg_display_usage("No Warning, just echoing");
-    }
+    vul_arg_display_usage("No Warning, just echoing");
 
     const unsigned int ERASE = 2;
 
     ///////////////////////////////////////////////////////////////////////////////
     //Done Parsing, starting main part of code
     ///////////////////////////////////////////////////////////////////////////////
-    fprintf(stderr, "Rank: %u Size: %u\n", rank,size);
     fprintf(stderr, "Brainid Version: %s\n", BRAINID_VERSION);
 
     Image4DType::Pointer inImage;
     std::vector<Activation> input;
 
     Image3DType::Pointer rms;
-
-    ofstream ofile("/dev/null");
-    ostream* output;
-    if(rank == 0) {
-        output = &cout;
-    } else {
-        output = &ofile;
-    }
 
     /* Open up the input */
     try {
@@ -175,7 +147,7 @@ int main(int argc, char* argv[])
     }
 
     /* Create Output Images */
-    *output << "Creating Output Images" << endl;
+    cout << "Creating Output Images" << endl;
     
     inImage = preprocess_help(inImage, input, a_timestep(), ERASE, a_delta(),
                 a_smart());

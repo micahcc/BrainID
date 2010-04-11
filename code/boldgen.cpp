@@ -1,4 +1,3 @@
-#include "itkOrientedImage.h"
 #include "itkImageFileWriter.h"
 #include "itkImageLinearIteratorWithIndex.h"
 #include "itkImageSliceIteratorWithIndex.h"
@@ -13,13 +12,11 @@
 #include "modNiftiImageIO.h"
 #include "tools.h"
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <string>
-#include <ctime>
 #include <vector>
-#include <sstream>
 #include <cmath>
 
 #include <itkMultiplyByConstantImageFilter.h>

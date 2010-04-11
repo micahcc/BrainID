@@ -12,7 +12,7 @@ class BoldModel : public indii::ml::filter::ParticleFilterModel<double>
 {
 public:
     ~BoldModel();
-    BoldModel(aux::vector stddev, bool expweight, 
+    BoldModel(aux::vector stddev, int weightfunc, 
                 size_t sections = 1, aux::vector drift = aux::vector(1, 0));
 
     unsigned int getStateSize() const { return STATE_SIZE; };
@@ -48,6 +48,8 @@ public:
     //related to drift compensation
     enum StateName { TAU_0=0 , ALPHA=1, E_0=2, V_0=3, TAU_S=4, TAU_F=5, 
                 EPSILON=6, V_T=7, Q_T=8, S_T=9, F_T =10};
+    
+    enum WeightF { NORM = 0, EXP = 1, HYP = 2, CAUCHY = 3} ;
 
     const aux::vector& getdefault() const { return defaultstate; };
     void setdefault(aux::vector def) { defaultstate = def; };
@@ -82,7 +84,6 @@ private:
                 const double k_sigma[], const double theta_mu[]) const;
 
     //Weighting
-    enum WeightF { NORM = 0, EXP = 1, HYP = 2} ;
     int weightf;
 
     //variance to apply to 

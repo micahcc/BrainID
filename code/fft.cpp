@@ -1,17 +1,11 @@
+#include <cstdio>
+
 #include "itkOrientedImage.h"
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
-#include "itkImageLinearIteratorWithIndex.h"
-#include "itkImageSliceIteratorWithIndex.h"
-#include "itkMetaDataObject.h"
 
-#include <itkMaskImageFilter.h>
-#include <itkStatisticsImageFilter.h>
 #include "modNiftiImageIO.h"
 #include "tools.h"
-
-#include <sstream>
-#include <iostream>
 
 #include <vcl_list.h>
 #include <vul/vul_arg.h>

@@ -28,9 +28,15 @@ LINK_DIRECTORIES(
 )
 
 ADD_LIBRARY(modNiftiImageIO modNiftiImageIO.cxx)
+TARGET_LINK_LIBRARIES(modNiftiImageIO ITKIO)
+
 ADD_LIBRARY(segment segment.cpp)
+TARGET_LINK_LIBRARIES(segment ITKAlgorithms ITKBasicFilters ITKCommon gsl gslcblas tools)
+
 ADD_LIBRARY(BoldModel BoldModel.cpp)
+
 ADD_LIBRARY(tools tools.cc)
+TARGET_LINK_LIBRARIES(tools ITKAlgorithms ITKBasicFilters ITKCommon tools gsl gslcblas )
 
 #TARGET_LINK_LIBRARIES(bold particle ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
 
@@ -52,46 +58,31 @@ ADD_EXECUTABLE(parammap_evalrun parammap_eval.cpp)
 ADD_EXECUTABLE(parammap_evaldiff parammap_diff.cpp)
 ADD_EXECUTABLE(mse mse.cpp)
 
-TARGET_LINK_LIBRARIES(prune modNiftiImageIO 
-    ITKAlgorithms ITKBasicFilters gsl gslcblas
-    ITKCommon ITKIO )
-TARGET_LINK_LIBRARIES(concatinate modNiftiImageIO 
-    ITKAlgorithms ITKBasicFilters gsl gslcblas
-    ITKCommon ITKIO )
+TARGET_LINK_LIBRARIES(prune modNiftiImageIO ITKIO)
+TARGET_LINK_LIBRARIES(concatinate modNiftiImageIO ITKIO)
 #TARGET_LINK_LIBRARIES(fmri_timeseries modNiftiImageIO segment 
-#    ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
-#    itkvcl vullib)
-TARGET_LINK_LIBRARIES(segment gsl gslcblas tools)
-TARGET_LINK_LIBRARIES(unbias ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
-TARGET_LINK_LIBRARIES(printtags modNiftiImageIO ITKAlgorithms 
-    ITKBasicFilters ITKCommon ITKIO)
-TARGET_LINK_LIBRARIES(setorientation modNiftiImageIO ITKAlgorithms 
-    ITKBasicFilters ITKCommon ITKIO)
+#    ITKAlgorithms ITKBasicFilters ITKCommon ITKIO 
+#    vullib)
+TARGET_LINK_LIBRARIES(unbias ITKAlgorithms ITKBasicFilters ITKCommon ITKIO )
+TARGET_LINK_LIBRARIES(printtags modNiftiImageIO ITKIO)
+TARGET_LINK_LIBRARIES(setorientation modNiftiImageIO ITKIO)
 TARGET_LINK_LIBRARIES(brainid tools gfortran modNiftiImageIO blas lapack mpi 
-    boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
-    ITKCommon ITKIO mpi gsl gslcblas dysii itkvnl itkvcl vullib)
-TARGET_LINK_LIBRARIES(parammap_preprocess segment tools gfortran modNiftiImageIO blas lapack mpi 
-    boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
-    ITKCommon ITKIO mpi gsl gslcblas dysii itkvnl itkvcl vullib segment)
+    boost_serialization boost_mpi BoldModel 
+    ITKIO mpi gsl gslcblas dysii vullib)
+TARGET_LINK_LIBRARIES(parammap_preprocess segment tools modNiftiImageIO 
+    ITKAlgorithms ITKIO gsl gslcblas vullib )
 TARGET_LINK_LIBRARIES(parammap_calc segment tools gfortran modNiftiImageIO blas lapack mpi 
     boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
-    ITKCommon ITKIO mpi gsl gslcblas dysii itkvnl itkvcl vullib segment)
+    ITKCommon ITKIO gsl gslcblas dysii vullib )
 TARGET_LINK_LIBRARIES(parammap_evalrun modNiftiImageIO ITKIO ITKCommon vullib tools)
 TARGET_LINK_LIBRARIES(parammap_evaldiff modNiftiImageIO ITKIO ITKCommon vullib tools)
 TARGET_LINK_LIBRARIES(mse modNiftiImageIO ITKIO ITKCommon vullib tools)
-TARGET_LINK_LIBRARIES(boldgen tools gfortran blas lapack modNiftiImageIO boost_mpi 
+TARGET_LINK_LIBRARIES(boldgen tools gfortran blas lapack modNiftiImageIO boost_serialization boost_mpi
     BoldModel ITKAlgorithms ITKBasicFilters 
-    ITKCommon ITKIO gsl gslcblas mpi dysii itkvnl itkvcl vullib)
-TARGET_LINK_LIBRARIES(fft tools gfortran blas lapack modNiftiImageIO 
-    ITKAlgorithms ITKBasicFilters 
-    ITKCommon ITKIO gsl gslcblas itkvnl itkvcl vullib)
+    ITKCommon ITKIO gsl gslcblas mpi dysii vullib)
+TARGET_LINK_LIBRARIES(fft tools modNiftiImageIO ITKIO vullib)
 
-TARGET_LINK_LIBRARIES(readdicom modNiftiImageIO segment 
-    ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
-    itkvcl vullib)
-TARGET_LINK_LIBRARIES(applymask modNiftiImageIO segment 
-    ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
-    itkvcl vullib)
-TARGET_LINK_LIBRARIES(parammap_generate gsl modNiftiImageIO segment tools
-    ITKAlgorithms ITKBasicFilters ITKCommon ITKIO itkvnl 
-    itkvcl vullib)
+TARGET_LINK_LIBRARIES(readdicom modNiftiImageIO segment ITKAlgorithms ITKBasicFilters ITKCommon ITKIO vullib)
+TARGET_LINK_LIBRARIES(applymask modNiftiImageIO segment ITKAlgorithms ITKBasicFilters ITKCommon ITKIO vullib)
+TARGET_LINK_LIBRARIES(parammap_generate gsl modNiftiImageIO segment tools ITKBasicFilters ITKCommon ITKIO 
+    vullib)

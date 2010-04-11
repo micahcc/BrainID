@@ -61,7 +61,7 @@ public:
                 const std::vector<Activation>& activations,  double weightvar,
                 double longstep, std::ostream* output, 
                 unsigned int numparticles = 1000, double shortstep = 1./64,
-                unsigned int method = DIRECT, bool exp = false);
+                unsigned int method = DIRECT, int weightf = 0);
 
     /* Destructor */
     ~BoldPF();
@@ -354,7 +354,7 @@ aux::vector bold_stddev(const std::vector<aux::vector>& in, const aux::vector& m
 BoldPF::BoldPF(const std::vector<aux::vector>& measurements, 
             const std::vector<Activation>& activations,  double weightvar,
             double longstep, std::ostream* output, unsigned int numparticles,
-            double shortstep, unsigned int method_p, bool exp) : 
+            double shortstep, unsigned int method_p, int weightf) : 
             dt_l(longstep), dt_s(shortstep), 
             disctime_l(0), disctime_s(0), status(UNSTARTED), method(method_p),
             measure(measurements), stim(activations), 
@@ -377,8 +377,8 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     } else
         drift = aux::vector(measurements.front().size(), 0);
 
-    aux::vector weight(measurements.front().size(), weightvar);
-    model = new BoldModel(weight, exp, measurements.front().size(), drift);
+    aux::vector weightv(measurements.front().size(), weightvar);
+    model = new BoldModel(weightv, weightf, measurements.front().size(), drift);
     model->setinput(aux::vector(1, 0));
     aux::DiracMixturePdf tmp(model->getStateSize());
     filter = new indii::ml::filter::ParticleFilter<double>(model, tmp);
