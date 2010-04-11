@@ -29,13 +29,14 @@ public:
     //acquire the weight of the particle based on the input
     double weight(const aux::vector& s, const aux::vector& y) const;
 
-    void generatePrior(aux::DiracMixturePdf&, int, double scale = 1) const;
+    void generatePrior(aux::DiracMixturePdf&, int, double scale = 1, 
+                bool flat = true) const;
     void generatePrior(aux::DiracMixturePdf& x0, int samples, const aux::vector mean,
-          double scale = 1) const;
+                double scale = 1, bool flat = true) const;
     void generatePrior(aux::DiracMixturePdf& x0, int samples, 
-                const aux::symmetric_matrix cov) const;
+                const aux::symmetric_matrix cov, bool flat = true) const;
     void generatePrior(aux::DiracMixturePdf& x0, int samples, const aux::vector mean,
-                const aux::symmetric_matrix cov) const;
+                const aux::symmetric_matrix cov, bool flat = true) const;
 
     //since the particle filter doesn't yet support input, we are
     //going to hack around that and set it directly
@@ -49,7 +50,7 @@ public:
     enum StateName { TAU_0=0 , ALPHA=1, E_0=2, V_0=3, TAU_S=4, TAU_F=5, 
                 EPSILON=6, V_T=7, Q_T=8, S_T=9, F_T =10};
     
-    enum WeightF { NORM = 0, EXP = 1, HYP = 2, CAUCHY = 3} ;
+    enum WeightF { NORM = 0, LAPLACE = 1, HYP = 2, CAUCHY = 3} ;
 
     const aux::vector& getdefault() const { return defaultstate; };
     void setdefault(aux::vector def) { defaultstate = def; };
@@ -80,7 +81,7 @@ private:
     //storage for the current input
     aux::vector input;
 
-    void generateComponent(gsl_rng* rng, aux::vector& fillme, 
+    double generateComponent(gsl_rng* rng, aux::vector& fillme, 
                 const double k_sigma[], const double theta_mu[]) const;
 
     //Weighting

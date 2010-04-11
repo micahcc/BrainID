@@ -61,7 +61,7 @@ public:
                 const std::vector<Activation>& activations,  double weightvar,
                 double longstep, std::ostream* output, 
                 unsigned int numparticles = 1000, double shortstep = 1./64,
-                unsigned int method = DIRECT, int weightf = 0);
+                unsigned int method = DIRECT, int weightf = 0, bool flatten = true);
 
     /* Destructor */
     ~BoldPF();
@@ -117,8 +117,6 @@ private:
     indii::ml::filter::StratifiedParticleResampler resampler;
     RegularizedParticleResamplerMod<aux::Almost2Norm, aux::AlmostGaussianKernel>*
                 resampler_reg;
-
-    void generatePrior(aux::DiracMixturePdf& out, double scale, int count);
 
     //input and measurement vectors
     std::vector<aux::vector> measure;
@@ -354,7 +352,7 @@ aux::vector bold_stddev(const std::vector<aux::vector>& in, const aux::vector& m
 BoldPF::BoldPF(const std::vector<aux::vector>& measurements, 
             const std::vector<Activation>& activations,  double weightvar,
             double longstep, std::ostream* output, unsigned int numparticles,
-            double shortstep, unsigned int method_p, int weightf) : 
+            double shortstep, unsigned int method_p, int weightf, bool flatten) : 
             dt_l(longstep), dt_s(shortstep), 
             disctime_l(0), disctime_s(0), status(UNSTARTED), method(method_p),
             measure(measurements), stim(activations), 
@@ -419,7 +417,7 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
         else
             cov(ii,ii) = 0;
     }
-    model->generatePrior(filter->getFilteredState(), localparticles, cov); 
+    model->generatePrior(filter->getFilteredState(), localparticles, cov, flatten); 
 
     //Redistribute - doesn't cost anything if distrib. was already fine 
     *debug << "Redistributing" << endl;

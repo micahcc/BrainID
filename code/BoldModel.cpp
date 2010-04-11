@@ -177,57 +177,62 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y) const
         /* Cauchyt Distribution */
         case CAUCHY:
     	for(unsigned int i = 0 ; i < MEAS_SIZE ; i++)
-            weight *= gsl_ran_cauchy_pdf( fabs(y[i]-meas[i]+
-                        s[STATE_SIZE-MEAS_SIZE+i]), sigma(i));
+            weight *= gsl_ran_cauchy_pdf( y[i]-meas[i]+
+                        s[STATE_SIZE-MEAS_SIZE+i], sigma(i));
         break;
         /* Hyperbolic "Distribution" */
         case HYP:
     	for(unsigned int i = 0 ; i < MEAS_SIZE ; i++)
-            weight *= sigma(i)/(fabs(y[i]-meas[i]+
-                        s[STATE_SIZE-MEAS_SIZE+i]));
+            weight *= sigma(i)/(y[i]-meas[i]+
+                        s[STATE_SIZE-MEAS_SIZE+i]);
         break;
-        /* Exponential Distribution */
-        case EXP:
+        /* Laplace Distribution */
+        case LAPLACE:
     	for(unsigned int i = 0 ; i < MEAS_SIZE ; i++)
-            weight *= gsl_ran_exponential_pdf( fabs(y[i]-meas[i]+
-                        s[STATE_SIZE-MEAS_SIZE+i]), sigma(i));
+            weight *= gsl_ran_laplace_pdf( y[i]-meas[i]+
+                        s[STATE_SIZE-MEAS_SIZE+i], sigma(i));
         break;
         /* Normal Distribution (default) */
         case NORM:
     	for(unsigned int i = 0 ; i < MEAS_SIZE ; i++)
-            weight *= gsl_ran_gaussian_pdf( fabs(y[i]-meas[i]+
-                        s[STATE_SIZE-MEAS_SIZE+i]), sigma(i));
+            weight *= gsl_ran_gaussian_pdf( y[i]-meas[i]+
+                        s[STATE_SIZE-MEAS_SIZE+i], sigma(i));
         default:
         break;
     }
-    return weight;
+    return fabs(weight);
 }
 
 
 //Note that k_sigma contains std. deviation OR k and theta_mu contains either
 //mean or theta depending on the distribution
-void BoldModel::generateComponent(gsl_rng* rng, aux::vector& fillme, 
+double BoldModel::generateComponent(gsl_rng* rng, aux::vector& fillme, 
             const double* k_sigma, const double* theta_mu) const
 {
+    double weight = 1, tmp;
     //going to distribute all the state variables the same even if they are
     //in different sections
     int count = 0;
     for(size_t i = 0 ; i< STATE_SIZE - MEAS_SIZE; i++) {
         if(indexof(S_T, count) == i) {
             //for S_t draw from a gaussian
-            fillme[indexof(S_T, count)] = 
-                        gsl_ran_gaussian(rng, k_sigma[indexof(S_T,count)])+
-                        theta_mu[indexof(S_T,count)];
+            tmp = gsl_ran_gaussian(rng, k_sigma[indexof(S_T,count)]);
+            fillme[indexof(S_T, count)] = tmp + theta_mu[indexof(S_T,count)];
+            weight *= gsl_ran_gaussian_pdf(tmp, k_sigma[indexof(S_T,count)]);
             count++;
         } else {
             //draw from the gama, assume independence between the variables
             fillme[i] = gsl_ran_gamma(rng, k_sigma[i], theta_mu[i]);
+            weight *= gsl_ran_gamma_pdf(fillme[i], k_sigma[i], theta_mu[i]);
         }
     }
     
     for(size_t i = STATE_SIZE - MEAS_SIZE; i < STATE_SIZE; i++) {
-        fillme[i] = gsl_ran_gaussian(rng, k_sigma[i]) + theta_mu[i];
+        tmp = gsl_ran_gaussian(rng, k_sigma[i]);
+        fillme[i] = tmp + theta_mu[i];
+        weight *= gsl_ran_gaussian_pdf(tmp, k_sigma[i]);
     }
+    return 1./weight;
 }
     
 //approximated the variance by assuming V_0 is a constant, rather than
@@ -255,7 +260,7 @@ aux::vector BoldModel::estMeasMean(aux::DiracMixturePdf& in) const
 
 //TODO make some of these non-gaussian
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
-            double varwidth) const
+            double varwidth, bool flat) const
 {
     aux::vector mean = getdefault();
     aux::symmetric_matrix cov = aux::zero_matrix(STATE_SIZE);
@@ -280,11 +285,11 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
     for(unsigned int ii = STATE_SIZE-MEAS_SIZE ; ii < STATE_SIZE; ii++) {
         cov(ii,ii) = pow(sigma[ii-STATE_SIZE+MEAS_SIZE], 2);
     }
-    generatePrior(x0, samples, mean, cov);
+    generatePrior(x0, samples, mean, cov, flat);
 }
 
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
-            const aux::vector mean, double varwidth) const
+            const aux::vector mean, double varwidth, bool flat) const
 {
     aux::symmetric_matrix cov = aux::zero_matrix(STATE_SIZE);
     
@@ -308,19 +313,19 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
         cov(ii,ii) = pow(sigma[ii-STATE_SIZE+MEAS_SIZE], 2);
     }
     
-    generatePrior(x0, samples, mean, cov);
+    generatePrior(x0, samples, mean, cov, flat);
 }
 
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
-            const aux::symmetric_matrix cov) const
+            const aux::symmetric_matrix cov, bool flat) const
 {
     aux::vector mean = getdefault();
-    generatePrior(x0, samples, mean, cov);
+    generatePrior(x0, samples, mean, cov, flat);
 }
 
 //TODO make some of these non-gaussian
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
-            const aux::vector mean, const aux::symmetric_matrix cov) const
+            const aux::vector mean, const aux::symmetric_matrix cov, bool flat) const
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
@@ -362,9 +367,10 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
         std::cout << " " << theta_mu[i];
     std::cout <<  "\n";
     aux::vector comp(STATE_SIZE);
+    double weight;
     for(int i = 0 ; i < samples; i ++) {
-        generateComponent(rng, comp, k_sigma, theta_mu);
-        x0.add(comp, 1.0);
+        weight = generateComponent(rng, comp, k_sigma, theta_mu);
+        x0.add(comp, flat ? weight : 1.0);
     }
     gsl_rng_free(rng);
 }

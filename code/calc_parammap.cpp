@@ -159,7 +159,8 @@ int main(int argc, char* argv[])
     vul_arg<unsigned> a_divider("-d", "Intermediate Steps between samples.", 128);
     vul_arg<string> a_stimfile("-s", "file containing \"<time> <value>\""
                 "pairs which give the time at which input changed", "");
-    vul_arg<bool> a_weight("-w", "Use weight function: 0:Normal, 1:Exponential, "
+    vul_arg<bool> a_flat("-f", "Flatten prior?", true);
+    vul_arg<int> a_weight("-w", "Use weight function: 0:Normal, 1:Laplace, "
                 "2:Hyperbolic, 3:Cauchy", 0);
     vul_arg<double> a_timestep("-t", "TR (timesteps in 4th dimension)", 2);
     
