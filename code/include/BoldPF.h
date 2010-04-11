@@ -1,12 +1,5 @@
 #ifndef BOLDPF_H
 #define BOLDPF_H
-#include <itkOrientedImage.h>
-#include <itkImageFileWriter.h>
-#include <itkImageFileReader.h>
-#include <itkImageLinearIteratorWithIndex.h>
-#include <itkImageSliceIteratorWithIndex.h>
-#include <itkMetaDataObject.h>
-
 #include <indii/ml/filter/ParticleFilter.hpp>
 #include <indii/ml/filter/StratifiedParticleResampler.hpp>
 #include <indii/ml/aux/DiracMixturePdf.hpp>

@@ -284,7 +284,7 @@ int main (int argc, char** argv)
     aux::vector input(1);
     input[0] = 0;
     double nextinput;
-    int endcount = a_stoptime()/a_simstep();
+    int endcount = (int)ceil(a_stoptime()/a_simstep());
 
     //first try to open the input file
     if(!a_stimfile().empty()) {

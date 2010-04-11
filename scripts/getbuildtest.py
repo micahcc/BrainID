@@ -64,7 +64,7 @@ def buildboost(basedir, instdir, name, url):
             print "Symlinking %s -> %s" % (newname, FILENAME + file)
             os.symlink(FILENAME + file, newname);
             print "Symlinking %s -> %s" % (file, FILENAME + file)
-            os.symlink(FILENAME + file, newname);
+            os.symlink(FILENAME + file, file);
         except os.error:
             pass
     
@@ -161,6 +161,9 @@ parser = OptionParser()
 parser.add_option("-d", "--depdir", dest="depdir",
                   default="Dependencies-Build",
                   help="name of directory for dependencies")
+parser.add_option("-m", "--mpidir", dest="mpidir",
+                  default="",
+                  help="Location of a pre-installed version of MPI")
 parser.add_option("-D", "--debug",
                   action="store_true", dest="debug", default=False,
                   help="Compile with debug options")
@@ -178,6 +181,7 @@ parser.add_option("-p", "--prefix",
                   help="The location to put the final include, lib, bin....dirs")
 (options, args) = parser.parse_args()
 
+mpi_install_dir = join(options.mpidir)
 depdir = join(topdir, options.depdir)
 depprefix = join(topdir, options.depprefix)
 
@@ -278,7 +282,8 @@ print prof_ld, prof_bin
 ###########################
 # openmpi
 ###########################
-mpi_install_dir = confmakeinst(depdir, depprefix, "mpi", OPENMPI_URL)
+if mpi_install_dir == "":
+	mpi_install_dir = confmakeinst(depdir, depprefix, "mpi", OPENMPI_URL)
 os.environ["PATH"] = join(mpi_install_dir, "bin") + ":"+ os.environ["PATH"]
 if not join(mpi_install_dir, "bin") in prof_bin:
     prof_bin += [join(mpi_install_dir, "bin")];
