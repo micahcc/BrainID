@@ -213,7 +213,7 @@ diff -Naur Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/filter/ParticleFilte
 +  /* Make the distribution dirty since values changed 
 +   * and force an update of cumulative weights, 
 +   */
-+  this->p_xtn_ytn.setWeight(0, p_xtn_ytn.getWeight(0));
++  this->p_xtn_ytn.setWeight(0, this->p_xtn_ytn.getWeight(0));
 +
    /* update state */
    this->tn = tnp1;
