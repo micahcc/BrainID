@@ -204,33 +204,40 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y) const
 }
 
 
-//Note that k_sigma contains std. deviation OR k and theta_mu contains either
+//Note that scale_p contains std. deviation OR k and loc_p contains either
 //mean or theta depending on the distribution
 double BoldModel::generateComponent(gsl_rng* rng, aux::vector& fillme, 
-            const double* k_sigma, const double* theta_mu) const
+            const double* scale_p, const double* loc_p) const
 {
     double weight = 1, tmp;
     //going to distribute all the state variables the same even if they are
     //in different sections
     int count = 0;
+
     for(size_t i = 0 ; i< STATE_SIZE - MEAS_SIZE; i++) {
-        if(indexof(S_T, count) == i) {
+        if(scale_p[i] == 0) {
+            fillme[i] = loc_p[i];
+        } else if(indexof(S_T, count) == i) {
             //for S_t draw from a gaussian
-            tmp = gsl_ran_gaussian(rng, k_sigma[indexof(S_T,count)]);
-            fillme[indexof(S_T, count)] = tmp + theta_mu[indexof(S_T,count)];
-            weight *= gsl_ran_gaussian_pdf(tmp, k_sigma[indexof(S_T,count)]);
+            tmp = gsl_ran_gaussian(rng, scale_p[i]);
+            fillme[i] = tmp + loc_p[i];
+            weight *= gsl_ran_gaussian_pdf(tmp, scale_p[i]);
             count++;
         } else {
-            //draw from the gama, assume independence between the variables
-            fillme[i] = gsl_ran_gamma(rng, k_sigma[i], theta_mu[i]);
-            weight *= gsl_ran_gamma_pdf(fillme[i], k_sigma[i], theta_mu[i]);
+            //draw from the gamma, assume independence between the variables
+            fillme[i] = gsl_ran_gamma(rng, loc_p[i], scale_p[i]);
+            weight *= gsl_ran_gamma_pdf(fillme[i], scale_p[i], loc_p[i]);
         }
     }
     
     for(size_t i = STATE_SIZE - MEAS_SIZE; i < STATE_SIZE; i++) {
-        tmp = gsl_ran_gaussian(rng, k_sigma[i]);
-        fillme[i] = tmp + theta_mu[i];
-        weight *= gsl_ran_gaussian_pdf(tmp, k_sigma[i]);
+        if(scale_p[i] < 1e-10) {
+            fillme[i] = loc_p[i];
+        } else {
+            tmp = gsl_ran_gaussian(rng, scale_p[i]);
+            fillme[i] = tmp + loc_p[i];
+            weight *= gsl_ran_gaussian_pdf(tmp, scale_p[i]);
+        }
     }
     return 1./weight;
 }
@@ -331,23 +338,26 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
     const unsigned int rank = world.rank();
     
     unsigned int count = 0;
-    double k_sigma[STATE_SIZE]; 
-    double theta_mu[STATE_SIZE];
+    double scale_p[STATE_SIZE]; 
+    double loc_p[STATE_SIZE];
 
     for(unsigned int i = 0 ; i < STATE_SIZE-MEAS_SIZE; i++) {
         if(indexof(S_T, count) == i) {
             count++;
-            theta_mu[i] = mean(i);
-            k_sigma[i] = sqrt(cov(i,i));
+            loc_p[i] = mean(i);
+            scale_p[i] = sqrt(cov(i,i));
+        } else if(cov(i,i) > 1e-10) {
+            scale_p[i] = (-mean[i]+sqrt(mean[i]*mean[i]+4*cov(i,i)))/2; //theta
+            loc_p[i] = cov(i,i)/(scale_p[i]*scale_p[i]); //K
         } else {
-            theta_mu[i] = cov(i,i)/mean(i);
-            k_sigma[i] = mean[i]/theta_mu[i];
+            scale_p[i] = 0;
+            loc_p[i] = mean[i];
         }
     }
     
     for(unsigned int i = STATE_SIZE-MEAS_SIZE; i < STATE_SIZE ; i++) {
-        theta_mu[i] = mean(i);
-        k_sigma[i] = sqrt(cov(i,i));
+        loc_p[i] = mean(i);
+        scale_p[i] = sqrt(cov(i,i));
     }
 
     gsl_rng* rng = gsl_rng_alloc(gsl_rng_ran3);
@@ -359,17 +369,17 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
         gsl_rng_set(rng, seed^rank);
         std::cout << "Seeding with " << (unsigned int)(seed^rank) << "\n";
     }
-    std::cout << "k_sigma: ";
+    std::cout << "scale_p: ";
     for(unsigned int i = 0 ; i < STATE_SIZE ; i++)
-        std::cout << " " << k_sigma[i];
-    std::cout << "\ntheta_mu: ";
+        std::cout << " " << scale_p[i];
+    std::cout << "\nloc_p: ";
     for(unsigned int i = 0 ; i < STATE_SIZE ; i++)
-        std::cout << " " << theta_mu[i];
+        std::cout << " " << loc_p[i];
     std::cout <<  "\n";
     aux::vector comp(STATE_SIZE);
     double weight;
     for(int i = 0 ; i < samples; i ++) {
-        weight = generateComponent(rng, comp, k_sigma, theta_mu);
+        weight = generateComponent(rng, comp, scale_p, loc_p);
         x0.add(comp, flat ? weight : 1.0);
     }
     gsl_rng_free(rng);

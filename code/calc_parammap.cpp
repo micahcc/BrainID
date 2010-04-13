@@ -332,7 +332,7 @@ int main(int argc, char* argv[])
                     //create the bold particle filter
                     BoldPF boldpf(meas, input, rms->GetPixel(index3)/5., a_timestep(),
                             output, a_num_particles()*(1<<i), 1./a_divider(), method,
-                            a_weight());
+                            a_weight(), a_flat());
                     
                     //set the callback function
                     for(unsigned int j = 0; j < 3 ; j++)

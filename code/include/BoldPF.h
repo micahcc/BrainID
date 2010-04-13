@@ -23,6 +23,15 @@
 #include <fstream>
 #include <string>
 
+
+#include <indii/ml/filter/ParticleResampler.hpp>
+#include <indii/ml/aux/Almost2Norm.hpp>
+#include <indii/ml/aux/AlmostGaussianKernel.hpp>
+#include "boost/numeric/bindings/traits/ublas_matrix.hpp"
+#include "boost/numeric/bindings/traits/ublas_vector.hpp"
+#include "boost/numeric/bindings/traits/ublas_symmetric.hpp"
+#include "boost/numeric/bindings/lapack/lapack.hpp"
+
 namespace aux = indii::ml::aux;
 
 class BoldPF 
@@ -160,13 +169,46 @@ aux::matrix calcCov(indii::ml::aux::DiracMixturePdf& p)
 {
     boost::mpi::communicator world;
     aux::vector mu = p.getDistributedExpectation();
-    aux::matrix sum(mu.size(), 0);
+    aux::matrix sum(mu.size(), mu.size(), 0);
 
     for(unsigned int i = 0 ; i < p.getSize() ;i++) {
         sum += p.getWeight(i)*outer_prod(p.get(i)-mu, p.get(i)-mu);
     }
     sum = boost::mpi::all_reduce(world, sum, std::plus<matrix>());
     return sum/p.getDistributedTotalWeight();
+}
+
+aux::matrix calcStdDev(indii::ml::aux::DiracMixturePdf& p)
+{
+    namespace aux = indii::ml::aux;
+    namespace ublas = boost::numeric::ublas;
+    namespace lapack = boost::numeric::bindings::lapack;
+    boost::mpi::communicator world;
+    aux::matrix cov = p.getDistributedCovariance();
+    
+    aux::vector diag_v(cov.size1());
+    int err =  lapack::syev('V', 'U', cov, diag_v);
+    if(err != 0) {
+        throw(-1);
+    }
+    aux::matrix tmp;
+    
+    for(unsigned int i = 0 ; i < diag_v.size() ; i++) {
+        if(diag_v[i] < 0) {
+            if(abs(diag_v[i]) < 1e-10)
+                diag_v[i] = 0;
+            else
+                throw(-5);
+        }
+        diag_v[i] = sqrt(diag_v[i]);
+    }
+    ublas::diagonal_matrix<double, ublas::column_major, ublas::unbounded_array<double> >
+                diag_m(diag_v.size(), diag_v.data());
+    
+    tmp = prod(cov, diag_m);
+    cov = prod(tmp, trans(cov));
+
+    return cov;
 }
 
 /* Run - runs the particle filter
@@ -246,17 +288,24 @@ int BoldPF::run(void* pass = NULL)
             //time to resample
             if(ess < ESS_THRESH) {
                 *debug << " ESS: " << ess << ", Stratified Resampling\n";
-//                aux::symmetric_matrix statecov = calcCov(filter->getFilteredState());
-                aux::symmetric_matrix statecov = filter->getFilteredState().
-                            getDistributedCovariance();
-                aux::vector tmpmu 
-                            = filter->getFilteredState().getDistributedExpectation();
+
+                filter->getFilteredState().distributedNormalise();
+                aux::vector tmpmu = filter->getFilteredState().getDistributedExpectation();
+                outputVector(*debug, tmpmu);
+                *debug << "\n\n";
+                
+                aux::matrix statecov = filter->getFilteredState().getDistributedCovariance();
+                outputMatrix(*debug, statecov);
+                *debug << "\n\n";
+
+                aux::matrix stddev = calcStdDev(filter->getFilteredState());
+                
                 filter->resample(&resampler);
                 
                 *debug << " ESS: " << ess << ", Regularized Resampling\n\n";
                 try {
                     filter->setFilteredState( resampler_reg->resample(
-                                filter->getFilteredState(), statecov) );
+                                filter->getFilteredState(), stddev) );
                 } catch(...) {
                     if(rank == 0){
                         *debug << "Ess: " << ess << endl;
@@ -411,7 +460,8 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
             cov(ii,ii) = 0;
     }
     model->generatePrior(filter->getFilteredState(), localparticles, cov, flatten); 
-
+    filter->getFilteredState().distributedNormalise();
+    
     //Redistribute - doesn't cost anything if distrib. was already fine 
     *debug << "Redistributing" << endl;
     filter->getFilteredState().redistributeBySize(); 

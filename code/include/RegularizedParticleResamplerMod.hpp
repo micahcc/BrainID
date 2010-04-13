@@ -5,10 +5,10 @@
 #include <indii/ml/aux/Almost2Norm.hpp>
 #include <indii/ml/aux/AlmostGaussianKernel.hpp>
 
-#include "boost/numeric/bindings/traits/ublas_matrix.hpp"                                                
-#include "boost/numeric/bindings/traits/ublas_vector.hpp"                                                
-#include "boost/numeric/bindings/traits/ublas_symmetric.hpp"                                             
-#include "boost/numeric/bindings/lapack/lapack.hpp"                                                      
+#include "boost/numeric/bindings/traits/ublas_matrix.hpp"
+#include "boost/numeric/bindings/traits/ublas_vector.hpp"
+#include "boost/numeric/bindings/traits/ublas_symmetric.hpp"
+#include "boost/numeric/bindings/lapack/lapack.hpp"
 
 //this is a reverse dependency, which I know is a bit of a faux pa, but
 //it this is already going to be hackish to avoid getting negative values
@@ -162,7 +162,7 @@ template <class NT, class KT>
 void
 RegularizedParticleResamplerMod<NT, KT>::resample_help(
             indii::ml::aux::DiracMixturePdf& p,
-            aux::matrix covariance, indii::ml::aux::DiracMixturePdf& out)
+            aux::matrix sd, indii::ml::aux::DiracMixturePdf& out)
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
@@ -173,8 +173,6 @@ RegularizedParticleResamplerMod<NT, KT>::resample_help(
     aux::vector x(p.getDimensions());
     double weight = 0;
 
-    /* standardise particles */
-    aux::lower_triangular_matrix sd = p.getDistributedStandardDeviation();
     size_t badcount = 0;
     /* rebuild distribution with kernel noise */
     for (unsigned int i = 0; i < p.getSize(); i++) {
