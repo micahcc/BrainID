@@ -195,9 +195,9 @@ aux::matrix calcStdDev(indii::ml::aux::DiracMixturePdf& p)
     
     for(unsigned int i = 0 ; i < diag_v.size() ; i++) {
         if(diag_v[i] < 0) {
-            if(abs(diag_v[i]) < 1e-10)
-                diag_v[i] = 0;
-            else
+//            if(abs(diag_v[i]) < 1e-10)
+//                diag_v[i] = 0;
+//            else
                 throw(-5);
         }
         diag_v[i] = sqrt(diag_v[i]);
