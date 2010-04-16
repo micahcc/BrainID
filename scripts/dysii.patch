@@ -1,6 +1,6 @@
 diff -Naur Dependencies-Build/dysii-1.4.0-orig/CMakeLists.txt Dependencies-Build/dysii-1.4.0/CMakeLists.txt
 --- Dependencies-Build/dysii-1.4.0-orig/CMakeLists.txt	1969-12-31 19:00:00.000000000 -0500
-+++ Dependencies-Build/dysii-1.4.0/CMakeLists.txt	2010-04-12 19:56:08.157636310 -0400
++++ Dependencies-Build/dysii-1.4.0/CMakeLists.txt	2010-04-16 15:09:57.202298920 -0400
 @@ -0,0 +1,37 @@
 +cmake_minimum_required(VERSION 2.6)
 +SET(CMAKE_VERBOSE_MAKEFILE)
@@ -41,7 +41,7 @@ diff -Naur Dependencies-Build/dysii-1.4.0-orig/CMakeLists.txt Dependencies-Build
 +SET(dysii_LIBRARY_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
 diff -Naur Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/aux/DiracMixturePdf.cpp Dependencies-Build/dysii-1.4.0/src/indii/ml/aux/DiracMixturePdf.cpp
 --- Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/aux/DiracMixturePdf.cpp	2008-12-17 10:15:26.000000000 -0500
-+++ Dependencies-Build/dysii-1.4.0/src/indii/ml/aux/DiracMixturePdf.cpp	2010-04-12 19:56:08.157636310 -0400
++++ Dependencies-Build/dysii-1.4.0/src/indii/ml/aux/DiracMixturePdf.cpp	2010-04-16 15:09:57.212293562 -0400
 @@ -136,12 +136,6 @@
    if (size == 1) {
      return getCovariance();
@@ -93,9 +93,35 @@ diff -Naur Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/aux/DiracMixturePdf.
    haveSigma = true;
  }
  
+diff -Naur Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/aux/DiracMixturePdf.hpp Dependencies-Build/dysii-1.4.0/src/indii/ml/aux/DiracMixturePdf.hpp
+--- Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/aux/DiracMixturePdf.hpp	2008-12-17 10:15:26.000000000 -0500
++++ Dependencies-Build/dysii-1.4.0/src/indii/ml/aux/DiracMixturePdf.hpp	2010-04-16 15:13:21.644775537 -0400
+@@ -143,7 +143,6 @@
+    */
+   void redistributeBySpace();
+ 
+-protected:
+   virtual void dirty();
+ 
+ private:
+diff -Naur Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/aux/MixturePdf.hpp Dependencies-Build/dysii-1.4.0/src/indii/ml/aux/MixturePdf.hpp
+--- Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/aux/MixturePdf.hpp	2008-12-17 10:15:26.000000000 -0500
++++ Dependencies-Build/dysii-1.4.0/src/indii/ml/aux/MixturePdf.hpp	2010-04-16 15:13:12.261440321 -0400
+@@ -356,10 +356,9 @@
+ 
+   //@}
+ 
+-protected:
+   /**
+    * Called when changes are made to the distribution, such as when a
+-   * new component is added. This allows pre-calculations to be
++   * new component is added. This causes pre-calculations to be
+    * refreshed.
+    */
+   virtual void dirty();
 diff -Naur Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/filter/Filter.hpp Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/Filter.hpp
 --- Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/filter/Filter.hpp	2008-12-17 10:15:27.000000000 -0500
-+++ Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/Filter.hpp	2010-04-12 19:56:08.160969180 -0400
++++ Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/Filter.hpp	2010-04-16 15:09:57.218960285 -0400
 @@ -3,6 +3,7 @@
  
  #include "../aux/vector.hpp"
@@ -123,7 +149,7 @@ diff -Naur Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/filter/Filter.hpp De
      }
 diff -Naur Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/filter/ParticleFilter.hpp Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp
 --- Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/filter/ParticleFilter.hpp	2008-12-17 10:15:27.000000000 -0500
-+++ Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp	2010-04-12 22:18:35.973447621 -0400
++++ Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilter.hpp	2010-04-16 15:09:57.218960285 -0400
 @@ -8,6 +8,7 @@
  #include "ParticleResampler.hpp"
  #include "ParticleFilterModel.hpp"
@@ -213,7 +239,7 @@ diff -Naur Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/filter/ParticleFilte
 +  /* Make the distribution dirty since values changed 
 +   * and force an update of cumulative weights, 
 +   */
-+  this->p_xtn_ytn.setWeight(0, this->p_xtn_ytn.getWeight(0));
++  this->p_xtn_ytn.dirty();
 +
    /* update state */
    this->tn = tnp1;
@@ -324,7 +350,7 @@ diff -Naur Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/filter/ParticleFilte
  #endif
 diff -Naur Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/filter/ParticleFilterModel.hpp Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilterModel.hpp
 --- Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/filter/ParticleFilterModel.hpp	2008-12-17 10:15:27.000000000 -0500
-+++ Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilterModel.hpp	2010-04-12 19:56:08.160969180 -0400
++++ Dependencies-Build/dysii-1.4.0/src/indii/ml/filter/ParticleFilterModel.hpp	2010-04-16 15:09:57.218960285 -0400
 @@ -31,14 +31,14 @@
     *
     * @return Number of dimensions in state.
@@ -372,7 +398,7 @@ diff -Naur Dependencies-Build/dysii-1.4.0-orig/src/indii/ml/filter/ParticleFilte
  
 diff -Naur Dependencies-Build/dysii-1.4.0-orig/UseDysii.cmake Dependencies-Build/dysii-1.4.0/UseDysii.cmake
 --- Dependencies-Build/dysii-1.4.0-orig/UseDysii.cmake	1969-12-31 19:00:00.000000000 -0500
-+++ Dependencies-Build/dysii-1.4.0/UseDysii.cmake	2010-04-12 19:56:08.160969180 -0400
++++ Dependencies-Build/dysii-1.4.0/UseDysii.cmake	2010-04-16 15:09:57.218960285 -0400
 @@ -0,0 +1,16 @@
 +#   This file will permit you to add dysii to your project using
 +#   FIND_PACKAGE(dysii REQUIRED)
