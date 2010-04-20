@@ -38,63 +38,76 @@
 \section{Introduction}
 Functional Magnetic Resonance Imaging (FMRI) is a powerful tool in the analysis
 of neural activity. Despite its rather limited temporal resolution, FMRI is still
-the best way of measuring neural activity deep in the brain. 
+the best way of measuring neural activity for the majority of the brain.
 Whereas other methods
 of analyzing neural signals can be invasive or difficult to acquire, 
-FMRI is relatively quick and cheap, and its analysis is straight forward.
+FMRI is relatively quick and cheap, and its analysis straight forward.
 Because of these benefits, FMRI continues to be crucial to the study of human 
-cognition. Despite the fact that FMRI is so widely used,
-the choice of analysis tools is still relatively limited. Every widely
-available analysis tool is based on parametric modeling, which requires
-prior knowledge of the noise distribution. Indeed, the linear methods
-usually applied are known not to be robust to non-gaussian, non-white
-noise, which is why so many pre-processing steps are necessary.
-These limitations cast a long shadow over any experiment that claims to be
-able to reject the null hypothesis, no matter the P-value. While obviously
-there is a correlation between the BOLD signal and actual activity, its
-possible the current parametric tests are over-estimating the actual amount
-of activity. Its also possible that the current methods underestimate
-actual activity. In this paper we propose a robust model-based approach to 
-activation detection that makes no assumptions about the underlying noise
-model.
-
-
-fact, typical activation detection does little to account for variations
-in the shape of the signal, but instead is a direct T-test between the measured signal
-and the expected shape of the signal. Because of these limitations,
-multiple comparison tests are imperative (ref fish), and active regions
-must be very large to be detected with any confidence. This paper
-will introduce a more robust method of analyzing FMRI signals for 
-activation, by means of estimating the BOLD parameters.
+cognition. Despite its prevalence, there have been relatively few developments
+in the actual analysis of FMRI images. A steady stream of studies have adapted
+the BOLD model from the initial Baloon model first proposed by \cite{Buxton1998}
+all the way to full fully autonomous system of equations \cite{Riera2004}. And while
+there have been numerous forks in the model, enough in fact to make an entire paper
+studying the differences,\cite{Deneux2006}, it is widely known that all these
+models have quantitatively less bias error than General Linear Model which is
+typically employed today. Then again, depending on the model there may between
+seven \cite{Riera2004} and fifteen \cite{Zheng2002} parameters per voxel to
+be optimized. Clearly there is a significant risk of error due to variance
+with so many degrees of freedom, not to mention a significantly increased
+computation cost. In this thesis I demonstrate the use of a 
+particle filter as a means of addressing these problems.
 
 \subsection{FMRI}
-Before going further, it is necessary to discuss Functional MRI,
-and what it measures. All MRI works by exciting nuclear spin away
-from a steady state controlled by a large electromagnet. Different 
-nuclei respond to RF impulses based on their natural frequency
-of oscillation. Therefore contrast in MRI is based on the aggregate
-nuclear composition of a given region. Thus, regions with more oxygen
-will respond differently from regions with proportionately less 
-oxygen. This exact difference is what causes the changes over time
-in the MR signal in functional MRI. Unfortunately, it takes a significant
-amount of time for nuclear spin to return to equilibrium. Thus instead
-of waiting, a type of imaging called Echo Planar Imaging (EPI) is used,
-wherein a single excitation is used, and then as quickly as possible
-every voxel (3 Dimensional Pixel) in a particular region is read. 
-Because "reading" a particular region requires the switching on of a
-gradient magnetic field, it takes a decent amount of time to perform
-measurements. Problematically, the signal from the original excitation
-drops exponentially, thus the signal to noise ratio can be very low
-even at modest resolutions. Eventually the signal becomes unreadable,
-and a new excitation must be applied. As more measurements are made, and thus
-as the spatial resolution increases, the rate at which entire volumes
-can be acquired drops. Typically volumes can be acquired every two to
-three seconds, at resolutions of about 64 by 64 by 32, but their signal
-to noise ratio is often poor. Other imaging modalities such as EEG and
-MEG are capable of much faster measurements, but are unable to isolate
-measurement locations so precisely as FMRI. As with all biological systems,
-noise is much higher than in human designed systems, and yet these 
-biological systems are capable of performing amazing feats.
+Magnetic Resonance Imaging, MRI is a method of building 3D images
+non-invasively, based on the difference between nuclear spin
+relaxation times in various molecules. Initially the entity being
+imaged is brought into a large magnetic field which aligns the spins
+of molecules in the same direction; radio frequency (RF) signals may
+then be used to excite nuclear spin away from the steady alignment. 
+As the nuclei precess back to their original orientation, they resonate
+at the same RF frequency of their original excitation. Conveniently, the
+excitation of nuclear spins return their original state at different
+rates, called the T1 relaxation time, depending on the properties of 
+the material excited. Additionally, the
+coherence of the spins also decay differently (and quite a bit faster
+than T1) based on the properties of the region that has been excited.
+This gives two primary methods of contrasting substances,
+which is the basis of T1 and T2 weighted images. Additionally, there
+dephasing occurs at two different rates, the T2 relaxation time,
+which is impossible to recover from, and T2$^*$ relaxation, which is
+much faster, but possible to recover from with an inversion pulse.
+Oftentimes T1 relaxation times can be on the order of seconds if 
+a significant excitation pulse is applied. 
+In order to rapidly acquire entire brain images, as is done in Functional 
+MRI, a single large excitation pulse is applied to the entire brain,
+and the entire volume is acquired in a single T1 relaxation period. 
+Because the entire k-space (spatial-frequency) volume is acquired 
+from a single excitation, the signal to noise ration is very low
+in this type  of imaging (Echo Planar Imaging). 
+
+Increasing the spatial resolution of EPI imaging necessarily 
+requires more time or faster magnetic field switching. Increasing
+magnet switching rates though is difficult, because it can result in
+more artifacts, or even lower signal to noise ratios. The result is
+that at best FMRI is capable of 1.2 second temporal resolution. 
+Additionally, the means that each voxel of the image will contain 
+the sum of a large amount neurons, capillaries and veins. Thus, the
+FMRI signal, which is sensitive to the chemical composition of 
+materials, is summing up the composition of various types of tissue
+in addition to the blood, whose composition is what we actually care about.
+In particular, the presence of Deoxyhemoglobin, Hemoglobin whose
+oxygen has been used by a metabolic process, has a larger magnetic
+response compared to Oxygenated Hemoglobin. Thus, capillaries near
+very active cells will typically have a higher Deoxyhemoglobin content,
+and regions with lower activity will have a lower Deoxyhamoglobin content.
+Unfortunately, as mentioned previously, blood is only a small part of
+each voxel, which means that a single EPI image doesn't tell much about
+Deoxyhemoglobin content. However assuming blood is the only thing changing
+in the short term, percent difference from a baseline signal \emph{will}
+tell us something. FMRI analysis is thus necessarily performed on the percent change
+from the baseline. Luckily the assumption that tissue content does not change in
+the short run is actually pretty good, although other facts can pollute
+the baseline signal, as we will discuss later. 
 
 \subsection{BOLD Physiology}
 The physiology that leads to the BOLD model has been well studied over the 
@@ -889,3 +902,21 @@ image comparing epsilon-map with GLM activation map
 
 
 \end{document}
+
+%trash
+%stream of new developments in modeling the BOLD signal, nothing has have been
+%a plethora of new studies pushing advancements 
+%the choice of analysis tools is still relatively limited. Every widely
+%available analysis tool is based on parametric modeling, which requires
+%prior knowledge of the noise distribution. Indeed, the linear methods
+%usually applied are known not to be robust to non-gaussian, non-white
+%noise, which is why so many pre-processing steps are necessary.
+%These limitations cast a long shadow over any experiment that claims to be
+%able to reject the null hypothesis, no matter the P-value. While obviously
+%there is a correlation between the BOLD signal and actual activity, its
+%possible the current parametric tests are over-estimating the actual amount
+%of activity. Its also possible that the current methods underestimate
+%actual activity. In this paper we propose a robust model-based approach to 
+%activation detection that makes no assumptions about the underlying noise
+%model.
+
