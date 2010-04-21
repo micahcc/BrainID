@@ -89,29 +89,68 @@ Increasing the spatial resolution of EPI imaging necessarily
 requires more time or faster magnetic field switching. Increasing
 magnet switching rates though is difficult, because it can result in
 more artifacts, or even lower signal to noise ratios. The result is
-that at best FMRI is capable of 1.2 second temporal resolution. 
+that at \emph{best} FMRI is capable of 1 second temporal resolution. 
 Additionally, the means that each voxel of the image will contain 
 the sum of a large amount neurons, capillaries and veins. Thus, the
 FMRI signal, which is sensitive to the chemical composition of 
 materials, is summing up the composition of various types of tissue
 in addition to the blood, whose composition is what we actually care about.
 In particular, the presence of Deoxyhemoglobin, Hemoglobin whose
-oxygen has been used by a metabolic process, has a larger magnetic
+oxygen has been used by a metabolic process, has a decreased magnetic
 response compared to Oxygenated Hemoglobin. Thus, capillaries near
-very active cells will typically have a higher Deoxyhemoglobin content,
-and regions with lower activity will have a lower Deoxyhamoglobin content.
+very active cells will typically have a higher Deoxyhemoglobin content and
+lower signal, and regions with lower activity will have a lower 
+Deoxyhamoglobin content and thus higher signal.
 Unfortunately, as mentioned previously, blood is only a small part of
 each voxel, which means that a single EPI image doesn't tell much about
 Deoxyhemoglobin content. However assuming blood is the only thing changing
 in the short term, percent difference from a baseline signal \emph{will}
 tell us something. FMRI analysis is thus necessarily performed on the percent change
 from the baseline. Luckily the assumption that tissue content does not change in
-the short run is actually pretty good, although other facts can pollute
+the short run is actually pretty good, although other factors can pollute
 the baseline signal, as we will discuss later. 
 
 \subsection{BOLD Physiology}
-The physiology that leads to the BOLD model has been well studied over the 
-past decade and a half. While some uncertainty remains (for instance in
+It is will known that Deoxyhemoglobin acts as a contrast agent in EPI imaging
+\cite{Buxton1999}, \cite{WEISSKOFF1994}, \cite{Ogawa}, so then what causes
+changes Deoxyhemoglobin in a voxel? Obviously increased metabolism will increase
+Deoxyhemoglobin, but changes in blood volume in a voxel will also alter 
+the MR signal depending on the ratio of Deoxyhemoglobin to hemoglobin. 
+This was the impetus
+for the ground breaking research \cite{Buxton1999} and \cite{Mandeville1999}.
+These were the first two attempts to quantitatively account for the shape of the 
+BOLD signal as a consequence of the lag between the cerebral blood flow (CBF) 
+and the cerebral blood volume (CBV). In fact \cite{Buxton1999} went to far as
+to show that a simple, well chosen blood flow waveform, along with a balloon 
+model, could fully account for the BOLD signal. Although complex
+changes in metabolism exist (\cite{Zheng2002}), most recent studies have
+focused on their ability to explain the prolonged BOLD post stimulus 
+undershoot \cite{Donahue2009}, \cite{Yacoub2006}. This is because \cite{Buxton2004}
+and later \cite{Riera2004} showed that the primary signal may be accurately
+be estimated by a simple flow-locked expression of the CMRO2. Comparison
+between the more complicated models including a separate expression for CMRO2
+and the simplified Buxton expression show little actual difference \cite{Deneux2006}.
+In \cite{Buxton1999}, it was shown that small changes in the flow expression could
+result in vastly different recovery times of the baseline BOLD signal, and
+in \cite{Mandeville1999} a cause for delayed CBV recovery was proposed, based
+on differences in compliance of capillaries. \cite{Behzadi2005} provided a simple,
+complete model and explanation for delayed compliance of neural capillaries,
+and those simple changes can result in a significant improvement in the bias error,
+as shown in \cite{Deneux2006}. In the end, it may be impossible to refute the
+possibility of a prolonged period of increased metabolic activity after activation,
+however, much of the BOLD post stimulus undershoot may be explained by a 
+prolonged CBV undershoot, as shown in \cite{Chan2009}. Because of the greatly
+increased complexity of CMRO2 modeling, compared with the relative simplicity
+of the Behzadi model, in most cases it is not worth using the more advanced CMRO2
+model unless the metabolic rate is an end goal. 
+
+
+
+The physiology that leads to the BOLD signal has been well studied over the 
+past decade and a half, but there is still some question about the origins
+of certain signal features. In the seminal paper \cite{Buxton1999}, the original
+Balloon model was proposed. Buxton et. al showed that all of the features
+of the BOLD signal may be explained by lag between ... . While some uncertainty remains (for instance in
 relation to the BOLD post-stimulus undershoot <papers relating to back and
 forth on post-stimulus undershoot>) generally the model fits reality very 
 well. As with every piece of tissue in the body, the brain requires oxygen
