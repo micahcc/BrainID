@@ -44,18 +44,45 @@ of analyzing neural signals can be invasive or difficult to acquire,
 FMRI is relatively quick and cheap, and its analysis straight forward.
 Because of these benefits, FMRI continues to be crucial to the study of human 
 cognition. Despite its prevalence, there have been relatively few developments
-in the actual analysis of FMRI images. A steady stream of studies have adapted
-the BOLD model from the initial Baloon model first proposed by \cite{Buxton1998}
+in the actual analysis of FMRI images. A steady stream of studies have built
+on the original BOLD signal derivation first described in \cite{Ogawa}, 
+from the Baloon model first proposed by \cite{Buxton1998}
 all the way to full fully autonomous system of equations \cite{Riera2004}. And while
 there have been numerous forks in the model, enough in fact to make an entire paper
 studying the differences,\cite{Deneux2006}, it is widely known that all these
 models have quantitatively less bias error than General Linear Model which is
-typically employed today. Then again, depending on the model there may between
+typically employed today. Then again, depending on the model there may be between
 seven \cite{Riera2004} and fifteen \cite{Zheng2002} parameters per voxel to
 be optimized. Clearly there is a significant risk of error due to variance
 with so many degrees of freedom, not to mention a significantly increased
 computation cost. In this thesis I demonstrate the use of a 
 particle filter as a means of addressing these problems.
+
+FMRI images as a method of detecting neural activation is based on 
+temporal changes of the Blood Oxygen Level Dependent (BOLD) signal.
+The BOLD signal is caused by minute changes in the ratio of Deoxygenated
+Hemoglobin to Oxygenated Hemoglobin in blood vessels throughout the brain.
+Because Deoxygenated hemoglobin is paramagnetic, higher concentrations
+attenuate the signal when using T2 weighted imaging techniques, such 
+as Echo Planar Imaging (EPI) which is used in FMRI. When axons becomes active,
+a large amount of ions quickly flow out of the cell. In order for the action
+potential to be used again, an active pumping process moves ions back into the
+axon. This process of recharging the axon takes a large amout of enengy, which 
+naturally uses oxygen. On a massive scale (cubic millimiter) this activation/recharge
+process is happening all
+the time; however, it happens at a much higher rate when a portion of
+the brain is very active. Thus, blood vessels in a very active area will 
+tend to have less oxygenated hemoglobin, and more deoxygenated hemoglobin,
+resulting in lower FMRI signal. However, to compensate for activation, muscles that
+control blood vessels relax in that region to allow more blow flow, which 
+in fact results in a higher concentration of oxygenated hemoglobin. Thus,
+increased activation actually tends to \emph{increase} the MR signal in
+comparison with the base level. It is this overcompensation that is the 
+primary signal detected with FMRI imaging. This cascade of events
+can, as a consequence of increased activity, increase the local metabolism, 
+blood flow, blood volume, and oxygenated hemoglobin; though not necessarily
+in sync. The lag between these
+various factors is what causes many of the complexities of the BOLD signal.
 
 \subsection{FMRI}
 Magnetic Resonance Imaging, MRI is a method of building 3D images
@@ -111,32 +138,60 @@ the short run is actually pretty good, although other factors can pollute
 the baseline signal, as we will discuss later. 
 
 \subsection{BOLD Physiology}
-It is will known that Deoxyhemoglobin acts as a contrast agent in EPI imaging
-\cite{Buxton1999}, \cite{WEISSKOFF1994}, \cite{Ogawa}, so then what causes
-changes Deoxyhemoglobin in a voxel? Obviously increased metabolism will increase
-Deoxyhemoglobin, but changes in blood volume in a voxel will also alter 
-the MR signal depending on the ratio of Deoxyhemoglobin to hemoglobin. 
+It is well known that the two types of hemoglobin act as a contrast agents in 
+EPI imaging
+\cite{Buxton1999}, \cite{WEISSKOFF1994}, \cite{Ogawa}, however the connection
+between DeHb/O2Hb and neural activity is non-trivial. Intuitively, increased 
+metabolism will increase Deoxyhemoglobin, however blood vessels are quick
+to compensate by increasing local blood flow. Increased inflow will of course
+preceed increased outflow, and increased inflow is encouraged by loosening 
+capilary beds. Both of these factors drive increased storage capacity.
+Since the local MR signal depends on the ratio of Deoxyhemoglobin to Oxygenated
+Hemoglobin, increased volume of blood can certainly effect this ratio if 
+metabolism doesn't exactly match the increased inflow of oxygenated blood.
 This was the impetus
-for the ground breaking research \cite{Buxton1999} and \cite{Mandeville1999}.
+for the ground breaking balloon model (\cite{Buxton1999}) and windkessel
+model (\cite{Mandeville1999}). These models derive from first principals
+the increased deoxyhemoglobin ratio and volume of capillaries based on flow.
 These were the first two attempts to quantitatively account for the shape of the 
 BOLD signal as a consequence of the lag between the cerebral blood flow (CBF) 
 and the cerebral blood volume (CBV). In fact \cite{Buxton1999} went to far as
-to show that a simple, well chosen blood flow waveform, along with a balloon 
-model, could fully account for the BOLD signal. Although complex
-changes in metabolism exist (\cite{Zheng2002}), most recent studies have
+to show that a simple, well chosen blood flow waveform coupled with a simple
+cerebral metabolic rate of oxygen (CMRO2) curve, in the context of a balloon 
+model, could fully account for the BOLD signal. 
+
+Although complex
+models for metabolism exist (\cite{Zheng2002}), most recent studies have
 focused on their ability to explain the prolonged BOLD post stimulus 
 undershoot \cite{Donahue2009}, \cite{Yacoub2006}. This is because \cite{Buxton2004}
-and later \cite{Riera2004} showed that the primary signal may be accurately
-be estimated by a simple flow-locked expression of the CMRO2. Comparison
-between the more complicated models including a separate expression for CMRO2
-and the simplified Buxton expression show little actual difference \cite{Deneux2006}.
-In \cite{Buxton1999}, it was shown that small changes in the flow expression could
+and later \cite{Riera2004} showed that the main portion of the signal may be 
+accurately estimated by a simple blood flow locked expression of the CMRO2. 
+Although \cite{Deneux2006} did not deal extensively with prolonged post
+stimulus undershoot, the comparisons made in that publication showed minimal
+improvement from separate expressions of CMRO2. For some time there was 
+debate regarding the cause for the post-stimulus undershoot often seen in 
+FMRI studies. The problem stemmed from the fact that there were many studies
+showing CBV and CBF returning to baseline well before the BOLD signal. In fact
+this result seemed to be confirmed by several studes: \cite{Frahm2008}, \cite{Donahue2008}, 
+\cite{Lu2004}. 
+
+%here
+
+In fact, the original Buxton
+paper demonstrated how minimal changes in the flow expression could
 result in vastly different recovery times of the baseline BOLD signal, and
-in \cite{Mandeville1999} a cause for delayed CBV recovery was proposed, based
-on differences in compliance of capillaries. \cite{Behzadi2005} provided a simple,
-complete model and explanation for delayed compliance of neural capillaries,
-and those simple changes can result in a significant improvement in the bias error,
-as shown in \cite{Deneux2006}. In the end, it may be impossible to refute the
+in \cite{Mandeville1999} a cause for delayed CBF recovery was proposed, based
+on hysterous in the compliance of capillaries. \cite{Behzadi2005} provided
+additional incite into this possibility, going so far as proposing a simple
+yet complete model and explanation for delayed compliance of neural capillaries.
+Those simple changes can result in error levels on par with the more 
+complex CMRO2 inclusive models, which was one of the major findings of \cite{Deneux2006}. 
+This was reiterated in \cite{Chan2009}, which concluded that many of
+the studies claiming a CBV recovery well before the BOLD signal 
+(\cite{Frahm1996}, \cite{Kruger1996}, \cite{Lu2004}) 
+could actually have been detecting arterial blood flow, which does not significantly effect the
+BOLD signal. 
+In the end, it may be impossible to refute the
 possibility of a prolonged period of increased metabolic activity after activation,
 however, much of the BOLD post stimulus undershoot may be explained by a 
 prolonged CBV undershoot, as shown in \cite{Chan2009}. Because of the greatly
