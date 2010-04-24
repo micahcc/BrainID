@@ -180,6 +180,7 @@ aux::matrix calcCov(indii::ml::aux::DiracMixturePdf& p)
 
 aux::matrix calcStdDev(indii::ml::aux::DiracMixturePdf& p)
 {
+    static int count = 0;
     namespace aux = indii::ml::aux;
     namespace ublas = boost::numeric::ublas;
     namespace lapack = boost::numeric::bindings::lapack;
@@ -195,6 +196,7 @@ aux::matrix calcStdDev(indii::ml::aux::DiracMixturePdf& p)
     
     for(unsigned int i = 0 ; i < diag_v.size() ; i++) {
         if(diag_v[i] < 0) {
+            count++;
             if(abs(diag_v[i]) < 1e-10)
                 diag_v[i] = 0;
             else
@@ -208,6 +210,7 @@ aux::matrix calcStdDev(indii::ml::aux::DiracMixturePdf& p)
     tmp = prod(cov, diag_m);
     cov = prod(tmp, trans(cov));
 
+    fprintf(stdout, "(%i)\n", count);
     return cov;
 }
 
