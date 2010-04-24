@@ -107,6 +107,26 @@ Label4DType::Pointer createRegions(double sigma, double threshp,
     return conn->GetOutput();
 }
 
+Label4DType::Pointer segmentOnly(Label4DType::Pointer mask)
+{
+    //segment image into discrete blobs
+    itk::ConnectedComponentImageFilter<Label4DType, Label4DType>::Pointer conn = 
+                itk::ConnectedComponentImageFilter<Label4DType, Label4DType>::New();
+    conn->SetInput(mask);
+
+    conn->Update();
+
+//    {
+//    itk::ImageFileWriter<Label4DType>::Pointer  writer =
+//            itk::ImageFileWriter<Label4DType>::New();
+//    writer->SetInput(conn->GetOutput());
+//    writer->SetFileName("tmp.nii.gz");
+//    writer->Update();
+//    }
+    
+    return conn->GetOutput();
+}
+
 vector< vector<double> > read_params(string filename) 
 {
     FILE* fin = fopen(filename.c_str(), "r");
@@ -186,12 +206,14 @@ Image4DType::Pointer applyParams(string param_f, Label4DType::Pointer regions)
 int main( int argc, char **argv ) 
 {
     /* Input related */
-    vul_arg<string> a_templ("-t" ,"Template (takes orientation/spacing/brain)");
     vul_arg<string> a_imageOut(0 ,"Image Out");
-    vul_arg<double> a_thresh("-T" ,"Threshold for region gen.", .53);
-    vul_arg<double> a_sigma("-s" ,"Sigma for gaussian filter, region gen", 4);
     vul_arg<string> a_params(0 ,"File with parameters, 1 region per line, nonactive on first line"
                 "<TAU_0> <ALPHA> <E_0> <V_0> <TAU_S> <TAU_F> <EPSILON> <A_1> <A_2>");
+    vul_arg<string> a_templ("-t" ,"Template (takes orientation/spacing/brain)");
+    vul_arg<double> a_thresh("-T" ,"Threshold for region gen.", .53);
+    vul_arg<double> a_sigma("-s" ,"Sigma for gaussian filter, region gen", 4);
+    vul_arg<string> a_mask("-m", "Instead of using a gaussian image to build regions"
+                " use this image as the basis for regions, a connection filter will be used");
     vul_arg<string> a_noise("-n" ,"File with per-param variance (if file not supplied"
                 " no noise will be added, file should be single line:"
                 "<TAU_0> <ALPHA> <E_0> <V_0> <TAU_S> <TAU_F> <EPSILON> <A_1> <A_2>");
@@ -199,34 +221,43 @@ int main( int argc, char **argv )
     /* Processing */
     vul_arg_parse(argc, argv);
     
-    Image4DType::Pointer templ = NULL;
+    Image4DType::Pointer templ;
+    Label4DType::Pointer regions;
     
     /* Template Image */
-    if(a_templ() != "") {
+    if(!a_templ().empty()) {
         itk::ImageFileReader<Image4DType>::Pointer reader = 
                     itk::ImageFileReader<Image4DType>::New();
         reader->SetImageIO(itk::modNiftiImageIO::New());
-        reader ->SetFileName( a_templ() );
+        reader->SetFileName( a_templ() );
+        reader->Update();
         templ = reader->GetOutput();
-        templ->Update();
     }
     
-    fprintf(stderr, "Creating Regions\n");
-    Label4DType::Pointer regions = createRegions(a_sigma(), a_thresh(), templ);
-    printf("\nSpacing %f %f %f\n", regions->GetSpacing()[0],regions->GetSpacing()[1], 
+    if(a_mask().empty()) {
+        fprintf(stderr, "Creating Regions\n");
+        regions = createRegions(a_sigma(), a_thresh(), templ);
+        printf("\nSpacing %f %f %f\n", regions->GetSpacing()[0],regions->GetSpacing()[1], 
                 regions->GetSpacing()[2]);
-    fprintf(stderr, "Done\n");
-    
-    {
-    fprintf(stderr, "Outputing regions\n");
-    itk::ImageFileWriter<Label4DType>::Pointer writer = 
-                itk::ImageFileWriter<Label4DType>::New();
-    writer->SetInput(regions);
-    writer->SetImageIO(itk::modNiftiImageIO::New());
-    writer->SetFileName("regions.nii.gz");
-    writer->Update();
+        fprintf(stderr, "Done\n");
+
+        fprintf(stderr, "Outputing regions\n");
+        itk::ImageFileWriter<Label4DType>::Pointer writer = 
+            itk::ImageFileWriter<Label4DType>::New();
+        writer->SetInput(regions);
+        writer->SetImageIO(itk::modNiftiImageIO::New());
+        writer->SetFileName("regions.nii.gz");
+        writer->Update();
+        fprintf(stderr, "Done\n");
+    } else {
+        itk::ImageFileReader<Label4DType>::Pointer reader = 
+                    itk::ImageFileReader<Label4DType>::New();
+        reader->SetImageIO(itk::modNiftiImageIO::New());
+        reader->SetFileName( a_mask() );
+        reader->Update();
+        regions = reader->GetOutput();
+        regions = segmentOnly(regions);
     }
-    fprintf(stderr, "Done\n");
 
     fprintf(stderr, "Creating Param Image\n");
     Image4DType::Pointer out = applyParams(a_params(), regions);
