@@ -117,23 +117,37 @@ Image4DType::Pointer preprocess_help(Image4DType::Pointer input,
         input = deSplineByStim(input, 10, stim, sampletime);
     } else {
         std::cerr << "De-trending, then dividing by mean" << endl;
-        input = deSplineBlind(input, input->GetRequestedRegion().GetSize()[3]/80);
+        input = deSplineBlind(input, input->GetRequestedRegion().GetSize()[3]/20);
     }
     std::cerr << "Done." << endl;
 
-    /* Save detrended image */
-    if(rank == 0) try {
-        itk::ImageFileWriter<Image4DType>::Pointer out = 
-                    itk::ImageFileWriter<Image4DType>::New();
-        out->SetInput(input);
-        out->SetFileName("pfilter_input.nii.gz");
-        cout << "Writing: " << "pfilter_output.nii.gz" << endl;
-        out->Update();
-    } catch(itk::ExceptionObject) {
-        cerr << "Error opening pfilter_input.nii.gz" << endl;
-        exit(-4);
-    }
     return input;
+}
+
+int countValid(Image4DType::Pointer fmriimg, Label4DType::Pointer mask)
+{
+    int count = 0;
+    unsigned int xlen = fmriimg->GetRequestedRegion().GetSize()[0];
+    unsigned int ylen = fmriimg->GetRequestedRegion().GetSize()[1];
+    unsigned int zlen = fmriimg->GetRequestedRegion().GetSize()[2];
+    Image3DType::IndexType index3 = {{0, 0, 0}};
+    Image4DType::PointType point4;
+    Image4DType::IndexType index4 = {{0, 0, 0, 0}};
+    /* Calculate parameters for every voxel */
+    for(index3[0] = 0 ; index3[0] < xlen ; index3[0]++) {
+        for(index3[1] = 0 ; index3[1] < ylen ; index3[1]++) {
+            for(index3[2] = 0 ; index3[2] < zlen ; index3[2]++) {
+                //initialize some indexes
+                for(int i = 0 ; i < 3 ; i++) index4[i] = index3[i];
+                index4[3] = 0;
+                fmriimg->TransformIndexToPhysicalPoint(index4, point4);
+                if(checkmask(mask, point4)) {
+                    count++;
+                }
+            }
+        }
+    }
+    return count;
 }
 
 /* Main Function */
@@ -163,6 +177,7 @@ int main(int argc, char* argv[])
     vul_arg<int> a_weight("-w", "Use weight function: 0:Normal, 1:Laplace, "
                 "2:Hyperbolic, 3:Cauchy", 0);
     vul_arg<double> a_timestep("-t", "TR (timesteps in 4th dimension)", 2);
+    vul_arg<string> a_output("-o", "Output prefix", "");
     
     vul_arg_parse(argc, argv);
     
@@ -264,6 +279,21 @@ int main(int argc, char* argv[])
 
     inImage = preprocess_help(inImage, input, a_timestep(), ERASE, a_delta(),
                 a_smart());
+    
+    /* Save detrended image */
+    if(rank == 0) try {
+        itk::ImageFileWriter<Image4DType>::Pointer out = 
+                    itk::ImageFileWriter<Image4DType>::New();
+        out->SetInput(inImage);
+	string outname = a_output();
+	outname.append("pfilter_input.nii.gz");
+        out->SetFileName(outname);
+        cout << "Writing: " << outname << endl;
+        out->Update();
+    } catch(itk::ExceptionObject) {
+        cerr << "Error opening pfilter_input.nii.gz" << endl;
+        exit(-4);
+    }
 
     //acquire rms
     rms = get_rms(inImage);
@@ -284,7 +314,7 @@ int main(int argc, char* argv[])
     } else {
         cb_part_data* cbd = new cb_part_data;
         cb_part_init(cbd, &callpoints, FILTER_PARAMS, a_num_particles(), 
-                    inImage->GetRequestedRegion().GetSize()[3]);
+                    inImage->GetRequestedRegion().GetSize()[3], a_output());
         cbdata = (void*)cbd;
         cbfunc = cb_part_call;
 
@@ -305,6 +335,9 @@ int main(int argc, char* argv[])
     aux::vector a_values(2);
     a_values[0] = BoldModel::getA1();
     a_values[1] = BoldModel::getA2();
+
+    int total = countValid(inImage, mask);
+    int traveled = 0;
        
     /* Calculate parameters for every voxel */
     for(index3[0] = 0 ; index3[0] < xlen ; index3[0]++) {
@@ -364,10 +397,10 @@ int main(int argc, char* argv[])
             
                 //run time calculation
                 time_t tmp = time(NULL);
-                double traveled = (index3[0]*ylen + index3[1])*zlen+index3[2];
-                double total = xlen*ylen*zlen;
+                
+                traveled++;
                 cerr << "Time Elapsed: " << difftime(tmp, start) << endl
-                     << "Time Remaining: " << (total-traveled)*difftime(tmp,start)/traveled 
+                     << "Time Remaining: " << (total-traveled)*difftime(tmp,start)/(double)traveled 
                      << endl << "Ratio: " << traveled << "/" << total << endl
                      << "Left: " << total-traveled << "/" << total
                      << endl;
@@ -377,23 +410,27 @@ int main(int argc, char* argv[])
     
     //write final output
     if(rank == 0) {
+	string outname = a_output();
+	outname.append("param_exp.nii.gz");
         paramMuImg->CopyInformation(inImage);
         itk::ImageFileWriter<Image4DType>::Pointer out1 = 
                     itk::ImageFileWriter<Image4DType>::New();
         out1->SetInput(paramMuImg);
-        out1->SetFileName("param_exp.nii.gz");
-        cout << "Writing: param_exp.nii.gz" << endl;
+        out1->SetFileName(outname);
+        cout << "Writing: " << outname << endl;
         out1->Update();
 
+	outname = a_output();
+	outname.append("param_var.nii.gz");
         paramVarImg->CopyInformation(inImage);
         itk::ImageFileWriter<Image4DType>::Pointer out2 = 
                     itk::ImageFileWriter<Image4DType>::New();
         out2->SetInput(paramVarImg);
-        out2->SetFileName("param_var.nii.gz");
-        cout << "Writing: param_var.nii.gz" << endl;
+        out2->SetFileName(outname);
+        cout << "Writing: " << outname << endl;
         out2->Update();
         
-        std::ostringstream oss("");
+        std::ostringstream oss(a_output());
         //write final position or measurement image, 
         if(a_particle()) {
             cb_part_data* cdata  = (cb_part_data*)cbdata;

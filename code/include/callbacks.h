@@ -4,6 +4,7 @@
 #include <itkOrientedImage.h>
 #include <itkImageFileWriter.h>
 #include <sstream>
+#include <string>
 #include "BoldPF.h"
 
 //base
@@ -69,15 +70,17 @@ struct cb_part_data
     itk::OrientedImage<float, 4>::Pointer image;
     itk::OrientedImage<float, 4>::SizeType size;
     itk::OrientedImage<float, 4>::IndexType prev;
+    std::string output;
 };
 
 void cb_part_init(cb_part_data* cdata, BoldPF::CallPoints* cp,
-            int parameters, int particles, int time)
+            int parameters, int particles, int time, std::string outbase)
 {
     cdata->size[0] = parameters+1;
     cdata->size[1] = particles;
     cdata->size[2] = 1;
     cdata->size[3] = time;
+    cdata->output = outbase;
 
     for(unsigned int i = 0 ; i < 4 ; i++)
         cdata->prev[i] = 0;
@@ -108,7 +111,7 @@ int cb_part_call(BoldPF* bold, void* data)
         index[i] = cdata->pos[i];
     index[3] = 0;
     if(index != cdata->prev) {
-        std::ostringstream oss("");
+        std::ostringstream oss(cdata->output);
         for(int i = 0 ; i < 3 ; i++)
             oss << cdata->prev[i] << "_";
         oss << ".nii";
