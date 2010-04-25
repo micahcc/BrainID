@@ -52,7 +52,7 @@ there have been numerous forks in the model, enough in fact to make an entire pa
 studying the differences,\cite{Deneux2006}, it is widely known that all these
 models have quantitatively less bias error than General Linear Model which is
 typically employed today. Then again, depending on the model there may be between
-seven \cite{Riera2004} and fifteen \cite{Zheng2005} parameters per voxel to
+seven \cite{Riera2004} and 50 \cite{Behzadi2005} parameters per voxel to
 be optimized. Clearly there is a significant risk of error due to variance
 with so many degrees of freedom, not to mention a significantly increased
 computation cost. In this thesis I demonstrate the use of a 
@@ -199,15 +199,39 @@ ratio of signal MR from intravascular to extravascular at rest. Although,
 obviously these constants change with experiment ($TE$, $\nu_0$, $r_0$),
 patient, and brain 
 region ($E_0$, $r_0$), often the estimated values taken from \cite{Obata2004} are used
-as constant ($k_1 + k_2 = 3.4$, and $k_2+k_3 = 1$).
+as constants ($k_1 + k_2 = 3.4$, and $k_2+k_3 = 1$) in 1.5 Tesla studies..
 While this model is in a sense complete, it is far from perfect. The major
 problem often brought up with this version of the BOLD model is that it
 does not represent the so called "post-stimulus undershoot" well.
+The post-stimulus undershoot is the name for a prolonged sub-normal
+BOLD response for a period of 10 to 60 seconds after stimulus has
+ceased (\cite{Chen2009}, \cite{Mandeville1999a}).
 
-Although complex
-models for metabolism exist (\cite{Zheng2005}), most recent studies have
-focused on their ability to explain the prolonged BOLD post stimulus 
-undershoot \cite{Donahue2009}, \cite{Yacoub2006}. This is because \cite{Buxton2004}
+There are two theories for the cause of the post stimulus undershoot. Recall
+that a lower than base signal means that there is an increased deoxyhemoglobin
+content in the voxel. The first and simplest explanation is that the post-stimulus
+undershoot is caused by a prolonged increase in CMRO2 after CBV and CBF
+have returned to their base levels. This theory is justified by quite a few
+studies that show CBV and CBF returning to the baseline before the BOLD signal
+(\cite{Frahm2008}, \cite{Donahue2009}, \cite{Buxton2004}, \cite{Lu2004},
+\cite{Shen2008}). Unfortunately, because of limitations on FMRI and en vivo
+CBV/CBF measurement techniques it is difficult to isolate whether CBF and
+CBV truly have returned to their baseline. Other research seems to indicate
+that there can be a prolonged residual supernormal CBV (\cite{Mandeville1999a}, 
+\cite{Behzadi2005}, \cite{Chen2009a}), although none of these papers completely
+rule out the possiblity of increased CMRO2. Additionally, in \cite{Yacoub2006}, it 
+was found that the post-stimulus undershoot varried across regions of the brain, 
+which could further explain the contradictions found elsewhere. \cite{Chen2009a}
+makes a compelling case that most of the post stimulus undershoot could be 
+explained be a prolonged CBV increase, and a prolonged CBF undershoot, and that
+many of the previous measurements showing a quick recovery of CBV 
+may have been dominated arterial CBV's return to baseline. 
+
+Because of the significant possility of a completely independent CMRO2,
+extremely complex models for metabolism exist (\cite{Zheng2005}), although 
+most recent studies have
+focuse on their ability to explain the prolonged BOLD post stimulus 
+undershoot \cite{Zheng2005}, \cite{Buxton2004}. This is because \cite{Buxton2004}
 and later \cite{Riera2004} showed that the main portion of the signal may be 
 accurately estimated by a simple blood flow locked expression of the CMRO2.. 
 Although \cite{Deneux2006} did not deal extensively with prolonged post
@@ -216,119 +240,44 @@ improvement from separate expressions of CMRO2, in comparison to the much
 increased complexity. \cite{Deneux2006} did show that by simply adding viscoelastic
 terms, first proposed in \cite{Buxton2004}, that a slowed return to baseline for
 the BOLD signal is possible to model. However, viscoelastic effects primarily
-control CBV, which some studies have claimed returns to baseline \emph{before}
-the BOLD signal. If this is the case, then CBV cannot be the cause of the 
-post-stimulus undershoot. Even now there is some debate about the cause of 
-the post-stimulus undershoot. The BOLD post-stimulus undershoot is common,
-and typically lasts longer for longer activations (\cite{Chen2009}), and in
-fact varies across regions of the brain (\cite{Mandeville2001}, \cite{Yacoub2006})
-debate regarding the cause for the post-stimulus undershoot often seen in 
-FMRI studies. The problem stemmed from the fact that there were many studies
-showing CBV and CBF returning to baseline well before the BOLD signal. In fact
-this result seemed to be confirmed by several studes: \cite{Frahm2008}, \cite{Donahue2009}, 
-\cite{Lu2004}. 
+control CBV, which, as mentioned already, many studies have claimed cannot be 
+responsible for the BOLD post-stimulus undershoot. Another extensive model
+that attempts to quantify the post-stimulus undershoot is the compliance model 
+proposed by \cite{Behzadi2005}. Alhough through a somewhat different means than
+the \cite{Zheng2005} and \cite{Buxton2004} papers, its possible the increased
+model flexibility ultimately is the key reason for the improvements, as opposed
+to increased plausibility. Because of these controversies, and because this is
+the first time a particle filter has been used for this problem in this way, 
+our aim to keep the model simple was best met by using the original balloon
+model with the addition of the visco-elastic effects from \cite{Buxton2004}.
 
-%here
+In the end, its possible thay the balloon model may be as complex as models
+may get before error becomes dominated by model variance, so proving that
+Behzadi's Arterial Compliance model is quantitatively better than Buxton's 
+advanced balloon model \cite{Buxton2004} or that either is better than 
+the extremely detailed model found in \cite{Zheng2005}. The reality is that
+measurement noise alone may dominate any difference between these models.
 
-In fact, the original Buxton
-paper demonstrated how minimal changes in the flow expression could
-result in vastly different recovery times of the baseline BOLD signal, and
-in \cite{Mandeville1999} a cause for delayed CBF recovery was proposed, based
-on hysterous in the compliance of capillaries. \cite{Behzadi2005} provided
-additional incite into this possibility, going so far as proposing a simple
-yet complete model and explanation for delayed compliance of neural capillaries.
-Those simple changes can result in error levels on par with the more 
-complex CMRO2 inclusive models, which was one of the major findings of \cite{Deneux2006}. 
-This was reiterated in \cite{Chen2009}, which concluded that many of
-the studies claiming a CBV recovery well before the BOLD signal 
-(\cite{Frahm1996}, \cite{Kruger1998}, \cite{Lu2004}) 
-could actually have been detecting arterial blood flow, which does not significantly effect the
-BOLD signal. 
-In the end, it may be impossible to refute the
-possibility of a prolonged period of increased metabolic activity after activation,
-however, much of the BOLD post stimulus undershoot may be explained by a 
-prolonged CBV undershoot, as shown in \cite{Chen2009}. Because of the greatly
-increased complexity of CMRO2 modeling, compared with the relative simplicity
-of the Behzadi model, in most cases it is not worth using the more advanced CMRO2
-model unless the metabolic rate is an end goal. 
-
-
-
-The physiology that leads to the BOLD signal has been well studied over the 
-past decade and a half, but there is still some question about the origins
-of certain signal features. In the seminal paper \cite{Buxton1998}, the original
-Balloon model was proposed. Buxton et. al showed that all of the features
-of the BOLD signal may be explained by lag between ... . While some uncertainty remains (for instance in
-relation to the BOLD post-stimulus undershoot <papers relating to back and
-forth on post-stimulus undershoot>) generally the model fits reality very 
-well. As with every piece of tissue in the body, the brain requires oxygen
-to extract energy from glucose in the blood. This process of removing oxygen
-from red blood cells sets into motion a chain of events that locally 
-alters the composition of the blood. Inactive neurons can be thought of
-as a slingshot cocked and ready to fire. As soon as a signal moves up
-the axon and causes the neuron to fire (and thus changes the state
-of a membrane at that location), ions quickly move across the altered
-membrane to compensate for a high charge imbalance between the interior
-and exterior of the cell. This process, similar to allowing a stretched
-rubber band to contract leaves the system at a lower energy state. This cannot
-last though, because the neuron needs to be ready to fire again rather quickly.
-To return the cell to a ready position the membrane becomes impermeable
-to the ions again, and then begins pumping ions back into the cell. This
-process takes a large amount of energy, whereas the actual firing takes
-very little energy. Thus, after firing, glucose is burned, removing oxygen
-from the blood and thus causing a dip in the ratio of oxygenated hemoglobin to 
-de-oxygenated hemoglobin. This is the first potentially measurable effect
-that MRI can see, although it usually lasts fewer than 2 seconds making it
-difficult for FMRI to catch. As a result of the decreased amount of local oxygen,
-the capillaries compensate by increasing blood flow to that region. Because,
-of the quickly increased blood flow into local capillaries, the blood
-volume increases in addition to the local oxygen content. This leads to a Windkessel
-effect which further lags the normalization of oxygen content. The effect of
-all this is an overshoot in the oxygen content above the initial level. After
-the work of recharging is done, there may be a prolonged undershoot lasting
-as much as 90 seconds \cite{Yacoub2006}, though the reason for this
-is debated \cite{Chen2009}. 
-
-A large number of models have been proposed for the BOLD signal with varying
-amounts of complexity. The simplest model is the so called "Balloon Model"
-which first proposed the windkessel effect as a factor the BOLD response.
-The model we will use is the model proposed by Buxton Et. Al. and later used
-in Riera et. al. \cite{Riera2004}. The model has four state variables, $s$, $f$,
-$v$, $q$, representing flow inducing signal, cerebral blood flow, cerebral
-blood volume and deoxyhemaglobin to hemaglobin ratio, respectively. The 
-state variables change over time, given by the state evolution equations:
-\begin{equation}
-\dot{s} = \epsilon u -  
-\end{equation}
-
-\begin{equation}
-\dot{f} = s
-\end{equation}
-
-\begin{equation}
-\dot{v} = 
-\end{equation}
-
-\begin{equation}
-\dot{q} = 
-\end{equation}
-
-Additional papers have added such things as
-....
-
-All these effects are generally accepted as the cause of the BOLD signal, 
-but FMRI doesn't detect this happening in one neuron, but rather as the 
+\subsection{Noise}
+Thus, despite some discrepencies, the cause of the BOLD signal is
+relatively well known.  but FMRI doesn't detect this happening in one neuron,
+but rather as the 
 aggregate over millions of cells. Though local neurons act
 "together" (i.e. around the same time), the density of neurons, the
 density of capillaries, and slight differences in activation across 
 a particular voxel can all lead to signal attenuation or noise. 
 A particularly insidious type of noise present in FMRI is a low frequncey
-drift, characterized by a Weiner process. Though not present in all
-regions, it is prevalent enough to cause problems \cite{detrend}. It is still not
+drift, first characterized by a Weiner process in \cite{Riera2004}. 
+Though not present in all regions, it is prevalent enough to cause significant
+inference problems \cite{Tanabe2002}. It is still not
 clear where exactly this noise comes although it is possible it is 
 the result of magnets heating up, or some distortion in magnetic
-fields. It is clear that this drift signal is not due to a true physiological
-effects however, given its presence in cadavers and phantoms\cite{drift}.
+fields \cite{Smith2007}. It is clear that this drift signal is not soley
+due to a true physiological
+effects however, given its presence in cadavers and phantoms \cite{Smith1999}.
+Additionally, since it is standard operating procedure to perform
+coregistration between volumes, it is unlikely that movement was
+the cause of the drift either.
 
 \section{Current Techniques}
 \subsection{Basic Statistical Parametric Mapping}
