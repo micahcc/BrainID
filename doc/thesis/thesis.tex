@@ -1,7 +1,7 @@
 \documentclass{article}
-\usepackage[left=1cm,top=2cm,right=1cm,nohead,nofoot]{geometry}
+\usepackage[left=3cm,top=2cm,right=3cm,nohead,nofoot]{geometry}
 
-%\usepackage{times}
+\usepackage{times}
 %\usepackage{tikz}
 %\usetikzlibrary{trees}
 %\usetikzlibrary{shapes,snakes}
@@ -13,7 +13,7 @@
 \usepackage{graphicx}
 \usepackage{cancel}
 
-%\doublespacing
+\doublespacing
 
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\Q}{\mathbb{Q}}
@@ -52,7 +52,7 @@ there have been numerous forks in the model, enough in fact to make an entire pa
 studying the differences,\cite{Deneux2006}, it is widely known that all these
 models have quantitatively less bias error than General Linear Model which is
 typically employed today. Then again, depending on the model there may be between
-seven \cite{Riera2004} and fifteen \cite{Zheng2002} parameters per voxel to
+seven \cite{Riera2004} and fifteen \cite{Zheng2005} parameters per voxel to
 be optimized. Clearly there is a significant risk of error due to variance
 with so many degrees of freedom, not to mention a significantly increased
 computation cost. In this thesis I demonstrate the use of a 
@@ -140,39 +140,92 @@ the baseline signal, as we will discuss later.
 \subsection{BOLD Physiology}
 It is well known that the two types of hemoglobin act as a contrast agents in 
 EPI imaging
-\cite{Buxton1999}, \cite{WEISSKOFF1994}, \cite{Ogawa}, however the connection
-between DeHb/O2Hb and neural activity is non-trivial. Intuitively, increased 
+\cite{Buxton1998}, \cite{WEISSKOFF1994}, \cite{Ogawa}, however the connection
+between Deoxyhemoglobin/Oxygenated Hemoglobin and neural activity is non-trivial. 
+Intuitively, increased 
 metabolism will increase Deoxyhemoglobin, however blood vessels are quick
 to compensate by increasing local blood flow. Increased inflow will of course
-preceed increased outflow, and increased inflow is encouraged by loosening 
+preceed increased outflow, and increased inflow is accomplished by loosening 
 capilary beds. Both of these factors drive increased storage capacity.
 Since the local MR signal depends on the ratio of Deoxyhemoglobin to Oxygenated
 Hemoglobin, increased volume of blood can certainly effect this ratio if 
 metabolism doesn't exactly match the increased inflow of oxygenated blood.
 This was the impetus
-for the ground breaking balloon model (\cite{Buxton1999}) and windkessel
+for the ground breaking balloon model (\cite{Buxton1998}) and windkessel
 model (\cite{Mandeville1999}). These models derive from first principals
-the increased deoxyhemoglobin ratio and volume of capillaries based on flow.
+the increased deoxyhemoglobin ratio and volume of capillaries based on a given flow.
 These were the first two attempts to quantitatively account for the shape of the 
-BOLD signal as a consequence of the lag between the cerebral blood flow (CBF) 
-and the cerebral blood volume (CBV). In fact \cite{Buxton1999} went to far as
-to show that a simple, well chosen blood flow waveform coupled with a simple
-cerebral metabolic rate of oxygen (CMRO2) curve, in the context of a balloon 
+BOLD signal as a consequence of the lag between the cerebral blood volume (CBV) 
+and the cerebral blood flow (CBF). In fact \cite{Buxton1998} went to far as
+to show that a simple, well chosen blood flow waveform coupled with a square 
+wave cerebral metabolic rate of oxygen (CMRO2) curve, in the context of a balloon 
 model, could fully account for the BOLD signal. 
 
+Although \cite{Buxton1998} showed that a well chosen flow waveform could 
+explain much of the BOLD signal, there was still a matter of proposing a
+realistic waveform for the CBF and for the CMRO2. \cite{friston2000} gave
+a reasonable and simple
+expressoin for CBF input,$f$, based on a flow inducing signal, $s$, 
+\begin{eqnarray}
+\dot{s} &=& \epsilon u(t) - \frac{s}{\tau_s} - \frac{f - 1}{\tau_f} \\
+\dot{f} &=& s
+\end{eqnarray}
+where $\epsilon$ is a neuronal efficiency term, $u(t)$ is a stimulus, and $\tau_f$, $\tau_s$
+are both time constants. In \cite{Buxton2004} the final piece of the simple balloon
+model was put into place, by describing the CMRO2 as a constant multiple of
+the CBF (the inflow of blood). This completed the basic balloon model, and 
+was well summarized in \cite{Riera2004}. 
+\begin{eqnarray}
+\dot{v} &=& \frac{1}{\tau_0}(f - v^\alpha)\\
+\dot{q} &=& \frac{1}{\tau_0}(\frac{f(1-(1-E_0)^f)}{E_0} - \frac{q}{v^{1-1/\alpha}})
+\end{eqnarray}
+where $v$ is normalized cerebral blood volume (CBV), and $q$ is the normalized
+local deoxyhemoglobin/oxygenated hemoglobin ratio, $E_0$ is the resting metabolic
+rate and $\alpha$ is Grubb's parameter controling the balloon model. 
+\cite{Obata2004} refined the readout equation of the BOLD signal based on the
+deoxyhemoglobin content (q) and local blood volume (v), resulting in the
+final BOLD equation:
+\begin{eqnarray}
+y   &=& V_0((k_1 + k_2)(1-q) - (k_2 + k_3)(1-v))\\
+k_1 &=& 4.3 \times \nu_0 \times E_0 \times TE = 2.8\\
+K_2 &=& \epsilon_0 \times r_0 \times E_0 \times TE = .57\\
+k_3 &=& \epsilon_0 - 1 = .43
+\end{eqnarray}
+Where $\nu_0 = 40.3 s^{-1}$  is the frequency offset in Hz for fully
+deoxygenated blood (at 1.5T), $r_0 = 25 s^{-1}$  is the slope relating
+change in relaxation rate with change in blood oxygenation, and
+$\epsilon_0 = 1.43$ is the 
+ratio of signal MR from intravascular to extravascular at rest. Although,
+obviously these constants change with experiment ($TE$, $\nu_0$, $r_0$),
+patient, and brain 
+region ($E_0$, $r_0$), often the estimated values taken from \cite{Obata2004} are used
+as constant ($k_1 + k_2 = 3.4$, and $k_2+k_3 = 1$).
+While this model is in a sense complete, it is far from perfect. The major
+problem often brought up with this version of the BOLD model is that it
+does not represent the so called "post-stimulus undershoot" well.
+
 Although complex
-models for metabolism exist (\cite{Zheng2002}), most recent studies have
+models for metabolism exist (\cite{Zheng2005}), most recent studies have
 focused on their ability to explain the prolonged BOLD post stimulus 
 undershoot \cite{Donahue2009}, \cite{Yacoub2006}. This is because \cite{Buxton2004}
 and later \cite{Riera2004} showed that the main portion of the signal may be 
-accurately estimated by a simple blood flow locked expression of the CMRO2. 
+accurately estimated by a simple blood flow locked expression of the CMRO2.. 
 Although \cite{Deneux2006} did not deal extensively with prolonged post
 stimulus undershoot, the comparisons made in that publication showed minimal
-improvement from separate expressions of CMRO2. For some time there was 
+improvement from separate expressions of CMRO2, in comparison to the much 
+increased complexity. \cite{Deneux2006} did show that by simply adding viscoelastic
+terms, first proposed in \cite{Buxton2004}, that a slowed return to baseline for
+the BOLD signal is possible to model. However, viscoelastic effects primarily
+control CBV, which some studies have claimed returns to baseline \emph{before}
+the BOLD signal. If this is the case, then CBV cannot be the cause of the 
+post-stimulus undershoot. Even now there is some debate about the cause of 
+the post-stimulus undershoot. The BOLD post-stimulus undershoot is common,
+and typically lasts longer for longer activations (\cite{Chen2009}), and in
+fact varies across regions of the brain (\cite{Mandeville2001}, \cite{Yacoub2006})
 debate regarding the cause for the post-stimulus undershoot often seen in 
 FMRI studies. The problem stemmed from the fact that there were many studies
 showing CBV and CBF returning to baseline well before the BOLD signal. In fact
-this result seemed to be confirmed by several studes: \cite{Frahm2008}, \cite{Donahue2008}, 
+this result seemed to be confirmed by several studes: \cite{Frahm2008}, \cite{Donahue2009}, 
 \cite{Lu2004}. 
 
 %here
@@ -186,15 +239,15 @@ additional incite into this possibility, going so far as proposing a simple
 yet complete model and explanation for delayed compliance of neural capillaries.
 Those simple changes can result in error levels on par with the more 
 complex CMRO2 inclusive models, which was one of the major findings of \cite{Deneux2006}. 
-This was reiterated in \cite{Chan2009}, which concluded that many of
+This was reiterated in \cite{Chen2009}, which concluded that many of
 the studies claiming a CBV recovery well before the BOLD signal 
-(\cite{Frahm1996}, \cite{Kruger1996}, \cite{Lu2004}) 
+(\cite{Frahm1996}, \cite{Kruger1998}, \cite{Lu2004}) 
 could actually have been detecting arterial blood flow, which does not significantly effect the
 BOLD signal. 
 In the end, it may be impossible to refute the
 possibility of a prolonged period of increased metabolic activity after activation,
 however, much of the BOLD post stimulus undershoot may be explained by a 
-prolonged CBV undershoot, as shown in \cite{Chan2009}. Because of the greatly
+prolonged CBV undershoot, as shown in \cite{Chen2009}. Because of the greatly
 increased complexity of CMRO2 modeling, compared with the relative simplicity
 of the Behzadi model, in most cases it is not worth using the more advanced CMRO2
 model unless the metabolic rate is an end goal. 
@@ -203,7 +256,7 @@ model unless the metabolic rate is an end goal.
 
 The physiology that leads to the BOLD signal has been well studied over the 
 past decade and a half, but there is still some question about the origins
-of certain signal features. In the seminal paper \cite{Buxton1999}, the original
+of certain signal features. In the seminal paper \cite{Buxton1998}, the original
 Balloon model was proposed. Buxton et. al showed that all of the features
 of the BOLD signal may be explained by lag between ... . While some uncertainty remains (for instance in
 relation to the BOLD post-stimulus undershoot <papers relating to back and
@@ -233,14 +286,14 @@ volume increases in addition to the local oxygen content. This leads to a Windke
 effect which further lags the normalization of oxygen content. The effect of
 all this is an overshoot in the oxygen content above the initial level. After
 the work of recharging is done, there may be a prolonged undershoot lasting
-as much as 90 seconds \cite{spatial_undershoot}, though the reason for this
-is debated \cite{origin_poststim}. 
+as much as 90 seconds \cite{Yacoub2006}, though the reason for this
+is debated \cite{Chen2009}. 
 
 A large number of models have been proposed for the BOLD signal with varying
 amounts of complexity. The simplest model is the so called "Balloon Model"
 which first proposed the windkessel effect as a factor the BOLD response.
 The model we will use is the model proposed by Buxton Et. Al. and later used
-in Riera et. al. \cite{Riera}. The model has four state variables, $s$, $f$,
+in Riera et. al. \cite{Riera2004}. The model has four state variables, $s$, $f$,
 $v$, $q$, representing flow inducing signal, cerebral blood flow, cerebral
 blood volume and deoxyhemaglobin to hemaglobin ratio, respectively. The 
 state variables change over time, given by the state evolution equations:
@@ -991,8 +1044,10 @@ image comparing epsilon-map with GLM activation map
 
 \section{Conclusion}
 
-\bibliographystyle{abbrvnat}
-\bibliography{references}
+\bibliographystyle{apalike}
+%\bibliographystyle{abbrvnat}
+%\bibliographystyle{abbrv}
+\bibliography{library}
 
 
 \end{document}
