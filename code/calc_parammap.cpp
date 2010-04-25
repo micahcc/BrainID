@@ -332,9 +332,7 @@ int main(int argc, char* argv[])
     std::vector< aux::vector > meas(tlen, aux::zero_vector(1));
 
     /* Set constant A1, A2 */
-    aux::vector a_values(2);
-    a_values[0] = BoldModel::getA1();
-    a_values[1] = BoldModel::getA2();
+    aux::vector a_values;
 
     int total = countValid(inImage, mask);
     int traveled = 0;
@@ -377,7 +375,8 @@ int main(int argc, char* argv[])
                     mu = boldpf.getDistribution().getDistributedExpectation();
                     aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
                     var = diag(cov);
-                
+
+                    a_values = BoldModel::getA(mu[BoldModel::indexof(BoldModel::E_0, 0)]);
                 }
 
                 //set the output to a standard -1 if BoldPF failed

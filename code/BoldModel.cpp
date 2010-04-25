@@ -145,8 +145,11 @@ aux::vector BoldModel::measure(const aux::vector& s) const
 {
     aux::vector y(MEAS_SIZE);
     for(size_t i = 0 ; i < MEAS_SIZE ; i++) {
-        y[i] = s[indexof(V_0, i)] * 
-                ( A1 * ( 1 - s[indexof(Q_T,i)]) - A2 * (1 - s[indexof(V_T,i)]));
+        double k1 = this->k1*s[indexof(E_0,i)];
+        double k2 = this->k2*s[indexof(E_0,i)];
+        double k3 = this->k3;
+        y[i] = s[indexof(V_0, i)]* ((k1 + k2)*(1 - s[indexof(Q_T,i)]) -
+                    (k2+k3)*(1 - s[indexof(V_T,i)]));
     }
     return y;
 } 
@@ -244,21 +247,21 @@ double BoldModel::generateComponent(gsl_rng* rng, aux::vector& fillme,
     
 //approximated the variance by assuming V_0 is a constant, rather than
 //random, because the variance of V_0 is actually pretty small
-aux::vector BoldModel::estMeasVar(aux::DiracMixturePdf& in) const
-{
-    boost::mpi::communicator world;
-    aux::vector var(MEAS_SIZE);
-    aux::matrix cov = in.getDistributedCovariance();
-    aux::vector exp = in.getDistributedExpectation();
-    double v0sqr = 0;
-    for(unsigned int i = 0 ; i < var.size() ; i++) {
-        v0sqr = exp[indexof(V_0, i)] * exp[indexof(V_0, i)];
-        var[i] = A1*A1*v0sqr*cov(indexof(Q_T, i), indexof(Q_T, i))+ 
-                    A2*A2*v0sqr*cov(indexof(V_T, i), indexof(V_T, i))-
-                    2*A1*A2*v0sqr*cov(indexof(V_T, i), indexof(Q_T, i));
-    }
-    return var;
-}
+//aux::vector BoldModel::estMeasVar(aux::DiracMixturePdf& in) const
+//{
+//    boost::mpi::communicator world;
+//    aux::vector var(MEAS_SIZE);
+//    aux::matrix cov = in.getDistributedCovariance();
+//    aux::vector exp = in.getDistributedExpectation();
+//    double v0sqr = 0;
+//    for(unsigned int i = 0 ; i < var.size() ; i++) {
+//        v0sqr = exp[indexof(V_0, i)] * exp[indexof(V_0, i)];
+//        var[i] = A1*A1*v0sqr*cov(indexof(Q_T, i), indexof(Q_T, i))+ 
+//                    A2*A2*v0sqr*cov(indexof(V_T, i), indexof(V_T, i))-
+//                    2*A1*A2*v0sqr*cov(indexof(V_T, i), indexof(Q_T, i));
+//    }
+//    return var;
+//}
 
 aux::vector BoldModel::estMeasMean(aux::DiracMixturePdf& in) const
 {
@@ -478,4 +481,12 @@ aux::symmetric_matrix BoldModel::defcov(unsigned int simul)
     }
 
     return ret;
+}
+
+aux::vector BoldModel::getA(double E_0) 
+{
+    aux::vector out(2);
+    out[0] = k1*E_0 + k2*E_0;
+    out[1] = k2*E_0 + k3;
+    return out;
 }

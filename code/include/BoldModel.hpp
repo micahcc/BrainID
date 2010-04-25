@@ -55,16 +55,14 @@ public:
     const aux::vector& getdefault() const { return defaultstate; };
     void setdefault(aux::vector def) { defaultstate = def; };
 
-    aux::vector estMeasVar(aux::DiracMixturePdf& in) const;
+//    aux::vector estMeasVar(aux::DiracMixturePdf& in) const;
     aux::vector estMeasMean(aux::DiracMixturePdf& in) const;
+    static aux::vector getA(double E_0);
 
     //goes to the index of the given state
     static inline size_t indexof(int name, int index) {
         return (name < (int)GVAR_SIZE) ? name : index*LVAR_SIZE + name;
     };
-
-    static double getA1() {return A1;};
-    static double getA2() {return A2;};
 
     static aux::vector defmu(unsigned int);
     static aux::vector defvar(unsigned int);
@@ -100,8 +98,12 @@ private:
     const unsigned int INPUT_SIZE;
     
     //Internal Constants
-    static const double A1 = 3.4;
-    static const double A2 = 1.0;
+    #define EPSILON_0 1.43
+    #define NU_0 40.3
+    #define TE .04 //40ms
+    static const double k1 = 4.3*NU_0*TE; //*E_0 (for 1.5T, 40MS)
+    static const double k2 = EPSILON_0*25*TE; //*E_0 (for 1.5T)
+    static const double k3 = EPSILON_0-1; // for (1.5T)
 };
 
 #endif
