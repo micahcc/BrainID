@@ -249,13 +249,56 @@ model flexibility ultimately is the key reason for the improvements, as opposed
 to increased plausibility. Because of these controversies, and because this is
 the first time a particle filter has been used for this problem in this way, 
 our aim to keep the model simple was best met by using the original balloon
-model with the addition of the visco-elastic effects from \cite{Buxton2004}.
+model with the possible addition of the visco-elastic effects from \cite{Buxton2004}.
 
-In the end, its possible thay the balloon model may be as complex as models
-may get before error becomes dominated by model variance, so proving that
+Even more advanced versions of the Balloon model exist. In fact \cite{Buxton2004}
+introduced several additional state variables, including the CMRO2, the O2 extraction
+fraction, which is closely related to CMR02, and the neural response, which 
+essentially starts high and decays toward some steady state value. The 
+neural response is intended to emulate neural habituation, wherein neurons
+become less sensitive to a prolonged stimulus. This goes back to the issue
+of drastically increasing the model variance, for a minor decrease in model
+bias, \cite{Deneux2006}. The parameters of the model have decently reliable
+expected values by now. Although \cite{Buxton1998} and \cite{Friston2000}
+both propose reasonable values for the model parameters, \cite{Friston2002} 
+was the first paper to actually use an algorithm and test those parameters:
+\begin{eqnarray}
+epsilon &=& .54 \pm .1    \nonumber \\
+tau_s & =& 1.54 \pm .25   \nonumber \\
+tau_f & =& 2.46 \pm .25   \nonumber \\
+tau_0 & =& .98 \pm .25    \nonumber \\
+alpha & =& .33 \pm .45    \nonumber \\
+E_0   & =& .34 \pm .1     \nonumber \\
+V_0  & = & .03 (not estimated) \nonumber
+\end{eqnarray}
+later \cite{Hu2009} used an Unscented Kalman Filter to confirm these findings.
+On the other hand \cite{Johnston2008} used a hybrid particle filter Expectation
+Maximization algorithm to calculate parameters simultaneously with state.
+His findings differed greatly from Friston et. al.:
+\begin{eqnarray}
+epsilon &=& .069 \pm .014    \nonumber \\
+tau_s & =& 4.98 \pm 1.07  \nonumber \\
+tau_f & =& 8.31 \pm 1.51   \nonumber \\
+tau_0 & =& 8.38 \pm 1.5    \nonumber \\
+alpha & =& .189 \pm .004   \nonumber \\
+E_0   & =& .635 \pm .072     \nonumber \\
+V_0   & =& .0149 \pm .006     \nonumber 
+\end{eqnarray}
+On the one hand, Johnston et. al. is a pseudo-maximum likelihood estimator, and 
+it depends very little on the priors. On the other hand, the results are very 
+different from \cite{Buxton1998}, \cite{Hu2009}, \cite{Friston2000}, and 
+\cite{Friston2002}. Then again, the papers mentioned all have a common root,
+and all used essentially the same priors, and all use Bayesian estimation
+that depends greatly on the priors. It would be interesting to see what
+effect different prior's would have on the results. 
+
+In the end, its possible that the balloon model may be as complex as the
+measurement rate and error size will allow before the error becomes dominated 
+by model variance, so proving that
 Behzadi's Arterial Compliance model is quantitatively better than Buxton's 
 advanced balloon model \cite{Buxton2004} or that either is better than 
-the extremely detailed model found in \cite{Zheng2005}. The reality is that
+the extremely detailed model found in \cite{Zheng2005} may be impossible. 
+The reality is that
 measurement noise alone may dominate any difference between these models.
 
 \subsection{Noise}
