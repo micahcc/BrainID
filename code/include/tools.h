@@ -23,8 +23,7 @@
 
 void outputVector(std::ostream& out, indii::ml::aux::vector mat);
 void outputMatrix(std::ostream& out, indii::ml::aux::matrix mat);
-itk::OrientedImage<double, 4>::Pointer fft_image(
-            itk::OrientedImage<double,4>::Pointer inimg);
+Image4DType::Pointer fft_image(Image4DType::Pointer inimg);
 std::vector<Activation> read_activations(const char* filename);
 Image4DType::Pointer conditionFMRI(const Image4DType::Pointer fmri_img,
             int knots, std::vector<Activation>& stim);
@@ -43,14 +42,14 @@ Image3DType::Pointer get_rms(Image4DType::Pointer in);
 //RMS for a non-zero mean signal is 
 //sqrt(mu^2+sigma^2)
 template<class Vector>
-void get_rms(itk::OrientedImage<double,4>::Pointer in, size_t dir1, size_t dir2, 
+void get_rms(Image4DType::Pointer in, size_t dir1, size_t dir2, 
             Vector& out)
 {
     for(unsigned int i = 0 ; i < out.size() ; i++) {
         out[i] = 0;
     }
     
-    itk::ImageSliceIteratorWithIndex<itk::OrientedImage<double,4> > 
+    itk::ImageSliceIteratorWithIndex< Image4DType > 
                 iter(in, in->GetRequestedRegion());
     iter.SetFirstDirection(dir1);
     iter.SetSecondDirection(dir2);

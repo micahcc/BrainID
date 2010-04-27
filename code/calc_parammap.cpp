@@ -394,13 +394,13 @@ int main(int argc, char* argv[])
                          << endl;
                 }
                 //write the calculated expected value/variance of parameters
-                writeVector<double, aux::vector>(paramMuImg, 3, mu, index4);
-                writeVector<double, aux::vector>(paramVarImg, 3, var, index4);
+                writeVector<DataType, aux::vector>(paramMuImg, 3, mu, index4);
+                writeVector<DataType, aux::vector>(paramVarImg, 3, var, index4);
 
                 //write a_1 and a_2
                 index4[3] = BASICPARAMS;
-                writeVector<double, aux::vector>(paramMuImg, 3, a_values, index4);
-                writeVector<double, aux::vector>(paramVarImg, 3, aux::vector(2,0),
+                writeVector<DataType, aux::vector>(paramMuImg, 3, a_values, index4);
+                writeVector<DataType, aux::vector>(paramVarImg, 3, aux::vector(2,0),
                             index4);
             
                 

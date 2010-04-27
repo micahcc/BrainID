@@ -7,7 +7,7 @@
 #include "segment.h"
 #include <string>
 
-typedef double ImagePixelType;
+typedef float ImagePixelType;
 typedef itk::OrientedImage< ImagePixelType,  4 > Image4DType;
 typedef itk::ImageFileReader< Image4DType >  ImageReaderType;
 typedef itk::ImageFileWriter< Image4DType >  ImageWriterType;

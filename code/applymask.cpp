@@ -43,7 +43,7 @@ int main (int argc, char** argv)
     }
     
 
-    Image4DType::Pointer out = applymask<double, 4, int, 3>(input, mask);
+    Image4DType::Pointer out = applymask<DataType, 4, int, 3>(input, mask);
 
     itk::ImageFileWriter<Image4DType>::Pointer writer = 
                 itk::ImageFileWriter<Image4DType>::New();

@@ -19,7 +19,7 @@
 #include <itkImageSliceIteratorWithIndex.h>
 
 // declare images
-typedef double DataType;
+typedef float DataType;
 typedef itk::OrientedImage<DataType, 3> Image3DType;
 typedef itk::OrientedImage<DataType, 4> Image4DType;
 
@@ -30,10 +30,6 @@ typedef itk::OrientedImage<LabelType, 4> Label4DType;
 typedef itk::ImageSliceIteratorWithIndex< Image4DType > SliceIterator4D;
 typedef itk::ImageLinearIteratorWithIndex< Image4DType > PixelIterator4D;
 typedef itk::ImageLinearIteratorWithIndex< Image3DType > PixelIterator3D;
-
-
-typedef itk::OrientedImage<double, 3> Image3DType;
-typedef itk::OrientedImage<double, 4> Image4DType;
 
 enum{TAU_0=0, ALPHA=1, E_0=2, V_0=3, TAU_S=4, TAU_F=5, EPSILON=6, A_1=7, A_2=8, PSIZE=9};
 

@@ -163,11 +163,11 @@ unsigned int round_power_2(unsigned int in)
     return(1 << count);
 }
 
-void copyTimeLine(itk::OrientedImage<double,4>::Pointer src, 
-            itk::Image<double,1>::Pointer dest,
-            itk::OrientedImage<double,4>::IndexType pos) 
+void copyTimeLine(Image4DType::Pointer src, 
+            itk::Image<DataType,1>::Pointer dest,
+            Image4DType::IndexType pos) 
 {
-    itk::ImageLinearIteratorWithIndex< itk::Image< double, 1 > >
+    itk::ImageLinearIteratorWithIndex< itk::Image< DataType, 1 > >
                 it(dest, dest->GetRequestedRegion());
     it.SetDirection(0);
     it.GoToBegin();
@@ -181,11 +181,10 @@ void copyTimeLine(itk::OrientedImage<double,4>::Pointer src,
     }
 }
 
-void copyTimeLine(itk::Image<double,1>::Pointer src, 
-            itk::OrientedImage<double,4>::Pointer dest,
-            itk::OrientedImage<double,4>::IndexType pos) 
+void copyTimeLine(itk::Image<DataType, 1>::Pointer src, Image4DType::Pointer dest,
+            Image4DType::IndexType pos) 
 {
-    itk::ImageLinearIteratorWithIndex< itk::Image< double, 1 > >
+    itk::ImageLinearIteratorWithIndex< itk::Image< DataType, 1 > >
                 it(src, src->GetRequestedRegion());
     it.SetDirection(0);
     it.GoToBegin();
@@ -199,16 +198,15 @@ void copyTimeLine(itk::Image<double,1>::Pointer src,
     }
 }
 
-itk::OrientedImage<double, 4>::Pointer fft_image(
-            itk::OrientedImage<double,4>::Pointer inimg)
+Image4DType::Pointer fft_image(Image4DType::Pointer inimg)
 {
-    typedef itk::Image< std::complex<double>, 1> ComplexT;
-    typedef itk::OrientedImage< double, 4> Real4DT;
-    typedef itk::OrientedImage< double, 1> Real1DTBase;
-    typedef itk::Image< double, 1> Real1DT;
+    typedef itk::Image< std::complex<DataType>, 1> ComplexT;
+    typedef Image4DType Real4DT;
+    typedef itk::OrientedImage< DataType, 1> Real1DTBase;
+    typedef itk::Image< DataType, 1> Real1DT;
     typedef itk::ComplexToModulusImageFilter< ComplexT, Real1DT > ModT;
     typedef itk::ComplexToPhaseImageFilter< ComplexT, Real1DT > PhasT;
-    typedef itk::FFTRealToComplexConjugateImageFilter< double, 1 > FFT1DT;
+    typedef itk::FFTRealToComplexConjugateImageFilter< DataType, 1 > FFT1DT;
     typedef itk::CastImageFilter< Real1DT, Real1DTBase> castF;
 
     //Set up sizes and indices to grab a single time vector

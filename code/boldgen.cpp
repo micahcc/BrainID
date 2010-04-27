@@ -335,9 +335,9 @@ int main (int argc, char** argv)
 //            fprintf(stderr, "Sample: %i, Time: %f\n", sample, sample*a_outstep());
             Image4DType::IndexType index = {{ 0, 0, 0, 0 }};
             index[TIME_DIR] = sample;
-            writeVector<double>(measImage, SERIES_DIR, model.measure(systemstate),
+            writeVector<DataType>(measImage, SERIES_DIR, model.measure(systemstate),
                         index);
-            writeVector<double>(outState, PARAM_DIR, systemstate, index);
+            writeVector<DataType>(outState, PARAM_DIR, systemstate, index);
             
             sample++;;
         }

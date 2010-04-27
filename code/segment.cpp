@@ -486,7 +486,7 @@ Image4DType::Pointer pruneFMRI(const Image4DType::Pointer fmri_img,
 {
     /* Remove first few elements... */
     // .... from fmri_img
-    Image4DType::Pointer new_img = prune<double>(fmri_img, 3, remove, 
+    Image4DType::Pointer new_img = prune<float>(fmri_img, 3, remove, 
                 fmri_img->GetRequestedRegion().GetSize()[3]);
 
     // .... from stimulus, then shift times

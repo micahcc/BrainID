@@ -6,12 +6,10 @@
 
 #include "modNiftiImageIO.h"
 #include "tools.h"
+#include "types.h"
 
 #include <vcl_list.h>
 #include <vul/vul_arg.h>
-
-typedef itk::OrientedImage<double, 4> Image4DType;
-typedef itk::OrientedImage<int, 3> Label3DType;
 
 using namespace std;
 

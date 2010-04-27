@@ -21,6 +21,7 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 
+#include "types.h"
 #include "tools.h"
 #include "modNiftiImageIO.h"
 #include "BoldModel.hpp"
@@ -42,8 +43,6 @@ using namespace std;
 //namespace opts = boost::program_options;
 namespace aux = indii::ml::aux;
 
-typedef double ImagePixelType;
-typedef itk::OrientedImage< ImagePixelType,  4 > Image4DType;
 typedef itk::ImageFileReader< Image4DType >  ImageReaderType;
 typedef itk::ImageFileWriter< Image4DType >  WriterType;
 
@@ -104,7 +103,7 @@ void writeParticles(Image4DType::Pointer out,
     
     for(size_t i = 0 ; i<elems.size() ; i++) {
         pos[2] = i;
-        writeVector<double>(out, 1, elems[i].getExpectation(), pos);
+        writeVector<DataType>(out, 1, elems[i].getExpectation(), pos);
     }
 }
 
@@ -493,7 +492,7 @@ int main(int argc, char* argv[])
             if(rank == 0) {
                 *out << "Measuring at " <<  disctime/a_divider() << endl;
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
-                status = readVector<double>(measInput, 0, meas, index);
+                status = readVector<DataType>(measInput, 0, meas, index);
                 if(status == -1) {
                     *out << "Oops, overshot, this usually happens when start time"
                                 << " is greater than the total time. You may want"
@@ -586,14 +585,14 @@ int main(int argc, char* argv[])
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 if(rank == 0) {
                     /* Write estimated state */
-                    writeVector<double>(stateOutput, PARAMDIM, statemu, index);
+                    writeVector<DataType>(stateOutput, PARAMDIM, statemu, index);
                     
                     /* Write estimated Variance*/
                     aux::vector variance(statecov.size1());
                     for(unsigned int i = 0 ; i < variance.size() ; i++)
                         variance[i] = statecov(i,i);
                     index[VARDIM] = 1;
-                    writeVector<double>(stateOutput, PARAMDIM, variance , index);
+                    writeVector<DataType>(stateOutput, PARAMDIM, variance , index);
                 }
             }
 
@@ -602,7 +601,7 @@ int main(int argc, char* argv[])
                 *out << "saving: " << a_covfile() << endl;
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};
                 if(rank == 0)
-                    writeMatrix<double>(covOutput, PARAMDIM, VARDIM, statecov, index);
+                    writeMatrix<DataType>(covOutput, PARAMDIM, VARDIM, statecov, index);
             }
 #endif //COVOUTPUT
 
@@ -613,13 +612,13 @@ int main(int argc, char* argv[])
                 
                 if(rank == 0) {
                     /* Write Expected Value */
-                    writeVector<double>(measOutput, SERIESDIM, measmu, index);
+                    writeVector<DataType>(measOutput, SERIESDIM, measmu, index);
                     
                     index[VARDIM] = 1;
                     /* Write estimated Variance*/
                     *out << std::endl << "Post filter var:" << std::endl;
                     outputVector(*out, measvar);
-                    writeVector<double>(measOutput, SERIESDIM, measvar, index);
+                    writeVector<DataType>(measOutput, SERIESDIM, measvar, index);
                 }
             }
 
@@ -678,7 +677,7 @@ int main(int argc, char* argv[])
         if(!a_boldfile().empty()) {
             *out << "Writing Bold output" << endl;
             writer->SetFileName(a_boldfile());  
-            writer->SetInput(prune<double>(measOutput, TIMEDIM, startlocation, 
+            writer->SetInput(prune<DataType>(measOutput, TIMEDIM, startlocation, 
                         endlocation));
             writer->Update();
         }
@@ -687,7 +686,7 @@ int main(int argc, char* argv[])
         if(!a_statefile().empty()) {
             *out << "Writing State output" << endl;
             writer->SetFileName(a_statefile());  
-            writer->SetInput(prune<double>(stateOutput, TIMEDIM, startlocation, 
+            writer->SetInput(prune<DataType>(stateOutput, TIMEDIM, startlocation, 
                         endlocation));
             writer->Update();
         }
@@ -697,7 +696,7 @@ int main(int argc, char* argv[])
         if(!a_covfile().empty()) {
             *out << "Writing Covariance output" << endl;
             writer->SetFileName(a_covfile());  
-            writer->SetInput(prune<double>(covOutput, TIMEDIM, startlocation, 
+            writer->SetInput(prune<DataType>(covOutput, TIMEDIM, startlocation, 
                         endlocation));
             writer->Update();
         }

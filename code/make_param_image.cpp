@@ -191,7 +191,7 @@ Image4DType::Pointer applyParams(string param_f, Label4DType::Pointer regions)
             for(size_t zz = 0 ; zz<regions->GetRequestedRegion().GetSize()[2] ; zz++) {
                 Image4DType::IndexType index = {{xx, yy, zz, 0}};
                 int i = (int)regions->GetPixel(index);
-                writeVector<double, std::vector<double> >(out, 3, 
+                writeVector<DataType, std::vector<double> >(out, 3, 
                             params[i%params.size()], index);
             }
         }
