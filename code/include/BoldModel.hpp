@@ -8,6 +8,7 @@
 
 namespace aux = indii::ml::aux;
 
+
 class BoldModel : public indii::ml::filter::ParticleFilterModel<double>
 {
 public:
@@ -34,9 +35,9 @@ public:
     void generatePrior(aux::DiracMixturePdf& x0, int samples, const aux::vector mean,
                 double scale = 1, bool flat = true) const;
     void generatePrior(aux::DiracMixturePdf& x0, int samples, 
-                const aux::symmetric_matrix cov, bool flat = true) const;
+                aux::vector width, bool flat = true) const;
     void generatePrior(aux::DiracMixturePdf& x0, int samples, const aux::vector mean,
-                const aux::symmetric_matrix cov, bool flat = true) const;
+                aux::vector width, bool flat = true) const;
 
     //since the particle filter doesn't yet support input, we are
     //going to hack around that and set it directly
@@ -60,12 +61,16 @@ public:
     static aux::vector getA(double E_0);
 
     //goes to the index of the given state
-    static inline size_t indexof(int name, int index) {
+    static inline unsigned int indexof(unsigned int name, unsigned int index) {
         return (name < (int)GVAR_SIZE) ? name : index*LVAR_SIZE + name;
     };
 
-    static aux::vector defmu(unsigned int);
-    static aux::vector defvar(unsigned int);
+    static inline unsigned int stateAt(unsigned int ii) {
+        return ii < GVAR_SIZE ? ii : (ii - GVAR_SIZE)%LVAR_SIZE + GVAR_SIZE;
+    }
+
+//    static aux::vector defmu(unsigned int);
+//    static aux::vector defvar(unsigned int);
     static aux::symmetric_matrix defcov(unsigned int);
 
 private:
@@ -80,7 +85,7 @@ private:
     aux::vector input;
 
     double generateComponent(gsl_rng* rng, aux::vector& fillme, 
-                const double k_sigma[], const double theta_mu[]) const;
+                aux::vector scale, aux::vector loc) const;
 
     //Weighting
     int weightf;
@@ -98,12 +103,12 @@ private:
     const unsigned int INPUT_SIZE;
     
     //Internal Constants
-    #define EPSILON_0 1.43
-    #define NU_0 40.3
-    #define TE .04 //40ms
-    static const double k1 = 4.3*NU_0*TE; //*E_0 (for 1.5T, 40MS)
-    static const double k2 = EPSILON_0*25*TE; //*E_0 (for 1.5T)
-    static const double k3 = EPSILON_0-1; // for (1.5T)
+//    const double EPSILON_0 = 1.43;
+//    const double NU_0 = 40.3;
+//    const double TE = .04; //40ms
+    static const double k1 = 4.3*40.3*.04 ;
+    static const double k2 = 1.43*25*.04;
+    static const double k3 = 1.43-1;
 };
 
 #endif

@@ -11,6 +11,9 @@
 #include <iomanip>
 #include <iostream>
 
+static const char* stateString[] = {"TAU_0", "ALPHA", "E_0", "V_0", "TAU_S", 
+                "TAU_F", "EPSILON", "V_T", "Q_T", "S_T", "F_T"};
+
 BoldModel::BoldModel(aux::vector stddev, int weightfunc, 
             size_t sections, aux::vector drift) : 
             weightf(weightfunc), sigma(stddev), SIMUL_STATES(sections),
@@ -25,13 +28,13 @@ BoldModel::BoldModel(aux::vector stddev, int weightfunc,
     defaultstate.resize(STATE_SIZE, false);
     //set the averages of the variables
     for(unsigned int ii = 0 ; ii < SIMUL_STATES; ii++) {
-        defaultstate[indexof(TAU_S, ii)] = 4.98;
-        defaultstate[indexof(TAU_F, ii)] = 8.31;
-        defaultstate[indexof(EPSILON, ii)] = 0.069;
-        defaultstate[indexof(TAU_0, ii)] = 8.38;
-        defaultstate[indexof(ALPHA, ii)] = .189;
-        defaultstate[indexof(E_0, ii)] = .635;
-        defaultstate[indexof(V_0, ii)] = 1.49e-2;
+        defaultstate[indexof(TAU_S, ii)] = 1.54;
+        defaultstate[indexof(TAU_F, ii)] = 2.46;
+        defaultstate[indexof(EPSILON, ii)] = .5;
+        defaultstate[indexof(TAU_0, ii)] = .98;
+        defaultstate[indexof(ALPHA, ii)] = .33;
+        defaultstate[indexof(E_0, ii)] = .34;
+        defaultstate[indexof(V_0, ii)] = .03;
 
         defaultstate[indexof(V_T,ii)] = 1;
         defaultstate[indexof(Q_T,ii)] = 1;
@@ -64,6 +67,20 @@ BoldModel::BoldModel(aux::vector stddev, int weightfunc,
         std::cerr << "indexof(Q_T  , " << i << ") " << indexof(Q_T  , i) << std::endl;
         std::cerr << "indexof(S_T  , " << i << ") " << indexof(S_T  , i) << std::endl;
         std::cerr << "indexof(F_T  , " << i << ") " << indexof(F_T  , i) << std::endl;
+    }
+    
+    for(unsigned int i = 0 ; i < 3 ; i++) {
+        std::cerr << "TAU_0 -> "   << stateString[stateAt(indexof(TAU_0, i))]  << std::endl;
+        std::cerr << "ALPHA -> "   << stateString[stateAt(indexof(ALPHA, i))]  << std::endl;
+        std::cerr << "E_0   -> "   << stateString[stateAt(indexof(E_0  , i))]  << std::endl;
+        std::cerr << "V_0   -> "   << stateString[stateAt(indexof(V_0  , i))]  << std::endl;
+        std::cerr << "TAU_S -> "   << stateString[stateAt(indexof(TAU_S, i))]  << std::endl;
+        std::cerr << "TAU_F -> "   << stateString[stateAt(indexof(TAU_F, i))]  << std::endl;
+        std::cerr << "EPSILON -> " << stateString[stateAt(indexof(EPSILON, i))] << std::endl;
+        std::cerr << "V_T  -> "    << stateString[stateAt(indexof(V_T  , i))] << std::endl;
+        std::cerr << "Q_T  -> "    << stateString[stateAt(indexof(Q_T  , i))] << std::endl;
+        std::cerr << "S_T  -> "    << stateString[stateAt(indexof(S_T  , i))] << std::endl;
+        std::cerr << "F_T  -> "    << stateString[stateAt(indexof(F_T  , i))] << std::endl;
     }
     for(unsigned int i = 0 ; i < MEAS_SIZE; i++) {
         std::cerr << "Extra vars: " << i << " -> " << STATE_SIZE-MEAS_SIZE+i;
@@ -207,41 +224,26 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y) const
 }
 
 
-//Note that scale_p contains std. deviation OR k and loc_p contains either
+//Note that scale contains std. deviation OR k and loc contains either
 //mean or theta depending on the distribution
 double BoldModel::generateComponent(gsl_rng* rng, aux::vector& fillme, 
-            const double* scale_p, const double* loc_p) const
+            aux::vector scale, aux::vector loc) const
 {
     double weight = 1, tmp;
     //going to distribute all the state variables the same even if they are
     //in different sections
-    int count = 0;
 
-    for(size_t i = 0 ; i< STATE_SIZE - MEAS_SIZE; i++) {
-        if(scale_p[i] == 0) {
-            fillme[i] = loc_p[i];
-        } else if(indexof(S_T, count) == i) {
-            //for S_t draw from a gaussian
-            tmp = gsl_ran_gaussian(rng, scale_p[i]);
-            fillme[i] = tmp + loc_p[i];
-            weight *= gsl_ran_gaussian_pdf(tmp, scale_p[i]);
-            count++;
+    for(size_t i = 0 ; i< STATE_SIZE; i++) {
+        if(scale[i] == 0) {
+            fillme[i] = loc[i];
         } else {
             //draw from the gamma, assume independence between the variables
-            fillme[i] = gsl_ran_gamma(rng, loc_p[i], scale_p[i]);
-            weight *= gsl_ran_gamma_pdf(fillme[i], scale_p[i], loc_p[i]);
+            tmp = gsl_ran_gaussian(rng, scale[i]);
+            fillme[i] = tmp + loc[i];
+            weight *= gsl_ran_gaussian_pdf(tmp, scale[i]);
         }
     }
     
-    for(size_t i = STATE_SIZE - MEAS_SIZE; i < STATE_SIZE; i++) {
-        if(scale_p[i] < 1e-10) {
-            fillme[i] = loc_p[i];
-        } else {
-            tmp = gsl_ran_gaussian(rng, scale_p[i]);
-            fillme[i] = tmp + loc_p[i];
-            weight *= gsl_ran_gaussian_pdf(tmp, scale_p[i]);
-        }
-    }
     return 1./weight;
 }
     
@@ -273,94 +275,76 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
             double varwidth, bool flat) const
 {
     aux::vector mean = getdefault();
-    aux::symmetric_matrix cov = aux::zero_matrix(STATE_SIZE);
+    aux::vector width(STATE_SIZE);
     
     //set the averages of the variables
     for(unsigned int ii = 0 ; ii < SIMUL_STATES; ii++) {
-        //set the variances for all the variables
-        cov(indexof(TAU_S  ,ii), indexof(TAU_S  ,ii)) = varwidth*1.07*1.07;
-        cov(indexof(TAU_F  ,ii), indexof(TAU_F  ,ii)) = varwidth*1.51*1.51;
-        cov(indexof(EPSILON,ii), indexof(EPSILON,ii)) = varwidth*0.014*.014;
-        cov(indexof(TAU_0  ,ii), indexof(TAU_0  ,ii)) = varwidth*1.5*1.5;
-        cov(indexof(ALPHA  ,ii), indexof(ALPHA  ,ii)) = varwidth*.004*.004;
-        cov(indexof(E_0    ,ii), indexof(E_0    ,ii)) = varwidth*.072*.072;
-        cov(indexof(V_0    ,ii), indexof(V_0    ,ii)) = varwidth*.6e-2*.6e-2;
+        width(indexof(TAU_S  ,ii)) = 2*.25;
+        width(indexof(TAU_F  ,ii)) = 2*.25;
+        width(indexof(EPSILON,ii)) = .5;
+        width(indexof(TAU_0  ,ii)) = 2*.25;
+        width(indexof(ALPHA  ,ii)) = 2*.045;
+        width(indexof(E_0    ,ii)) = 2*.1;
+        width(indexof(V_0    ,ii)) = 2*.1e-20*.1e-20;
 
-        cov(indexof(V_T,ii), indexof(V_T,ii)) = 1e-20;
-        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = 1e-20;
-        cov(indexof(S_T,ii), indexof(S_T,ii)) = 1e-20;
-        cov(indexof(F_T,ii), indexof(F_T,ii)) = 1e-20;
+        //Assume they start at 0
+        width(indexof(V_T,ii)) = 1e-20;
+        width(indexof(Q_T,ii)) = 1e-20;
+        width(indexof(S_T,ii)) = 1e-20;
+        width(indexof(F_T,ii)) = 1e-20;
     }
 
     for(unsigned int ii = STATE_SIZE-MEAS_SIZE ; ii < STATE_SIZE; ii++) {
-        cov(ii,ii) = pow(sigma[ii-STATE_SIZE+MEAS_SIZE], 2);
+        width[ii] = sigma[ii-STATE_SIZE+MEAS_SIZE];
     }
-    generatePrior(x0, samples, mean, cov, flat);
+    generatePrior(x0, samples, mean, width, flat);
 }
 
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
             const aux::vector mean, double varwidth, bool flat) const
 {
-    aux::symmetric_matrix cov = aux::zero_matrix(STATE_SIZE);
+    aux::vector width(STATE_SIZE);
     
     for(unsigned int ii = 0 ; ii < SIMUL_STATES ; ii++) {
-        //set the variances for all the variables to 3*sigma
-        cov(indexof(TAU_S  ,ii), indexof(TAU_S  ,ii)) = varwidth*1.07*1.07;
-        cov(indexof(TAU_F  ,ii), indexof(TAU_F  ,ii)) = varwidth*1.51*1.51;
-        cov(indexof(EPSILON,ii), indexof(EPSILON,ii)) = varwidth*0.014*.014;
-        cov(indexof(TAU_0  ,ii), indexof(TAU_0  ,ii)) = varwidth*1.5*1.5;
-        cov(indexof(ALPHA  ,ii), indexof(ALPHA  ,ii)) = varwidth*.004*.004;
-        cov(indexof(E_0    ,ii), indexof(E_0    ,ii)) = varwidth*.072*.072;
-        cov(indexof(V_0    ,ii), indexof(V_0    ,ii)) = varwidth*.6e-2*.6e-2;
+        width(indexof(TAU_S  ,ii)) = 2*.25;
+        width(indexof(TAU_F  ,ii)) = 2*.25;
+        width(indexof(EPSILON,ii)) = .5;
+        width(indexof(TAU_0  ,ii)) = 2*.25;
+        width(indexof(ALPHA  ,ii)) = 2*.045;
+        width(indexof(E_0    ,ii)) = 2*.1;
+        width(indexof(V_0    ,ii)) = 2*.1e-20*.1e-20;
 
         //Assume they start at 0
-        cov(indexof(V_T,ii), indexof(V_T,ii)) = 1e-20;
-        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = 1e-20;
-        cov(indexof(S_T,ii), indexof(S_T,ii)) = 1e-20;
-        cov(indexof(F_T,ii), indexof(F_T,ii)) = 1e-20;
+        width(indexof(V_T,ii)) = 1e-20;
+        width(indexof(Q_T,ii)) = 1e-20;
+        width(indexof(S_T,ii)) = 1e-20;
+        width(indexof(F_T,ii)) = 1e-20;
     }
     for(unsigned int ii = STATE_SIZE-MEAS_SIZE ; ii < STATE_SIZE; ii++) {
-        cov(ii,ii) = pow(sigma[ii-STATE_SIZE+MEAS_SIZE], 2);
+        width[ii] = sigma[ii-STATE_SIZE+MEAS_SIZE];
     }
     
-    generatePrior(x0, samples, mean, cov, flat);
+    generatePrior(x0, samples, mean, width, flat);
 }
 
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
-            const aux::symmetric_matrix cov, bool flat) const
+            aux::vector width, bool flat) const
 {
     aux::vector mean = getdefault();
-    generatePrior(x0, samples, mean, cov, flat);
+    generatePrior(x0, samples, mean, width, flat);
 }
 
 //TODO make some of these non-gaussian
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
-            const aux::vector mean, const aux::symmetric_matrix cov, bool flat) const
+            const aux::vector mean, aux::vector width, bool flat) const
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
     
-    unsigned int count = 0;
-    double scale_p[STATE_SIZE]; 
-    double loc_p[STATE_SIZE];
-
-    for(unsigned int i = 0 ; i < STATE_SIZE-MEAS_SIZE; i++) {
-        if(indexof(S_T, count) == i) {
-            count++;
-            loc_p[i] = mean(i);
-            scale_p[i] = sqrt(cov(i,i));
-        } else if(cov(i,i) > 1e-10) {
-            scale_p[i] = (-mean[i]+sqrt(mean[i]*mean[i]+4*cov(i,i)))/2; //theta
-            loc_p[i] = cov(i,i)/(scale_p[i]*scale_p[i]); //K
-        } else {
-            scale_p[i] = 0;
-            loc_p[i] = mean[i];
+    for(unsigned int i = 0 ; i < STATE_SIZE; i++) {
+        if(width[i] < 1e-10) {
+            width[i] = 0;
         }
-    }
-    
-    for(unsigned int i = STATE_SIZE-MEAS_SIZE; i < STATE_SIZE ; i++) {
-        loc_p[i] = mean(i);
-        scale_p[i] = sqrt(cov(i,i));
     }
 
     gsl_rng* rng = gsl_rng_alloc(gsl_rng_ran3);
@@ -372,17 +356,22 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
         gsl_rng_set(rng, seed^rank);
         std::cout << "Seeding with " << (unsigned int)(seed^rank) << "\n";
     }
-    std::cout << "scale_p: ";
-    for(unsigned int i = 0 ; i < STATE_SIZE ; i++)
-        std::cout << " " << scale_p[i];
-    std::cout << "\nloc_p: ";
-    for(unsigned int i = 0 ; i < STATE_SIZE ; i++)
-        std::cout << " " << loc_p[i];
-    std::cout <<  "\n";
+    
+    std::cout << "Mean:" << std::endl;
+    for(unsigned int i = 0 ; i < mean.size() ; i++) {
+        std::cout << mean[i];
+    }
+    
+    std::cout << std::endl << "Width:" << std::endl;
+    for(unsigned int i = 0 ; i < mean.size() ; i++) {
+        std::cout << mean[i];
+    }
+    std::cout << std::endl;
+    
     aux::vector comp(STATE_SIZE);
     double weight;
     for(int i = 0 ; i < samples; i ++) {
-        weight = generateComponent(rng, comp, scale_p, loc_p);
+        weight = generateComponent(rng, comp, width, mean);
         x0.add(comp, flat ? weight : 1.0);
     }
     gsl_rng_free(rng);
@@ -406,82 +395,82 @@ bool BoldModel::reweight(aux::vector& checkme, double& weightout) const
     return false;
 }
 
-aux::vector BoldModel::defmu(unsigned int simul)
-{
-    aux::vector ret(simul+simul*LVAR_SIZE+GVAR_SIZE);
-    for(unsigned int ii = 0 ; ii < simul; ii++) {
-        ret[indexof(TAU_S, ii)] = 4.98;
-        ret[indexof(TAU_F, ii)] = 8.31;
-        ret[indexof(EPSILON, ii)] = 0.069;
-        ret[indexof(TAU_0, ii)] = 8.38;
-        ret[indexof(ALPHA, ii)] = .189;
-        ret[indexof(E_0, ii)] = .635;
-        ret[indexof(V_0, ii)] = 1.49e-2;
-
-        ret[indexof(V_T,ii)] = 1;
-        ret[indexof(Q_T,ii)] = 1;
-        ret[indexof(S_T,ii)] = 0;
-        ret[indexof(F_T,ii)]= 1;
-    }
-    
-    for(unsigned int i = 0; i < simul; i++)
-        ret[GVAR_SIZE+simul*LVAR_SIZE+i] = 0;
-    return ret;
-}
-
-aux::vector BoldModel::defvar(unsigned int simul)
-{
-    aux::vector ret(simul+simul*LVAR_SIZE+GVAR_SIZE, 0);
-    
-    for(unsigned int ii = 0 ; ii < simul ; ii++) {
-        //set the variances for all the variables to 3*sigma
-        ret(indexof(TAU_S  ,ii)) = 1.07*1.07;
-        ret(indexof(TAU_F  ,ii)) = 1.51*1.51;
-        ret(indexof(EPSILON,ii)) = 0.014*.014;
-        ret(indexof(TAU_0  ,ii)) = 1.5*1.5;
-        ret(indexof(ALPHA  ,ii)) = .004*.004;
-        ret(indexof(E_0    ,ii)) = .072*.072;
-        ret(indexof(V_0    ,ii)) = .6e-2*.6e-2;
-
-        //Assume they start at 0
-        ret(indexof(V_T,ii)) = 1e-20;
-        ret(indexof(Q_T,ii)) = 1e-20;
-        ret(indexof(S_T,ii)) = 1e-20;
-        ret(indexof(F_T,ii)) = 1e-20;
-    }
-    for(unsigned int i = 0 ; i < simul; i++) {
-        ret(GVAR_SIZE+simul*LVAR_SIZE+i) = 0;
-    }
-
-    return ret;
-}
-
-aux::symmetric_matrix BoldModel::defcov(unsigned int simul)
-{
-    aux::symmetric_matrix ret(simul+simul*LVAR_SIZE+GVAR_SIZE, 0);
-    
-    for(unsigned int ii = 0 ; ii < simul ; ii++) {
-        //set the variances for all the variables to 3*sigma
-        ret(indexof(TAU_S  ,ii), indexof(TAU_S  ,ii)) = 1.07*1.07;
-        ret(indexof(TAU_F  ,ii), indexof(TAU_F  ,ii)) = 1.51*1.51;
-        ret(indexof(EPSILON,ii), indexof(EPSILON,ii)) = 0.014*.014;
-        ret(indexof(TAU_0  ,ii), indexof(TAU_0  ,ii)) = 1.5*1.5;
-        ret(indexof(ALPHA  ,ii), indexof(ALPHA  ,ii)) = .004*.004;
-        ret(indexof(E_0    ,ii), indexof(E_0    ,ii)) = .072*.072;
-        ret(indexof(V_0    ,ii), indexof(V_0    ,ii)) = .6e-2*.6e-2;
-
-        //Assume they start at 0
-        ret(indexof(V_T,ii), indexof(V_T,ii)) = 1e-20;
-        ret(indexof(Q_T,ii), indexof(Q_T,ii)) = 1e-20;
-        ret(indexof(S_T,ii), indexof(S_T,ii)) = 1e-20;
-        ret(indexof(F_T,ii), indexof(F_T,ii)) = 1e-20;
-    }
-    for(unsigned int i = 0 ; i < simul; i++) {
-        ret(GVAR_SIZE+simul*LVAR_SIZE+i, GVAR_SIZE+simul*LVAR_SIZE+i) = 0;
-    }
-
-    return ret;
-}
+//aux::vector BoldModel::defmu(unsigned int simul)
+//{
+//    aux::vector ret(simul+simul*LVAR_SIZE+GVAR_SIZE);
+//    for(unsigned int ii = 0 ; ii < simul; ii++) {
+//        ret[indexof(TAU_S, ii)] = 4.98;
+//        ret[indexof(TAU_F, ii)] = 8.31;
+//        ret[indexof(EPSILON, ii)] = 0.069;
+//        ret[indexof(TAU_0, ii)] = 8.38;
+//        ret[indexof(ALPHA, ii)] = .189;
+//        ret[indexof(E_0, ii)] = .635;
+//        ret[indexof(V_0, ii)] = 1.49e-2;
+//
+//        ret[indexof(V_T,ii)] = 1;
+//        ret[indexof(Q_T,ii)] = 1;
+//        ret[indexof(S_T,ii)] = 0;
+//        ret[indexof(F_T,ii)]= 1;
+//    }
+//    
+//    for(unsigned int i = 0; i < simul; i++)
+//        ret[GVAR_SIZE+simul*LVAR_SIZE+i] = 0;
+//    return ret;
+//}
+//
+//aux::vector BoldModel::defvar(unsigned int simul)
+//{
+//    aux::vector ret(simul+simul*LVAR_SIZE+GVAR_SIZE, 0);
+//    
+//    for(unsigned int ii = 0 ; ii < simul ; ii++) {
+//        //set the variances for all the variables to 3*sigma
+//        ret(indexof(TAU_S  ,ii)) = 1.07*1.07;
+//        ret(indexof(TAU_F  ,ii)) = 1.51*1.51;
+//        ret(indexof(EPSILON,ii)) = 0.014*.014;
+//        ret(indexof(TAU_0  ,ii)) = 1.5*1.5;
+//        ret(indexof(ALPHA  ,ii)) = .004*.004;
+//        ret(indexof(E_0    ,ii)) = .072*.072;
+//        ret(indexof(V_0    ,ii)) = .6e-2*.6e-2;
+//
+//        //Assume they start at 0
+//        ret(indexof(V_T,ii)) = 1e-20;
+//        ret(indexof(Q_T,ii)) = 1e-20;
+//        ret(indexof(S_T,ii)) = 1e-20;
+//        ret(indexof(F_T,ii)) = 1e-20;
+//    }
+//    for(unsigned int i = 0 ; i < simul; i++) {
+//        ret(GVAR_SIZE+simul*LVAR_SIZE+i) = 0;
+//    }
+//
+//    return ret;
+//}
+//
+//aux::symmetric_matrix BoldModel::defcov(unsigned int simul)
+//{
+//    aux::symmetric_matrix ret(simul+simul*LVAR_SIZE+GVAR_SIZE, 0);
+//    
+//    for(unsigned int ii = 0 ; ii < simul ; ii++) {
+//        //set the variances for all the variables to 3*sigma
+//        cov(indexof(TAU_S  ,ii), indexof(TAU_S  ,ii)) = 2*.25;
+//        cov(indexof(TAU_F  ,ii), indexof(TAU_F  ,ii)) = 2*.25;
+//        cov(indexof(EPSILON,ii), indexof(EPSILON,ii)) = .5;
+//        cov(indexof(TAU_0  ,ii), indexof(TAU_0  ,ii)) = 2*.25;
+//        cov(indexof(ALPHA  ,ii), indexof(ALPHA  ,ii)) = 2*.045;
+//        cov(indexof(E_0    ,ii), indexof(E_0    ,ii)) = 2*.1;
+//        cov(indexof(V_0    ,ii), indexof(V_0    ,ii)) = 2*.1e-20*.1e-20;
+//
+//        //Assume they start at 0
+//        cov(indexof(V_T,ii), indexof(V_T,ii)) = 1e-20;
+//        cov(indexof(Q_T,ii), indexof(Q_T,ii)) = 1e-20;
+//        cov(indexof(S_T,ii), indexof(S_T,ii)) = 1e-20;
+//        cov(indexof(F_T,ii), indexof(F_T,ii)) = 1e-20;
+//    }
+//    for(unsigned int i = 0 ; i < simul; i++) {
+//        ret(GVAR_SIZE+simul*LVAR_SIZE+i, GVAR_SIZE+simul*LVAR_SIZE+i) = 0;
+//    }
+//
+//    return ret;
+//}
 
 aux::vector BoldModel::getA(double E_0) 
 {

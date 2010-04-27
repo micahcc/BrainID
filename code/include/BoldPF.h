@@ -438,32 +438,31 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
         localparticles += numparticles - localparticles*size;
 
     /* Generate Prior */
-    aux::symmetric_matrix cov(model->getStateSize());
+    aux::vector width(model->getStateSize());
     for(unsigned int ii = 0 ; ii < model->getMeasurementSize(); ii++) {
-        //set the variances for all the variables to 3*sigma
-        cov(model->indexof(model->TAU_S  ,ii), model->indexof(model->TAU_S  ,ii)) = 6*1.07*1.07;
-        cov(model->indexof(model->TAU_F  ,ii), model->indexof(model->TAU_F  ,ii)) = 6*1.51*1.51;
-        cov(model->indexof(model->EPSILON,ii), model->indexof(model->EPSILON,ii)) = 6*.014*.014;
-        cov(model->indexof(model->TAU_0  ,ii), model->indexof(model->TAU_0  ,ii)) = 6*1.5*1.5;
-        cov(model->indexof(model->ALPHA  ,ii), model->indexof(model->ALPHA  ,ii)) = 6*.004*.004;
-        cov(model->indexof(model->E_0    ,ii), model->indexof(model->E_0    ,ii)) = 6*.072*.072;
-        cov(model->indexof(model->V_0    ,ii), model->indexof(model->V_0    ,ii)) = 6*.6e-2*.6e-2;
+        width(model->indexof(model->TAU_S  ,ii)) = 2*.25;
+        width(model->indexof(model->TAU_F  ,ii)) = 2*.25;
+        width(model->indexof(model->EPSILON,ii)) = .5;
+        width(model->indexof(model->TAU_0  ,ii)) = 2*.25;
+        width(model->indexof(model->ALPHA  ,ii)) = 2*.045;
+        width(model->indexof(model->E_0    ,ii)) = 2*.1;
+        width(model->indexof(model->V_0    ,ii)) = 2*.1e-20*.1e-20;
 
         //Assume they start at 0
-        cov(model->indexof(model->V_T,ii), model->indexof(model->V_T,ii)) = 1e-20;
-        cov(model->indexof(model->Q_T,ii), model->indexof(model->Q_T,ii)) = 1e-20;
-        cov(model->indexof(model->S_T,ii), model->indexof(model->S_T,ii)) = 1e-20;
-        cov(model->indexof(model->F_T,ii), model->indexof(model->F_T,ii)) = 1e-20;
+        width(model->indexof(model->V_T,ii)) = 1e-20;
+        width(model->indexof(model->Q_T,ii)) = 1e-20;
+        width(model->indexof(model->S_T,ii)) = 1e-20;
+        width(model->indexof(model->F_T,ii)) = 1e-20;
     }
 
-    for(unsigned int ii = model->getStateSize()-model->getMeasurementSize(); 
+    for(unsigned int ii = model->getStateSize()-model->getMeasurementSize() ;
                     ii < model->getStateSize(); ii++) {
         if(method == DC)
-            cov(ii,ii) = pow(boldstd[ii-model->getStateSize()+model->getMeasurementSize()]/.4, 2);
+            width[ii] = boldstd[ii-model->getStateSize()+model->getMeasurementSize()]/.4;
         else
-            cov(ii,ii) = 0;
+            width[ii] = 0;
     }
-    model->generatePrior(filter->getFilteredState(), localparticles, cov, flatten); 
+    model->generatePrior(filter->getFilteredState(), localparticles, width, flatten); 
     filter->getFilteredState().distributedNormalise();
     
     //Redistribute - doesn't cost anything if distrib. was already fine 
