@@ -349,14 +349,14 @@ int main(int argc, char* argv[])
                 result = BoldPF::UNSTARTED;
 
                 //debug
-                *output << index3 << endl;
-                *output << index3[0]*ylen*zlen + (index3[2]+1)+index3[1]*zlen << "/" 
-                            << xlen*ylen*zlen << endl;
 
                 //run particle filter, and retry with i times as many particles
                 //as the the initial number if it fails
                 for(unsigned int i = 0 ; checkmask(mask, point4) && 
                             result != BoldPF::DONE && i < RETRIES; i++) { 
+                    *output << index3 << endl;
+                    *output << index3[0]*ylen*zlen + (index3[2]+1)+index3[1]*zlen << "/" 
+                                << xlen*ylen*zlen << endl;
                     *output << "RESTARTING!!!!\n" ;
                     fillvector(meas, inImage, index4, a_delta());
 
@@ -383,6 +383,15 @@ int main(int argc, char* argv[])
                 if(result != BoldPF::DONE) {
                     mu = aux::vector(BASICPARAMS+STATICPARAMS, -1);
                     var = aux::vector(BASICPARAMS+STATICPARAMS, -1);
+                } else {
+                    //run time calculation
+                    time_t tmp = time(NULL);
+                    traveled++;
+                    *output << "Time Elapsed: " << difftime(tmp, start) << endl
+                         << "Time Remaining: " << (total-traveled)*difftime(tmp,start)/(double)traveled 
+                         << endl << "Ratio: " << traveled << "/" << total << endl
+                         << "Left: " << total-traveled << "/" << total
+                         << endl;
                 }
                 //write the calculated expected value/variance of parameters
                 writeVector<double, aux::vector>(paramMuImg, 3, mu, index4);
@@ -394,15 +403,7 @@ int main(int argc, char* argv[])
                 writeVector<double, aux::vector>(paramVarImg, 3, aux::vector(2,0),
                             index4);
             
-                //run time calculation
-                time_t tmp = time(NULL);
                 
-                traveled++;
-                cerr << "Time Elapsed: " << difftime(tmp, start) << endl
-                     << "Time Remaining: " << (total-traveled)*difftime(tmp,start)/(double)traveled 
-                     << endl << "Ratio: " << traveled << "/" << total << endl
-                     << "Left: " << total-traveled << "/" << total
-                     << endl;
             }
         }
     }
@@ -429,7 +430,8 @@ int main(int argc, char* argv[])
         cout << "Writing: " << outname << endl;
         out2->Update();
         
-        std::ostringstream oss(a_output());
+        std::ostringstream oss;
+        oss << a_output();
         //write final position or measurement image, 
         if(a_particle()) {
             cb_part_data* cdata  = (cb_part_data*)cbdata;
@@ -440,8 +442,8 @@ int main(int argc, char* argv[])
             oss << "meas_mu.nii.gz";
         }
 
-        itk::ImageFileWriter<itk::OrientedImage<float, 4> >::Pointer writer3 = 
-                    itk::ImageFileWriter<itk::OrientedImage<float, 4> >::New();
+        itk::ImageFileWriter< itk::OrientedImage<float,4> >::Pointer writer3 = 
+                    itk::ImageFileWriter< itk::OrientedImage<float,4> >::New();
         writer3->SetFileName(oss.str());
         writer3->SetInput(((cb_data*)cbdata)->image);
         writer3->Update();
