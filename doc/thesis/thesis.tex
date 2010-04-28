@@ -12,6 +12,7 @@
 \usepackage{setspace}
 \usepackage{graphicx}
 \usepackage{cancel}
+\usepackage{hyperref}
 
 \doublespacing
 
@@ -230,7 +231,7 @@ may have been dominated arterial CBV's return to baseline.
 Because of the significant possility of a completely independent CMRO2,
 extremely complex models for metabolism exist (\cite{Zheng2005}), although 
 most recent studies have
-focuse on their ability to explain the prolonged BOLD post stimulus 
+focused on their ability to explain the prolonged BOLD post stimulus 
 undershoot \cite{Zheng2005}, \cite{Buxton2004}. This is because \cite{Buxton2004}
 and later \cite{Riera2004} showed that the main portion of the signal may be 
 accurately estimated by a simple blood flow locked expression of the CMRO2.. 
@@ -243,7 +244,7 @@ the BOLD signal is possible to model. However, viscoelastic effects primarily
 control CBV, which, as mentioned already, many studies have claimed cannot be 
 responsible for the BOLD post-stimulus undershoot. Another extensive model
 that attempts to quantify the post-stimulus undershoot is the compliance model 
-proposed by \cite{Behzadi2005}. Alhough through a somewhat different means than
+proposed by \cite{Behzadi2005}. Although through a somewhat different means than
 the \cite{Zheng2005} and \cite{Buxton2004} papers, its possible the increased
 model flexibility ultimately is the key reason for the improvements, as opposed
 to increased plausibility. Because of these controversies, and because this is
@@ -254,27 +255,44 @@ model with the possible addition of the visco-elastic effects from \cite{Buxton2
 Even more advanced versions of the Balloon model exist. In fact \cite{Buxton2004}
 introduced several additional state variables, including the CMRO2, the O2 extraction
 fraction, which is closely related to CMR02, and the neural response, which 
-essentially starts high and decays toward some steady state value. The 
+causes the stimulus to decay toward some steady state value. The 
 neural response is intended to emulate neural habituation, wherein neurons
-become less sensitive to a prolonged stimulus. This goes back to the issue
-of drastically increasing the model variance, for a minor decrease in model
-bias, \cite{Deneux2006}. The parameters of the model have decently reliable
-expected values by now. Although \cite{Buxton1998} and \cite{Friston2000}
-both propose reasonable values for the model parameters, \cite{Friston2002} 
-was the first paper to actually use an algorithm and test those parameters:
+become less sensitive to a prolonged stimulus. While these advanced may be more
+capable of capturing a more exact version of the BOLD signal, the difference
+between the model will often times be below the noise floor. In essence this 
+is a classic bias-variance
+dilemma: at some point increased model flexibility, and thus variance, is not
+worth the decrease in model bias. For now it remains to be seen where this
+line may be drawn in the BOLD signal, although \cite{deneux2006} does not
+show a significant improvement from the additional parameters added in 
+\cite{Buxton2004}.
+
+\subsection{Previous Studies of Parameters}
+There have been quite a few efforts to quantify the parameters of the
+various BOLD models.  Although \cite{Buxton1998} and \cite{Friston2000}
+both proposed physiologically reasonable values for the model parameters, 
+\cite{Friston2002} was the first paper to calculate the parameters based 
+on actual FMRI data. In that paper, Friston et. al. used a variation of
+Expectation Maximization to find a normal distribution for the parameters:
 \begin{eqnarray}
-epsilon &=& .54 \pm .1    \nonumber \\
-tau_s & =& 1.54 \pm .25   \nonumber \\
-tau_f & =& 2.46 \pm .25   \nonumber \\
-tau_0 & =& .98 \pm .25    \nonumber \\
-alpha & =& .33 \pm .45    \nonumber \\
-E_0   & =& .34 \pm .1     \nonumber \\
-V_0  & = & .03 (not estimated) \nonumber
+\epsilon &=& N(.54 , .1 ^2 )  \nonumber \\
+\tau_s & =&  N(1.54, .25^2)   \nonumber \\
+\tau_f & =&  N(2.46, .25^2)   \nonumber \\
+\tau_0 & =&  N(.98 , .25^2 )   \nonumber \\
+\alpha & =&  N(.33 , .45^2 )   \nonumber \\
+E_0   & =&  N(.34 ,  .1 ^2 )   \nonumber \\
+V_0  & = &  .03 (not\ estimated) \nonumber
 \end{eqnarray}
+Since then, several other methods of have been used to calculate
+BOLD parameters from FMRI timecourses. In \cite{Riera2004}, a maximum
+likelihood method for innovation processes was used as described by
+\cite{Ozaki1994}
 later \cite{Hu2009} used an Unscented Kalman Filter to confirm these findings.
-On the other hand \cite{Johnston2008} used a hybrid particle filter Expectation
-Maximization algorithm to calculate parameters simultaneously with state.
-His findings differed greatly from Friston et. al.:
+Both \cite{Hu2009} and \cite{Friston2002} came to results very similar to the
+expected values.
+On the other hand \cite{Johnston2008} used a hybrid particle filter Expectation-
+Maximization algorithm to calculate parameters and state simultaneously.
+His derived parameter distributions differed greatly from Friston et. al.:
 \begin{eqnarray}
 epsilon &=& .069 \pm .014    \nonumber \\
 tau_s & =& 4.98 \pm 1.07  \nonumber \\
@@ -284,13 +302,17 @@ alpha & =& .189 \pm .004   \nonumber \\
 E_0   & =& .635 \pm .072     \nonumber \\
 V_0   & =& .0149 \pm .006     \nonumber 
 \end{eqnarray}
+%here
 On the one hand, Johnston et. al. is a pseudo-maximum likelihood estimator, and 
 it depends very little on the priors. On the other hand, the results are very 
 different from \cite{Buxton1998}, \cite{Hu2009}, \cite{Friston2000}, and 
-\cite{Friston2002}. Then again, the papers mentioned all have a common root,
+\cite{Friston2002}. All four of the papers just mentioned all have a common root,
 and all used essentially the same priors, and all use Bayesian estimation
-that depends greatly on the priors. It would be interesting to see what
-effect different prior's would have on the results. 
+that depends greatly on the priors. In this case, it is possible that priors
+biased the results, preventing accurate measurements of the parameters. Its also
+possible that the parameters don't lend themselves to learning very well. 
+It would be interesting to see what
+effect different priors would have on the results in \cite{Friston2002}.
 
 In the end, its possible that the balloon model may be as complex as the
 measurement rate and error size will allow before the error becomes dominated 
