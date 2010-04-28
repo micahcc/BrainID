@@ -285,14 +285,36 @@ V_0  & = &  .03 (not\ estimated) \nonumber
 \end{eqnarray}
 Since then, several other methods of have been used to calculate
 BOLD parameters from FMRI timecourses. In \cite{Riera2004}, a maximum
-likelihood method for innovation processes was used as described by
-\cite{Ozaki1994}
-later \cite{Hu2009} used an Unscented Kalman Filter to confirm these findings.
-Both \cite{Hu2009} and \cite{Friston2002} came to results very similar to the
-expected values.
-On the other hand \cite{Johnston2008} used a hybrid particle filter Expectation-
-Maximization algorithm to calculate parameters and state simultaneously.
-His derived parameter distributions differed greatly from Friston et. al.:
+likelihood method for innovation processes was used, as described by
+\cite{Ozaki1994}. \cite{Ozaki1994} uses a similar construction to a 
+Kalman filter, to break the time series into a series of innovations,
+for which Maximum Likelihood was performed. While this is in some since the
+"right" way to find the solution, it comes with several caveats. First, every
+step in parameter space requires a recalculation of all the state variables. With
+two or three parameters this is fine, more than that, and calculations could go on
+indefinitely. Second, it still assumes the parameters and noise are Gaussian, and
+will only be optimal in that case. Third, depending on the nonlinearities present
+in the system, local minima may be extremely common. Later \cite{Hu2009} used an 
+Unscented Kalman Filter over all the parameters and state variables to find the 
+parameter set/variable time series. While this method has the drawback of not necessarily
+being optimal, unfortunately there is no general optimal solution to non-linear non
+Gaussian models. Hu et. al.'s technique also will run significantly faster than
+ML based techniques, since it does not require recalculating the entire timeseries
+for every step in parameters. Both \cite{Hu2009} and \cite{Friston2002} came to results 
+very similar to the expected values stated in \cite{Buxton1998} and \cite{Friston2000}.
+One potential problem with all these techniques are that the depend heavily on the
+priors. The starting point of the parameters could have a huge impact on the
+results, and while one can be hopeful that this isn't the reason for the agreement
+between \cite{Friston2000} and later results, there is no way to know. 
+
+In \cite{Jonston2008}, a hybrid particle filter/gradient
+descent algorithm was used to simultaneously derive the static (classicly called
+parameters) and dynamic parameters (classically known as state variables).
+Essentially a particle filter is used to calculate the state variables at some
+time, and then the estimated distribution of the particles was used to find
+the most likely set of parameters that would give that distribution of state variables.
+\cite{Johnston2008} comes to a very different set of parameter estimates as compared
+to the original \cite{Friston2000} guesses:
 \begin{eqnarray}
 epsilon &=& .069 \pm .014    \nonumber \\
 tau_s & =& 4.98 \pm 1.07  \nonumber \\
@@ -302,26 +324,15 @@ alpha & =& .189 \pm .004   \nonumber \\
 E_0   & =& .635 \pm .072     \nonumber \\
 V_0   & =& .0149 \pm .006     \nonumber 
 \end{eqnarray}
-%here
-On the one hand, Johnston et. al. is a pseudo-maximum likelihood estimator, and 
-it depends very little on the priors. On the other hand, the results are very 
-different from \cite{Buxton1998}, \cite{Hu2009}, \cite{Friston2000}, and 
-\cite{Friston2002}. All four of the papers just mentioned all have a common root,
-and all used essentially the same priors, and all use Bayesian estimation
-that depends greatly on the priors. In this case, it is possible that priors
-biased the results, preventing accurate measurements of the parameters. Its also
-possible that the parameters don't lend themselves to learning very well. 
-It would be interesting to see what
-effect different priors would have on the results in \cite{Friston2002}.
+Notably, the time constants are significantly longer. This could be a result of
+some preprocessing to the stimulus timeseries performed in \cite{Friston2002} and
+later works but not in \cite{Johnston2008}, or it could be that \cite{Johnston2008}
+depended less on the priors. 
 
-In the end, its possible that the balloon model may be as complex as the
-measurement rate and error size will allow before the error becomes dominated 
-by model variance, so proving that
-Behzadi's Arterial Compliance model is quantitatively better than Buxton's 
-advanced balloon model \cite{Buxton2004} or that either is better than 
-the extremely detailed model found in \cite{Zheng2005} may be impossible. 
-The reality is that
-measurement noise alone may dominate any difference between these models.
+Its possible, although unlikely that the balloon model is not possible to learn
+without detrimental cost in variance error. I do not think this is the case, however,
+and I will work to dispell this possibility in the results with simulated time
+series.
 
 \subsection{Noise}
 Thus, despite some discrepencies, the cause of the BOLD signal is
@@ -335,28 +346,36 @@ A particularly insidious type of noise present in FMRI is a low frequncey
 drift, first characterized by a Weiner process in \cite{Riera2004}. 
 Though not present in all regions, it is prevalent enough to cause significant
 inference problems \cite{Tanabe2002}. It is still not
-clear where exactly this noise comes although it is possible it is 
+clear where exactly this noise comes from, although it is possible it is 
 the result of magnets heating up, or some distortion in magnetic
 fields \cite{Smith2007}. It is clear that this drift signal is not soley
-due to a true physiological
-effects however, given its presence in cadavers and phantoms \cite{Smith1999}.
+due to a physiological
+effects, given its presence in cadavers and phantoms \cite{Smith1999}.
 Additionally, since it is standard operating procedure to perform
 coregistration between volumes, it is unlikely that movement was
-the cause of the drift either.
+the cause of the drift either (otherwise the effect would not be 
+widely reported).
 
 \section{Current Techniques}
 \subsection{Basic Statistical Parametric Mapping}
-The most basic method of analyzing FMRI data is through a basic T-test
+Although not strictly the same thing as parameter calculation from 
+FMRI, activation detection is very similar. In fact, estimation of 
+parameters is somewhat a generalization of the idea of activation detection.
+Thus, it is important to draw a comparison between the methods proposed
+in this thesis with existing methods of activation detection.
+
+The most basic method of analyzing FMRI data is through a standard T-test
 between "resting state" and "active state" samples. This is done by 
 taking the average and variance of the inactive period, and the 
-active period separately then treating them both as gaussian distributions.
+period during which the stimulus was activate separately then treating 
+them both as gaussian distributions.
 If they are in fact Gaussian distributions, then a basic t-test will
-give the likelihood that the samples came from the same distribution
-(the p-value). Of course, this test is fraught with problems; even if
+give the probability that the samples came from the same distribution
+(the null hypothesis). Of course, this test is fraught with problems; even if
 the drift mentioned earlier has been removed, there is little reason
 to believe that the noise is Gaussian, or even stable. Additionally, 
 even if the noise were Gaussian, a t-test with a p-value of .05 over
-5000 or more samples is on average going to generate $.05*5000$ false
+50000 or more samples is on average going to generate $.05*50000$ false
 positives. To compensate for this, bonferoni correction, also known as
 multiple comparison tests are performed; essentially p-values are 
 divided by the number of independent
@@ -371,83 +390,80 @@ the factor by which the p-value must be divided by can be decreased.
 of random field theory, and its use can be found in various papers \cite{univ_mult_rft}.
 
 \subsection{General Linear Model}
-The most used form of FMRI analysis is still based on Statistical Parametric
+The most used form of FMRI analysis is Statistical Parametric
 Mapping, but is able to account for several different levels or types
-of stimulus. By adding a General Linear Model to the analysis, the
-output signal timeseries (what FMRI detects) is regressed over the weighted
-sum of the various confound's timeseries. The equation for a general linear
-model is then
+of stimulus (see \cite{Hofmann1997}). By using hierarchical models
+the output signal timeseries is considered the weighted
+sum of the various input timeseries. Essentially every experimental factor
+is considered as another level inputs (ex. which patient is an input). 
+The equation for a general linear model is then
 \begin{equation}
 Y(t) = X(t)\beta + \epsilon(t)
 \end{equation}
 where $Y(t)$ is the smoothed or detrended timeseries of measurements,
-$X(t)$ is a row vector of stimuli, $\beta$ is a column vector of weights,
+$X(t)$ is a row vector of input, $\beta$ is a column vector of weights,
 and $\epsilon$ is the error. Thus for every time, the measurement is
 assumed to be a weighted sum of the inputs plus some error. The calculation
-of $\beta$ then is merely a gradient descent search to minimize the
-mean squared error. 
+of $\beta$ then performed using a maximum likelihood or gradient descent search 
+to minimize the error.
 
 <Image of GLM>
 
-Of course, a square wave input is not going to result in a square wave
+It is well known of course that a square wave stimulus does not result in a square wave
 in the activation of brain regions. Thus, various methods are used to 
-smooth $X(t)$ through time, and bandlimit the input. The best technique
-is convolving the stimulus input with a hemodynamic response function,
-which mimicks the basic shape of BOLD activation, including a delay
-due to rise time and fall time. This hemodynamic signal is static however,
-so every region of the brain gets the same design matrices (X(t)), 
-although the weights of various stimulus or confounds are allowed to vary. 
+smooth $X(t)$'s related to actual input (as opposed to experimental confounds
+such as patient number, age etc) through time, and bandlimit the input. 
+The best technique is convolving the stimulus input with a hemodynamic 
+response function, which mimicks the basic shape of BOLD activation, including a delay
+due to rise time and fall time. The downside of this method, however is that 
+the hemodynamic signal is static, meaning the same hemodynamic function is
+used for every region of the brain, and $Y(t)$ must be a constant
+scalar multiple of $X(t)$ to be appropiately identified. 
 
 <Image of Hemodynamic Response Function>
 
-Ultimately, activation due to a particular stimuli is decided by the 
-$\beta$ value corresponding to that stimuli's column of $X(t)$.
-<Need to check this>
-The null hypothesis as to whether the outcome was random is then
-based on a t-test of the $\epsilon(t)$ timeseries. 
+The GLM is extremely powerful at determining the linear dependence of
+a set of regressors on the output. Unfortunately, there is significant evidence
+that many of these dependencies are nonlinear, which means they may be
+difficult or impossible to detect using linear techniques. Additionally, 
+the lack of flexibility in delay variables certainly hinders SPM's
+ability to locate voxels that do not conform to the canonical hemodynamic 
+response function. The very fact that different hemodynamic response functions
+work better for different regions/experiments is a testament to the need
+for increased flexibility. 
 
-\subsection{Whats wrong with these techniques}
-There are a few problems with the techniques mentioned in the 
-previous sections. First, they essentially ignore prior knowledge about
-the system. Although the most advanced form of the general linear model includes
-a "Hemodynamic Response Function," that hemodynamic response function is
-static across every region of the brain. It is well known that capillary beds
-are not uniform and so blood perfusion cannot possible be static across the
-brain. Thus, if extra information were available a-priori, that information
-could not be incorporated without modifications to the General Linear Model.
-Similarly heart rate could not be added either. It would obviously be advantageous
-to have true physiological parameters as entry points for these various other
-model parameters. The physiological models for the BOLD signal are quite good
-and based on realistic physics. While the exact connection between a stimulus
-and the flow inducing signal is not precisely known, model fits are actually
-quite good \cite{nonlinearmodels}. Regardless, being based on some real 
-physiological 
-parameter would allow for the establishment of reasonable priors and decrease
-model variance without breaking a sweat. Of course, using real parameters 
-has the additional
-bonus of potentially providing information about physical pathologies. It
-is quite possible that physical properties such as decreased compliance of
-blood vessels could indicate a neurological condition that is not easily
-seen in a T1 or T2 map. In essence, this could make FMRI a much more 
-useful clinical tool than it is now. The other problem with linear models
-is that they are a linear fit to a nonlinear signal. It is not uncommon
+Linear models also ignore prior knowledge about the system. Combined FMRI
+CBF or CBV imaging methods are available and could shed much light on
+neural activation; however there is no way of combining that data into a
+linear model. Although the most advanced form of the general linear model includes
+a Hemodynamic Response Function, it is static across every region of the brain;
+yet it is well known that capillary beds are not uniform and so blood perfusion 
+cannot possibly be static across the brain. Its possible that activation is
+every bit as strong in regions that aren't found by SPM, but that there are
+nonlinearities that do not match the canonical HRF; resulting in signficant bias error. 
+It is not uncommon
 for data to be thrown out in FMRI studies because no significant activation
-has been seen. However, if, for whatever reason, the BOLD response
-was acting more nonlinear than in other patients it would be completely
-possible for SPM to miss that activation. 
+has been seen. This practice highlights the fact that strictly linear
+approaches are insufficiently flexible to account for relatively common
+variations of neural activation. 
 
 <Image with two different $\alpha$s>
 
 <image comparing the results of 10\% changes in various signals>
 
-Secondly, these methods are still based on t-tests, which notoriously
-lack robustness to non-Gaussian noise. While different techniques 
-exist for imposing Gaussianity, those techniques are incapable of
-discriminating noise from signal. There is no way to know how much 
-signal is removed by various smoothing techniques, or even if entire 
-regions have been smoothed into oblivion. Instead of extensively filtering data to 
-remove noise, the analysis method itself must be robust a wide range of noise,
-which is why we propose here the use of particle filters.
+In general activation detection type methods also don't have the ability 
+to find pathologies based on state variables or parameters.  It
+is quite possible that physical properties such as decreased compliance of
+blood vessels could indicate a neurological condition that is not easily
+seen in a T1 or T2 map. In essence, this could make FMRI a much more 
+useful clinical tool than it is now. 
+
+Finally, all these techniques require the noise to be Gaussian to reach
+an optimal solution. In fact there is no known optimal solution to
+nonlinear models with non-Guassian noise, so obviously some assumptions
+are going to have to be made to reach a solution. However, it would be
+nice to have an algorithm that is robust to these effects, and could
+still give a good solution when Gaussianity is violated.
 
 \section{Proposed Approach}
 \subsection{Goal}
