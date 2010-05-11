@@ -44,7 +44,7 @@ int main (int argc, char** argv)
     printf("Direction: \n");
     for(int i = 0 ; i < 3 ; i++) {
         for(int j = 0 ; j < 3 ; j++) {
-            printf("%f ",  direction(i,j));
+            printf("%f ",  direction(j,i));
         }
         printf("\n");
     }
@@ -64,7 +64,7 @@ int main (int argc, char** argv)
     printf("New Direction? (16 numbers) ctr-d to skip ");
     for(int i = 0 ; i < 4 ; i++) {
         for(int j = 0 ; j < 4 ; j++) {
-            cin >> direction(i,j);
+            cin >> direction(j,i);
         }
     }
     if(!cin.eof()) 

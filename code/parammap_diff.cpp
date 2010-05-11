@@ -31,6 +31,7 @@ int main(int argc, char* argv[])
     vul_arg<string> a_params2(0, "4D param file, in the order: TAU_0, ALPHA,"
                 "E_0, V_0, TAU_S, TAU_F, EPSILON");
     vul_arg<string> a_output(0, "4D Output Image with percent diff");
+    vul_arg<bool> a_oriented("-O", "Use orientation information?", false);
     
     vul_arg<bool> a_invert("-i", "Show 1/(percent difference), thus bright "
                 "spots will be good, and dark spots are bad", false);
@@ -67,7 +68,11 @@ int main(int argc, char* argv[])
         exit(-1);
     }
     
-    output = pctDiff(paramImage1, paramImage2);
+    if(a_oriented()) {
+        output = pctDiffOrient(paramImage1, paramImage2);
+    } else {
+        output = pctDiff(paramImage1, paramImage2);
+    }
     output->CopyInformation(paramImage1);
     
     //write final output

@@ -15,9 +15,52 @@ typedef itk::SubtractImageFilter< Image3DType > SubF3;
 typedef itk::SquareImageFilter< Image3DType, Image3DType > SqrF3;
 
 /* Calculates the percent difference between input1, and input2,
- * using input1 as the reference
+ * using input1 as the reference, using orientation
  */
 Image4DType::Pointer pctDiff(const Image4DType::Pointer input1,
+            const Image4DType::Pointer input2)
+{
+    itk::ImageLinearConstIteratorWithIndex<Image4DType> iter1(
+                input1, input1->GetRequestedRegion());
+    iter1.SetDirection(3);
+    iter1.GoToBegin();
+    
+    Image4DType::Pointer out = Image4DType::New();
+    out->SetRegions(input1->GetRequestedRegion());
+    out->Allocate();
+    out->FillBuffer(1);
+    
+    itk::ImageLinearIteratorWithIndex<Image4DType> itero(
+                out, out->GetRequestedRegion());
+    itero.SetDirection(3);
+    itero.GoToBegin();
+
+    Image4DType::SpacingType space = input2->GetSpacing();
+    space[3] = input1->GetSpacing()[3];
+    input2->SetSpacing(space);
+
+    while(!iter1.IsAtEnd()) {
+        while(!iter1.IsAtEndOfLine()) {
+            Image4DType::IndexType index = iter1.GetIndex();
+            if(input2->GetRequestedRegion().IsInside(index)) {
+//                printf("%li %li %li %li\n", iter1.GetIndex()[0], iter1.GetIndex()[1],
+//                            iter1.GetIndex()[2], iter1.GetIndex()[3]);
+                double diff = (input2->GetPixel(index)-iter1.Get());
+                if(diff == 0) itero.Set(0);
+                else itero.Set(diff/fmax(abs(input2->GetPixel(index)), abs(iter1.Get())));
+            }
+            ++iter1; ++itero;
+        }
+        iter1.NextLine();
+        itero.NextLine();
+    }
+    return out;
+}
+
+/* Calculates the percent difference between input1, and input2,
+ * using input1 as the reference, using orientation
+ */
+Image4DType::Pointer pctDiffOrient(const Image4DType::Pointer input1,
             const Image4DType::Pointer input2)
 {
     itk::ImageLinearConstIteratorWithIndex<Image4DType> iter1(
@@ -46,9 +89,11 @@ Image4DType::Pointer pctDiff(const Image4DType::Pointer input1,
             Image4DType::IndexType index;
             input2->TransformPhysicalPointToIndex(point, index);
             if(input2->GetRequestedRegion().IsInside(index)) {
-                printf("%li %li %li %li\n", iter1.GetIndex()[0], iter1.GetIndex()[1],
-                            iter1.GetIndex()[2], iter1.GetIndex()[3]);
-                itero.Set((input2->GetPixel(index)-iter1.Get())/input2->GetPixel(index));
+//                printf("%li %li %li %li\n", iter1.GetIndex()[0], iter1.GetIndex()[1],
+//                            iter1.GetIndex()[2], iter1.GetIndex()[3]);
+                double diff = (input2->GetPixel(index)-iter1.Get());
+                if(diff == 0) itero.Set(0);
+                else itero.Set(diff/fmax(abs(input2->GetPixel(index)), abs(iter1.Get())));
             }
             ++iter1; ++itero;
         }
