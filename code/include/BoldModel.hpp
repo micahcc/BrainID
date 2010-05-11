@@ -13,8 +13,7 @@ class BoldModel : public indii::ml::filter::ParticleFilterModel<double>
 {
 public:
     ~BoldModel();
-    BoldModel(aux::vector stddev, int weightfunc, 
-                size_t sections = 1, aux::vector drift = aux::vector(1, 0));
+    BoldModel(aux::vector stddev, int weightfunc, size_t sections = 1);
 
     unsigned int getStateSize() const { return STATE_SIZE; };
     unsigned int getStimSize() const { return INPUT_SIZE; };
@@ -53,11 +52,6 @@ public:
     
     enum WeightF { NORM = 0, LAPLACE = 1, HYP = 2, CAUCHY = 3} ;
 
-    const aux::vector& getdefault() const { return defaultstate; };
-    void setdefault(aux::vector def) { defaultstate = def; };
-
-//    aux::vector estMeasVar(aux::DiracMixturePdf& in) const;
-    aux::vector estMeasMean(aux::DiracMixturePdf& in) const;
     static aux::vector getA(double E_0);
 
     //goes to the index of the given state
@@ -69,9 +63,8 @@ public:
         return ii < GVAR_SIZE ? ii : (ii - GVAR_SIZE)%LVAR_SIZE + GVAR_SIZE;
     }
 
-//    static aux::vector defmu(unsigned int);
-//    static aux::vector defvar(unsigned int);
-    static aux::symmetric_matrix defcov(unsigned int);
+    static aux::vector defmu(unsigned int);
+    static aux::vector defsigma(unsigned int);
 
 private:
     //the standard deviations for the parameters theta, which are

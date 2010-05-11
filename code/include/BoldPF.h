@@ -277,6 +277,7 @@ int BoldPF::run(void* pass = NULL)
                 callback(this, pass);
 
             //check to see if resampling is necessary
+            filter->getFilteredState().distributedNormalise();
             double ess = filter->getFilteredState().calculateDistributedEss();
             
             //check for errors, could be caused by total collapse of particles,
@@ -413,17 +414,8 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     debug = output;
 
     /* Initalize the model and filter*/
-    aux::vector drift;
-    aux::vector boldmu = bold_mean(measurements);
-    aux::vector boldstd = bold_stddev(measurements, boldmu);
-    if(method_p == DC) {
-        drift = (measurements[0] + measurements[1] + measurements[2])/3.;
-    } else
-        drift = aux::vector(measurements.front().size(), 0);
-
     aux::vector weightv(measurements.front().size(), weightvar);
-    model = new BoldModel(weightv, weightf, measurements.front().size(), drift);
-    model->setinput(aux::vector(1, 0));
+    model = new BoldModel(weightv, weightf, measurements.front().size());
     aux::DiracMixturePdf tmp(model->getStateSize());
     filter = new indii::ml::filter::ParticleFilter<double>(model, tmp);
 
@@ -436,33 +428,26 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     //give excess particles to last rank
     if(rank == (size-1))
         localparticles += numparticles - localparticles*size;
+    
+    aux::vector boldmu = bold_mean(measurements);
+    aux::vector boldstd = bold_stddev(measurements, boldmu);
 
     /* Generate Prior */
-    aux::vector width(model->getStateSize());
-    for(unsigned int ii = 0 ; ii < model->getMeasurementSize(); ii++) {
-        width(model->indexof(model->TAU_S  ,ii)) = 2*.25;
-        width(model->indexof(model->TAU_F  ,ii)) = 2*.25;
-        width(model->indexof(model->EPSILON,ii)) = .5;
-        width(model->indexof(model->TAU_0  ,ii)) = 2*.25;
-        width(model->indexof(model->ALPHA  ,ii)) = 2*.045;
-        width(model->indexof(model->E_0    ,ii)) = 2*.1;
-        width(model->indexof(model->V_0    ,ii)) = 2*.1e-20*.1e-20;
+    aux::vector width = 2*model->defsigma(measurements.front().size());
+    aux::vector loc = model->defmu(measurements.front().size());
 
-        //Assume they start at 0
-        width(model->indexof(model->V_T,ii)) = 1e-20;
-        width(model->indexof(model->Q_T,ii)) = 1e-20;
-        width(model->indexof(model->S_T,ii)) = 1e-20;
-        width(model->indexof(model->F_T,ii)) = 1e-20;
-    }
-
+    aux::vector drift_est = (measurements[0] + measurements[1] + measurements[2])/3.;
     for(unsigned int ii = model->getStateSize()-model->getMeasurementSize() ;
                     ii < model->getStateSize(); ii++) {
-        if(method == DC)
-            width[ii] = boldstd[ii-model->getStateSize()+model->getMeasurementSize()]/.4;
-        else
+        if(method == DC) {
+            width[ii] = boldstd[ii-model->getStateSize()+model->getMeasurementSize()]/.5;
+            loc[ii] = drift_est[ii];
+        } else {
             width[ii] = 0;
+            loc[ii] = 0;
+        }
     }
-    model->generatePrior(filter->getFilteredState(), localparticles, width, flatten); 
+    model->generatePrior(filter->getFilteredState(), localparticles, loc, width, flatten); 
     filter->getFilteredState().distributedNormalise();
     
     //Redistribute - doesn't cost anything if distrib. was already fine 

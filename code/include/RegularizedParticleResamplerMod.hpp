@@ -165,7 +165,7 @@ RegularizedParticleResamplerMod<NT, KT>::resample_help(
             aux::matrix sd, indii::ml::aux::DiracMixturePdf& out)
 {
     boost::mpi::communicator world;
-    const unsigned int rank = world.rank();
+//    const unsigned int rank = world.rank();
     namespace aux = indii::ml::aux;
     namespace ublas = boost::numeric::ublas;
     namespace lapack = boost::numeric::bindings::lapack;
@@ -179,10 +179,8 @@ RegularizedParticleResamplerMod<NT, KT>::resample_help(
         noalias(x) = p.get(i) + prod(sd, K.sample() * N.sample(
                     p.getDimensions()));
         weight = p.getWeight(i);
-        if(model != NULL) {
-            if(model->reweight(x, weight))
-                badcount++;
-        }
+        if(model && model->reweight(x, weight)) 
+            badcount++;
         out.add(x, weight);
     }
     if(badcount != 0) {

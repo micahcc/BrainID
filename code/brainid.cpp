@@ -579,7 +579,7 @@ int main(int argc, char* argv[])
             statemu = filter.getFilteredState().getDistributedExpectation();
             statecov = filter.getFilteredState().getDistributedCovariance();
 //            measvar = model.estMeasVar(filter.getFilteredState());
-            measmu = model.estMeasMean(filter.getFilteredState());
+            measmu = filter.getFilteredState().getDistributedExpectation();
             if( !a_statefile().empty() ) {
                 *out << "filling: " << a_statefile() << endl;
                 Image4DType::IndexType index = {{0, 0, 0, disctime/a_divider()}};

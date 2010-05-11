@@ -153,4 +153,98 @@ int cb_part_call(BoldPF* bold, void* data)
     return 0;
 }
 
+struct cb_all_data
+{
+    unsigned int pos[3];
+    itk::OrientedImage<float, 4>::Pointer measmu;
+    itk::OrientedImage<float, 4>::Pointer measvar;
+    itk::OrientedImage<float, 5>::Pointer parammu;
+    itk::OrientedImage<float, 5>::Pointer paramvar;
+};
+
+void cb_all_init(cb_all_data* cdata, BoldPF::CallPoints* cp,
+            Image4DType::SizeType size, int parameters)
+{
+    itk::OrientedImage<float, 4>::Pointer measmu = itk::OrientedImage<float, 4>::New();
+    itk::OrientedImage<float, 4>::Pointer measvar = itk::OrientedImage<float, 4>::New();
+    measmu->SetRegions(size);
+    measvar->SetRegions(size);
+
+    itk::OrientedImage<float, 5>::SizeType size5 = {{size[0], size[1], size[2], 
+                size[3], parameters}};
+    
+    itk::OrientedImage<float, 5>::Pointer parammu = itk::OrientedImage<float, 5>::New();
+    itk::OrientedImage<float, 5>::Pointer paramvar = itk::OrientedImage<float, 5>::New();
+    parammu->SetRegions(size5);
+    paramvar->SetRegions(size5);
+
+    measmu->Allocate();
+    measvar->Allocate();
+    parammu->Allocate();
+    paramvar->Allocate();
+    
+    measmu->FillBuffer(0);
+    measvar->FillBuffer(0);
+    parammu->FillBuffer(0);
+    paramvar->FillBuffer(0);
+    
+    cdata->measmu = measmu;
+    cdata->measvar = measvar;
+    cdata->parammu = parammu;
+    cdata->paramvar = paramvar;
+       
+    //set callback points
+    cp->start = false;
+    cp->postMeas = true;
+    cp->postFilter = false;
+    cp->end = false;
+}
+
+int cb_all_call(BoldPF* bold, void* data)
+{
+    boost::mpi::communicator world;
+    const unsigned int rank = world.rank();
+    
+    cb_all_data* cdata = (struct cb_all_data*)data;
+
+    itk::OrientedImage<float, 4>::IndexType index;
+    itk::OrientedImage<float, 5>::IndexType index5;
+    for(unsigned int i = 0 ; i < 3 ; i++) {
+        index[i] = cdata->pos[i];
+        index5[i] = cdata->pos[i];
+    }
+    index[3] = bold->getDiscTimeL();
+    index5[3] = bold->getDiscTimeL();
+    
+    aux::vector parammu = bold->getDistribution().getDistributedExpectation();
+    aux::vector measmu =  bold->getModel().measure(parammu);
+    aux::vector paramvar(parammu.size());
+    for(unsigned int i = 0 ; i < paramvar.size(); i++) 
+        paramvar[i] = bold->getDistribution().getDistributedCovariance()(i,i);
+
+    assert(measmu.size() == 1);
+
+    //calculate sample variance
+    double measvar = 0;
+    double diff;
+    const aux::vector& weights = bold->getDistribution().getWeights();
+    for(unsigned int i = 0 ; i < weights.size(); i++) {
+        diff = (bold->getDistribution().get(i) - measmu)[0];
+        measvar += weights[i]*diff*diff;
+    }
+    measvar = boost::mpi::all_reduce(world, measvar, std::plus<double>())
+                /bold->getDistribution().getDistributedTotalWeight();
+
+    if(rank == 0) {
+         cdata->measmu->SetPixel(index, measmu[0]);
+         cdata->measvar->SetPixel(index, measvar);
+         for(unsigned int i = 0 ; i < parammu.size() ; i++) {
+            index5[4] = i;
+            cdata->parammu->SetPixel(index5, parammu[i]);
+            cdata->paramvar->SetPixel(index5, paramvar[i]);
+         }
+    }
+    return 0;
+}
+
 #endif //CALLBACKS_H

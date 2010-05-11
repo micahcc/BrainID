@@ -92,7 +92,7 @@ Image4DType::Pointer preprocess_help(Image4DType::Pointer input,
             bool nospline, bool smart)
 {
     boost::mpi::communicator world;
-    const unsigned int rank = world.rank();
+//    const unsigned int rank = world.rank();
     /* Set up measurements image */
     //*output << "Conditioning FMRI Image" << endl;
     //remove first 2 time step, since they are typically polluted
@@ -161,7 +161,7 @@ int main(int argc, char* argv[])
 
     vul_arg<string> a_input(0, "4D timeseries file");
     
-    vul_arg<int> a_particle("-a", "save all particles?", false);
+//    vul_arg<int> a_particle("-a", "save all particles?", false);
     vul_arg<string> a_mask("-m", "3D mask file");
     vul_arg<int> a_dc("-c", "Calculate DC gain as a state variable", false);
     vul_arg<int> a_delta("-l", "Use deltas between measurements, this precludes"
@@ -198,8 +198,8 @@ int main(int argc, char* argv[])
     fprintf(stderr, "Brainid Version: %s\n", BRAINID_VERSION);
 
     Image4DType::Pointer inImage;
-    Image4DType::Pointer paramMuImg;
-    Image4DType::Pointer paramVarImg;
+//    Image4DType::Pointer paramMuImg;
+//    Image4DType::Pointer paramVarImg;
 
     std::vector<Activation> input;
 
@@ -255,21 +255,21 @@ int main(int argc, char* argv[])
     }
 
     /* Create Output Images */
-    *output << "Creating Output Images" << endl;
+//    *output << "Creating Output Images" << endl;
 //    for(int i = 0 ; i < 3 ; i++)
 //        outsize[i] = inImage->GetRequestedRegion().GetSize()[i];
     outsize = inImage->GetRequestedRegion().GetSize();
     outsize[3] = BASICPARAMS + STATICPARAMS;
     
-    paramMuImg = Image4DType::New();
-    paramMuImg->SetRegions(outsize);
-    paramMuImg->Allocate();
-    paramMuImg->FillBuffer(0);
-    
-    paramVarImg = Image4DType::New();
-    paramVarImg->SetRegions(outsize);
-    paramVarImg->Allocate();
-    paramVarImg->FillBuffer(0);
+//    paramMuImg = Image4DType::New();
+//    paramMuImg->SetRegions(outsize);
+//    paramMuImg->Allocate();
+//    paramMuImg->FillBuffer(0);
+//    
+//    paramVarImg = Image4DType::New();
+//    paramVarImg->SetRegions(outsize);
+//    paramVarImg->Allocate();
+//    paramVarImg->FillBuffer(0);
     
     
     unsigned int xlen = inImage->GetRequestedRegion().GetSize()[0];
@@ -306,19 +306,11 @@ int main(int argc, char* argv[])
     BoldPF::CallPoints callpoints;
     void* cbdata = NULL;
     int (*cbfunc)(BoldPF*, void*) = NULL;
-    if(!a_particle()) {
-        cb_meas_data* cbd = new cb_meas_data;
-        cb_meas_init(cbd, &callpoints, inImage->GetRequestedRegion().GetSize());
-        cbdata = (void*)cbd;
-        cbfunc = cb_meas_call;
-    } else {
-        cb_part_data* cbd = new cb_part_data;
-        cb_part_init(cbd, &callpoints, FILTER_PARAMS, a_num_particles(), 
-                    inImage->GetRequestedRegion().GetSize()[3], a_output());
-        cbdata = (void*)cbd;
-        cbfunc = cb_part_call;
-
-    }
+    cb_all_data* cbd = new cb_all_data;
+    cb_all_init(cbd, &callpoints, inImage->GetRequestedRegion().GetSize(), 
+                FILTER_PARAMS);
+    cbdata = (void*)cbd;
+    cbfunc = cb_all_call;
     
     /* Temporary variables used in the loop */
     time_t start = time(NULL);
@@ -332,10 +324,10 @@ int main(int argc, char* argv[])
     std::vector< aux::vector > meas(tlen, aux::zero_vector(1));
 
     /* Set constant A1, A2 */
-    aux::vector a_values;
 
     int total = countValid(inImage, mask);
     int traveled = 0;
+    *output << "Total Voxels: " << endl;
        
     /* Calculate parameters for every voxel */
     for(index3[0] = 0 ; index3[0] < xlen ; index3[0]++) {
@@ -347,8 +339,6 @@ int main(int argc, char* argv[])
                 inImage->TransformIndexToPhysicalPoint(index4, point4);
 
                 result = BoldPF::UNSTARTED;
-
-                //debug
 
                 //run particle filter, and retry with i times as many particles
                 //as the the initial number if it fails
@@ -372,36 +362,23 @@ int main(int argc, char* argv[])
 
                     //run the particle filter
                     result = boldpf.run(cbdata);
-                    mu = boldpf.getDistribution().getDistributedExpectation();
-                    aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
-                    var = diag(cov);
-
-                    a_values = BoldModel::getA(mu[BoldModel::indexof(BoldModel::E_0, 0)]);
                 }
 
                 //set the output to a standard -1 if BoldPF failed
                 if(result != BoldPF::DONE) {
-                    mu = aux::vector(BASICPARAMS+STATICPARAMS, -1);
-                    var = aux::vector(BASICPARAMS+STATICPARAMS, -1);
+//                    mu = aux::vector(BASICPARAMS+STATICPARAMS, -1);
+//                    var = aux::vector(BASICPARAMS+STATICPARAMS, -1);
                 } else {
                     //run time calculation
                     time_t tmp = time(NULL);
                     traveled++;
                     *output << "Time Elapsed: " << difftime(tmp, start) << endl
-                         << "Time Remaining: " << (total-traveled)*difftime(tmp,start)/(double)traveled 
+                         << "Time Remaining: " << (total-traveled)*difftime(tmp,start)/
+                                    (double)traveled 
                          << endl << "Ratio: " << traveled << "/" << total << endl
                          << "Left: " << total-traveled << "/" << total
                          << endl;
                 }
-                //write the calculated expected value/variance of parameters
-                writeVector<DataType, aux::vector>(paramMuImg, 3, mu, index4);
-                writeVector<DataType, aux::vector>(paramVarImg, 3, var, index4);
-
-                //write a_1 and a_2
-                index4[3] = BASICPARAMS;
-                writeVector<DataType, aux::vector>(paramMuImg, 3, a_values, index4);
-                writeVector<DataType, aux::vector>(paramVarImg, 3, aux::vector(2,0),
-                            index4);
             
                 
             }
@@ -410,44 +387,51 @@ int main(int argc, char* argv[])
     
     //write final output
     if(rank == 0) {
+        {
 	string outname = a_output();
-	outname.append("param_exp.nii.gz");
-        paramMuImg->CopyInformation(inImage);
-        itk::ImageFileWriter<Image4DType>::Pointer out1 = 
-                    itk::ImageFileWriter<Image4DType>::New();
-        out1->SetInput(paramMuImg);
-        out1->SetFileName(outname);
-        cout << "Writing: " << outname << endl;
-        out1->Update();
-
-	outname = a_output();
 	outname.append("param_var.nii.gz");
-        paramVarImg->CopyInformation(inImage);
-        itk::ImageFileWriter<Image4DType>::Pointer out2 = 
-                    itk::ImageFileWriter<Image4DType>::New();
-        out2->SetInput(paramVarImg);
-        out2->SetFileName(outname);
+        itk::ImageFileWriter<itk::OrientedImage<float,5> >::Pointer out = 
+                    itk::ImageFileWriter<itk::OrientedImage<float,5> >::New();
+        out->SetInput(cbd->paramvar);
+        out->SetFileName(outname);
         cout << "Writing: " << outname << endl;
-        out2->Update();
-        
-        std::ostringstream oss;
-        oss << a_output();
-        //write final position or measurement image, 
-        if(a_particle()) {
-            cb_part_data* cdata  = (cb_part_data*)cbdata;
-            for(int i = 0 ; i < 3 ; i++)
-                oss << cdata->prev[i] << "_";
-            oss << ".nii";
-        } else {
-            oss << "meas_mu.nii.gz";
+        out->Update();
         }
-
-        itk::ImageFileWriter< itk::OrientedImage<float,4> >::Pointer writer3 = 
-                    itk::ImageFileWriter< itk::OrientedImage<float,4> >::New();
-        writer3->SetFileName(oss.str());
-        writer3->SetInput(((cb_data*)cbdata)->image);
-        writer3->Update();
-        cout << "Writing " << oss.str();
+        
+        {
+	string outname = a_output();
+	outname.append("param_mu.nii.gz");
+        itk::ImageFileWriter<itk::OrientedImage<float,5> >::Pointer out = 
+                    itk::ImageFileWriter<itk::OrientedImage<float,5> >::New();
+        out->SetInput(cbd->parammu);
+        out->SetFileName(outname);
+        cout << "Writing: " << outname << endl;
+        out->Update();
+        }
+        
+        {
+	string outname = a_output();
+	outname.append("meas_var.nii.gz");
+        cbd->measvar->CopyInformation(inImage);
+        itk::ImageFileWriter<itk::OrientedImage<float,4> >::Pointer out = 
+                    itk::ImageFileWriter<itk::OrientedImage<float,4> >::New();
+        out->SetInput(cbd->measvar);
+        out->SetFileName(outname);
+        cout << "Writing: " << outname << endl;
+        out->Update();
+        }
+        
+        {
+	string outname = a_output();
+	outname.append("meas_mu.nii.gz");
+        cbd->measmu->CopyInformation(inImage);
+        itk::ImageFileWriter<itk::OrientedImage<float,4> >::Pointer out = 
+                    itk::ImageFileWriter<itk::OrientedImage<float,4> >::New();
+        out->SetInput(cbd->measmu);
+        out->SetFileName(outname);
+        cout << "Writing: " << outname << endl;
+        out->Update();
+        }
     }
 
                 
