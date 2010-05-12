@@ -14,13 +14,15 @@
 static const char* stateString[] = {"TAU_0", "ALPHA", "E_0", "V_0", "TAU_S", 
                 "TAU_F", "EPSILON", "V_T", "Q_T", "S_T", "F_T"};
 
+
+
 BoldModel::BoldModel(aux::vector stddev, int weightfunc, size_t sections) : 
             weightf(weightfunc), sigma(stddev), SIMUL_STATES(sections),
             STATE_SIZE(GVAR_SIZE+LVAR_SIZE*sections + sections),
             MEAS_SIZE(sections),
             INPUT_SIZE(1)//, segments(sections)
 {
-    defaultstate = defmu(sections);
+    defaultstate = defloc(sections);
 
     //this is only a problem if the user put in a bad vector
     //in which case the u will be overwritten with 0's
@@ -205,24 +207,25 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y) const
 //Note that scale contains std. deviation OR k and loc contains either
 //mean or theta depending on the distribution
 double BoldModel::generateComponent(gsl_rng* rng, aux::vector& fillme, 
-            aux::vector scale, aux::vector loc) const
+            const std::vector<BoldModel::Dist>& dists) const
 {
     double weight, tmp;
     //going to distribute all the state variables the same even if they are
     //in different sections
 
-    do{ 
-        weight = 1;
-        for(size_t i = 0 ; i< STATE_SIZE; i++) {
-            if(scale[i] == 0) {
-                fillme[i] = loc[i];
-            } else {
-                tmp = gsl_ran_gaussian(rng, scale[i]);
-                fillme[i] = tmp + loc[i];
-                weight *= gsl_ran_gaussian_pdf(tmp, scale[i]);
-            }
+    weight = 1;
+    for(size_t i = 0 ; i< dists.size(); i++) {
+        if(dists[i].type == NORMAL) {
+            tmp = gsl_ran_gaussian(rng, dists[i].B.stddev);
+            fillme[i] = tmp + dists[i].A.mean;
+            weight *= gsl_ran_gaussian_pdf(tmp, dists[i].B.stddev);
+        } else if( dists[i].type == GAMMA) {
+            fillme[i] = gsl_ran_gamma(rng, dists[i].A.K, dists[i].B.theta);
+            weight *= gsl_ran_gamma_pdf(fillme[i], dists[i].A.K, dists[i].B.theta);
+        } else {
+            fillme[i] = dists[i].A.mean;
         }
-    }while(reweight(fillme, weight));
+    }
     
     return 1./weight;
 }
@@ -231,30 +234,34 @@ double BoldModel::generateComponent(gsl_rng* rng, aux::vector& fillme,
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
             double sigma_scale, bool flat) const
 {
-    aux::vector mean = defmu(SIMUL_STATES);
-    aux::vector width = sigma_scale*defsigma(SIMUL_STATES);
+    aux::vector width = sigma_scale*defscale(SIMUL_STATES);
     
-    generatePrior(x0, samples, mean, width, flat);
+    generatePrior(x0, samples, defdist(SIMUL_STATES, width), flat);
 }
 
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
             const aux::vector mean, double sigma_scale, bool flat) const
 {
-    aux::vector width = sigma_scale*defsigma(SIMUL_STATES);
+    aux::vector width = sigma_scale*defscale(SIMUL_STATES);
     
-    generatePrior(x0, samples, mean, width, flat);
+    generatePrior(x0, samples, defdist(SIMUL_STATES, width, mean), flat);
 }
 
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
             aux::vector width, bool flat) const
 {
-    aux::vector mean = defmu(SIMUL_STATES);
-    generatePrior(x0, samples, mean, width, flat);
+    generatePrior(x0, samples, defdist(SIMUL_STATES, width), flat);
+}
+    
+void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
+            const aux::vector mean, aux::vector width, bool flat) const
+{
+    generatePrior(x0, samples, defdist(SIMUL_STATES, width, mean), flat);
 }
 
 //TODO make some of these non-gaussian
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
-            const aux::vector mean, aux::vector width, bool flat) const
+            const std::vector<struct BoldModel::Dist>& dists, bool flat) const
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
@@ -269,21 +276,10 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
         std::cout << "Seeding with " << (unsigned int)(seed^rank) << "\n";
     }
     
-    std::cout << "Mean:" << std::endl;
-    for(unsigned int i = 0 ; i < mean.size() ; i++) {
-        std::cout << mean[i];
-    }
-    
-    std::cout << std::endl << "Width:" << std::endl;
-    for(unsigned int i = 0 ; i < mean.size() ; i++) {
-        std::cout << mean[i];
-    }
-    std::cout << std::endl;
-    
     aux::vector comp(STATE_SIZE);
     double weight;
     for(int i = 0 ; i < samples; i ++) {
-        weight = generateComponent(rng, comp, width, mean);
+        weight = generateComponent(rng, comp, dists);
         x0.add(comp, flat ? weight : 1.0);
     }
     gsl_rng_free(rng);
@@ -306,7 +302,7 @@ bool BoldModel::reweight(aux::vector& checkme, double& weightout) const
     return false;
 }
 
-aux::vector BoldModel::defmu(unsigned int simul)
+aux::vector BoldModel::defloc(unsigned int simul)
 {
     aux::vector ret(simul+simul*LVAR_SIZE+GVAR_SIZE);
     for(unsigned int ii = 0 ; ii < simul; ii++) {
@@ -329,7 +325,7 @@ aux::vector BoldModel::defmu(unsigned int simul)
     return ret;
 }
 
-aux::vector BoldModel::defsigma(unsigned int simul)
+aux::vector BoldModel::defscale(unsigned int simul)
 {
     aux::vector ret(simul+simul*LVAR_SIZE+GVAR_SIZE, 0);
     
@@ -350,6 +346,73 @@ aux::vector BoldModel::defsigma(unsigned int simul)
     }
     for(unsigned int i = 0 ; i < simul; i++) {
         ret(GVAR_SIZE+simul*LVAR_SIZE+i) = 0;
+    }
+
+    return ret;
+}
+
+//void BoldModel::convert(aux::vector<BoldModel::Dist> dest, const aux::vector& loc, 
+//            const aux::vector& scale)
+//{
+//    for(unsigned int i = 0 ; i < dest.size(); i++) {
+//        if(dest[i].type == NORMAL) {
+//            dest[i].A.mean = loc[i];
+//            dest[i].B.stddev = scale[i];
+//        } else if(dest[i].type == GAMMA) {
+//            dest[i].A.K = (-loc[i] + sqrt(loc[i]*loc[i]+4*scale[i]*scale[i]))/2;
+//            dest[i].B.theta  = loc[i]/dest[i].A.theta + 1;
+//        } else {
+//            throw BOLD_UNCATCHABLE_EXCEPTION();
+//        }
+//    }
+//}
+    
+std::vector<BoldModel::Dist> BoldModel::defdist(unsigned int simul)
+{
+    return defdist(simul, defscale(simul), defloc(simul));
+}
+   
+std::vector<BoldModel::Dist> BoldModel::defdist(unsigned int simul, aux::vector scale)
+{
+    return defdist(simul, scale, defloc(simul));
+}
+
+std::vector<BoldModel::Dist> BoldModel::defdist(unsigned int simul, 
+            aux::vector scale, aux::vector loc)
+{
+    std::vector<BoldModel::Dist> ret(loc.size());
+    for(unsigned int ii = 0 ; ii < simul ; ii++) {
+        ret[indexof(TAU_S  ,ii)].type = GAMMA;
+        ret[indexof(TAU_F  ,ii)].type = GAMMA;
+        ret[indexof(EPSILON,ii)].type = GAMMA;
+        ret[indexof(TAU_0  ,ii)].type = GAMMA;
+        ret[indexof(ALPHA  ,ii)].type = GAMMA;
+        ret[indexof(E_0    ,ii)].type = GAMMA;
+        ret[indexof(V_0    ,ii)].type = GAMMA;
+
+        ret[indexof(V_T,ii)].type = GAMMA;
+        ret[indexof(Q_T,ii)].type = GAMMA;
+        ret[indexof(S_T,ii)].type = NORMAL;
+        ret[indexof(F_T,ii)].type = GAMMA;
+    }
+    for(unsigned int i = 0 ; i < simul; i++) {
+        ret[GVAR_SIZE+simul*LVAR_SIZE+i].type = NORMAL;
+    }
+
+    for(unsigned int i = 0 ; i < ret.size() ; i++) {
+        if(scale[i] == 0)  {
+            ret[i].A.mean = loc[i];
+            ret[i].B.stddev = loc[i];
+            ret[i].type = CONST;
+        }
+        
+        if(ret[i].type == NORMAL) {
+            ret[i].A.mean = loc[i];
+            ret[i].B.stddev = scale[i];
+        } else if(ret[i].type == GAMMA) {
+            ret[i].A.K = (-loc[i] + sqrt(loc[i]*loc[i]+4*scale[i]*scale[i]))/2;
+            ret[i].B.theta  = loc[i]/ret[i].B.theta + 1;
+        }
     }
 
     return ret;

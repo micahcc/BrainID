@@ -5,6 +5,7 @@
 #include <indii/ml/filter/ParticleFilterModel.hpp>
 #include <indii/ml/aux/DiracMixturePdf.hpp>
 #include <gsl/gsl_randist.h>
+#include <vector>
 
 namespace aux = indii::ml::aux;
 
@@ -14,6 +15,21 @@ class BoldModel : public indii::ml::filter::ParticleFilterModel<double>
 public:
     ~BoldModel();
     BoldModel(aux::vector stddev, int weightfunc, size_t sections = 1);
+    
+    enum DistType { NORMAL, GAMMA, CONST };
+    struct Dist
+    {
+        int type;
+        union {
+            double mean;
+            double K;
+        } A; 
+        union {
+            double stddev;
+            double theta;
+        } B;
+    };
+
 
     unsigned int getStateSize() const { return STATE_SIZE; };
     unsigned int getStimSize() const { return INPUT_SIZE; };
@@ -37,6 +53,8 @@ public:
                 aux::vector width, bool flat = true) const;
     void generatePrior(aux::DiracMixturePdf& x0, int samples, const aux::vector mean,
                 aux::vector width, bool flat = true) const;
+    void generatePrior(aux::DiracMixturePdf& x0, int samples,
+                const std::vector<Dist>& dists, bool flat) const;
 
     //since the particle filter doesn't yet support input, we are
     //going to hack around that and set it directly
@@ -63,8 +81,13 @@ public:
         return ii < GVAR_SIZE ? ii : (ii - GVAR_SIZE)%LVAR_SIZE + GVAR_SIZE;
     }
 
-    static aux::vector defmu(unsigned int);
-    static aux::vector defsigma(unsigned int);
+    static aux::vector defloc(unsigned int);
+    static aux::vector defscale(unsigned int);
+    static std::vector<Dist> defdist(unsigned int simul);
+    static std::vector<Dist> defdist(unsigned int simul, 
+                aux::vector scale);
+    static std::vector<Dist> defdist(unsigned int simul, 
+                aux::vector scale, aux::vector loc);
 
 private:
     //the standard deviations for the parameters theta, which are
@@ -78,7 +101,7 @@ private:
     aux::vector input;
 
     double generateComponent(gsl_rng* rng, aux::vector& fillme, 
-                aux::vector scale, aux::vector loc) const;
+                const std::vector<Dist>& dists) const;
 
     //Weighting
     int weightf;
@@ -102,6 +125,11 @@ private:
     static const double k1 = 4.3*40.3*.04 ;
     static const double k2 = 1.43*25*.04;
     static const double k3 = 1.43-1;
+
+//    static void BoldModel::convert(std::vector<Dist> dest, const aux::vector& loc, 
+//                const aux::vector& scale);
+
+    class BOLD_UNCATCHABLE_EXCEPTION { };
 };
 
 #endif

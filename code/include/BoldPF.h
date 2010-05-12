@@ -433,8 +433,8 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     aux::vector boldstd = bold_stddev(measurements, boldmu);
 
     /* Generate Prior */
-    aux::vector width = 2*model->defsigma(measurements.front().size());
-    aux::vector loc = model->defmu(measurements.front().size());
+    aux::vector width = 5*model->defscale(measurements.front().size());
+    aux::vector loc = model->defloc(measurements.front().size());
 
     aux::vector drift_est = (measurements[0] + measurements[1] + measurements[2])/3.;
     for(unsigned int ii = model->getStateSize()-model->getMeasurementSize() ;
