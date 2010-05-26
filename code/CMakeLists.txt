@@ -57,6 +57,7 @@ ADD_EXECUTABLE(parammap_generate make_param_image.cpp)
 ADD_EXECUTABLE(parammap_evalrun parammap_eval.cpp)
 ADD_EXECUTABLE(parammap_evaldiff parammap_diff.cpp)
 ADD_EXECUTABLE(mse mse.cpp)
+ADD_EXECUTABLE(extract_pos extract_pos.cc)
 
 TARGET_LINK_LIBRARIES(prune modNiftiImageIO ITKIO)
 TARGET_LINK_LIBRARIES(concatinate modNiftiImageIO ITKIO)
@@ -81,6 +82,7 @@ TARGET_LINK_LIBRARIES(boldgen tools gfortran blas lapack modNiftiImageIO boost_s
     BoldModel ITKAlgorithms ITKBasicFilters 
     ITKCommon ITKIO gsl gslcblas mpi dysii vullib)
 TARGET_LINK_LIBRARIES(fft tools modNiftiImageIO ITKIO vullib)
+TARGET_LINK_LIBRARIES(extract_pos modNiftiImageIO ITKIO ITKCommon vullib)
 
 TARGET_LINK_LIBRARIES(readdicom modNiftiImageIO segment ITKAlgorithms ITKBasicFilters ITKCommon ITKIO vullib)
 TARGET_LINK_LIBRARIES(applymask modNiftiImageIO segment ITKAlgorithms ITKBasicFilters ITKCommon ITKIO vullib)

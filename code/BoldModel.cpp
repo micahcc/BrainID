@@ -36,36 +36,36 @@ BoldModel::BoldModel(aux::vector stddev, int weightfunc, size_t sections) :
     std::cerr << "MEAS_SIZE    " << this->MEAS_SIZE    << std::endl;
     std::cerr << "INPUT_SIZE   " << this->INPUT_SIZE   << std::endl;
 
-    for(unsigned int i = 0 ; i < 3 ; i++) {
-        std::cerr << "indexof(TAU_0, " << i << ") " << indexof(TAU_0, i) << std::endl;
-        std::cerr << "indexof(ALPHA, " << i << ") " << indexof(ALPHA, i) << std::endl;
-        std::cerr << "indexof(E_0  , " << i << ") " << indexof(E_0  , i) << std::endl;
-        std::cerr << "indexof(V_0  , " << i << ") " << indexof(V_0  , i) << std::endl;
-        std::cerr << "indexof(TAU_S, " << i << ") " << indexof(TAU_S, i) << std::endl;
-        std::cerr << "indexof(TAU_F, " << i << ") " << indexof(TAU_F, i) << std::endl;
-        std::cerr << "indexof(EPSILON, " << i << ") " << indexof(EPSILON, i) << std::endl;
-        std::cerr << "indexof(V_T  , " << i << ") " << indexof(V_T  , i) << std::endl;
-        std::cerr << "indexof(Q_T  , " << i << ") " << indexof(Q_T  , i) << std::endl;
-        std::cerr << "indexof(S_T  , " << i << ") " << indexof(S_T  , i) << std::endl;
-        std::cerr << "indexof(F_T  , " << i << ") " << indexof(F_T  , i) << std::endl;
-    }
-    
-    for(unsigned int i = 0 ; i < 3 ; i++) {
-        std::cerr << "TAU_0 -> "   << stateString[stateAt(indexof(TAU_0, i))]  << std::endl;
-        std::cerr << "ALPHA -> "   << stateString[stateAt(indexof(ALPHA, i))]  << std::endl;
-        std::cerr << "E_0   -> "   << stateString[stateAt(indexof(E_0  , i))]  << std::endl;
-        std::cerr << "V_0   -> "   << stateString[stateAt(indexof(V_0  , i))]  << std::endl;
-        std::cerr << "TAU_S -> "   << stateString[stateAt(indexof(TAU_S, i))]  << std::endl;
-        std::cerr << "TAU_F -> "   << stateString[stateAt(indexof(TAU_F, i))]  << std::endl;
-        std::cerr << "EPSILON -> " << stateString[stateAt(indexof(EPSILON, i))] << std::endl;
-        std::cerr << "V_T  -> "    << stateString[stateAt(indexof(V_T  , i))] << std::endl;
-        std::cerr << "Q_T  -> "    << stateString[stateAt(indexof(Q_T  , i))] << std::endl;
-        std::cerr << "S_T  -> "    << stateString[stateAt(indexof(S_T  , i))] << std::endl;
-        std::cerr << "F_T  -> "    << stateString[stateAt(indexof(F_T  , i))] << std::endl;
-    }
-    for(unsigned int i = 0 ; i < MEAS_SIZE; i++) {
-        std::cerr << "Extra vars: " << i << " -> " << STATE_SIZE-MEAS_SIZE+i;
-    }
+//    for(unsigned int i = 0 ; i < 3 ; i++) {
+//        std::cerr << "indexof(TAU_0, " << i << ") " << indexof(TAU_0, i) << std::endl;
+//        std::cerr << "indexof(ALPHA, " << i << ") " << indexof(ALPHA, i) << std::endl;
+//        std::cerr << "indexof(E_0  , " << i << ") " << indexof(E_0  , i) << std::endl;
+//        std::cerr << "indexof(V_0  , " << i << ") " << indexof(V_0  , i) << std::endl;
+//        std::cerr << "indexof(TAU_S, " << i << ") " << indexof(TAU_S, i) << std::endl;
+//        std::cerr << "indexof(TAU_F, " << i << ") " << indexof(TAU_F, i) << std::endl;
+//        std::cerr << "indexof(EPSILON, " << i << ") " << indexof(EPSILON, i) << std::endl;
+//        std::cerr << "indexof(V_T  , " << i << ") " << indexof(V_T  , i) << std::endl;
+//        std::cerr << "indexof(Q_T  , " << i << ") " << indexof(Q_T  , i) << std::endl;
+//        std::cerr << "indexof(S_T  , " << i << ") " << indexof(S_T  , i) << std::endl;
+//        std::cerr << "indexof(F_T  , " << i << ") " << indexof(F_T  , i) << std::endl;
+//    }
+//    
+//    for(unsigned int i = 0 ; i < 3 ; i++) {
+//        std::cerr << "TAU_0 -> "   << stateString[stateAt(indexof(TAU_0, i))]  << std::endl;
+//        std::cerr << "ALPHA -> "   << stateString[stateAt(indexof(ALPHA, i))]  << std::endl;
+//        std::cerr << "E_0   -> "   << stateString[stateAt(indexof(E_0  , i))]  << std::endl;
+//        std::cerr << "V_0   -> "   << stateString[stateAt(indexof(V_0  , i))]  << std::endl;
+//        std::cerr << "TAU_S -> "   << stateString[stateAt(indexof(TAU_S, i))]  << std::endl;
+//        std::cerr << "TAU_F -> "   << stateString[stateAt(indexof(TAU_F, i))]  << std::endl;
+//        std::cerr << "EPSILON -> " << stateString[stateAt(indexof(EPSILON, i))] << std::endl;
+//        std::cerr << "V_T  -> "    << stateString[stateAt(indexof(V_T  , i))] << std::endl;
+//        std::cerr << "Q_T  -> "    << stateString[stateAt(indexof(Q_T  , i))] << std::endl;
+//        std::cerr << "S_T  -> "    << stateString[stateAt(indexof(S_T  , i))] << std::endl;
+//        std::cerr << "F_T  -> "    << stateString[stateAt(indexof(F_T  , i))] << std::endl;
+//    }
+//    for(unsigned int i = 0 ; i < MEAS_SIZE; i++) {
+//        std::cerr << "Extra vars: " << i << " -> " << STATE_SIZE-MEAS_SIZE+i;
+//    }
 
     std::cerr << "Sigma:" << std::endl;
     for(unsigned int i = 0 ; i < this->sigma.size() ; i++)
@@ -213,19 +213,33 @@ double BoldModel::generateComponent(gsl_rng* rng, aux::vector& fillme,
     //going to distribute all the state variables the same even if they are
     //in different sections
 
+    double A;
+    double B;
     weight = 1;
     for(size_t i = 0 ; i< dists.size(); i++) {
         if(dists[i].type == NORMAL) {
-            tmp = gsl_ran_gaussian(rng, dists[i].B.stddev);
-            fillme[i] = tmp + dists[i].A.mean;
-            weight *= gsl_ran_gaussian_pdf(tmp, dists[i].B.stddev);
-        } else if( dists[i].type == GAMMA) {
-            fillme[i] = gsl_ran_gamma(rng, dists[i].A.K, dists[i].B.theta);
-            weight *= gsl_ran_gamma_pdf(fillme[i], dists[i].A.K, dists[i].B.theta);
+            tmp = gsl_ran_gaussian(rng, dists[i].scale);
+            fillme[i] = tmp + dists[i].loc;
+            weight *= gsl_ran_gaussian_pdf(tmp, dists[i].scale);
+        } else if( dists[i].type == GAMMA_MED) {
+            B = (-dists[i].loc + sqrt(pow(dists[i].loc,2)+4*pow(dists[i].scale,2)))/2;
+            A = dists[i].loc/B + 1;
+            fillme[i] = gsl_ran_gamma(rng, A, B);
+//            std::cout << gsl_ran_gamma_pdf(fillme[i], A, B) << std::endl;
+            weight *= gsl_ran_gamma_pdf(fillme[i], A, B);
+        } else if(dists[i].type == GAMMA_MU ) {
+            B = pow(dists[i].scale, 2)/dists[i].loc;
+            A = dists[i].loc/B;
+//            std::cout << "A: \n" << A << " B: " << B << "\n";
+            fillme[i] = gsl_ran_gamma(rng, A, B);
+            weight *= gsl_ran_gamma_pdf(fillme[i], A, B);
+//            std::cout << "ran: \n" << fillme[i] << " P: " << gsl_ran_gamma_pdf(fillme[i], A, B) 
+//                        << "\n";
         } else {
-            fillme[i] = dists[i].A.mean;
+            fillme[i] = dists[i].loc;
         }
     }
+//    std::cout << "\n";
     
     return 1./weight;
 }
@@ -236,32 +250,46 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
 {
     aux::vector width = sigma_scale*defscale(SIMUL_STATES);
     
-    generatePrior(x0, samples, defdist(SIMUL_STATES, width), flat);
+    std::vector<Dist> newdist = defdist(SIMUL_STATES, width);
+    generatePrior(x0, samples, newdist , flat);
 }
 
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
             const aux::vector mean, double sigma_scale, bool flat) const
 {
     aux::vector width = sigma_scale*defscale(SIMUL_STATES);
+    std::vector<Dist> newdist = defdist(SIMUL_STATES, width, mean);
     
-    generatePrior(x0, samples, defdist(SIMUL_STATES, width, mean), flat);
+    generatePrior(x0, samples, newdist, flat);
 }
 
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
             aux::vector width, bool flat) const
 {
-    generatePrior(x0, samples, defdist(SIMUL_STATES, width), flat);
+    std::vector<Dist> newdist = defdist(SIMUL_STATES, width);
+    generatePrior(x0, samples, newdist, flat);
 }
     
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
             const aux::vector mean, aux::vector width, bool flat) const
 {
-    generatePrior(x0, samples, defdist(SIMUL_STATES, width, mean), flat);
+//    for(unsigned int i = 0 ; i < width.size() ; i++) 
+//        std::cout << width[i] << std::endl;
+//    std::cout << std::endl;
+    std::vector<Dist> newdist = defdist(SIMUL_STATES, width, mean);
+//    for(unsigned int i = 0 ; i < width.size() ; i++) 
+//        std::cout << width[i] << std::endl;
+//    std::cout << std::endl;
+//    for(unsigned int i = 0 ; i < width.size() ; i++) {
+//        std::cout <<  newdist[i].type << " " <<  newdist[i].scale << std::endl;
+//    }
+//    std::cout << std::endl;
+    generatePrior(x0, samples, newdist, flat);
 }
 
 //TODO make some of these non-gaussian
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
-            const std::vector<struct BoldModel::Dist>& dists, bool flat) const
+            std::vector<struct BoldModel::Dist>& dists, bool flat) const
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
@@ -278,7 +306,28 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
     
     aux::vector comp(STATE_SIZE);
     double weight;
-    for(int i = 0 ; i < samples; i ++) {
+    
+    for(unsigned int i = 0 ; i < dists.size(); i++) {
+        if(dists[i].scale == 0.0)
+            dists[i].type = CONST;
+    }
+    for(unsigned int i = 0 ; i < dists.size() ; i++) {
+        std::cout <<  dists[i].type << " " <<  dists[i].scale << std::endl;
+    }
+    std::cout << std::endl;
+    
+    for(unsigned int i = 0 ; i < dists.size(); i++) {
+        if(dists[i].type == CONST)
+            std::cout << "CONST" << std::endl;
+        else if(dists[i].type == GAMMA_MU)
+            std::cout << "GAMMA_MU" << std::endl;
+        else if(dists[i].type == GAMMA_MED)
+            std::cout << "GAMMA_MED" << std::endl;
+        else if(dists[i].type == NORMAL)
+            std::cout << "NORMAL" << std::endl;
+    }
+
+    for(int i = 0 ; i < samples; i++) {
         weight = generateComponent(rng, comp, dists);
         x0.add(comp, flat ? weight : 1.0);
     }
@@ -312,7 +361,7 @@ aux::vector BoldModel::defloc(unsigned int simul)
         ret[indexof(TAU_0, ii)] = .98; //Hu = .98, Vakorin = 1.18
         ret[indexof(ALPHA, ii)] = .33; //Hu = .33, 
         ret[indexof(E_0, ii)] = .34; //Hu = .34
-        ret[indexof(V_0, ii)] = .03; //Hu = .03
+        ret[indexof(V_0, ii)] = 0.03; //Hu = .03
 
         ret[indexof(V_T,ii)] = 1;
         ret[indexof(Q_T,ii)] = 1;
@@ -358,7 +407,7 @@ aux::vector BoldModel::defscale(unsigned int simul)
 //        if(dest[i].type == NORMAL) {
 //            dest[i].A.mean = loc[i];
 //            dest[i].B.stddev = scale[i];
-//        } else if(dest[i].type == GAMMA) {
+//        } else if(dest[i].type == GAMMA_MED) {
 //            dest[i].A.K = (-loc[i] + sqrt(loc[i]*loc[i]+4*scale[i]*scale[i]))/2;
 //            dest[i].B.theta  = loc[i]/dest[i].A.theta + 1;
 //        } else {
@@ -372,47 +421,39 @@ std::vector<BoldModel::Dist> BoldModel::defdist(unsigned int simul)
     return defdist(simul, defscale(simul), defloc(simul));
 }
    
-std::vector<BoldModel::Dist> BoldModel::defdist(unsigned int simul, aux::vector scale)
+std::vector<BoldModel::Dist> BoldModel::defdist(unsigned int simul, 
+            const aux::vector& scale)
 {
     return defdist(simul, scale, defloc(simul));
 }
 
 std::vector<BoldModel::Dist> BoldModel::defdist(unsigned int simul, 
-            aux::vector scale, aux::vector loc)
+            const aux::vector& scale, const aux::vector& loc)
 {
     std::vector<BoldModel::Dist> ret(loc.size());
     for(unsigned int ii = 0 ; ii < simul ; ii++) {
-        ret[indexof(TAU_S  ,ii)].type = GAMMA;
-        ret[indexof(TAU_F  ,ii)].type = GAMMA;
-        ret[indexof(EPSILON,ii)].type = GAMMA;
-        ret[indexof(TAU_0  ,ii)].type = GAMMA;
-        ret[indexof(ALPHA  ,ii)].type = GAMMA;
-        ret[indexof(E_0    ,ii)].type = GAMMA;
-        ret[indexof(V_0    ,ii)].type = GAMMA;
+        ret[indexof(TAU_S  ,ii)].type = GAMMA_MU;
+        ret[indexof(TAU_F  ,ii)].type = GAMMA_MU;
+        ret[indexof(EPSILON,ii)].type = GAMMA_MU;
+        ret[indexof(TAU_0  ,ii)].type = GAMMA_MU;
+        ret[indexof(ALPHA  ,ii)].type = GAMMA_MU;
+        ret[indexof(E_0    ,ii)].type = GAMMA_MU;
+        ret[indexof(V_0    ,ii)].type = GAMMA_MU;
 
-        ret[indexof(V_T,ii)].type = GAMMA;
-        ret[indexof(Q_T,ii)].type = GAMMA;
+        ret[indexof(V_T,ii)].type = GAMMA_MU;
+        ret[indexof(Q_T,ii)].type = GAMMA_MU;
         ret[indexof(S_T,ii)].type = NORMAL;
-        ret[indexof(F_T,ii)].type = GAMMA;
+        ret[indexof(F_T,ii)].type = GAMMA_MU;
     }
     for(unsigned int i = 0 ; i < simul; i++) {
         ret[GVAR_SIZE+simul*LVAR_SIZE+i].type = NORMAL;
     }
 
     for(unsigned int i = 0 ; i < ret.size() ; i++) {
-        if(scale[i] == 0)  {
-            ret[i].A.mean = loc[i];
-            ret[i].B.stddev = loc[i];
+        if(scale[i] == 0.0)
             ret[i].type = CONST;
-        }
-        
-        if(ret[i].type == NORMAL) {
-            ret[i].A.mean = loc[i];
-            ret[i].B.stddev = scale[i];
-        } else if(ret[i].type == GAMMA) {
-            ret[i].A.K = (-loc[i] + sqrt(loc[i]*loc[i]+4*scale[i]*scale[i]))/2;
-            ret[i].B.theta  = loc[i]/ret[i].B.theta + 1;
-        }
+        ret[i].scale = scale[i];
+        ret[i].loc = loc[i];
     }
 
     return ret;

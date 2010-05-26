@@ -14,6 +14,18 @@ typedef itk::AddImageFilter< Image3DType > AddF3;
 typedef itk::SubtractImageFilter< Image3DType > SubF3;
 typedef itk::SquareImageFilter< Image3DType, Image3DType > SqrF3;
 
+//Image4DType::Pointer extract_timeseries(Image4DType::Pointer in, 
+//            const std::list< Image4DType::IndexType >& points)
+//{
+//    std::list< Image4DType::Index >::const_iterator it = points.begin();
+//    itk::ImageLinearIteratorWithIndex< Image4DType > imgit(in,
+//                in->GetRequestedRegion());
+//    while(it != points.end()) {
+//        it::*it 
+//        it++;
+//    }
+//}
+
 /* Calculates the percent difference between input1, and input2,
  * using input1 as the reference, using orientation
  */

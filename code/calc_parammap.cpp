@@ -176,8 +176,11 @@ int main(int argc, char* argv[])
     vul_arg<int> a_flat("-f", "Flatten prior?", true);
     vul_arg<int> a_weight("-w", "Use weight function: 0:Normal, 1:Laplace, "
                 "2:Hyperbolic, 3:Cauchy", 0);
+    vul_arg<double> a_scale("-C", "Scale factor wor weight function", 1.);
     vul_arg<double> a_timestep("-t", "TR (timesteps in 4th dimension)", 2);
     vul_arg<string> a_output("-o", "Output prefix", "");
+    vul_arg<unsigned int> a_erase("-e", "Number of times to erase at the front", 2);
+    vul_arg<int> a_nospline("-N", "No spline?", 0);
     
     vul_arg_parse(argc, argv);
     
@@ -189,7 +192,7 @@ int main(int argc, char* argv[])
     const unsigned int BASICPARAMS = 7;
     const unsigned int STATICPARAMS = 2;
     const unsigned int RETRIES = 3;
-    const unsigned int ERASE = 2;
+//    const unsigned int ERASE = 2;
 
     ///////////////////////////////////////////////////////////////////////////////
     //Done Parsing, starting main part of code
@@ -277,8 +280,8 @@ int main(int argc, char* argv[])
     unsigned int zlen = inImage->GetRequestedRegion().GetSize()[2];
     unsigned int tlen = inImage->GetRequestedRegion().GetSize()[3];
 
-    inImage = preprocess_help(inImage, input, a_timestep(), ERASE, a_delta(),
-                a_smart());
+    inImage = preprocess_help(inImage, input, a_timestep(), a_erase(), a_delta() || 
+                a_nospline(), a_smart());
     
     /* Save detrended image */
     if(rank == 0) try {
@@ -306,11 +309,11 @@ int main(int argc, char* argv[])
     BoldPF::CallPoints callpoints;
     void* cbdata = NULL;
     int (*cbfunc)(BoldPF*, void*) = NULL;
-    cb_all_data* cbd = new cb_all_data;
-    cb_all_init(cbd, &callpoints, inImage->GetRequestedRegion().GetSize(), 
-                FILTER_PARAMS);
+    cb_hist_data* cbd = new cb_hist_data;
+    cb_hist_init(cbd, &callpoints, inImage->GetRequestedRegion().GetSize(), 
+                FILTER_PARAMS, 1, 10);
     cbdata = (void*)cbd;
-    cbfunc = cb_all_call;
+    cbfunc = cb_hist_call;
     
     /* Temporary variables used in the loop */
     time_t start = time(NULL);
@@ -324,7 +327,6 @@ int main(int argc, char* argv[])
     std::vector< aux::vector > meas(tlen, aux::zero_vector(1));
 
     /* Set constant A1, A2 */
-
     int total = countValid(inImage, mask);
     int traveled = 0;
     *output << "Total Voxels: " << endl;
@@ -351,7 +353,7 @@ int main(int argc, char* argv[])
                     fillvector(meas, inImage, index4, a_delta());
 
                     //create the bold particle filter
-                    BoldPF boldpf(meas, input, rms->GetPixel(index3)/5., a_timestep(),
+                    BoldPF boldpf(meas, input, rms->GetPixel(index3)*a_scale(), a_timestep(),
                             output, a_num_particles()*(1<<i), 1./a_divider(), method,
                             a_weight(), a_flat());
                     
@@ -387,47 +389,21 @@ int main(int argc, char* argv[])
     
     //write final output
     if(rank == 0) {
-        {
-	string outname = a_output();
-	outname.append("param_var.nii.gz");
-        itk::ImageFileWriter<itk::OrientedImage<float,5> >::Pointer out = 
-                    itk::ImageFileWriter<itk::OrientedImage<float,5> >::New();
-        out->SetInput(cbd->paramvar);
-        out->SetFileName(outname);
-        cout << "Writing: " << outname << endl;
-        out->Update();
-        }
+        itk::OrientedImage<DataType, 4>::SpacingType space4 = inImage->GetSpacing();
+        space4[3] = a_timestep();
+        itk::OrientedImage<DataType, 6>::SpacingType space6;
+        for(unsigned int i = 0 ; i < 4 ; i++)
+            space6[i] = space4[i];
+        space6[4] = 1;
+        space6[5] = 1;
+        cbd->histogram->SetSpacing(space6);
         
         {
 	string outname = a_output();
-	outname.append("param_mu.nii.gz");
-        itk::ImageFileWriter<itk::OrientedImage<float,5> >::Pointer out = 
-                    itk::ImageFileWriter<itk::OrientedImage<float,5> >::New();
-        out->SetInput(cbd->parammu);
-        out->SetFileName(outname);
-        cout << "Writing: " << outname << endl;
-        out->Update();
-        }
-        
-        {
-	string outname = a_output();
-	outname.append("meas_var.nii.gz");
-        cbd->measvar->CopyInformation(inImage);
-        itk::ImageFileWriter<itk::OrientedImage<float,4> >::Pointer out = 
-                    itk::ImageFileWriter<itk::OrientedImage<float,4> >::New();
-        out->SetInput(cbd->measvar);
-        out->SetFileName(outname);
-        cout << "Writing: " << outname << endl;
-        out->Update();
-        }
-        
-        {
-	string outname = a_output();
-	outname.append("meas_mu.nii.gz");
-        cbd->measmu->CopyInformation(inImage);
-        itk::ImageFileWriter<itk::OrientedImage<float,4> >::Pointer out = 
-                    itk::ImageFileWriter<itk::OrientedImage<float,4> >::New();
-        out->SetInput(cbd->measmu);
+	outname.append("histogram.nii.gz");
+        itk::ImageFileWriter<itk::OrientedImage<DataType,6> >::Pointer out = 
+                    itk::ImageFileWriter<itk::OrientedImage<DataType,6> >::New();
+        out->SetInput(cbd->histogram);
         out->SetFileName(outname);
         cout << "Writing: " << outname << endl;
         out->Update();

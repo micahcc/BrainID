@@ -6,7 +6,7 @@ import numpy
 import math
 
 TAU_0, ALPHA, E_0, V_0, TAU_S, TAU_F, EPSILON, A_1, A_2 = range(0, 9)
-params = (8.38, .189, .635, 1.49e-2, 4.98, 8.31, 0.069, 3.4, 1)
+gparams = (8.38, .189, .635, 1.49e-2, 4.98, 8.31, 0.069, 3.4, 1)
 
 class State:
     F = 1
@@ -20,8 +20,12 @@ class State:
         self.V = 1
         self.Q = 1
 
+def getA(E0):
+    return (E0*(4.3*40.3*.04+1.43*25*.04), 1.43*25*.04*E0+1.43-1)
+
 def readout(state, params):
-    return params[V_0]*(params[A_1]*(1-state.Q)-params[A_2]*(1-state.V))
+    a1, a2 = getA(params[E_0])
+    return params[V_0]*(a1*(1-state.Q)-a2*(1-state.V))
 
 def transition(state, params, delta, stim):
     change = State()
@@ -37,11 +41,11 @@ def transition(state, params, delta, stim):
     state.Q += change.Q*delta
     return state
 
-len = 7000 #30 seconds
-T = [i/100. for i in range(0, len)]
-stim = [t < 3.4 and t > 3.3 for t in T]
-statevars = State()
-bold = [readout(transition(statevars, params, .01, u), params) for u in stim]
-
-pylab.plot(T, bold)
-pylab.show()
+#len = 7000 #30 seconds
+#T = [i/100. for i in range(0, len)]
+#stim = [t < 3.4 and t > 3.3 for t in T]
+#statevars = State()
+#bold = [readout(transition(statevars, params, .01, u), params) for u in stim]
+#
+#pylab.plot(T, bold)
+#pylab.show()

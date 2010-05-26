@@ -636,7 +636,7 @@ int detrend_median(const Image4DType::Pointer fmri_img, Image4DType::IndexType i
 
     for(int i = 1 ; i < knots-1; i++) {
         xpos[i] = rsize/2+(i-1)*rsize+rsize/2;
-        printf("xpos %i: %f\n", i, xpos[i]);
+//        printf("xpos %i: %f\n", i, xpos[i]);
     }
     
     itk::ImageLinearIteratorWithIndex< Image4DType > 

@@ -38,6 +38,9 @@ Image4DType::Pointer pctDiffOrient(const Image4DType::Pointer input1,
 Image4DType::Pointer pctDiff(const Image4DType::Pointer input1,
             const Image4DType::Pointer input2);
 Image3DType::Pointer get_rms(Image4DType::Pointer in);
+Image4DType::Pointer extract_timeseries(Image4DType::Pointer in, 
+            std::list< Image4DType::IndexType >& points);
+
 
 //dir1 should be the direction of several separate series
 //dir2 should be the direction that you want to get rms of

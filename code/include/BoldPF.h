@@ -18,11 +18,8 @@
 #include "RegularizedParticleResamplerMod.hpp"
 
 #include <vector>
-#include <cmath>
 #include <iostream>
-#include <fstream>
 #include <string>
-
 
 #include <indii/ml/filter/ParticleResampler.hpp>
 #include <indii/ml/aux/Almost2Norm.hpp>
@@ -138,8 +135,13 @@ private:
     /* Saves in the state variable the previous measurement, for delta */
     void latchBold();
 };
-    
-    
+
+//to go into cpp file eventually
+#include <fstream>
+#include <cmath>
+
+#include "BoldPF.h"
+
 int BoldPF::getNumParticles() const
 {
     return filter->getFilteredState().getDistributedSize();
@@ -228,19 +230,20 @@ int BoldPF::run(void* pass = NULL)
         return status;
     }
 
-    *debug << "mu size: " << filter->getFilteredState().getDistributedExpectation().size();
-    *debug << "dimensions: " << filter->getFilteredState().getDimensions();
+    *debug << "mu size: " << filter->getFilteredState().getDistributedExpectation().size()
+                << std::endl << "dimensions: " 
+                << filter->getFilteredState().getDimensions() << std::endl;
     
     /* Simulation Section */
     double conttime = disctime_s*dt_s;
     unsigned int stim_index = 0;
 
     *debug << "Starting at " << conttime
-                << " disctime_s: " << disctime_s
-                << " disctime_l: " << disctime_l 
-                << " dt_l: " << dt_l << " dt_s: " << dt_s 
-                << " measure size: " << measure.size()
-                << " stim size: " << stim.size() << "\n";
+                << ", disctime_s: " << disctime_s
+                << ", disctime_l: " << disctime_l 
+                << ", dt_l: " << dt_l << " dt_s: " << dt_s 
+                << ", measure size: " << measure.size()
+                << ", stim size: " << stim.size() << "\n";
     
     if(call_points.start) 
         callback(this, pass);
@@ -403,7 +406,7 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
             dt_l(longstep), dt_s(shortstep), 
             disctime_l(0), disctime_s(0), status(UNSTARTED), method(method_p),
             measure(measurements), stim(activations), 
-            ESS_THRESH(50)
+            ESS_THRESH(50 > .1*numparticles ? 50 : .1*numparticles)
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
@@ -433,7 +436,7 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     aux::vector boldstd = bold_stddev(measurements, boldmu);
 
     /* Generate Prior */
-    aux::vector width = 5*model->defscale(measurements.front().size());
+    aux::vector width = 2*model->defscale(measurements.front().size());
     aux::vector loc = model->defloc(measurements.front().size());
 
     aux::vector drift_est = (measurements[0] + measurements[1] + measurements[2])/3.;
@@ -441,12 +444,19 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
                     ii < model->getStateSize(); ii++) {
         if(method == DC) {
             width[ii] = boldstd[ii-model->getStateSize()+model->getMeasurementSize()]/.5;
-            loc[ii] = drift_est[ii];
+            loc[ii] = -drift_est[ii-model->getStateSize()+model->getMeasurementSize()];
         } else {
             width[ii] = 0;
             loc[ii] = 0;
         }
     }
+
+    *debug << "Location: " << std::endl;
+    outputVector(*debug, loc);
+    *debug << std::endl << "Scale: " << std::endl;
+    outputVector(*debug, width);
+    *debug << std::endl;
+
     model->generatePrior(filter->getFilteredState(), localparticles, loc, width, flatten); 
     filter->getFilteredState().distributedNormalise();
     

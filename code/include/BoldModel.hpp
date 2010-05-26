@@ -16,18 +16,12 @@ public:
     ~BoldModel();
     BoldModel(aux::vector stddev, int weightfunc, size_t sections = 1);
     
-    enum DistType { NORMAL, GAMMA, CONST };
+    enum DistType { NORMAL, GAMMA_MED, GAMMA_MU, CONST };
     struct Dist
     {
         int type;
-        union {
-            double mean;
-            double K;
-        } A; 
-        union {
-            double stddev;
-            double theta;
-        } B;
+        double scale; 
+        double loc;
     };
 
 
@@ -54,7 +48,7 @@ public:
     void generatePrior(aux::DiracMixturePdf& x0, int samples, const aux::vector mean,
                 aux::vector width, bool flat = true) const;
     void generatePrior(aux::DiracMixturePdf& x0, int samples,
-                const std::vector<Dist>& dists, bool flat) const;
+                std::vector<struct BoldModel::Dist>& dists, bool flat) const;
 
     //since the particle filter doesn't yet support input, we are
     //going to hack around that and set it directly
@@ -85,9 +79,9 @@ public:
     static aux::vector defscale(unsigned int);
     static std::vector<Dist> defdist(unsigned int simul);
     static std::vector<Dist> defdist(unsigned int simul, 
-                aux::vector scale);
+                const aux::vector& scale);
     static std::vector<Dist> defdist(unsigned int simul, 
-                aux::vector scale, aux::vector loc);
+                const aux::vector& scale, const aux::vector& loc);
 
 private:
     //the standard deviations for the parameters theta, which are
