@@ -1,31 +1,23 @@
 #include "itkOrientedImage.h"
+#include "itkImageIOFactory.h"
 #include <itkImageFileReader.h>
 #include "itkMetaDataObject.h"
 #include "modNiftiImageIO.h"
 
+#include <iomanip>
 #include <string>
 #include <iostream>
 #include <vector>
 
 using namespace std;
 
-typedef float ImagePixelType;
-typedef itk::OrientedImage< ImagePixelType,  4 > Image4DType;
-typedef itk::ImageFileReader< Image4DType >  ImageReaderType;
-
-int main (int argc, char** argv)
+void printInfo(itk::ImageIOBase* io, char* filename)
 {
-    if(argc != 2) {
-        cout << "Usage:" << endl << argv[0] << " <filename>" << endl;
-    }
-    ImageReaderType::Pointer reader = ImageReaderType::New();
-    reader->SetImageIO(itk::modNiftiImageIO::New());
-    reader->SetFileName( argv[1] );
-    reader->Update();
-
-    Image4DType::Pointer image = reader->GetOutput();
-
-    itk::MetaDataDictionary dict = reader->GetOutput()->GetMetaDataDictionary();
+    cout << filename << endl;
+    io->SetFileName(filename);
+    io->ReadImageInformation();
+    cout << "Image Dimensions: " << io->GetNumberOfDimensions() << endl;
+    itk::MetaDataDictionary dict = io->GetMetaDataDictionary();
     vector<string> keys = dict.GetKeys();
 
     for(size_t i=0 ; i<keys.size() ; i++) {
@@ -59,44 +51,47 @@ int main (int argc, char** argv)
             cout << keys[i] << " l -> " << tmpl << endl;
         } else {
             cout << "Type unhandled:" << dict[keys[i]]->GetMetaDataObjectTypeName()
-                        << endl;
+                << endl;
         }
     }
 
-    fprintf(stderr, "Size: \n");
-    fprintf(stderr, "%lu,", image->GetRequestedRegion().GetSize()[0]);
-    fprintf(stderr, "%lu,", image->GetRequestedRegion().GetSize()[1]);
-    fprintf(stderr, "%lu,", image->GetRequestedRegion().GetSize()[2]);
-    fprintf(stderr, "%lu,", image->GetRequestedRegion().GetSize()[3]);
-    fprintf(stderr, "\n");
-    
-    fprintf(stderr, "Index: \n");
-    fprintf(stderr, "%li,", image->GetRequestedRegion().GetIndex()[0]);
-    fprintf(stderr, "%li,", image->GetRequestedRegion().GetIndex()[1]);
-    fprintf(stderr, "%li,", image->GetRequestedRegion().GetIndex()[2]);
-    fprintf(stderr, "%li,", image->GetRequestedRegion().GetIndex()[3]);
-    fprintf(stderr, "\n");
-    
-    fprintf(stderr, "Spacing: \n");
-    fprintf(stderr, "%f ", image->GetSpacing()[0]);
-    fprintf(stderr, "%f ", image->GetSpacing()[1]);
-    fprintf(stderr, "%f ", image->GetSpacing()[2]);
-    fprintf(stderr, "%f ", image->GetSpacing()[3]);
-    fprintf(stderr, "\n");
-    
-    fprintf(stderr, "Orientation\n");
-    for(int ii = 0 ; ii < 4 ; ii++) {
-        for(int jj = 0 ; jj < 4 ; jj++) {
-            fprintf(stderr, "%f ", image->GetDirection()(jj,ii));
+    cout << endl << "Size:" << endl;
+    for(unsigned int ii = 0 ; ii < io->GetNumberOfDimensions() ; ii++)
+        cout << setw(12) << io->GetDimensions(ii);
+    cout << endl << endl;
+
+    cout << "Spacing:" << endl;
+    for(unsigned int ii = 0 ; ii < io->GetNumberOfDimensions() ; ii++)
+        cout << setw(12) << io->GetSpacing(ii);
+    cout << endl << endl;
+
+    cout << "Direction:" << endl;
+    for(unsigned int ii = 0 ; ii < io->GetNumberOfDimensions() ; ii++) {
+        for(unsigned int jj = 0 ; jj < io->GetNumberOfDimensions() ; jj++) {
+            cout << setw(12) << io->GetDirection(jj)[ii];
+        }
+        cout << "\n";
+    }
+    cout << endl << endl;
+
+    cout << "Origin: " << endl;
+    for(unsigned int ii = 0 ; ii < io->GetNumberOfDimensions() ; ii++)
+        cout << setw(12) << io->GetOrigin(ii);
+    cout << endl << endl;
+}
+
+int main (int argc, char** argv)
+{
+    itk::modNiftiImageIO::Pointer io = itk::modNiftiImageIO::New();
+    for(int ii = 1 ; ii < argc ; ii++) {
+        cout << argv[ii] << endl;
+        if(io->CanReadFile(argv[ii])) {
+            printInfo(io, argv[ii]);
+        } else {
+            printInfo(itk::ImageIOFactory::CreateImageIO(argv[ii], 
+                        itk::ImageIOFactory::ReadMode), argv[ii]);
         }
     }
-    fprintf(stderr, "\n");
-
-    fprintf(stderr, "Origin\n");
-    for(int ii = 0 ; ii < 4 ; ii++)  {
-        fprintf(stderr, "%f ", image->GetOrigin()[ii]);
-    }
-    fprintf(stderr, "\n");
 
     return 0;
 }

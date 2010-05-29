@@ -2,81 +2,115 @@
 #include <itkImageFileReader.h>
 #include <itkImageFileWriter.h>
 #include "itkMetaDataObject.h"
-#include "modNiftiImageIO.h"
 
+#include <iomanip>
 #include <string>
 #include <iostream>
 #include <vector>
 
 using namespace std;
 
-typedef float ImagePixelType;
-typedef itk::OrientedImage< ImagePixelType,  4 > Image4DType;
-typedef itk::ImageFileReader< Image4DType >  ImageReaderType;
-typedef itk::ImageFileWriter< Image4DType >  ImageWriterType;
+typedef float PixelType;
+
+template <unsigned int DIM>
+class ImageType : public itk::OrientedImage< PixelType, DIM> {};
+
+template <unsigned int DIM>
+void changeOrient(string name, string out)
+{
+    typedef ImageType<DIM> Image;
+    typedef itk::ImageFileReader< itk::OrientedImage<PixelType, DIM> > Reader;
+    typedef itk::ImageFileWriter< itk::OrientedImage<PixelType, DIM> > Writer;
+
+    typename Reader::Pointer reader = Reader::New();
+    reader->SetFileName(name);
+    reader->Update();
+
+    typename Image::PointType origin = reader->GetOutput()->GetOrigin();;
+    typename Image::SpacingType spacing = reader->GetOutput()->GetSpacing();
+    typename Image::SizeType size = reader->GetOutput()->GetRequestedRegion().GetSize();
+    typename Image::DirectionType direction = reader->GetOutput()->GetDirection();
+
+    unsigned int dims = reader->GetOutput()->GetImageDimension();
+
+    cerr << "Origin: " << endl;
+    for(unsigned int ii = 0 ; ii < dims ; ii++)
+        cerr << setw(12) << reader->GetOutput()->GetOrigin()[ii];
+    cerr << endl << endl;
+    
+    cerr << "New Origin?" << endl;
+    for(unsigned int ii = 0 ; ii < dims ; ii++)
+        cin >> origin[ii];
+    
+    if(!cin.eof()) 
+        reader->GetOutput()->SetOrigin(origin);
+    cin.clear();
+
+    cerr << "Spacing:" << endl;
+    for(unsigned int ii = 0 ; ii < dims ; ii++)
+        cerr << setw(12) << reader->GetOutput()->GetSpacing()[ii];
+    cerr << endl << endl;
+    cerr << "New Spacing?" << endl;
+    for(unsigned int ii = 0 ; ii < dims ; ii++)
+        cin >> spacing[ii];
+    
+    if(!cin.eof()) 
+        reader->GetOutput()->SetSpacing(spacing);
+    cin.clear();
+
+    cerr << "Direction:" << endl;
+    for(unsigned int ii = 0 ; ii < dims ; ii++) {
+        for(unsigned int jj = 0 ; jj < dims ; jj++) {
+            cerr << setw(12) << reader->GetOutput()->GetDirection()(jj,ii);
+        }
+        cerr << "\n";
+    }
+    cerr << endl << endl;
+    cerr << "New Direction?" << endl;
+    for(unsigned int ii = 0 ; ii < dims ; ii++) {
+        for(unsigned int jj = 0 ; jj < dims ; jj++) {
+            cin >> direction(jj,ii);
+        }
+    }
+    if(!cin.eof()) 
+        reader->GetOutput()->SetDirection(direction);
+    cin.clear();
+    
+    cerr << "Writing" << endl;
+    typename Writer::Pointer writer = Writer::New();
+    writer->SetFileName(out);
+    writer->SetInput( reader->GetOutput() );
+    writer->Update();
+}
 
 int main (int argc, char** argv)
 {
     if(argc != 3) {
-        cout << "Usage:" << endl << argv[0] << " <img> <out>" << endl;
+        cerr << "Usage:" << endl << argv[0] << " <img> <out>" << endl;
         exit(-1);
     }
 
-    Image4DType::Pointer img;
-    {
-    ImageReaderType::Pointer reader = ImageReaderType::New();
-    reader->SetImageIO(itk::modNiftiImageIO::New());
-    reader->SetFileName( argv[1] );
-    reader->Update();
-    img = reader->GetOutput();
+    unsigned int dims = 0;
+        
+    itk::ImageIOBase::Pointer io = itk::ImageIOFactory::CreateImageIO(
+            argv[1], itk::ImageIOFactory::ReadMode);
+    io->SetFileName(argv[1]);
+    io->ReadImageInformation();
+    dims = io->GetNumberOfDimensions();
+    
+    cerr << "Done " << endl;
+    switch(dims) {
+        case 2: {
+            changeOrient<2>(argv[1], argv[2]);
+        } break;
+        case 3: {
+            changeOrient<3>(argv[1], argv[2]);
+        } break;
+        case 4: {
+            changeOrient<4>(argv[1], argv[2]);
+        } break;
     }
 
-    Image4DType::PointType origin = img->GetOrigin();;
-    Image4DType::SpacingType spacing = img->GetSpacing();
-    Image4DType::SizeType size = img->GetRequestedRegion().GetSize();
-    Image4DType::DirectionType direction = img->GetDirection();
-    cout << "Source: " << endl;
-    printf("Origin: %f %f %f %f\n", origin[0], origin[1], origin[2], origin[3]);
-    printf("Spacing: %f %f %f %f\n", spacing[0], spacing[1], spacing[2], spacing[3]);
-    printf("Size: %lu %lu %lu %lu\n", size[0], size[1], size[2], size[3]);
-    printf("Real Size: %f %f %f %f\n", size[0]*spacing[0], size[1]*spacing[1], 
-                size[2]*spacing[2], size[3]*spacing[3]);
-    printf("Direction: \n");
-    for(int i = 0 ; i < 3 ; i++) {
-        for(int j = 0 ; j < 3 ; j++) {
-            printf("%f ",  direction(j,i));
-        }
-        printf("\n");
-    }
-
-    printf("New Origin? (4 numbers) ctr-d to skip ");
-    cin >> origin[0] >> origin[1] >> origin[2] >> origin[3];
-    if(!cin.eof()) 
-        img->SetOrigin(origin);
-    cin.clear();
-    
-    printf("New Spacing? (4 numbers) ctr-d to skip ");
-    cin >> spacing[0] >> spacing[1] >> spacing[2] >> spacing[3];
-    if(!cin.eof()) 
-        img->SetSpacing(spacing);
-    cin.clear();
-    
-    printf("New Direction? (16 numbers) ctr-d to skip ");
-    for(int i = 0 ; i < 4 ; i++) {
-        for(int j = 0 ; j < 4 ; j++) {
-            cin >> direction(j,i);
-        }
-    }
-    if(!cin.eof()) 
-        img->SetDirection(direction);
-    cin.clear();
-    
-    printf("Writing\n");
-    ImageWriterType::Pointer writer = ImageWriterType::New();
-    writer->SetImageIO(itk::modNiftiImageIO::New());
-    writer->SetFileName( argv[2] );
-    writer->SetInput( img );
-    writer->Update();
 
     return 0;
 }
