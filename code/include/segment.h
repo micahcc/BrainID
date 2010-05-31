@@ -6,6 +6,7 @@
 //standard libraries
 #include <vector>
 #include <list>
+#include <string>
 
 //Each SectionType struct contains an integer label
 //and an iterator that moves forward in time
@@ -21,10 +22,11 @@ Image4DType::Pointer pruneFMRI(const Image4DType::Pointer fmri_img,
             unsigned int remove);
 
 Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
-            unsigned int numknots, std::vector<Activation>& stim, double dt);
+            unsigned int numknots, std::vector<Activation>& stim, double dt,
+            std::string base = "");
 
 Image4DType::Pointer deSplineBlind(const Image4DType::Pointer fmri_img,
-            unsigned int numknots);
+            unsigned int numknots, std::string base = "");
 
 Image4DType::Pointer splitByRegion(const Image4DType::Pointer fmri_img,
             const Label3DType::Pointer labelmap, int label);

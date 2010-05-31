@@ -380,10 +380,10 @@ aux::vector BoldModel::defscale(unsigned int simul)
     
     for(unsigned int ii = 0 ; ii < simul ; ii++) {
         //set the variances for all the variables to 3*sigma
-        ret(indexof(TAU_S  ,ii)) = .25;
-        ret(indexof(TAU_F  ,ii)) = .25;
-        ret(indexof(EPSILON,ii)) = .1;
-        ret(indexof(TAU_0  ,ii)) = .25;
+        ret(indexof(TAU_S  ,ii)) = .75; //originally .25
+        ret(indexof(TAU_F  ,ii)) = .75; //originally .25
+        ret(indexof(EPSILON,ii)) = .4; //originally .1
+        ret(indexof(TAU_0  ,ii)) = .75; //originally .25
         ret(indexof(ALPHA  ,ii)) = .045;
         ret(indexof(E_0    ,ii)) = .1;
         ret(indexof(V_0    ,ii)) = .1;
@@ -432,18 +432,18 @@ std::vector<BoldModel::Dist> BoldModel::defdist(unsigned int simul,
 {
     std::vector<BoldModel::Dist> ret(loc.size());
     for(unsigned int ii = 0 ; ii < simul ; ii++) {
-        ret[indexof(TAU_S  ,ii)].type = GAMMA_MU;
-        ret[indexof(TAU_F  ,ii)].type = GAMMA_MU;
-        ret[indexof(EPSILON,ii)].type = GAMMA_MU;
-        ret[indexof(TAU_0  ,ii)].type = GAMMA_MU;
-        ret[indexof(ALPHA  ,ii)].type = GAMMA_MU;
-        ret[indexof(E_0    ,ii)].type = GAMMA_MU;
-        ret[indexof(V_0    ,ii)].type = GAMMA_MU;
+        ret[indexof(TAU_S  ,ii)].type = GAMMA_MED;
+        ret[indexof(TAU_F  ,ii)].type = GAMMA_MED;
+        ret[indexof(EPSILON,ii)].type = GAMMA_MED;
+        ret[indexof(TAU_0  ,ii)].type = GAMMA_MED;
+        ret[indexof(ALPHA  ,ii)].type = GAMMA_MED;
+        ret[indexof(E_0    ,ii)].type = GAMMA_MED;
+        ret[indexof(V_0    ,ii)].type = GAMMA_MED;
 
-        ret[indexof(V_T,ii)].type = GAMMA_MU;
-        ret[indexof(Q_T,ii)].type = GAMMA_MU;
+        ret[indexof(V_T,ii)].type = GAMMA_MED;
+        ret[indexof(Q_T,ii)].type = GAMMA_MED;
         ret[indexof(S_T,ii)].type = NORMAL;
-        ret[indexof(F_T,ii)].type = GAMMA_MU;
+        ret[indexof(F_T,ii)].type = GAMMA_MED;
     }
     for(unsigned int i = 0 ; i < simul; i++) {
         ret[GVAR_SIZE+simul*LVAR_SIZE+i].type = NORMAL;

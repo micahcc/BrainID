@@ -146,9 +146,10 @@ int main (int argc, char** argv)
     vul_arg<double> a_drift_snr("-drift", "SNR of Gaussian Noise process to apply to bold"
                 " signal", 0);
     vul_arg<string> a_paramfile("-X0file", "File with initial conditions for "
-                "simulation", "");
+                "simulation: <TAU_0> <ALPHA> <E_0> <V0> "
+                " [<TAU_S> <TAU_F> <EPSILON> <V_T> <Q_T> <S_T> <F_T>] ... for each region", "");
     vul_arg< vcl_vector<double> > a_params("-X0", "Inital conditions for "
-                "simulation");
+                "simulation see -X0file for order");
 
     vul_arg_parse(argc,argv);
 
@@ -232,8 +233,10 @@ int main (int argc, char** argv)
             exit(-2);
         }
 
-        for(unsigned int i = 0 ; i<systemstate.size() ; i++)
+        for(unsigned int i=0;i<model.getStateSize()-model.getMeasurementSize();i++)
             systemstate[i] = a_params()[i];
+        for(unsigned int i=0 ; i < model.getMeasurementSize() ; i++)
+            systemstate[model.getStateSize()-model.getMeasurementSize()+i] = 0;
     
     } else if(!a_paramfile().empty()) {
         cout << "Reading Simulation Init/theta from: " 
@@ -241,8 +244,11 @@ int main (int argc, char** argv)
         
         ifstream init(a_paramfile().c_str());
         
-        for(unsigned int i = 0 ; i < model.getStateSize() ; i++)
+        for(unsigned int i=0;i<model.getStateSize()-model.getMeasurementSize();i++)
             init >> systemstate[i];
+
+        for(unsigned int i=0 ; i < model.getMeasurementSize() ; i++) 
+            systemstate[model.getStateSize()-model.getMeasurementSize()+i] = 0;
 
         if(init.eof()) {
             cerr << "Error not enough arguments given in file" << endl;

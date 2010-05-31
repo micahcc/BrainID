@@ -406,7 +406,7 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
             dt_l(longstep), dt_s(shortstep), 
             disctime_l(0), disctime_s(0), status(UNSTARTED), method(method_p),
             measure(measurements), stim(activations), 
-            ESS_THRESH(50 > .1*numparticles ? 50 : .1*numparticles)
+            ESS_THRESH(50 > .25*numparticles ? 50 : .25*numparticles)
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();

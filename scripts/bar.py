@@ -6,14 +6,14 @@ basecolor = [.9, .8, .8]
 
 class histelem:
     weight  = 0
-    size = 0
+    seq = (0,0)
 
-    def __init__(self, level, size):
+    def __init__(self, level, start, size):
         self.weight= level
-        self.size = size
+        self.seq = (start, size)
 
     def __str__(self):
-        return "(" + str(self.weight) + ":" + str(self.size) + ")"
+        return "(" + str(self.weight) + ":" + str(self.seq[0]) + ":" + str(self.seq[1]) + ")"
     
 class histo:
     elems = []
@@ -22,31 +22,17 @@ class histo:
         self.elems = []
         total = float(sum([elem[0] for elem in newelems]))
         
-        if newelems[0][1] > 0:
-            self.elems.append(histelem(-1, newelems[0][1]))
-        if newelems[-1][2] < 0:
-            self.elems.append(histelem(-1, newelems[-1][2]))
-
         for elem in newelems:
-            if elem[2] < 0 and elem[1] < 0:
-                self.elems.append(histelem(elem[0]/total, elem[1]))
-            elif elem[2] > 0 and elem[1] > 0:
-                self.elems.append(histelem(elem[0]/total, elem[2]))
-            else:
-                self.elems.append(histelem(elem[0]/total, elem[1]))
-                self.elems.append(histelem(elem[0]/total, elem[2]))
+            self.elems.append(histelem(elem[0]/total, elem[1], elem[2]-elem[1]))
         
-        self.elems = sorted(self.elems, key = lambda var: abs(var.size), reverse=True)
+        self.elems = sorted(self.elems, key = lambda var: var.seq[0])
 #        print str(self)
 
     def plot(self, pos, Width):
 #        print "Plotting"
         for elem in self.elems:
-            if elem.weight == -1:
-                c = (1,1,1)
-            else:
-                c = tuple([cpos*(1-elem.weight) for cpos in basecolor])
-            plt.bar(pos, elem.size, color=c, edgecolor="w", width=Width)
+            c = tuple([cpos*(1-elem.weight) for cpos in basecolor])
+            plt.broken_barh([(pos, Width)], elem.seq, color=c, edgecolor="w")
     
     def __str__(self):
         out = ""

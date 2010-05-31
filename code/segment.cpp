@@ -792,18 +792,20 @@ Image4DType::Pointer getspline_m(const Image4DType::Pointer fmri_img,
 }
 
 Image4DType::Pointer deSplineBlind(const Image4DType::Pointer fmri_img,
-            unsigned int numknots)
+            unsigned int numknots, std::string base)
 {
     std::cerr << "Making Spline" << std::endl;
 //    Image4DType::Pointer spline = getspline(fmri_img, numknots);
     Image4DType::Pointer spline = getspline_m(fmri_img, numknots);
     
     {
-    printf("Writing spline\n");
+    std::string tmp = base;
+    tmp.append("spline.nii.gz");
+    printf("Writing %s\n", tmp.c_str());
     itk::ImageFileWriter< Image4DType >::Pointer writer = 
                 itk::ImageFileWriter< Image4DType >::New();
     writer->SetInput(spline);
-    writer->SetFileName("spline.nii.gz");
+    writer->SetFileName(tmp);
     writer->Update();
     }
 
@@ -811,19 +813,23 @@ Image4DType::Pointer deSplineBlind(const Image4DType::Pointer fmri_img,
     Image4DType::Pointer avg = extrude(Tmean(fmri_img), 
                 fmri_img->GetRequestedRegion().GetSize()[3]);
     {
-    printf("Writing fmri_img\n");
+    std::string tmp = base;
+    tmp.append("fmri_img.nii.gz");
+    printf("Writing %s\n", tmp.c_str());
     itk::ImageFileWriter< Image4DType >::Pointer writer = 
                 itk::ImageFileWriter< Image4DType >::New();
     writer->SetInput(fmri_img);
-    writer->SetFileName("fmri_img.nii.gz");
+    writer->SetFileName(tmp);
     writer->Update();
     }
     {
-    printf("Writing avg\n");
+    std::string tmp = base;
+    tmp.append("avg.nii.gz");
+    printf("Writing %s\n", tmp.c_str());
     itk::ImageFileWriter< Image4DType >::Pointer writer = 
                 itk::ImageFileWriter< Image4DType >::New();
     writer->SetInput(avg);
-    writer->SetFileName("avg.nii.gz");
+    writer->SetFileName(tmp);
     writer->Update();
     }
     SubF4::Pointer sub = SubF4::New();   
@@ -976,7 +982,8 @@ Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img,
 
 /* Uses knots at points with at least a 15 second break */
 Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
-            unsigned int numknots, std::vector<Activation>& stim, double dt)
+            unsigned int numknots, std::vector<Activation>& stim, double dt,
+            std::string base)
 {
     /* Find good knots for spline */
     std::list<Activation> knots_a;
@@ -1028,11 +1035,13 @@ Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
     Image4DType::Pointer spline = getspline(fmri_img, knots_final);
     
     {
-    printf("Writing spline");
+    std::string tmp = base;
+    tmp.append("spline.nii.gz");
+    printf("Writing %s", tmp.c_str());
     itk::ImageFileWriter< Image4DType >::Pointer writer = 
                 itk::ImageFileWriter< Image4DType >::New();
     writer->SetInput(spline);
-    writer->SetFileName("spline.nii.gz");
+    writer->SetFileName(tmp);
     writer->Update();
     }
 
@@ -1042,19 +1051,23 @@ Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
     Image4DType::Pointer avg = extrude(Tmean(fmri_img), 
                 fmri_img->GetRequestedRegion().GetSize()[3]);
     {
-    printf("Writing fmri_img");
+    std::string tmp = base;
+    tmp.append("fmri_img.nii.gz");
+    printf("Writing %s\n", tmp.c_str());
     itk::ImageFileWriter< Image4DType >::Pointer writer = 
                 itk::ImageFileWriter< Image4DType >::New();
     writer->SetInput(fmri_img);
-    writer->SetFileName("fmri_img.nii.gz");
+    writer->SetFileName(tmp);
     writer->Update();
     }
     {
-    printf("Writing avg");
+    std::string tmp = base;
+    tmp.append("avg.nii.gz");
+    printf("Writing %s\n", tmp.c_str());
     itk::ImageFileWriter< Image4DType >::Pointer writer = 
                 itk::ImageFileWriter< Image4DType >::New();
     writer->SetInput(avg);
-    writer->SetFileName("avg.nii.gz");
+    writer->SetFileName(tmp);
     writer->Update();
     }
     SubF4::Pointer sub = SubF4::New();   

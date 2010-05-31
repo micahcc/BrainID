@@ -89,7 +89,7 @@ void fillvector(std::vector< aux::vector >& output, Image4DType* input,
 
 Image4DType::Pointer preprocess_help(Image4DType::Pointer input, 
             std::vector<Activation>& stim, double sampletime, unsigned int erase,
-            bool nospline, bool smart)
+            bool nospline, bool smart, std::string base = "")
 {
     boost::mpi::communicator world;
 //    const unsigned int rank = world.rank();
@@ -114,10 +114,10 @@ Image4DType::Pointer preprocess_help(Image4DType::Pointer input,
         input = div->GetOutput();
     } else if(smart){
         std::cerr << "De-trending, then dividing by mean" << endl;
-        input = deSplineByStim(input, 10, stim, sampletime);
+        input = deSplineByStim(input, 10, stim, sampletime, base);
     } else {
         std::cerr << "De-trending, then dividing by mean" << endl;
-        input = deSplineBlind(input, input->GetRequestedRegion().GetSize()[3]/20);
+        input = deSplineBlind(input, input->GetRequestedRegion().GetSize()[3]/20, base);
     }
     std::cerr << "Done." << endl;
 
@@ -281,7 +281,7 @@ int main(int argc, char* argv[])
     unsigned int tlen = inImage->GetRequestedRegion().GetSize()[3];
 
     inImage = preprocess_help(inImage, input, a_timestep(), a_erase(), a_delta() || 
-                a_nospline(), a_smart());
+                a_nospline(), a_smart(), a_output());
     
     /* Save detrended image */
     if(rank == 0) try {
@@ -381,8 +381,6 @@ int main(int argc, char* argv[])
                          << "Left: " << total-traveled << "/" << total
                          << endl;
                 }
-            
-                
             }
         }
     }
