@@ -980,59 +980,66 @@ Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img,
 }
 
 
-/* Uses knots at points with at least a 15 second break */
+/* Uses knots at crossover points of HRF */
 Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
-            unsigned int numknots, std::vector<Activation>& stim, double dt,
-            std::string base)
+            std::vector<Activation>& stim, double dt, std::string base)
 {
-    /* Find good knots for spline */
-    std::list<Activation> knots_a;
-    std::list<Activation> knots_b;
+    itk::Image< DataType, 1>::Pointer canon = getCanonical(stim, dt, 0,
+                fmri_img->GetRequestedRegion().GetSize()[3]*dt);
+   
+    //add first three
+    std::vector<unsigned int> knots(1, 1);
 
-    std::cerr << "Getting knots" << std::endl;
-    getknots(knots_a, stim);
-    
-    std::cerr << "Picking good knots" << std::endl;
-    //sort by l, then start adding elements to knots_b
-    //before inserting a knot, make sure there are no knots
-    //close in time, if there are, throw the knot out
-    knots_a.sort(compare_l);
-
-    for(std::list<Activation>::iterator it = knots_a.begin() ; 
-                    it != knots_a.end() && knots_b.size() < numknots; it++) {
-        //check that the point is valid
-        if(it->time/dt >= fmri_img->GetRequestedRegion().GetSize()[3]-1 ||
-                        it->time/dt <= 1) 
-            continue;
-
-        //check that the point isn't too close to any other point
-        std::list<Activation>::iterator it2 = knots_b.begin();
-        while(it2 != knots_b.end()) {
-            if(it->time < it2->time + 8*dt && it->time > it2->time - 8*dt) {
-                break;
+    const unsigned int SKIP = 5;
+    const double THRESH = .001;
+    double prev = 0;
+    double cur = 0;
+    unsigned int zeroStart = 0;
+    bool zeroZone = false;
+    // Find points in the middle that are 0 crossings/0
+    itk::Image<DataType, 1>::IndexType index, next, prevprev;
+    for(index[0] = SKIP ; index[0] < canon->GetRequestedRegion().GetSize()[0]-SKIP ; index[0]++) {
+        cur = canon->GetPixel(index);
+        //zero area
+        if(abs(cur - 0) < THRESH) {
+            if(!zeroZone) {
+                zeroZone = true;
+                zeroStart = index[0];
             }
-            it2++;
+        //end of zero zone, take the middle
+        } else if(abs(prev == 0) < THRESH) {
+            std::cerr << "Adding " << index[0] << std::endl;
+            knots.push_back((zeroStart+index[0]-1)/2);
+            index[0] += SKIP;
+            zeroZone = false;
+        //neither this nor previous are 0, but they have different signs so cross
+        } else if((cur < 0 && prev > 0) || (cur > 0 && prev < 0)) {
+            next[0] = index[0]+1;
+            prevprev[0] = index[0]-2;
+            //crossing in between these two, so for [A prev cur B] choose minumum:
+            // min(A + prev + cur, prev + cur + B)
+            if(abs(canon->GetPixel(next) + prev + cur) < 
+                        abs(canon->GetPixel(prevprev) + prev + cur)) {
+                std::cerr << "Adding " << index[0] << std::endl;
+                knots.push_back(index[0]);
+                index[0] += SKIP;
+            } else {
+                std::cerr << "Adding " << index[0] -1 << std::endl;
+                knots.push_back(index[0] - 1);
+                index[0] += SKIP-1;
+            }
         }
-
-        //no nearby points, go ahead and add
-        if(it2 == knots_b.end()) 
-            knots_b.push_back(*it);
     }
 
-    knots_b.sort(compare_t);
-
-    /* Change the times into positions in the vector, and use knots in the range */
-    std::vector<unsigned int> knots_final(knots_b.size());
-    std::list<Activation>::iterator itb = knots_b.begin();
-    std::vector<unsigned int>::iterator itf = knots_final.begin();
-    while(itb != knots_b.end()) {
-        *itf = (unsigned int)itb->time/dt;
-        itb++;
-        itf++;
+    //add final three
+    knots.push_back(canon->GetRequestedRegion().GetSize()[0]-2);
+    if(knots.size() < 4) {
+        std::cerr << "WARNING! Not enough low stimulus areas to intelligently "
+                    << "place knots" << std::endl;
     }
-    
+
     std::cerr << "Making Spline" << std::endl;
-    Image4DType::Pointer spline = getspline(fmri_img, knots_final);
+    Image4DType::Pointer spline = getspline(fmri_img, knots);
     
     {
     std::string tmp = base;

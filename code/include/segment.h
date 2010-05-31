@@ -22,8 +22,7 @@ Image4DType::Pointer pruneFMRI(const Image4DType::Pointer fmri_img,
             unsigned int remove);
 
 Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
-            unsigned int numknots, std::vector<Activation>& stim, double dt,
-            std::string base = "");
+            std::vector<Activation>& stim, double dt, std::string base = "");
 
 Image4DType::Pointer deSplineBlind(const Image4DType::Pointer fmri_img,
             unsigned int numknots, std::string base = "");

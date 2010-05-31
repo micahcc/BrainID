@@ -5,10 +5,14 @@
 #include <itkComplexToModulusImageFilter.h>
 #include <itkComplexToPhaseImageFilter.h>
 #include <itkFFTRealToComplexConjugateImageFilter.h>
+#include <itkConvolutionImageFilter.h>
+#include <itkResampleImageFilter.h>
+#include <itkImageLinearIteratorWithIndex.h>
 
 #include <itkAddImageFilter.h>
 #include <itkSubtractImageFilter.h>
 #include <itkSquareImageFilter.h>
+#include <gsl/gsl_randist.h>
 
 typedef itk::AddImageFilter< Image3DType > AddF3;
 typedef itk::SubtractImageFilter< Image3DType > SubF3;
@@ -253,6 +257,99 @@ void copyTimeLine(itk::Image<DataType, 1>::Pointer src, Image4DType::Pointer des
         dest->SetPixel(pos, it.Get());
         ++it;
     }
+}
+
+double hrfParam[] = {6, 16, 1, 1, 6, 0, 32};
+itk::Image<DataType, 1>::Pointer getCanonical(std::vector<Activation> stim, double TR,
+            double start, double stop)
+{
+    typedef itk::ConvolutionImageFilter< itk::Image<DataType, 1> > ConvT;
+    
+    /*Setup Stimulus Image*/
+    double dt = .01;
+    itk::Image<DataType, 1>::Pointer inputs = itk::Image<DataType, 1>::New();
+    double timeFOV = stop - start + 2*hrfParam[6];
+    itk::Image<DataType, 1>::SizeType isize = {{timeFOV/dt}};
+    inputs->SetRegions(isize);
+    inputs->Allocate();
+
+    double level = 0;
+    unsigned int stimpos = 0;
+    itk::ImageLinearIteratorWithIndex< itk::Image<DataType, 1> > it1
+                (inputs, inputs->GetRequestedRegion());
+    it1.GoToBegin();
+    for(int ii = (start-hrfParam[6])/dt ; !it1.IsAtEndOfLine() ; ii++) {
+        while(stimpos < stim.size() && stim[stimpos].time < ii*dt) {
+            level = stim[stimpos].level;
+            stimpos++;
+        }
+        it1.Set(level);
+        ++it1;
+    }
+    {
+        itk::ImageFileWriter< itk::Image<DataType, 1> >::Pointer writer = 
+                    itk::ImageFileWriter< itk::Image<DataType, 1> >::New();
+        writer->SetInput(inputs);
+        writer->SetFileName("impulse.nii.gz");
+    }
+
+    /* Setup HRF Image */
+    itk::Image<DataType, 1>::Pointer hrf = itk::Image<DataType, 1>::New();
+    itk::Image<DataType, 1>::SizeType hsize = {{(int)hrfParam[6]/dt+1}};
+    hrf->SetRegions(hsize);
+    hrf->Allocate();
+    itk::ImageLinearIteratorWithIndex< itk::Image<DataType, 1> > it2
+                (hrf, hrf->GetRequestedRegion());
+    it2.GoToBegin();
+    for(unsigned int ii = 0; !it2.IsAtEndOfLine() ; ii++) {
+        it2.Set(gsl_ran_gamma_pdf(ii*dt, hrfParam[0]/hrfParam[2], hrfParam[2]/dt) -
+                    gsl_ran_gamma_pdf(ii*dt, hrfParam[1]/hrfParam[3], hrfParam[3]/dt));
+        ++it2;
+    }
+    {
+        itk::ImageFileWriter< itk::Image<DataType, 1> >::Pointer writer = 
+                    itk::ImageFileWriter< itk::Image<DataType, 1> >::New();
+        writer->SetInput(hrf);
+        writer->SetFileName("hrf.nii.gz");
+    }
+    
+    /* Perform hte Convolution */
+    ConvT::Pointer conv = ConvT::New();
+    conv->NormalizeOn();
+    conv->SetImageKernelInput(hrf);
+    conv->SetInput(inputs);
+    conv->Update();
+    conv->GetOutput()->SetSpacing(&dt);
+    conv->GetOutput()->SetOrigin(&hrfParam[6]);
+    {
+        itk::ImageFileWriter< itk::Image<DataType, 1> >::Pointer writer = 
+                    itk::ImageFileWriter< itk::Image<DataType, 1> >::New();
+        writer->SetInput(conv->GetOutput());
+        writer->SetFileName("convolved.nii.gz");
+    }
+   
+    //debug
+    if(conv->GetOutput()->GetRequestedRegion().GetSize()[0] != 
+                inputs->GetRequestedRegion().GetSize()[0])
+        throw "WTH?";
+    
+    //downsample
+    itk::Image<DataType, 1>::SizeType outsize = {{(int)((stop - start)/TR)}};
+    typedef itk::ResampleImageFilter< itk::Image<DataType, 1>, 
+                itk::Image<DataType, 1>, DataType > ResampT;
+
+    ResampT::Pointer resamp = ResampT::New();
+    resamp->SetInput(conv->GetOutput());
+    resamp->SetSize(outsize);
+    resamp->SetOutputSpacing(&TR);
+    resamp->Update();
+    {
+        itk::ImageFileWriter< itk::Image<DataType, 1> >::Pointer writer = 
+                    itk::ImageFileWriter< itk::Image<DataType, 1> >::New();
+        writer->SetInput(resamp->GetOutput());
+        writer->SetFileName("resamp.nii.gz");
+    }
+    return resamp->GetOutput();
 }
 
 Image4DType::Pointer fft_image(Image4DType::Pointer inimg)

@@ -68,7 +68,7 @@ Image4DType::Pointer preprocess_help(Image4DType::Pointer input,
         input = div->GetOutput();
     } else if(smart){
         std::cerr << "De-trending, then dividing by mean" << endl;
-        input = deSplineByStim(input, 10, stim, sampletime);
+        input = deSplineByStim(input, stim, sampletime);
     } else {
         std::cerr << "De-trending, then dividing by mean" << endl;
         input = deSplineBlind(input, 10);
@@ -102,12 +102,11 @@ int main(int argc, char* argv[])
     vul_arg<string> a_stimfile("-s", "file containing \"<time> <value>\""
                 "pairs which give the time at which input changed", "");
     vul_arg<double> a_timestep("-t", "TR (timesteps in 4th dimension)", 2);
+    vul_arg<double> a_erase("-E", "Erase this many volumes", 2);
     
     vul_arg_parse(argc, argv);
     
     vul_arg_display_usage("No Warning, just echoing");
-
-    const unsigned int ERASE = 2;
 
     ///////////////////////////////////////////////////////////////////////////////
     //Done Parsing, starting main part of code
@@ -149,7 +148,7 @@ int main(int argc, char* argv[])
     /* Create Output Images */
     cout << "Creating Output Images" << endl;
     
-    inImage = preprocess_help(inImage, input, a_timestep(), ERASE, a_delta(),
+    inImage = preprocess_help(inImage, input, a_timestep(), a_erase(), a_delta(),
                 a_smart());
 
     return 0;

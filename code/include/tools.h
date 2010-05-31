@@ -40,6 +40,8 @@ Image4DType::Pointer pctDiff(const Image4DType::Pointer input1,
 Image3DType::Pointer get_rms(Image4DType::Pointer in);
 Image4DType::Pointer extract_timeseries(Image4DType::Pointer in, 
             std::list< Image4DType::IndexType >& points);
+itk::Image<DataType, 1>::Pointer getCanonical(std::vector<Activation> stim, double TR,
+            double start, double stop);
 
 
 //dir1 should be the direction of several separate series
