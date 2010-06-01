@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <vector>
 #include <list>
+#include <algorithm>
 
 #include <itkImageFileWriter.h>
 #include <itkGDCMImageIO.h>
@@ -855,23 +856,61 @@ int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType inde
 {
     static gsl_interp_accel *acc = gsl_interp_accel_alloc();
     static gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, knots.size());
+        
+    double min = 1e100;
+    unsigned int posmin = 0;
+    double min2 = 1e100;
+    unsigned int posmin2 = 0;
 
     double xpos[knots.size()];
     double level[knots.size()];
-    for(unsigned int ii = 0 ; ii < knots.size() ; ii++) {
-        xpos[ii] = knots[ii];
-        level[ii] = 0;
-        for(int jj = -1 ; jj <= 1; jj++) {
-            index[3] = knots[ii]+jj;
-            level[ii] += fmri_img->GetPixel(index);
+
+    std::vector<DataType> tmp(3, 0);
+    for(index[3] = 0 ; index[3] < 3 ; index[3]++) 
+        tmp[index[3]] = fmri_img->GetPixel(index);
+    std::sort(tmp.begin(), tmp.end());
+    for(index[3] = 0 ; index[3] < 3 ; index[3]++) {
+        if(tmp[1] - fmri_img->GetPixel(index) < .0001) {
+            xpos[0] = index[3];
+            level[0] = tmp[1];
         }
-        level[ii] /= 3.;
-        
+    }
+    
+    for(index[3] = knots.back()-1 ; index[3] < knots.back()+2 ; index[3]++) 
+        tmp[index[3]-knots.back()+1] = fmri_img->GetPixel(index);
+    std::sort(tmp.begin(), tmp.end());
+    for(index[3] = knots.back()-1 ; index[3] < knots.back()+2 ; index[3]++) {
+        if(tmp[1] - fmri_img->GetPixel(index) < .0001) {
+            xpos[knots.size()-1] = index[3];
+            level[knots.size()-1] = tmp[1];
+        }
+    }
+
+    //set all the other knots based on the lower 2/5
+    for(unsigned int ii = 1 ; ii < knots.size()-1 ; ii++) {
+        min = 1e100;
+        min2 = 1e100;
+
+        for(int jj = -3 ; jj <= 3; jj++) {
+            index[3] = knots[ii]+jj;
+            if(fmri_img->GetPixel(index) < min) {
+                min2 = min;
+                posmin2 = posmin;
+                min = fmri_img->GetPixel(index);
+                posmin = index[3];
+            } else if(fmri_img->GetPixel(index) < min2) {
+                min2 = fmri_img->GetPixel(index);
+                posmin2 = index[3];
+            }
+        }
+        xpos[ii] = posmin2;
+        level[ii] = min2;
     }
 
     itk::ImageLinearIteratorWithIndex< Image4DType > 
                 out_it(output, output->GetRequestedRegion());
     out_it.SetDirection(3);
+    index[3] = 0;
     out_it.SetIndex(index);
     gsl_spline_init(spline, xpos, level, knots.size());
     for(out_it.GoToBeginOfLine(); !out_it.IsAtEndOfLine(); ++out_it) {
@@ -991,7 +1030,7 @@ Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
     std::vector<unsigned int> knots(1, 1);
 
     const unsigned int SKIP = 5;
-    const double THRESH = .001;
+    const double THRESH = .0001;
     double prev = 0;
     double cur = 0;
     unsigned int zeroStart = 0;
@@ -999,27 +1038,33 @@ Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
     // Find points in the middle that are 0 crossings/0
     itk::Image<DataType, 1>::IndexType index, next, prevprev;
     for(index[0] = SKIP ; index[0] < canon->GetRequestedRegion().GetSize()[0]-SKIP ; index[0]++) {
+        prev = cur;
         cur = canon->GetPixel(index);
+        std::cerr << cur << std::endl;
         //zero area
-        if(abs(cur - 0) < THRESH) {
+        if(fabs(cur) < THRESH) {
+            std::cerr  << "zero " << index[0];
             if(!zeroZone) {
+                std::cerr  << " (start) ";
                 zeroZone = true;
                 zeroStart = index[0];
             }
+            std::cerr << std::endl;
         //end of zero zone, take the middle
-        } else if(abs(prev == 0) < THRESH) {
+        } else if(fabs(prev) < THRESH) {
             std::cerr << "Adding " << index[0] << std::endl;
             knots.push_back((zeroStart+index[0]-1)/2);
             index[0] += SKIP;
             zeroZone = false;
         //neither this nor previous are 0, but they have different signs so cross
         } else if((cur < 0 && prev > 0) || (cur > 0 && prev < 0)) {
+            std::cerr << "Crossing " << index[0] << std::endl;
             next[0] = index[0]+1;
             prevprev[0] = index[0]-2;
             //crossing in between these two, so for [A prev cur B] choose minumum:
             // min(A + prev + cur, prev + cur + B)
-            if(abs(canon->GetPixel(next) + prev + cur) < 
-                        abs(canon->GetPixel(prevprev) + prev + cur)) {
+            if(fabs(canon->GetPixel(next) + prev + cur) < 
+                        fabs(canon->GetPixel(prevprev) + prev + cur)) {
                 std::cerr << "Adding " << index[0] << std::endl;
                 knots.push_back(index[0]);
                 index[0] += SKIP;

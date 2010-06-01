@@ -266,7 +266,7 @@ itk::Image<DataType, 1>::Pointer getCanonical(std::vector<Activation> stim, doub
     typedef itk::ConvolutionImageFilter< itk::Image<DataType, 1> > ConvT;
     
     /*Setup Stimulus Image*/
-    double dt = .01;
+    double dt = .05;
     itk::Image<DataType, 1>::Pointer inputs = itk::Image<DataType, 1>::New();
     double timeFOV = stop - start + 2*hrfParam[6];
     itk::Image<DataType, 1>::SizeType isize = {{timeFOV/dt}};
@@ -291,6 +291,7 @@ itk::Image<DataType, 1>::Pointer getCanonical(std::vector<Activation> stim, doub
                     itk::ImageFileWriter< itk::Image<DataType, 1> >::New();
         writer->SetInput(inputs);
         writer->SetFileName("impulse.nii.gz");
+        writer->Update();
     }
 
     /* Setup HRF Image */
@@ -301,9 +302,10 @@ itk::Image<DataType, 1>::Pointer getCanonical(std::vector<Activation> stim, doub
     itk::ImageLinearIteratorWithIndex< itk::Image<DataType, 1> > it2
                 (hrf, hrf->GetRequestedRegion());
     it2.GoToBegin();
+
     for(unsigned int ii = 0; !it2.IsAtEndOfLine() ; ii++) {
-        it2.Set(gsl_ran_gamma_pdf(ii*dt, hrfParam[0]/hrfParam[2], hrfParam[2]/dt) -
-                    gsl_ran_gamma_pdf(ii*dt, hrfParam[1]/hrfParam[3], hrfParam[3]/dt));
+        it2.Set(gsl_ran_gamma_pdf(ii, hrfParam[0]/hrfParam[2], hrfParam[2]/dt) -
+                    gsl_ran_gamma_pdf(ii,hrfParam[1]/hrfParam[3], hrfParam[3]/dt)/hrfParam[4]);
         ++it2;
     }
     {
@@ -311,6 +313,7 @@ itk::Image<DataType, 1>::Pointer getCanonical(std::vector<Activation> stim, doub
                     itk::ImageFileWriter< itk::Image<DataType, 1> >::New();
         writer->SetInput(hrf);
         writer->SetFileName("hrf.nii.gz");
+        writer->Update();
     }
     
     /* Perform hte Convolution */
@@ -326,6 +329,7 @@ itk::Image<DataType, 1>::Pointer getCanonical(std::vector<Activation> stim, doub
                     itk::ImageFileWriter< itk::Image<DataType, 1> >::New();
         writer->SetInput(conv->GetOutput());
         writer->SetFileName("convolved.nii.gz");
+        writer->Update();
     }
    
     //debug
@@ -348,6 +352,7 @@ itk::Image<DataType, 1>::Pointer getCanonical(std::vector<Activation> stim, doub
                     itk::ImageFileWriter< itk::Image<DataType, 1> >::New();
         writer->SetInput(resamp->GetOutput());
         writer->SetFileName("resamp.nii.gz");
+        writer->Update();
     }
     return resamp->GetOutput();
 }

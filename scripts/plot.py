@@ -23,9 +23,13 @@ leg = []
 
 for i in range(0, len(images)):
     print images[i]
-    for iter in range(0,images[i].get_shape()[3]):
-        P.plot(images[i].get_data()[:, 0,0,iter])
+    if len(images[i].get_shape()) < 3:
+        P.plot(images[i].get_data()[:])
         leg = leg + [sys.argv[i+1]+":"+str(iter)]
+    else: 
+        for iter in range(0,images[i].get_shape()[3]):
+            P.plot(images[i].get_data()[:, 0,0,iter])
+            leg = leg + [sys.argv[i+1]+":"+str(iter)]
 #P.legend(sys.argv[1:])
 P.legend(leg)
 
