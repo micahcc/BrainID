@@ -51,6 +51,23 @@ public:
   void setNumParticles(const unsigned int P = 0);
 
   /**
+   * Set to use the original deterministic resample method 
+   */
+  void useDeterministic() { method = DETERMINISTIC; };
+  
+  /**
+   * Set to use DiracMixture's function for drawing particle
+   */
+  void useDiracMixture() { method = MIXTURE;} ; 
+
+  /**
+   * Use the the custom random generation method
+   */
+  void useCustom1() { method = CUSTOM1; };
+  void useCustom2() { method = CUSTOM2; };
+
+
+  /**
    * Resample the distribution. This produces a new approximation of
    * the same distribution using a set of equally weighted sample
    * points. Sample points are selected using the deterministic
@@ -67,6 +84,28 @@ private:
    * Number of particles to resample from each distribution.
    */
   unsigned int P;
+  
+  /**
+   * Method of Resampling
+   * Deterministic is a heuristic method of deterministically resampling
+   * mixture uses MixturePdf's ability to sample from the distribution
+   * custom is my own version of sampling from the distribution, 
+   *            using binary search on the cumulative weights O(NlogN)
+   */
+  unsigned int method;
+  enum {DETERMINISTIC, MIXTURE, CUSTOM1, CUSTOM2};
+  
+  /**
+   * persistent random number generation, to prevent re-seeding
+   */
+  gsl_rng* rng;
+
+  void resample_custom(const indii::ml::aux::DiracMixturePdf& p,
+              indii::ml::aux::DiracMixturePdf& resampled);
+  void resample_mixture(const indii::ml::aux::DiracMixturePdf& p,
+              indii::ml::aux::DiracMixturePdf& resampled);
+  void resample_deterministic(const indii::ml::aux::DiracMixturePdf& p,
+              indii::ml::aux::DiracMixturePdf& resampled);
 
 };
 

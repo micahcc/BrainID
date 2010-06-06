@@ -178,7 +178,7 @@ public:
    * @return Vector of the weights of all components.
    */
   const vector& getWeights() const;
-  
+  const std::vector<double>& getCumulativeWeights() const;
   /**
    * Set the weights of all components on the local node.
    *
@@ -353,6 +353,13 @@ public:
    * close to an equal number as possible.
    */
   void redistributeByWeight();
+  
+  /**
+   * Gathers all components to a single node
+   * 
+   *  @param node to gather to
+   */
+  void gatherToNode(unsigned int dst);
 
   //@}
 
@@ -599,6 +606,12 @@ template <class T>
 inline const indii::ml::aux::vector&
     indii::ml::aux::MixturePdf<T>::getWeights() const {
   return ws;
+}
+
+template <class T>
+inline const std::vector<double>&
+    indii::ml::aux::MixturePdf<T>::getCumulativeWeights() const {
+  return Ws;
 }
 
 template <class T>
@@ -1109,6 +1122,61 @@ void indii::ml::aux::MixturePdf<T>::redistributeByWeight() {
   assert (xs.size() == ws.size());
   assert (xs.size() == Ws.size());
 }
+
+/** 
+ * gatherToNode 
+ * 
+ * @param dst - destination rank
+ * todo: stop using add (would make much faster)
+**/
+template <class T>
+void indii::ml::aux::MixturePdf<T>::gatherToNode(unsigned int dst)
+{
+  boost::mpi::communicator world;
+  unsigned int rank = world.rank();
+  unsigned int size = world.size();
+  
+  assert(dst < size);
+
+  std::vector< std::vector< T > > xsFull;
+  std::vector< aux::vector > wsFull;
+
+  #ifndef NDEBUG
+  unsigned int initialSize = input.getDistributedSize();
+  aux::vector initialMu = input.getDistributedExpectation();
+  aux::matrix initialCov = input.getDistributedCovariance();
+  #endif 
+
+  /* if rank is the destination then receive from all the other nodes */
+  if(rank == dst) {
+    /* Receive from each other node */
+    boost::mpi::gather(world, getAll(), xsFull, dst); 
+    boost::mpi::gather(world, getWeights(), wsFull, dst); 
+
+    for(unsigned int ii=0 ; ii < size ; ii++) {
+      if(ii != rank) {
+        for (unsigned int jj = 0; jj < xsFull[ii].size(); jj++) {
+          add( (xsFull[ii])[jj] , (wsFull[ii])(jj) );
+        }
+      }
+    }
+  
+  /* if rank is not the destination then send to the destination */
+  } else {
+    boost::mpi::gather(world, getAll(), dst); 
+    boost::mpi::gather(world, getWeights(), dst); 
+    clear();
+  }
+  
+  #ifndef NDEBUG
+  unsigned int endSize = input.getDistributedSize();
+  aux::vector endMu = input.getDistributedExpectation();
+  aux::matrix endCov = input.getDistributedCovariance();
+  assert (initialSize == endSize);
+  #endif 
+  dirty();
+};
+
 
 template <class T>
 void indii::ml::aux::MixturePdf<T>::dirty() {

@@ -138,9 +138,6 @@ private:
     static int nop(BoldPF*, void*) { return 0; };
     int (*callback)(BoldPF*, void*);
 
-    /* Gathers all the elements of the DiracMixturePdf to the local node */
-    void gatherToNode(unsigned int dest, aux::DiracMixturePdf& input);
-    
     /* Saves in the state variable the previous measurement, for delta */
     void latchBold();
 };
@@ -514,57 +511,6 @@ BoldPF::~BoldPF()
     delete filter;
     delete model;
     delete resampler_reg;
-};
-
-/* gatherToNode 
- * dest  - destination rank
- * input - mixturePDF whose components will be gathered to dest
-**/
-void BoldPF::gatherToNode(unsigned int dest, aux::DiracMixturePdf& input)
-{
-  boost::mpi::communicator world;
-  unsigned int rank = world.rank();
-  unsigned int size = world.size();
-  
-  assert(dest < size);
-
-  std::vector< std::vector< DiracPdf > > xsFull;
-  std::vector< aux::vector > wsFull;
-
-  #ifndef NDEBUG
-  unsigned int initialSize = input.getDistributedSize();
-  #endif 
-  aux::vector initialMu = input.getDistributedExpectation();
-  aux::matrix initialCov = input.getDistributedCovariance();
-
-  /* if rank is the destination then receive from all the other nodes */
-  if(rank == dest) {
-    /* Receive from each other node */
-    boost::mpi::gather(world, input.getAll(), xsFull, dest); 
-    boost::mpi::gather(world, input.getWeights(), wsFull, dest); 
-
-    for(unsigned int ii=0 ; ii < size ; ii++) {
-      if(ii != rank) {
-        for (unsigned int jj = 0; jj < xsFull[ii].size(); jj++) {
-          input.add( (xsFull[ii])[jj] , (wsFull[ii])(jj) );
-        }
-      }
-    }
-  
-  /* if rank is not the destination then send to the destination */
-  } else {
-    boost::mpi::gather(world, input.getAll(), dest); 
-    boost::mpi::gather(world, input.getWeights(), dest); 
-    input.clear();
-  }
-  
-  #ifndef NDEBUG
-  unsigned int endSize = input.getDistributedSize();
-  #endif 
-  aux::vector endMu = input.getDistributedExpectation();
-  aux::matrix endCov = input.getDistributedCovariance();
-  
-  assert (initialSize == endSize);
 };
 
 #endif //BOLDPF_H
