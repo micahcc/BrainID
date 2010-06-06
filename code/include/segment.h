@@ -26,6 +26,8 @@ Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
 
 Image4DType::Pointer deSplineBlind(const Image4DType::Pointer fmri_img,
             unsigned int numknots, std::string base = "");
+Image4DType::Pointer dc_bump(const Image4DType::Pointer fmri_img,
+            int count);
 
 Image4DType::Pointer splitByRegion(const Image4DType::Pointer fmri_img,
             const Label3DType::Pointer labelmap, int label);
@@ -38,5 +40,6 @@ double get_average(const Image4DType::Pointer fmri_img,
 Image3DType::Pointer extract(Image4DType::Pointer input, size_t index);
 
 std::list<LabelType> getlabels(Label3DType::Pointer labelmap);
+
 
 #endif

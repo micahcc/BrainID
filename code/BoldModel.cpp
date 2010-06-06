@@ -117,7 +117,7 @@ int BoldModel::transition(aux::vector& dustin, const double time,
      * inf - inf = nan, so nan or inf in any member 
      * will cause this to fail
     */
-    if(isnan(tmp) || abs(isinf(tmp) == 1)) {
+    if(isnan(tmp) || isinf(tmp)) {
         dustin = defaultstate;
         return -1;
     }
@@ -288,7 +288,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
     
-    gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);
+    gsl_rng* rng = gsl_rng_alloc(gsl_rng_ranlxd2);
     {
         unsigned int seed;
         FILE* file = fopen("/dev/urandom", "r");
@@ -351,7 +351,7 @@ aux::vector BoldModel::defloc(unsigned int simul)
     for(unsigned int ii = 0 ; ii < simul; ii++) {
         ret[indexof(TAU_S, ii)] = 1.54; //Hu = 1.54, Vakorin = 2.72
         ret[indexof(TAU_F, ii)] = 2.46; //Hu = 2.46, Vakorin = .56
-        ret[indexof(EPSILON, ii)] = .54; //Hu = .54
+        ret[indexof(EPSILON, ii)] = .34; //Hu = .54
         ret[indexof(TAU_0, ii)] = .98; //Hu = .98, Vakorin = 1.18
         ret[indexof(ALPHA, ii)] = .33; //Hu = .33, 
         ret[indexof(E_0, ii)] = .34; //Hu = .34
@@ -376,7 +376,7 @@ aux::vector BoldModel::defscale(unsigned int simul)
         //set the variances for all the variables to 3*sigma
         ret(indexof(TAU_S  ,ii)) = .75; //originally .25
         ret(indexof(TAU_F  ,ii)) = .75; //originally .25
-        ret(indexof(EPSILON,ii)) = .4; //originally .1
+        ret(indexof(EPSILON,ii)) = .3; //originally .1
         ret(indexof(TAU_0  ,ii)) = .75; //originally .25
         ret(indexof(ALPHA  ,ii)) = .045;
         ret(indexof(E_0    ,ii)) = .1;

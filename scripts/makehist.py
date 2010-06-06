@@ -11,7 +11,7 @@ import scipy.io as io
 from bar import histo, plothisto
 from math import isinf
 
-DIVIDER =512
+DIVIDER = 128
 HRFDIVIDER = 16
 
 #t = arange(0.0, 2.0, 0.01)
@@ -23,6 +23,36 @@ HRFDIVIDER = 16
 #title('About as simple as it gets, folks')
 #grid(True)
 #show()
+
+def getparams_mode(time, source):
+    params = [0 for i in range(0,7)]
+    for pp in range(0, 7):
+        upper = source.get_data()[0,0,0,time,pp, -1]
+        lower = source.get_data()[0,0,0,time,pp, -2]
+        count = source.get_header()['dim'][6] - 2
+        width = (upper-lower)/count
+        print lower, upper, width, count
+        histinput = [[] for j in range(0, histimg.get_header()['dim'][6]-2)]
+        for j in range(0, histimg.get_header()['dim'][6]-2):
+            histinput[j] = [histimg.get_data()[0,0,0,time, pp, j], lower+width/2.+j*width]
+        params[pp] = max(histinput, key=lambda pair: pair[0])[1]
+    return params
+
+def getparams_mu(time, source):
+    params = [0 for i in range(0,7)]
+    for pp in range(0, 7):
+        upper = source.get_data()[0,0,0,time,pp, -1]
+        lower = source.get_data()[0,0,0,time,pp, -2]
+        count = source.get_header()['dim'][6] - 2
+        width = (upper-lower)/count
+        total = 0
+        params[pp] = 0
+        print lower, upper, width, count
+        for j in range(0, histimg.get_header()['dim'][6]-2):
+            total = total + histimg.get_data()[0,0,0,time, pp, j] 
+            params[pp] = params[pp] + histimg.get_data()[0,0,0,time, pp, j] * (lower+width/2.+j*width)
+        params[pp] = params[pp]/total
+    return params
 
 def printparams(params):
     print "TAU_0  " , params[0]
@@ -97,8 +127,9 @@ elif len(sys.argv) != 2:
     print "pfilter_input.nii.gz, truebold.nii.gz, truestate.nii.gz"
     sys.exit(-1);
 
-actual = nibabel.load(sys.argv[1] + "pfilter_input.nii.gz")
 
+
+actual = nibabel.load(sys.argv[1] + "pfilter_input.nii.gz")
 histimg = nibabel.load(sys.argv[1] + "histogram.nii.gz")
 #beta1 = nibabel.load(sys.argv[1] + "beta_0001.img")
 #beta2 = nibabel.load(sys.argv[1] + "beta_0002.img")
@@ -132,6 +163,9 @@ if TR == 1:
 #P.show()
 #sys.exit()
 #print stims
+stimin = open(sys.argv[1]+"stim")
+stims = [[float(var) for var in line.split()] for line in stimin.readlines()]
+print stims
 
 #print real
 
@@ -153,34 +187,45 @@ for t in range(0, histimg.get_header()['dim'][4]):
 
 plothisto(histograms, TR)
 
-#print "Initial Params"
-#printparams(parammu.get_data()[0,0,0,0,:])
-#print "Final Params"
-#printparams(parammu.get_data()[0,0,0,-1,:])
-#initest = sim(stims, parammu.get_data()[0,0,0,0,:], TR, measmu.get_header()['dim'][4])
-#final = sim(stims, parammu.get_data()[0,0,0,-1,:], TR, measmu.get_header()['dim'][4])
-
-
-#adjusted = [real.get_data()[0,0,0,ii] + parammu.get_data()[0,0,0,-1, 11] \
-#            for ii in range(0, len(real.get_data()[0,0,0,:]))]
-    
 if param < 0:
     P.plot([i*TR for i in range(actual.get_header()['dim'][4])], \
                 actual.get_data()[0,0,0,:], '-*');
+    leg = ["actual"]
     try:
         truebold = nibabel.load(sys.argv[1] + "truebold.nii.gz")
         print "Ground truth for bold found"
         P.plot([i*TR for i in range(truebold.get_header()['dim'][4])], \
                     truebold.get_data()[0,0,0,:], 'g-+');
+        leg.append("truth")
     except:
         print "No ground truth for bold available, if you have some put it in ", \
                     sys.argv[1] + "truebold.nii.gz"
+    print getparams_mu(0, histimg)
+    print getparams_mode(0, histimg)
+    print getparams_mu(-1, histimg)
+    print getparams_mode(-1, histimg)
+    exp_init = sim(stims, getparams_mu(0,histimg), TR, actual.get_header()['dim'][4])
+    exp_final= sim(stims, getparams_mu(-1, histimg), TR, actual.get_header()['dim'][4])
+    mode_init = sim(stims, getparams_mode(0, histimg), TR, actual.get_header()['dim'][4])
+    mode_final= sim(stims, getparams_mode(-1, histimg), TR, actual.get_header()['dim'][4])
+    print len(exp_init)
+    print len(exp_final)
+    print len(mode_init)
+    print len(mode_final)
+    
+    P.plot([i*TR for i in range(len(exp_init))], exp_init)
+    P.plot([i*TR for i in range(len(exp_final))], exp_final)
+    P.plot([i*TR for i in range(len(mode_init))], mode_init)
+    P.plot([i*TR for i in range(len(mode_final))], mode_final)
+    leg.extend(["I_mu", "F_mu", "I_mod", "F_mod"])
+    
 else:
     try:
         truestate = nibabel.load(sys.argv[1] + "truestate.nii.gz")
         P.plot([i*TR for i in range(truestate.get_header()['dim'][4])], \
                     truestate.get_data()[0,param,0,:], 'g-+');
         print "Truth", truestate.get_data()[0,param,0,0];
+        leg = ["truth"]
     except:
         print "No ground truth for bold available, if you have some put it in ", \
                     sys.argv[1] + "truestate.nii.gz"
@@ -190,7 +235,7 @@ else:
 #P.plot(final)
 #P.plot(canonical)
 
-#P.legend(["Adjusted real", "Estimated", "Final Est", "HRF"])
+P.legend(leg)
 
 P.show()
 #

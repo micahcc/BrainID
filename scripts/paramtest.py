@@ -5,8 +5,8 @@ import pylab
 import numpy
 import math
 
-TAU_0, ALPHA, E_0, V_0, TAU_S, TAU_F, EPSILON, A_1, A_2 = range(0, 9)
-gparams = (8.38, .189, .635, 1.49e-2, 4.98, 8.31, 0.069, 3.4, 1)
+TAU_0, ALPHA, E_0, V_0, TAU_S, TAU_F, EPSILON = range(0, 7)
+#gparams = (8.38, .189, .635, 1.49e-2, 4.98, 8.31, 0.069, 3.4, 1)
 
 class State:
     F = 1

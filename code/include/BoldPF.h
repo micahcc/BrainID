@@ -200,7 +200,6 @@ aux::matrix calcCov(indii::ml::aux::DiracMixturePdf& p)
         }
     }
     sum = boost::mpi::all_reduce(world, sum, std::plus<matrix>());
-    std::cerr << sum(8,8) << " is nan? " << isnan(sum(8,8)) << std::endl;
     return sum/p.getDistributedTotalWeight();
 }
 
@@ -317,7 +316,7 @@ int BoldPF::run(void* pass = NULL)
             } 
             
             //time to resample
-            if(ess < ESS_THRESH) {
+            if(conttime > 30 && ess < ESS_THRESH) {
                 *debug << " ESS: " << ess << ", Stratified Resampling\n";
 
                 filter->getFilteredState().distributedNormalise();
@@ -435,7 +434,7 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
             dt_l(longstep), dt_s(shortstep), 
             disctime_l(0), disctime_s(0), status(UNSTARTED), method(method_p),
             measure(measurements), stim(activations), 
-            ESS_THRESH(50 > .5*numparticles ? 50 : .25*numparticles)
+            ESS_THRESH(50 > .15*numparticles ? 50 : .15*numparticles)
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
@@ -465,19 +464,13 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     aux::vector boldstd = bold_stddev(measurements, boldmu);
 
     /* Generate Prior */
-    aux::vector width = 2*model->defscale(measurements.front().size());
+    aux::vector width = model->defscale(measurements.front().size());
     aux::vector loc = model->defloc(measurements.front().size());
-
-    aux::vector drift_est = (measurements[0] + measurements[1] + measurements[2])/3.;
-    for(unsigned int ii = model->getStateSize()-model->getMeasurementSize() ;
-                    ii < model->getStateSize(); ii++) {
-        if(method == DC) {
-            width[ii] = boldstd[ii-model->getStateSize()+model->getMeasurementSize()]/.5;
-            loc[ii] = -drift_est[ii-model->getStateSize()+model->getMeasurementSize()];
-        } else {
-            width[ii] = 0;
-            loc[ii] = 0;
-        }
+    
+    for(unsigned int ii = model->getStateSize() - model->getMeasurementSize(); 
+                ii < model->getMeasurementSize() ; ii++) {
+        width[ii] = 0;
+        loc[ii] = 0;
     }
 
     *debug << "Location: " << std::endl;

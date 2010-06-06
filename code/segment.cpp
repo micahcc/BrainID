@@ -515,10 +515,10 @@ Image4DType::Pointer pruneFMRI(const Image4DType::Pointer fmri_img,
  * Blind Spline Generation
 **************************************************************************/
 int detrend_lmin(const Image4DType::Pointer fmri_img, Image4DType::IndexType index, 
-            int ties, Image4DType::Pointer output)
+            int knots, Image4DType::Pointer output)
 {
     gsl_interp_accel *acc = gsl_interp_accel_alloc();
-    gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, ties);
+    gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, knots);
 
     /* Go to index and start at time 0 at that voxel*/
     itk::ImageLinearConstIteratorWithIndex< Image4DType > 
@@ -526,51 +526,72 @@ int detrend_lmin(const Image4DType::Pointer fmri_img, Image4DType::IndexType ind
     fmri_it.SetDirection(3);
     fmri_it.SetIndex(index);
 
-    Image4DType::IndexType beforeindex = index;
-    Image4DType::IndexType afterindex = index;
-    Image4DType::IndexType tmpindex = index;
-
-    double levels[ties];
-    double xpos[ties];
-    int positions[ties];
+    double xpos[knots];
+    double medians[knots];
 
     int length = fmri_img->GetRequestedRegion().GetSize()[3];
-    positions[0] = 0;
-    positions[ties-1] = length-1;
-    for(int i = 1 ; i < ties-1 ; i++) {
-        positions[i] = positions[i-1] + (length - positions[i-1])/(ties-i);
+    double rsize = (double)length / (knots-1);
+
+    //generate a vector of point lists
+    std::vector< std::list<double> > points(knots);
+    for(fmri_it.GoToBeginOfLine(); !fmri_it.IsAtEndOfLine(); ++fmri_it) {
+        unsigned int i = fmri_it.GetIndex()[3];
+        if(i < rsize/2) {
+//            printf("%u -> 0\n", i);
+            points.front().push_back(fmri_it.Get());
+        } else if(i > length - rsize/2) {
+//            printf("%u -> last (%zu)\n", i, points.size());
+            points.back().push_back(fmri_it.Get());
+        } else {
+//            printf("%u -> %i\n", i, 1+(int)(i/rsize-1./2));
+            points[1+(int)(i/rsize-1./2)].push_back(fmri_it.Get());
+        }
     }
 
-    for(int i = 0 ; i < ties ; i++) {
-        int dir = 0;
-        do{
-            beforeindex[3] = (positions[i] == 0) ? positions[i] : positions[i]-1;
-            afterindex[3] = (positions[i] == length-1) ? positions[i] : positions[i]+1;
-            tmpindex[3] = positions[i];
+    //find the median of each point list
+    for(unsigned int i = 0 ; i < points.size() ; i++) {
+        points[i].sort();
+        if(points[i].size()%2 == 0) {
+            std::list<double>::iterator it = points[i].begin();
+            it++;
+            medians[i] = *it;
+            it++;
+            medians[i] += *it;
+            medians[i] /= 2.;
+        } else {
+            std::list<double>::iterator it = points[i].begin();
+            it++;
+            medians[i] = *it;
+        }
 
-            dir = min(fmri_img->GetPixel(beforeindex), fmri_img->GetPixel(tmpindex),
-                        fmri_img->GetPixel(afterindex));
-            positions[i] += dir;
-        } while( dir != 0 );
+//        printf("Median of: ");
+//        std::list<double>::iterator it = points[i].begin();
+//        while(it != points[i].end()) {
+//            printf("%f, ", *it);
+//            it++;
+//        }
+//        printf("\nis %f\n", medians[i]);
+    }
+
+    xpos[0] = 0;
+    xpos[knots-1] = length-1;
+
+    for(int i = 1 ; i < knots-1; i++) {
+        xpos[i] = rsize/2+(i-1)*rsize+rsize/2;
+//        printf("xpos %i: %f\n", i, xpos[i]);
     }
     
-    for(int i = 0 ; i < ties ; i++) {
-        tmpindex[3] = positions[i];
-        levels[i] = fmri_img->GetPixel(tmpindex);
-        xpos[i] = positions[i];
-    }
-
     itk::ImageLinearIteratorWithIndex< Image4DType > 
                 out_it(output, output->GetRequestedRegion());
     out_it.SetDirection(3);
     out_it.SetIndex(index);
-    gsl_spline_init(spline, xpos, levels, ties);
+    gsl_spline_init(spline, xpos, medians, knots);
     for(out_it.GoToBeginOfLine(); !out_it.IsAtEndOfLine(); ++out_it) {
         out_it.Set(gsl_spline_eval(spline, out_it.GetIndex()[3], acc));
     }
 
     return 0;
-}
+};
 
 int detrend_median(const Image4DType::Pointer fmri_img, Image4DType::IndexType index, 
             int knots, Image4DType::Pointer output)
@@ -590,8 +611,8 @@ int detrend_median(const Image4DType::Pointer fmri_img, Image4DType::IndexType i
     int length = fmri_img->GetRequestedRegion().GetSize()[3];
     double rsize = (double)length / (knots-1);
 
+    //generate a vector of point lists
     std::vector< std::list<double> > points(knots);
-    
     for(fmri_it.GoToBeginOfLine(); !fmri_it.IsAtEndOfLine(); ++fmri_it) {
         unsigned int i = fmri_it.GetIndex()[3];
         if(i < rsize/2) {
@@ -606,6 +627,7 @@ int detrend_median(const Image4DType::Pointer fmri_img, Image4DType::IndexType i
         }
     }
 
+    //find the median of each point list
     for(unsigned int i = 0 ; i < points.size() ; i++) {
         points[i].sort();
         if(points[i].size()%2 == 0) {
@@ -762,6 +784,79 @@ Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img,
     return outimage;
 }
 
+int dc_bump(const Image4DType::Pointer fmri_img, Image4DType::IndexType index, 
+            Image4DType::Pointer output, int count)
+{
+    /* Go to index and start at time 0 at that voxel*/
+    itk::ImageLinearConstIteratorWithIndex< Image4DType > 
+                fmri_it(fmri_img, fmri_img->GetRequestedRegion());
+    fmri_it.SetDirection(3);
+    fmri_it.SetIndex(index);
+
+    //generate a vector of point lists
+    std::list<double> points;
+    double median;
+    for(fmri_it.GoToBeginOfLine(); !fmri_it.IsAtEndOfLine(); ++fmri_it) {
+        points.push_back(fmri_it.Get());
+    }
+    points.sort();
+
+    if(points.size()%2 == 0) {
+        std::list<double>::iterator it = points.begin();
+        for(unsigned int j = 0 ; j != points.size()/2-1 ; j++)
+            it++;
+        median = *it;
+        it++;
+        median += *it;
+        median /= 2.;
+    } else {
+        std::list<double>::iterator it = points.begin();
+        for(unsigned int j = 0 ; j != points.size()/2 ; j++)
+            it++;
+        median = *it;
+    }
+    
+    itk::ImageLinearIteratorWithIndex< Image4DType > 
+                out_it(output, output->GetRequestedRegion());
+    out_it.SetDirection(3);
+    out_it.SetIndex(index);
+    for(out_it.GoToBeginOfLine(), fmri_it.GoToBeginOfLine(); !out_it.IsAtEndOfLine();
+                ++out_it, ++fmri_it) {
+        out_it.Set(fmri_it.Get()-median);
+    }
+
+    return 0;
+}
+
+Image4DType::Pointer dc_bump(const Image4DType::Pointer fmri_img, int points)
+{
+    Image4DType::Pointer outimage = Image4DType::New();
+    outimage->SetRegions(fmri_img->GetRequestedRegion());
+    outimage->Allocate();
+    outimage->FillBuffer(0);
+
+    /* Fmri Iterators */
+    itk::ImageLinearConstIteratorWithIndex< Image4DType > 
+                fmri_it(fmri_img, fmri_img->GetRequestedRegion());
+    fmri_it.SetDirection(0);
+    
+    itk::ImageLinearConstIteratorWithIndex< Image4DType >
+                fmri_stop(fmri_img, fmri_img->GetRequestedRegion());
+    fmri_stop.SetDirection(3);
+    fmri_stop.GoToBegin();
+    ++fmri_stop;
+
+    for(fmri_it.GoToBegin(); fmri_it != fmri_stop ; fmri_it.NextLine()) {
+        for( ; !fmri_it.IsAtEndOfLine(); ++fmri_it) {
+            dc_bump(fmri_img, fmri_it.GetIndex(), outimage, points);
+        }
+    }
+
+    outimage->CopyInformation(fmri_img);
+    outimage->SetMetaDataDictionary(fmri_img->GetMetaDataDictionary());
+    return outimage;
+}
+
 Image4DType::Pointer getspline_m(const Image4DType::Pointer fmri_img, 
             unsigned int knots)
 {
@@ -866,12 +961,12 @@ int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType inde
     double level[knots.size()];
 
     std::vector<DataType> tmp(3, 0);
+    xpos[0] = knots[0];
     for(index[3] = 0 ; index[3] < 3 ; index[3]++) 
         tmp[index[3]] = fmri_img->GetPixel(index);
     std::sort(tmp.begin(), tmp.end());
     for(index[3] = 0 ; index[3] < 3 ; index[3]++) {
         if(tmp[1] - fmri_img->GetPixel(index) < .0001) {
-            xpos[0] = index[3];
             level[0] = tmp[1];
         }
     }
@@ -887,7 +982,7 @@ int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType inde
         if(tmp[1] == fmri_img->GetPixel(index)) 
             posmin2 = index[3];
     }
-    xpos[knots.size()-1] = posmin;
+    xpos[knots.size()-1] = knots.back();
     index[3] = posmin;
     level[knots.size()-1] = fmri_img->GetPixel(index);
 
@@ -908,7 +1003,7 @@ int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType inde
                 posmin2 = index[3];
             }
         }
-        xpos[ii] = posmin2;
+        xpos[ii] = knots[ii];
         level[ii] = min2;
     }
 
@@ -1034,11 +1129,11 @@ Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
     //add first three
     std::vector<unsigned int> knots(1, 1);
 
-    const unsigned int SKIP = 4;
-    const double THRESH = .02;
+    const unsigned int SKIP = 6;
+    const double THRESH = .01;
     double prev = THRESH+1;
     double cur = THRESH+1;
-    unsigned int zeroStart = 0;
+    int zeroStart = 0;
     bool zeroZone = false;
     // Find points in the middle that are 0 crossings/0
     itk::Image<DataType, 1>::IndexType index, next, prevprev;
@@ -1061,23 +1156,23 @@ Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
             knots.push_back((zeroStart+index[0]-1)/2);
             index[0] += SKIP;
             zeroZone = false;
-//        //neither this nor previous are 0, but they have different signs so cross
-//        } else if((cur < THRESH && prev > THRESH) || (cur > THRESH && prev < THRESH)) {
-//            std::cerr << "Crossing " << index[0] << std::endl;
-//            next[0] = index[0]+1;
-//            prevprev[0] = index[0]-2;
-//            //crossing in between these two, so for [A prev cur B] choose minumum:
-//            // min(A + prev + cur, prev + cur + B)
-//            if(fabs(canon->GetPixel(next) + prev + cur) < 
-//                        fabs(canon->GetPixel(prevprev) + prev + cur)) {
-//                std::cerr << "Adding " << index[0] << std::endl;
-//                knots.push_back(index[0]);
-//                index[0] += SKIP;
-//            } else {
-//                std::cerr << "Adding " << index[0] -1 << std::endl;
-//                knots.push_back(index[0] - 1);
-//                index[0] += SKIP-1;
-//            }
+        //neither this nor previous are 0, but they have different signs so cross
+        } else if((cur < THRESH && prev > THRESH) || (cur > THRESH && prev < THRESH)) {
+            std::cerr << "Crossing " << index[0] << std::endl;
+            next[0] = index[0]+1;
+            prevprev[0] = index[0]-2;
+            //crossing in between these two, so for [A prev cur B] choose minumum:
+            // min(A + prev + cur, prev + cur + B)
+            if(fabs(canon->GetPixel(next) + prev + cur) < 
+                        fabs(canon->GetPixel(prevprev) + prev + cur)) {
+                std::cerr << "Adding " << index[0] << std::endl;
+                knots.push_back(index[0]);
+                index[0] += SKIP;
+            } else {
+                std::cerr << "Adding " << index[0] -1 << std::endl;
+                knots.push_back(index[0] - 1);
+                index[0] += SKIP-1;
+            }
         }
     }
 
