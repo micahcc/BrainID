@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-basecolor = [.9, .8, .8]
+basecolor = [.9, 1, .9]
 
 class histelem:
     weight  = 0
@@ -30,13 +30,13 @@ class histo:
 
     def plot(self, pos, Width):
 #        print "Plotting"
-        pred = max([comp.weight for comp in self.elems])
+#        pred = max([comp.weight for comp in self.elems])
         for elem in self.elems:
-            if elem.weight == pred:
-                c = [0, 1, 0]
-            else:
-                c = tuple([cpos*(1-elem.weight) for cpos in basecolor])
-            plt.broken_barh([(pos, Width)], elem.seq, color=c, edgecolor="w")
+#            if elem.weight == pred:
+#                c = [0, 1, 0]
+#            else:
+            c = tuple([cpos*(1-elem.weight) for cpos in basecolor])
+            plt.broken_barh([(pos, Width)], elem.seq, color=c, edgecolor=c)
     
     def __str__(self):
         out = ""
@@ -48,7 +48,8 @@ def plothisto(ts, TR):
     if not isinstance(ts, type([])) or not isinstance(ts[0], histo):
         raise "Wrong type"
     """note for every time, everything needs to add up to the same value"""
-    xax = [i*TR for i in range(len(ts))]
+    xax = [i*TR-3.*TR/2. for i in range(len(ts))]
+    print xax
     for i in range(0, len(ts)):
 #        print ts[i]
         ts[i].plot(xax[i], TR)

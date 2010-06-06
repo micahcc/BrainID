@@ -14,6 +14,7 @@
 static const char* stateString[] = {"TAU_0", "ALPHA", "E_0", "V_0", "TAU_S", 
                 "TAU_F", "EPSILON", "V_T", "Q_T", "S_T", "F_T"};
 
+const double PI = acos(-1);
 
 
 BoldModel::BoldModel(aux::vector stddev, int weightfunc, size_t sections) : 
@@ -36,36 +37,22 @@ BoldModel::BoldModel(aux::vector stddev, int weightfunc, size_t sections) :
     std::cerr << "MEAS_SIZE    " << this->MEAS_SIZE    << std::endl;
     std::cerr << "INPUT_SIZE   " << this->INPUT_SIZE   << std::endl;
 
-//    for(unsigned int i = 0 ; i < 3 ; i++) {
-//        std::cerr << "indexof(TAU_0, " << i << ") " << indexof(TAU_0, i) << std::endl;
-//        std::cerr << "indexof(ALPHA, " << i << ") " << indexof(ALPHA, i) << std::endl;
-//        std::cerr << "indexof(E_0  , " << i << ") " << indexof(E_0  , i) << std::endl;
-//        std::cerr << "indexof(V_0  , " << i << ") " << indexof(V_0  , i) << std::endl;
-//        std::cerr << "indexof(TAU_S, " << i << ") " << indexof(TAU_S, i) << std::endl;
-//        std::cerr << "indexof(TAU_F, " << i << ") " << indexof(TAU_F, i) << std::endl;
-//        std::cerr << "indexof(EPSILON, " << i << ") " << indexof(EPSILON, i) << std::endl;
-//        std::cerr << "indexof(V_T  , " << i << ") " << indexof(V_T  , i) << std::endl;
-//        std::cerr << "indexof(Q_T  , " << i << ") " << indexof(Q_T  , i) << std::endl;
-//        std::cerr << "indexof(S_T  , " << i << ") " << indexof(S_T  , i) << std::endl;
-//        std::cerr << "indexof(F_T  , " << i << ") " << indexof(F_T  , i) << std::endl;
-//    }
-//    
-//    for(unsigned int i = 0 ; i < 3 ; i++) {
-//        std::cerr << "TAU_0 -> "   << stateString[stateAt(indexof(TAU_0, i))]  << std::endl;
-//        std::cerr << "ALPHA -> "   << stateString[stateAt(indexof(ALPHA, i))]  << std::endl;
-//        std::cerr << "E_0   -> "   << stateString[stateAt(indexof(E_0  , i))]  << std::endl;
-//        std::cerr << "V_0   -> "   << stateString[stateAt(indexof(V_0  , i))]  << std::endl;
-//        std::cerr << "TAU_S -> "   << stateString[stateAt(indexof(TAU_S, i))]  << std::endl;
-//        std::cerr << "TAU_F -> "   << stateString[stateAt(indexof(TAU_F, i))]  << std::endl;
-//        std::cerr << "EPSILON -> " << stateString[stateAt(indexof(EPSILON, i))] << std::endl;
-//        std::cerr << "V_T  -> "    << stateString[stateAt(indexof(V_T  , i))] << std::endl;
-//        std::cerr << "Q_T  -> "    << stateString[stateAt(indexof(Q_T  , i))] << std::endl;
-//        std::cerr << "S_T  -> "    << stateString[stateAt(indexof(S_T  , i))] << std::endl;
-//        std::cerr << "F_T  -> "    << stateString[stateAt(indexof(F_T  , i))] << std::endl;
-//    }
-//    for(unsigned int i = 0 ; i < MEAS_SIZE; i++) {
-//        std::cerr << "Extra vars: " << i << " -> " << STATE_SIZE-MEAS_SIZE+i;
-//    }
+    for(unsigned int i = 0 ; i < 3 ; i++) {
+        std::cerr << "TAU_0 -> "   << stateString[stateAt(indexof(TAU_0, i))]  << std::endl;
+        std::cerr << "ALPHA -> "   << stateString[stateAt(indexof(ALPHA, i))]  << std::endl;
+        std::cerr << "E_0   -> "   << stateString[stateAt(indexof(E_0  , i))]  << std::endl;
+        std::cerr << "V_0   -> "   << stateString[stateAt(indexof(V_0  , i))]  << std::endl;
+        std::cerr << "TAU_S -> "   << stateString[stateAt(indexof(TAU_S, i))]  << std::endl;
+        std::cerr << "TAU_F -> "   << stateString[stateAt(indexof(TAU_F, i))]  << std::endl;
+        std::cerr << "EPSILON -> " << stateString[stateAt(indexof(EPSILON, i))] << std::endl;
+        std::cerr << "V_T  -> "    << stateString[stateAt(indexof(V_T  , i))] << std::endl;
+        std::cerr << "Q_T  -> "    << stateString[stateAt(indexof(Q_T  , i))] << std::endl;
+        std::cerr << "S_T  -> "    << stateString[stateAt(indexof(S_T  , i))] << std::endl;
+        std::cerr << "F_T  -> "    << stateString[stateAt(indexof(F_T  , i))] << std::endl;
+    }
+    for(unsigned int i = 0 ; i < MEAS_SIZE; i++) {
+        std::cerr << "Extra vars: " << i << " -> " << STATE_SIZE-MEAS_SIZE+i;
+    }
 
     std::cerr << "Sigma:" << std::endl;
     for(unsigned int i = 0 ; i < this->sigma.size() ; i++)
@@ -130,7 +117,7 @@ int BoldModel::transition(aux::vector& dustin, const double time,
      * inf - inf = nan, so nan or inf in any member 
      * will cause this to fail
     */
-    if(isnan(tmp) || isinf(tmp)) {
+    if(isnan(tmp) || abs(isinf(tmp) == 1)) {
         dustin = defaultstate;
         return -1;
     }
@@ -221,25 +208,32 @@ double BoldModel::generateComponent(gsl_rng* rng, aux::vector& fillme,
             tmp = gsl_ran_gaussian(rng, dists[i].scale);
             fillme[i] = tmp + dists[i].loc;
             weight *= gsl_ran_gaussian_pdf(tmp, dists[i].scale);
-        } else if( dists[i].type == GAMMA_MED) {
-            B = (-dists[i].loc + sqrt(pow(dists[i].loc,2)+4*pow(dists[i].scale,2)))/2;
+        } else if( dists[i].type == GAMMA_MODE) {
+            B = (dists[i].loc + sqrt(pow(dists[i].loc,2)+4*pow(dists[i].scale,2)))/2;
             A = dists[i].loc/B + 1;
             fillme[i] = gsl_ran_gamma(rng, A, B);
-//            std::cout << gsl_ran_gamma_pdf(fillme[i], A, B) << std::endl;
             weight *= gsl_ran_gamma_pdf(fillme[i], A, B);
         } else if(dists[i].type == GAMMA_MU ) {
             B = pow(dists[i].scale, 2)/dists[i].loc;
             A = dists[i].loc/B;
-//            std::cout << "A: \n" << A << " B: " << B << "\n";
             fillme[i] = gsl_ran_gamma(rng, A, B);
             weight *= gsl_ran_gamma_pdf(fillme[i], A, B);
-//            std::cout << "ran: \n" << fillme[i] << " P: " << gsl_ran_gamma_pdf(fillme[i], A, B) 
-//                        << "\n";
-        } else {
+        } else if(dists[i].type == EXP_MEAN ) {
+            fillme[i] = gsl_ran_exponential(rng, dists[i].loc);
+            weight *= gsl_ran_exponential_pdf(fillme[i], dists[i].loc);
+        } else if(dists[i].type == EXP_STD ) {
+            fillme[i] = gsl_ran_exponential(rng, dists[i].scale);
+            weight *= gsl_ran_exponential_pdf(fillme[i], dists[i].scale);
+        } else if(dists[i].type == RAYLEIGH_MEAN) {
+            fillme[i] = gsl_ran_rayleigh(rng, dists[i].loc*sqrt(2./PI));
+            weight *= gsl_ran_rayleigh_pdf(fillme[i], dists[i].loc*sqrt(2./PI));
+        } else if(dists[i].type == RAYLEIGH_STD ) {
+            fillme[i] = gsl_ran_rayleigh(rng, dists[i].scale*sqrt(2./(4-PI)));
+            weight *= gsl_ran_rayleigh_pdf(fillme[i], dists[i].scale*sqrt(2./(4-PI)));
+        } else if(dists[i].type == CONST) {
             fillme[i] = dists[i].loc;
         }
     }
-//    std::cout << "\n";
     
     return 1./weight;
 }
@@ -294,7 +288,7 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
     
-    gsl_rng* rng = gsl_rng_alloc(gsl_rng_ran3);
+    gsl_rng* rng = gsl_rng_alloc(gsl_rng_mt19937);
     {
         unsigned int seed;
         FILE* file = fopen("/dev/urandom", "r");
@@ -321,8 +315,8 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
             std::cout << "CONST" << std::endl;
         else if(dists[i].type == GAMMA_MU)
             std::cout << "GAMMA_MU" << std::endl;
-        else if(dists[i].type == GAMMA_MED)
-            std::cout << "GAMMA_MED" << std::endl;
+        else if(dists[i].type == GAMMA_MODE)
+            std::cout << "GAMMA_MODE" << std::endl;
         else if(dists[i].type == NORMAL)
             std::cout << "NORMAL" << std::endl;
     }
@@ -386,7 +380,7 @@ aux::vector BoldModel::defscale(unsigned int simul)
         ret(indexof(TAU_0  ,ii)) = .75; //originally .25
         ret(indexof(ALPHA  ,ii)) = .045;
         ret(indexof(E_0    ,ii)) = .1;
-        ret(indexof(V_0    ,ii)) = .1;
+        ret(indexof(V_0    ,ii)) = .03;
 
         ret(indexof(V_T,ii)) = 0;
         ret(indexof(Q_T,ii)) = 0;
@@ -407,7 +401,7 @@ aux::vector BoldModel::defscale(unsigned int simul)
 //        if(dest[i].type == NORMAL) {
 //            dest[i].A.mean = loc[i];
 //            dest[i].B.stddev = scale[i];
-//        } else if(dest[i].type == GAMMA_MED) {
+//        } else if(dest[i].type == GAMMA_MODE) {
 //            dest[i].A.K = (-loc[i] + sqrt(loc[i]*loc[i]+4*scale[i]*scale[i]))/2;
 //            dest[i].B.theta  = loc[i]/dest[i].A.theta + 1;
 //        } else {
@@ -432,18 +426,18 @@ std::vector<BoldModel::Dist> BoldModel::defdist(unsigned int simul,
 {
     std::vector<BoldModel::Dist> ret(loc.size());
     for(unsigned int ii = 0 ; ii < simul ; ii++) {
-        ret[indexof(TAU_S  ,ii)].type = GAMMA_MED;
-        ret[indexof(TAU_F  ,ii)].type = GAMMA_MED;
-        ret[indexof(EPSILON,ii)].type = GAMMA_MED;
-        ret[indexof(TAU_0  ,ii)].type = GAMMA_MED;
-        ret[indexof(ALPHA  ,ii)].type = GAMMA_MED;
-        ret[indexof(E_0    ,ii)].type = GAMMA_MED;
-        ret[indexof(V_0    ,ii)].type = GAMMA_MED;
+        ret[indexof(TAU_S  ,ii)].type = GAMMA_MODE;
+        ret[indexof(TAU_F  ,ii)].type = GAMMA_MODE;
+        ret[indexof(EPSILON,ii)].type = GAMMA_MODE;
+        ret[indexof(TAU_0  ,ii)].type = GAMMA_MODE;
+        ret[indexof(ALPHA  ,ii)].type = GAMMA_MODE;
+        ret[indexof(E_0    ,ii)].type = GAMMA_MODE;
+        ret[indexof(V_0    ,ii)].type = GAMMA_MODE;
 
-        ret[indexof(V_T,ii)].type = GAMMA_MED;
-        ret[indexof(Q_T,ii)].type = GAMMA_MED;
+        ret[indexof(V_T,ii)].type = GAMMA_MODE;
+        ret[indexof(Q_T,ii)].type = GAMMA_MODE;
         ret[indexof(S_T,ii)].type = NORMAL;
-        ret[indexof(F_T,ii)].type = GAMMA_MED;
+        ret[indexof(F_T,ii)].type = GAMMA_MODE;
     }
     for(unsigned int i = 0 ; i < simul; i++) {
         ret[GVAR_SIZE+simul*LVAR_SIZE+i].type = NORMAL;

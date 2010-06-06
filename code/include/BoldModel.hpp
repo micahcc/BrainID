@@ -16,7 +16,8 @@ public:
     ~BoldModel();
     BoldModel(aux::vector stddev, int weightfunc, size_t sections = 1);
     
-    enum DistType { NORMAL, GAMMA_MED, GAMMA_MU, CONST };
+    enum DistType { NORMAL, GAMMA_MODE, GAMMA_MU, CONST, EXP_MEAN, EXP_STD, 
+                RAYLEIGH_STD, RAYLEIGH_MEAN};
     struct Dist
     {
         int type;

@@ -83,12 +83,18 @@ def HRF(stims, TR, num):
                 i*dt < len(stimarr)*dt-hrfparam[6]]
     return (signal, delta)
     
-
-if len(sys.argv) != 2:
+PARAM = -1
+param = PARAM
+if len(sys.argv) == 3:
+    try:
+        param = float(sys.argv[2])
+    except:
+        param = PARAM 
+elif len(sys.argv) != 2:
     print "Usage: ", sys.argv[0], "<InDir>"
     print "Looks in Dir for: "
     print "stim0, stim1 (must be shifted to match pfilter_input), histogram.nii.gz"
-    print "pfilter_input.nii.gz"
+    print "pfilter_input.nii.gz, truebold.nii.gz, truestate.nii.gz"
     sys.exit(-1);
 
 actual = nibabel.load(sys.argv[1] + "pfilter_input.nii.gz")
@@ -129,20 +135,19 @@ if TR == 1:
 
 #print real
 
-PARAM = -1
 histograms = [[] for t in range(0, histimg.get_header()['dim'][4])]
 #generate the histogram for measurements
 for t in range(0, histimg.get_header()['dim'][4]):
-    upper = histimg.get_data()[0,0,0,t,PARAM, -1]
-    lower = histimg.get_data()[0,0,0,t,PARAM, -2]
+    upper = histimg.get_data()[0,0,0,t,param, -1]
+    lower = histimg.get_data()[0,0,0,t,param, -2]
     count = histimg.get_header()['dim'][6] - 2
     width = (upper-lower)/count
-    print lower, upper, count, width
+#    print lower, upper, count, width
     if isinf(lower) :
-        print histimg.get_data()[0,0,0,t, PARAM, :]
+        print histimg.get_data()[0,0,0,t, param, 0:-2]
     histinput = [[] for j in range(0, histimg.get_header()['dim'][6]-2)]
     for j in range(0, histimg.get_header()['dim'][6]-2):
-        histinput[j] = [histimg.get_data()[0,0,0,t, PARAM, j], lower+width*j, \
+        histinput[j] = [histimg.get_data()[0,0,0,t, param, j], lower+width*j, \
                     lower+width*(j+1)]
     histograms[t] = histo(histinput)
 
@@ -159,14 +164,27 @@ plothisto(histograms, TR)
 #adjusted = [real.get_data()[0,0,0,ii] + parammu.get_data()[0,0,0,-1, 11] \
 #            for ii in range(0, len(real.get_data()[0,0,0,:]))]
     
-P.plot([i*TR for i in range(actual.get_header()['dim'][4])], actual.get_data()[0,0,0,:], '-*');
+if param < 0:
+    P.plot([i*TR for i in range(actual.get_header()['dim'][4])], \
+                actual.get_data()[0,0,0,:], '-*');
+    try:
+        truebold = nibabel.load(sys.argv[1] + "truebold.nii.gz")
+        print "Ground truth for bold found"
+        P.plot([i*TR for i in range(truebold.get_header()['dim'][4])], \
+                    truebold.get_data()[0,0,0,:], 'g-+');
+    except:
+        print "No ground truth for bold available, if you have some put it in ", \
+                    sys.argv[1] + "truebold.nii.gz"
+else:
+    try:
+        truestate = nibabel.load(sys.argv[1] + "truestate.nii.gz")
+        P.plot([i*TR for i in range(truestate.get_header()['dim'][4])], \
+                    truestate.get_data()[0,param,0,:], 'g-+');
+        print "Truth", truestate.get_data()[0,param,0,0];
+    except:
+        print "No ground truth for bold available, if you have some put it in ", \
+                    sys.argv[1] + "truestate.nii.gz"
 
-try:
-    truth = nibabel.load(sys.argv[1] + "truth.nii.gz")
-    print "Ground truth found"
-    P.plot([i*TR for i in range(truth.get_header()['dim'][4])], truth.get_data()[0,0,0,:], 'g-+');
-except:
-    print "No ground truth available, if you have some put it in ", sys.argv[1] + "truth.nii.gz"
 #P.plot(initest)
 #P.plot(measmu.get_data()[0,0,0,:]);
 #P.plot(final)

@@ -3,6 +3,7 @@
 
 #include <itkOrientedImage.h>
 #include "BoldPF.h"
+#include <float.h>
 
 //base
 struct cb_data
@@ -302,7 +303,7 @@ void cb_hist_init(cb_hist_data* cdata, BoldPF::CallPoints* cp,
     if(rank == 0) {
         //parameters, then measurement, histcount +2 for the min/max of the bars
         itk::OrientedImage<float, 6>::SizeType size6 = {{size[0], size[1], size[2], 
-                    size[3], parameters + meassize, histcount + 2}}; 
+                    size[3]+1, parameters + meassize, histcount + 2}}; 
         
         
         histogram = itk::OrientedImage<float, 6>::New();
@@ -316,7 +317,7 @@ void cb_hist_init(cb_hist_data* cdata, BoldPF::CallPoints* cp,
     cdata->size = histcount;
     
     //set callback points
-    cp->start = false;
+    cp->start = true;
     cp->postMeas = true;
     cp->postFilter = false;
     cp->end = false;
@@ -324,10 +325,12 @@ void cb_hist_init(cb_hist_data* cdata, BoldPF::CallPoints* cp,
 
 double truemeas(BoldPF* bold, unsigned int p, unsigned int n)
 {
-    return bold->getModel().measure(bold->getDistribution().get(p))[n] - 
-                    bold->getDistribution().get(p)
-                    [ bold->getModel().getStateSize()
-                    - bold->getModel().getMeasurementSize()+ n ];
+    if(bold->isDC())
+        return bold->getModel().measure(bold->getDistribution().get(p))[n] - 
+                    bold->getDistribution().get(p)[bold->getModel().getStateSize()-
+                    bold->getModel().getMeasurementSize()+n];
+    else
+        return bold->getModel().measure(bold->getDistribution().get(p))[n];
 }
 
 int cb_hist_call(BoldPF* bold, void* data)
@@ -341,7 +344,7 @@ int cb_hist_call(BoldPF* bold, void* data)
     for(unsigned int i = 0 ; i < 3 ; i++) {
         index[i] = cdata->pos[i];
     }
-    index[3] = bold->getDiscTimeL();
+    index[3] = bold->getDiscTimeL()+(bold->getStatus()==BoldPF::RUNNING ? 1 : 0);
     index[4] = 0;
     index[5] = 0;
 

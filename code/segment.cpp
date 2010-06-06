@@ -1034,7 +1034,7 @@ Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
     //add first three
     std::vector<unsigned int> knots(1, 1);
 
-    const unsigned int SKIP = 6;
+    const unsigned int SKIP = 4;
     const double THRESH = .02;
     double prev = THRESH+1;
     double cur = THRESH+1;
@@ -1061,28 +1061,35 @@ Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
             knots.push_back((zeroStart+index[0]-1)/2);
             index[0] += SKIP;
             zeroZone = false;
-        //neither this nor previous are 0, but they have different signs so cross
-        } else if((cur < 0 && prev > 0) || (cur > 0 && prev < 0)) {
-            std::cerr << "Crossing " << index[0] << std::endl;
-            next[0] = index[0]+1;
-            prevprev[0] = index[0]-2;
-            //crossing in between these two, so for [A prev cur B] choose minumum:
-            // min(A + prev + cur, prev + cur + B)
-            if(fabs(canon->GetPixel(next) + prev + cur) < 
-                        fabs(canon->GetPixel(prevprev) + prev + cur)) {
-                std::cerr << "Adding " << index[0] << std::endl;
-                knots.push_back(index[0]);
-                index[0] += SKIP;
-            } else {
-                std::cerr << "Adding " << index[0] -1 << std::endl;
-                knots.push_back(index[0] - 1);
-                index[0] += SKIP-1;
-            }
+//        //neither this nor previous are 0, but they have different signs so cross
+//        } else if((cur < THRESH && prev > THRESH) || (cur > THRESH && prev < THRESH)) {
+//            std::cerr << "Crossing " << index[0] << std::endl;
+//            next[0] = index[0]+1;
+//            prevprev[0] = index[0]-2;
+//            //crossing in between these two, so for [A prev cur B] choose minumum:
+//            // min(A + prev + cur, prev + cur + B)
+//            if(fabs(canon->GetPixel(next) + prev + cur) < 
+//                        fabs(canon->GetPixel(prevprev) + prev + cur)) {
+//                std::cerr << "Adding " << index[0] << std::endl;
+//                knots.push_back(index[0]);
+//                index[0] += SKIP;
+//            } else {
+//                std::cerr << "Adding " << index[0] -1 << std::endl;
+//                knots.push_back(index[0] - 1);
+//                index[0] += SKIP-1;
+//            }
         }
     }
 
+    if(fabs(prev) < THRESH) {
+        std::cerr << "Adding " << index[0] << std::endl;
+        knots.push_back((zeroStart+index[0]-1)/2);
+        index[0] += SKIP;
+        zeroZone = false;
+    }
+
     //add final three
-    knots.push_back(canon->GetRequestedRegion().GetSize()[0]-2);
+//    knots.push_back(canon->GetRequestedRegion().GetSize()[0]-2);
     if(knots.size() < 4) {
         std::cerr << "WARNING! Not enough low stimulus areas to intelligently "
                     << "place knots" << std::endl;

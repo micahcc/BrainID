@@ -55,6 +55,12 @@ public:
      * longstep     - amount of time between measurements
      * numparticles - number of particles to use
      * shortstep    - simulation timesteps
+     * method       - how to deal with drift in signal, 
+     *                 DIRECT doesn't worry about it
+     *                 DELTA weights based on delta in Bold signal
+     *                 DC uses a parameter to estimate constant gain
+     * weightf      - weightf, PDF to use for weighting 
+     * flatten      - initializes weight to 1/probability of point
      */
     BoldPF(const std::vector<aux::vector>& measurements, 
                 const std::vector<Activation>& activations,  double weightvar,
@@ -78,6 +84,9 @@ public:
     double getLongStep() const;
     aux::DiracMixturePdf& getDistribution();
     int getStatus();
+
+    bool isDC() { return method == DC; };
+    bool isDelta() { return method == DELTA; };
 
     BoldModel& getModel() { return *model; };
 
@@ -172,11 +181,26 @@ aux::matrix calcCov(indii::ml::aux::DiracMixturePdf& p)
     boost::mpi::communicator world;
     aux::vector mu = p.getDistributedExpectation();
     aux::matrix sum(mu.size(), mu.size(), 0);
+    aux::matrix old;
 
     for(unsigned int i = 0 ; i < p.getSize() ;i++) {
-        sum += p.getWeight(i)*outer_prod(p.get(i)-mu, p.get(i)-mu);
+        if(p.getWeight(i) > 0)
+            sum += p.getWeight(i)*outer_prod(p.get(i)-mu, p.get(i)-mu);
+        if(isnan(sum(8,8))) {
+            std::cerr << "Sum" << std::endl;
+            outputMatrix(std::cerr, sum);
+            std::cerr << std::endl << "old" << std::endl;
+            outputMatrix(std::cerr, old);
+            std::cerr << std::endl << "mu" << std::endl;
+            outputVector(std::cerr, mu);
+            std::cerr << std::endl << "get(i)" << i << " weight " << p.getWeight(i) << std::endl;
+            std::cerr << "weight > 0 ? " << (p.getWeight(i) > 0) << std::endl;
+            outputVector(std::cerr, p.get(i));
+            std::cerr << std::endl;
+        }
     }
     sum = boost::mpi::all_reduce(world, sum, std::plus<matrix>());
+    std::cerr << sum(8,8) << " is nan? " << isnan(sum(8,8)) << std::endl;
     return sum/p.getDistributedTotalWeight();
 }
 
@@ -301,21 +325,26 @@ int BoldPF::run(void* pass = NULL)
                 outputVector(*debug, tmpmu);
                 *debug << "\n\n";
                 
-                aux::matrix statecov = filter->getFilteredState().getDistributedCovariance();
+                *debug << " Calculating Covariance " << std::endl;;
+                aux::matrix statecov = calcCov(filter->getFilteredState());
+                *debug << " Done " << std::endl;;
                 outputMatrix(*debug, statecov);
                 *debug << "\n\n";
 
                 aux::matrix stddev;
                 try {
                     stddev = calcStdDev(filter->getFilteredState());
-                } catch(...) {
+                } catch(int err){
+                    filter->getFilteredState().setWeight(0, 0);
+                    statecov = calcCov(filter->getFilteredState());
+                    
                     if(rank == 0){
                         *debug << "Ess: " << ess << endl;
                         *debug << "Mu: ";
                         outputVector(*debug, tmpmu);
                         *debug << endl << "Cov: ";
                         outputMatrix(*debug, statecov);
-                        *debug << endl;
+                        *debug << endl << err << endl;
                     }
                     status = ERROR;
                     break;
@@ -406,7 +435,7 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
             dt_l(longstep), dt_s(shortstep), 
             disctime_l(0), disctime_s(0), status(UNSTARTED), method(method_p),
             measure(measurements), stim(activations), 
-            ESS_THRESH(50 > .25*numparticles ? 50 : .25*numparticles)
+            ESS_THRESH(50 > .5*numparticles ? 50 : .25*numparticles)
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
