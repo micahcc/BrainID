@@ -7,6 +7,7 @@
 #include "KDTreeNode.hpp"
 #include "DistributedPartitioner.hpp"
 
+#include "boost/mpi/operations.hpp"
 #include "boost/numeric/bindings/traits/ublas_matrix.hpp"
 #include "boost/numeric/bindings/traits/ublas_vector.hpp"
 #include "boost/numeric/bindings/traits/ublas_symmetric.hpp"
@@ -19,13 +20,13 @@ using namespace indii::ml::aux;
 namespace ublas = boost::numeric::ublas;
 namespace lapack = boost::numeric::bindings::lapack;
 
-DiracMixturePdf::DiracMixturePdf() : MixturePdf<DiracPdf>(0), sigma(0),
+DiracMixturePdf::DiracMixturePdf() : MixturePdf<DiracPdf>(0), 
     Zsigma(0), haveSigma(false) {
   //
 }
 
 DiracMixturePdf::DiracMixturePdf(Pdf& o, const unsigned int P) :
-    MixturePdf<DiracPdf>(o.getDimensions()), sigma(o.getDimensions()),
+    MixturePdf<DiracPdf>(o.getDimensions()), 
     Zsigma(o.getDimensions()), haveSigma(false) {
   unsigned int i;
 
@@ -35,7 +36,7 @@ DiracMixturePdf::DiracMixturePdf(Pdf& o, const unsigned int P) :
 }
 
 DiracMixturePdf::DiracMixturePdf(const unsigned int N) :
-    MixturePdf<DiracPdf>(N), sigma(N), Zsigma(N), haveSigma(false) {
+    MixturePdf<DiracPdf>(N), Zsigma(N), haveSigma(false) {
   //
 }
 
@@ -71,10 +72,6 @@ double DiracMixturePdf::calculateDistributedEss() {
   ess = W*W / boost::mpi::all_reduce(world, ess, std::plus<double>());
 
   return ess;
-}
-
-void DiracMixturePdf::standardise() {
-  standardise(getExpectation(), getStandardDeviation());
 }
 
 void DiracMixturePdf::standardise(const vector& mu,
@@ -119,55 +116,49 @@ void DiracMixturePdf::setDimensions(const unsigned int N,
   MixturePdf<DiracPdf>::setDimensions(N, preserve);
 
   Zsigma.resize(N, false);
-  sigma.resize(N, false);
 }
-
-const symmetric_matrix& DiracMixturePdf::getCovariance() {
-  if (!haveSigma) {
-    calculateCovariance();
-  }
-  return sigma;
-}
-
-symmetric_matrix DiracMixturePdf::getDistributedCovariance() {
-  boost::mpi::communicator world;
-  const unsigned int size = world.size();
   
-  if (size == 1) {
-    return getCovariance();
-  } else {
+symmetric_matrix& DiracMixturePdf::getCovariance()
+{
+    sigma = calculateCovariance(getExpectation());
+    return sigma;
+}
+
+symmetric_matrix DiracMixturePdf::calculateCovariance(const vector& mu) {
+  /* pre-condition */
+  assert (getTotalWeight() > 0.0);
+  unsigned int i;
+
+  symmetric_matrix zsigma = zero_matrix(mu.size(), mu.size());
+  for (i = 0; i < getSize(); i++) {
+    if(getWeight(i) > 0)
+        noalias(zsigma) += getWeight(i) * outer_prod(get(i)-mu, get(i)-mu);
+  }
+  return zsigma;
+}
+
+symmetric_matrix DiracMixturePdf::getDistributedCovariance() 
+{
+    boost::mpi::communicator world;
+    const unsigned int size = world.size();
+
+    /* If any Mean Changes, then all the covariances change */
+    bool distHaveMu = boost::mpi::all_reduce(world, haveMu, std::logical_and<bool>());
+    if(!distHaveMu) haveSigma = false;
+    aux::vector mu = getDistributedExpectation();
+    
     if (getTotalWeight() > 0.0) {
-      if (!haveSigma) {
-        calculateCovariance();
-      }
+        if (!haveSigma) {
+            Zsigma = calculateCovariance(mu);
+        }
     } else {
-      Zsigma.clear();
+        Zsigma.clear();
     }
-    
+    haveSigma = true;
+
     matrix tmp = boost::mpi::all_reduce(world, matrix(Zsigma),
-        std::plus<matrix>())/getDistributedTotalWeight();
-    
+                std::plus<matrix>())/getDistributedTotalWeight();
     return ublas::symmetric_adaptor<matrix, ublas::lower>(tmp);
-  }
-}
-
-lower_triangular_matrix DiracMixturePdf::getStandardDeviation() {
-  const unsigned int N = this->getDimensions();
-  lower_triangular_matrix sd(N,N);
-  
-  if (getSize() > 1) {
-    symmetric_matrix sigma(getCovariance());
-    int err;
-
-    err = lapack::pptrf(sigma);
-    assert (err == 0);
-    noalias(sd) = ublas::triangular_adaptor<symmetric_matrix,
-        ublas::lower>(sigma);
-  } else {
-    sd.clear();
-  }
-
-  return sd;
 }
 
 lower_triangular_matrix DiracMixturePdf::getDistributedStandardDeviation() {
@@ -175,9 +166,7 @@ lower_triangular_matrix DiracMixturePdf::getDistributedStandardDeviation() {
   const unsigned int size = world.size();
   lower_triangular_matrix sd_d(N,N);
   
-  if (size == 1) {
-    return getStandardDeviation();
-  } else if (getDistributedSize() > 1) {
+  if (getDistributedSize() > 1) {
     symmetric_matrix sigma_d(getDistributedCovariance());
     int err;
     
@@ -267,20 +256,6 @@ void DiracMixturePdf::redistributeBySpace() {
 void DiracMixturePdf::dirty() {
   MixturePdf<DiracPdf>::dirty();
   haveSigma = false;
-}
-
-void DiracMixturePdf::calculateCovariance() {
-  /* pre-condition */
-  assert (getTotalWeight() > 0.0);
-  const vector& mu = getExpectation();
-  unsigned int i;
-
-  Zsigma.clear();
-  for (i = 0; i < getSize(); i++) {
-    noalias(Zsigma) += getWeight(i) * outer_prod(get(i)-mu, get(i)-mu);
-  }
-  noalias(sigma) = Zsigma/getTotalWeight();
-  haveSigma = true;
 }
 
 KDTreeNode* DiracMixturePdf::distributedBuild(

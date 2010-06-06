@@ -73,12 +73,6 @@ public:
   double calculateDistributedEss();
 
   /**
-   * Standardise components on the local node to zero mean and identity
-   * covariance.
-   */
-  virtual void standardise();
-
-  /**
    * Standardise components on the local node using given mean and 
    * standard deviation.
    *
@@ -106,14 +100,18 @@ public:
   virtual void setDimensions(const unsigned int N,
       const bool preserve = false);
 
-  virtual const symmetric_matrix& getCovariance();
-
   /**
    * Get the covariance of the full distribution.
    *
    * @return \f$\Sigma\f$; covariance of the full distribution.
    */
   symmetric_matrix getDistributedCovariance();
+  
+  /** 
+   * Calculate covariance on the local node, NOT CACHED, Zsigma is for 
+   *    the distributedMean, not the local mean.
+   */
+  symmetric_matrix& getCovariance();
 
   /**
    * Get the standard deviation of the distribution.
@@ -160,11 +158,11 @@ private:
    * Is the last calculated covariance up to date?
    */
   bool haveSigma;
-
-  /**
-   * Calculate covariance from current components.
+ 
+  /** 
+   * Helper function to getDistributedCovariance()
    */
-  void calculateCovariance();
+  symmetric_matrix calculateCovariance(const vector& mu);
 
   /**
    * Build kd tree node for redistributeBySpace().

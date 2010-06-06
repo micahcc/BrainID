@@ -12,19 +12,19 @@ SET(CMAKE_VERBOSE_MAKEFILE 1)
 INCLUDE_DIRECTORIES(
 ${brainid_SOURCE_DIR}/code/include 
 ${BOOST_INCLUDE_DIRS}
-${dysii_INCLUDE_DIRS} 
 ${MPI_INCLUDE_DIRS} 
 ${GSL_INCLUDE_DIRS}
 ${brainid_SOURCE_DIR}/code/utils
+${dysii_INCLUDE_DIRS}
 )
 
 LINK_DIRECTORIES(
     ${brainid_SOURCE_DIR}/code/utils/vul
     ${brainid_SOURCE_DIR}/code 
     ${BOOST_LIBRARY_DIRS} 
-    ${dysii_LIBRARY_DIRS} 
     ${MPI_LIBRARY_DIRS} 
     ${GSL_LIBRARY_DIRS}
+    ${dysii_LIBRARY_DIRS}
 )
 
 ADD_LIBRARY(modNiftiImageIO modNiftiImageIO.cxx)

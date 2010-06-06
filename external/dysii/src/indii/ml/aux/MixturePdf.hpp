@@ -370,7 +370,7 @@ public:
    */
   virtual void dirty();
 
-private:
+protected:
   /**
    * Node property.
    */
@@ -617,8 +617,12 @@ inline const std::vector<double>&
 template <class T>
 void indii::ml::aux::MixturePdf<T>::setWeights(const vector& ws) {
   /* pre-condition */
-  assert (this->ws.size() == ws.size());
-
+  assert (getSize() == ws.size());
+    
+  if(ws.size() != this->ws.size()) {
+    this->ws.resize(ws.size(), false);
+    this->Ws.resize(ws.size(), false);
+  }
   this->ws = ws;
 
   /* recalculate cumulative weights */
@@ -1142,9 +1146,7 @@ void indii::ml::aux::MixturePdf<T>::gatherToNode(unsigned int dst)
   std::vector< aux::vector > wsFull;
 
   #ifndef NDEBUG
-  unsigned int initialSize = input.getDistributedSize();
-  aux::vector initialMu = input.getDistributedExpectation();
-  aux::matrix initialCov = input.getDistributedCovariance();
+  unsigned int initialSize = getDistributedSize();
   #endif 
 
   /* if rank is the destination then receive from all the other nodes */
@@ -1169,9 +1171,7 @@ void indii::ml::aux::MixturePdf<T>::gatherToNode(unsigned int dst)
   }
   
   #ifndef NDEBUG
-  unsigned int endSize = input.getDistributedSize();
-  aux::vector endMu = input.getDistributedExpectation();
-  aux::matrix endCov = input.getDistributedCovariance();
+  unsigned int endSize = getDistributedSize();
   assert (initialSize == endSize);
   #endif 
   dirty();
@@ -1189,7 +1189,6 @@ void indii::ml::aux::MixturePdf<T>::calculateExpectation() {
   assert (getTotalWeight() > 0.0);
 
   unsigned int i;
-
   Zmu.clear();
   for (i = 0; i < xs.size(); i++) {
     noalias(Zmu) += ws(i) * xs[i].getExpectation();

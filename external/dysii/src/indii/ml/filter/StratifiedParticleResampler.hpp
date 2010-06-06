@@ -2,6 +2,7 @@
 #define INDII_ML_FILTER_STRATIFIEDPARTICLERESAMPLER_HPP
 
 #include "ParticleResampler.hpp"
+#include <gsl/gsl_randist.h>
 
 namespace indii {
   namespace ml {
@@ -58,13 +59,12 @@ public:
   /**
    * Set to use DiracMixture's function for drawing particle
    */
-  void useDiracMixture() { method = MIXTURE;} ; 
+//  void useDiracMixture() { method = MIXTURE;} ; 
 
   /**
    * Use the the custom random generation method
    */
-  void useCustom1() { method = CUSTOM1; };
-  void useCustom2() { method = CUSTOM2; };
+  void useCustom() { method = CUSTOM; };
 
 
   /**
@@ -93,18 +93,18 @@ private:
    *            using binary search on the cumulative weights O(NlogN)
    */
   unsigned int method;
-  enum {DETERMINISTIC, MIXTURE, CUSTOM1, CUSTOM2};
+  enum {DETERMINISTIC, MIXTURE, CUSTOM };
   
   /**
    * persistent random number generation, to prevent re-seeding
    */
   gsl_rng* rng;
 
-  void resample_custom(const indii::ml::aux::DiracMixturePdf& p,
+  void resample_custom(indii::ml::aux::DiracMixturePdf& p,
               indii::ml::aux::DiracMixturePdf& resampled);
-  void resample_mixture(const indii::ml::aux::DiracMixturePdf& p,
+  void resample_mixture(indii::ml::aux::DiracMixturePdf& p,
               indii::ml::aux::DiracMixturePdf& resampled);
-  void resample_deterministic(const indii::ml::aux::DiracMixturePdf& p,
+  void resample_deterministic(indii::ml::aux::DiracMixturePdf& p,
               indii::ml::aux::DiracMixturePdf& resampled);
 
 };

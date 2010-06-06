@@ -13,6 +13,7 @@ using namespace indii::ml::filter;
 StratifiedParticleResampler::StratifiedParticleResampler(
     const unsigned int P) : P(P), method(CUSTOM) 
 {
+    boost::mpi::communicator world;
     const unsigned int rank = world.rank();
     const unsigned int size = world.size();
     rng = gsl_rng_alloc(gsl_rng_ranlxd2);
@@ -42,12 +43,13 @@ aux::DiracMixturePdf StratifiedParticleResampler::resample(
     switch(method) {
         case DETERMINISTIC:
             resample_deterministic(p, resampled);
+        break;
         case MIXTURE:
             resample_mixture(p, resampled);
-        case CUSTOM1:
-            resample_custom1(p, resampled);
-        case CUSTOM2:
-            resample_custom2(p, resampled);
+        break;
+        case CUSTOM:
+            resample_custom(p, resampled);
+        break;
     }
     return resampled;
 }
@@ -61,7 +63,8 @@ aux::DiracMixturePdf StratifiedParticleResampler::resample(
 */
 int search(const std::vector<double>& arr, double term)
 {
-    std::vector<double>::iterator pos = lower_bound(arr.begin(), arr.end(), term);
+    std::vector<double>::const_iterator pos = lower_bound(arr.begin(), 
+                arr.end(), term);
     int index = pos - arr.begin();
 
     //deal with 0 weighted points (in which case arr[i-1]=arr[i], but 
@@ -73,7 +76,7 @@ int search(const std::vector<double>& arr, double term)
 }
 
 void StratifiedParticleResampler::resample_custom(
-            const aux::DiracMixturePdf& p, aux::DiracMixturePdf& resampled) 
+            aux::DiracMixturePdf& p, aux::DiracMixturePdf& resampled) 
 {
   boost::mpi::communicator world;
   const unsigned int rank = world.rank();
@@ -86,29 +89,30 @@ void StratifiedParticleResampler::resample_custom(
 
   /* Prep old distribution */
   p.gatherToNode(0);
-  const std::vector<double>& Ws = p.getCumulativeWeights();
+  if(rank == 0) {
+    const std::vector<double>& Ws = p.getCumulativeWeights();
 
-  /* Create Containers for new distribution */
-  aux::vector ws_r(P, 1./P);
-  std::vector<aux::vector>& xs_r = resampled.getAll();
-  xs_r.resize(P, false);
-  
-  int index = 0;
-  for(unsigned int i = 0 ; i < P ; i++) {
-    tmp = gsl_ran_uniform(rng, 0, Ws.back());
-    index = search(Ws, tmp);
+    /* Create Containers for new distribution */
+    aux::vector ws_r(P, 1./P);
+    std::vector<aux::DiracPdf>& xs_r = resampled.getAll();
+    xs_r.resize(P, false);
+    
+    int index = 0;
+    for(unsigned int i = 0 ; i < P ; i++) {
+      index = search(Ws, gsl_ran_flat(rng, 0, Ws.back()));
 
-    xs_r[i] = p.get(index);
-    assert(p.getWeight(index) != 0);
+      xs_r[i] = p.get(index);
+      assert(p.getWeight(index) != 0);
+    }
+
+    //components are already set, xs_r is a reference to it
+    resampled.setWeights(ws_r);
   }
-
-  //components are already set, xs_r is a reference to it
-  resampled.setWeights(ws_r);
   resampled.redistributeBySize();
 }
 
 void StratifiedParticleResampler::resample_mixture(
-            const aux::DiracMixturePdf& p, aux::DiracMixturePdf& resampled) 
+            aux::DiracMixturePdf& p, aux::DiracMixturePdf& resampled) 
 {
   boost::mpi::communicator world;
   const unsigned int rank = world.rank();
@@ -118,11 +122,14 @@ void StratifiedParticleResampler::resample_mixture(
   if (P == 0) {
     P = p.getDistributedSize();
   }
+  std::vector<aux::vector> samples = p.distributedSample(P/size);
 
   /* Create Containers for new distribution */
   aux::vector ws_r(P, 1./P);
-  std::vector<aux::vector>& xs_r = resampled.getAll();
-  xs_r = p.distributedSample(P);
+  std::vector<aux::DiracPdf>& xs_r = resampled.getAll();
+  xs_r.resize(P, false);
+
+  copy(samples.begin(), samples.end(), xs_r.begin());
   
   //components are already set, xs_r is a reference to it
   resampled.setWeights(ws_r);
@@ -130,7 +137,7 @@ void StratifiedParticleResampler::resample_mixture(
 }
 
 void StratifiedParticleResampler::resample_deterministic(
-            const aux::DiracMixturePdf& p, aux::DiracMixturePdf& resampled) {
+            aux::DiracMixturePdf& p, aux::DiracMixturePdf& resampled) {
   boost::mpi::communicator world;
   const unsigned int rank = world.rank();
   const unsigned int size = world.size();
