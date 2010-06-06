@@ -1,0 +1,262 @@
+------------------------------------------------------------------------
+dysii Dynamic Systems Library Installation Guide
+  http://www.indii.org/software/dysii/
+
+Lawrence Murray
+  lawrence@indii.org
+------------------------------------------------------------------------
+
+1. Introduction
+2. Environment
+3. Requirements
+4. Installation
+5. Compiling programs using the library
+6. Guide to installing Boost libraries
+7. Tips
+
+
+1. Introduction
+------------------------------------------------------------------------
+
+This guide provides a detailed overview of the installation of dysii. Its
+focus is on getting things working for development, rather than getting things
+working fast for deployment, although some performance tips are given in the
+final section.
+
+
+2. Environment
+------------------------------------------------------------------------
+
+Many users will be installing dysii on corporate or university computers where
+they are unable to install system-wide packages. In this case, and in cases
+where more control over such packages is desired, local installation of dysii
+and its requirements to your home directory is recommended.
+
+To set up your environment for this, firstly create a subdirectory within your
+home directory where packages should be installed. This directory will be
+referred to as $PREFIX. For example, to install into $HOME/usr/local use:
+
+PREFIX=$HOME/usr/local
+mkdir -p $PREFIX/bin $PREFIX/include $PREFIX/lib $PREFIX/man
+
+Executables can now be installed into $PREFIX/bin, header files into
+$PREFIX/include, libraries into $PREFIX/lib and manual pages into $PREFIX/man.
+
+In order for other programs, such as your compiler, to be able to find items
+installed here, you will also need to set certain environment variables
+appropriately. How you do this depends on your shell. For bash, for example,
+add the following lines to the .bashrc or .bash_profile file in your home
+directory:
+
+PREFIX=$HOME/usr/local
+export PATH=$PREFIX/bin:$PATH
+export C_INCLUDE_PATH=$PREFIX/include:$C_INCLUDE_PATH
+export CPLUS_INCLUDE_PATH=$PREFIX/include:$CPLUS_INCLUDE_PATH
+export LD_LIBRARY_PATH=$PREFIX/lib:$LD_LIBRARY_PATH
+export MANPATH=$PREFIX/man:$MANPATH
+
+
+3. Requirements
+------------------------------------------------------------------------
+
+The dysii library requires:
+
+  * a BLAS implementation <http://www.netlib.org/blas/>
+  * a LAPACK implementation <http://www.netlib.org/lapack/>
+  * The GSL <http://www.gnu.org/software/gsl/>
+  * Boost 1.35 or later <http://www.boost.org/>
+  * Boost.uBLAS bindings <http://news.tiker.net/software/boost-bindings/>
+  * an MPI implementation, e.g. OpenMPI <http://www.openmpi.org/>
+
+for compilation:
+
+  * Scons <http://www.scons.org/>
+
+and optionally, to build documentation and test results:
+
+  * Doxygen <http://www.doxygen.org/>
+  * Gnuplot <http://www.gnuplot.info/>
+  * ImageMagick <http://www.imagemagick.org/>
+
+With the exception of the Boost.uBLAS bindings, all of these are commonly
+installed with Linux distributions or readily available through package
+managers. Checking your Linux distribution or package manager for these should
+be your first port of call, as this is usually the easiest way to obtain
+them. It is worth noting that you should install both the package itself and
+its headers, sometimes available in a separate *-devel package. Packages that
+are not available via this route will need to be installed yourself.
+
+Note the following caveats:
+
+  * The Boost.uBLAS bindings are not part of Boost itself, and will need to be
+    installed separately.
+  * At the time of writing, the required version of Boost, 1.35, is the very
+    latest. Dysii relies on features in this latest version, and cannot be
+    used with earlier versions. If installing from a package manager, check
+    the version available, and install this later version yourself if
+    necessary.
+    
+Given these issues related to Boost, a detailed guide to its installation,
+specific to dysii, is provided later.
+
+
+4. Installation
+------------------------------------------------------------------------
+
+To compile and install dysii use:
+
+scons
+scons install
+
+This will check for dependencies and compile all sources, then install the
+library and its headers. If installing system wide, root privileges may be
+required for the second command:
+
+sudo scons install
+
+The build script performs a minimal set of checks for the dependencies
+required of the library itself. Note that certain libraries need to be linked
+in when you compile programs using dysii as well (see below). The build script
+does not check for these.
+
+For a list of build options use:
+
+scons -h SKIPCONFIG=yes
+
+Any of these options may be set either by editing the config.py file or by
+specifying them as NAME=VALUE pairs on the command line. For example, to build
+with assertions disabled, either enter:
+
+NDEBUG='yes'
+
+into config.py, or use:
+
+scons install NDEBUG=yes
+
+on the command line.
+
+Options given at the command line override those in config.py, and those in
+config.py override the defaults for your system.
+
+
+5. Compiling programs using the library
+------------------------------------------------------------------------
+
+We recommend basing your own programs on one of the examples available at
+<http://www.indii.org/software/dysii/>. Each of these has a scons based build
+system that should make compilation easier.
+
+If you wish to do things from scratch yourself, link in the dysii library
+along with its dependencies and the standard math library. For example, using
+gcc:
+
+g++ -o myprog -ldysii -lblas -llapack -lboost_serialization-gcc42-mt 
+    -lboost_mpi-gcc42-mt -lgslcblas -lgsl -lm myprog.cpp
+
+Some platforms require an additional -lf2c flag to link in Fortran to C
+bindings for BLAS and LAPACK.
+
+You may need to specify additional flags so that your compiler can find the
+headers and libraries of your chosen MPI implementation. For example, for
+OpenMPI, add `mpic++ -showme:compile` when compiling and `mpic++ -showme:link`
+when linking (keep the back-quotes, each of these commands expands out to a
+list of flags to include).
+
+Note that you will need to link in the correct boost_serialization-* and
+boost_mpi-* libraries for your compiler, along with any other libraries that
+you may use (e.g. boost_program-options-*). The ones in the example command
+above are specific to gcc 4.2.
+
+
+6. Guide to installing Boost libraries
+------------------------------------------------------------------------
+
+dysii requires at least version 1.35 of Boost, the first in which the
+Boost.MPI library was included.
+
+Boost consists of numerous libraries, most of which consist of header files
+only, but some of which require compilation. Those required by dysii are:
+
+  * Boost.Serialization
+  * Boost.MPI
+  * Boost.Random
+  * Boost.uBLAS
+
+While not strictly required, the following are recommended, as they are used
+by some example applications and tests:
+
+  * Boost.FileSystem
+  * Boost.ProgramOptions
+
+Of these, Boost.Random and Boost.uBLAS are headers only. The others require
+compilation.
+
+Boost is large in size and can take a long time to compile. To minimise time
+and space, you may wish to compile only those libraries required by dysii. To
+do this, download and extract a Boost archive, and from within the topmost
+directory use:
+
+./configure --prefix=$PREFIX
+    --with-libraries=serialization,mpi,program_options,filesystem
+
+$PREFIX here is the directory where you wish to install Boost, as set up in
+the Environment section above. For a system-wide install, omit the $PREFIX
+flag to install to the default location. If you have another use for Boost
+besides dysii, omit the --with-libraries flag to compile all libraries. Note
+that this will take substantially longer than compiling only those libraries
+required for dysii.
+
+Next, edit the user-config.jam file, adding the line:
+
+using mpi ;
+
+and compile and install Boost with:
+
+make
+make install
+
+For whatever reason, there are some debugging messages in the 1.35 version of
+Boost.MPI that can get annoying when running dysii applications. Before
+compiling you may wish to remove these. To do so, edit
+boost/mpi/collectives/all_gather.hpp, commenting out all lines beginning with
+std::cerr.
+
+After installation, you may need to create a symlink in your installation
+directory so that dysii can find the header files:
+
+cd $PREFIX/include
+ln -s boost-1_35/boost/ boost
+
+In addition to the Boost.uBLAS library, dysii uses a set of bindings to make
+calls to LAPACK through Boost.uBLAS. These are header files only. Download the
+latest version of the bindings at
+<http://news.tiker.net/software/boost-bindings/> and extract to get a
+boost-bindings directory. Within this directory, install either by using:
+
+./configure --prefix=$PREFIX
+make
+make install
+
+or just by copying the boost subdirectory into your $PREFIX/include directory.
+
+
+7. Tips
+------------------------------------------------------------------------------
+
+  * For compiling with gcc, the -O3 and -funroll-loops optimisation flags are
+    recommended.
+
+  * For production code, compile both dysii and your application using the
+    -DNDEBUG flag to disable assertion checking. This will provide substantial
+    performance improvements, largely by disabling extensive assertion
+    checking in Boost.uBLAS. Keeping assertions enabled during development is
+    strongly recommended, however -- consider developing on small-scale
+    applications with assertions enabled, and once ready, disable assertion
+    checking and scale up.
+    
+  * In the author's experience the Intel compiler has given substantial
+    performance improvements of 10-20% over gcc for dysii
+    applications. Consider also using the Intel Math Kernel Library blas and
+    lapack libraries in this case.
+
+------------------------------------------------------------------------------

@@ -11,7 +11,7 @@ import time
 
 # some user modifiable constants
 CMAKE_URL="http://www.cmake.org/files/v2.8/cmake-2.8.1.tar.gz"
-DYSII_URL="http://www.indii.org/files/dysii/releases/dysii-1.4.0.tar.gz"
+#DYSII_URL="http://www.indii.org/files/dysii/releases/dysii-1.4.0.tar.gz"
 GSL_URL="ftp://ftp.gnu.org/gnu/gsl/gsl-1.9.tar.gz"
 BOOST_URL="http://sodium.resophonic.com/boost-cmake/1.41.0.cmake0/boost-1.41.0.cmake0.tar.gz"
 BINDINGS_URL="http://mathema.tician.de/news.tiker.net/download/software/boost-numeric-bindings/boost-numeric-bindings-20081116.tar.gz"
@@ -98,9 +98,11 @@ def confmakeinst(basedir, instdir, name, url, defstrings = ""):
     return instdir
 
 #defstrings should be a tuple of extra arguments to give to cmake
-def cmakeinst(basedir, instdir, name, url, defstrings = ""):
+def cmakeinst(basedir, instdir, name, url, defstrings = "", src_dir = ""):
     topdir = os.getcwd()
-    src_dir = getep(basedir,name,url)
+
+    if src_dir == "":
+        src_dir = getep(basedir,name,url)
 #    install_dir = join(instdir, name)
     
     print "Building %s" % name
@@ -335,8 +337,9 @@ print prof_ld, prof_bin
 ###########################
 # dysii
 ###########################
-dysii_install_dir = cmakeinst(depdir, depprefix, "dysii", DYSII_URL, ("-DGSL=%s" % gsl_install_dir, \
-            "-DMPI=%s" % mpi_install_dir, "-DBOOST=%s" % boost_install_dir))
+os.chdir(srcpath)
+dysii_install_dir = cmakeinst(srcpath+"/external/", depprefix, "dysii", "", ("-DGSL=%s" % gsl_install_dir, \
+            "-DMPI=%s" % mpi_install_dir, "-DBOOST=%s" % boost_install_dir), srcpath+"/external/dysii")
 if not join(dysii_install_dir, "lib") in prof_ld:
     prof_ld += [join(dysii_install_dir, "lib")];
 print prof_ld, prof_bin
@@ -344,7 +347,6 @@ print prof_ld, prof_bin
 ###########################
 # brainid
 ###########################
-os.chdir(srcpath)
 brainid_build_dir = join(srcpath, "build")
 brainid_install_dir = options.prefix
 try:

@@ -1,0 +1,195 @@
+import os
+import os.path
+
+NAME = 'dysii'
+VERSION = '1.4.0'
+DISTRO = NAME + '-' + VERSION
+
+##
+## Environment
+##
+env = Environment(ENV = os.environ)
+
+# Command line options
+opts = Options('config.py')
+opts.AddOptions(PathOption('PREFIX',
+                           'Installation directory', '/usr'),
+                BoolOption('NDEBUG',
+                           'Set to disable assertion checking', 0),
+                BoolOption('SKIPCONFIG',
+                           'Set to skip configuration', 0),
+                BoolOption('GCC_PCH',
+                           'Set to enable precompiled headers for gcc', 0),
+                ('CXX', 'Compiler', env['CXX']),
+                ('CXXFLAGS', 'Compiler flags', env['CXXFLAGS']),
+                ('LINKFLAGS', 'Linker flags', env['LINKFLAGS'])
+               )
+opts.Update(env)
+
+# Help
+Help(opts.GenerateHelpText(env))
+
+# Macro definitions
+if env['NDEBUG']:
+  env.Append(CPPDEFINES = [ 'NDEBUG' ])
+if env['GCC_PCH']:
+  env.Append(CPPDEFINES = [ 'GCC_PCH' ])
+
+
+##
+## Configuration
+##
+if not env.GetOption('clean') and not env['SKIPCONFIG']:
+  conf = Configure(env)
+
+  # Check for math library
+  if not conf.CheckCHeader('math.h'):
+    print 'math library not found'
+    Exit(1)
+
+  # Check for GSL
+  if not conf.CheckCHeader(os.path.join('gsl', 'gsl_odeiv.h')):
+    print 'gsl not found'
+    Exit(1)
+
+  # Check for mpi
+  if not conf.CheckCHeader('mpi.h'):
+    print 'mpi not found'
+    Exit(1)
+
+  # Check for boost ublas
+  if not (conf.CheckCXXHeader(os.path.join('boost', 'numeric', 'ublas',
+      'vector.hpp')) and conf.CheckCXXHeader(os.path.join('boost', 'numeric',
+      'ublas', 'matrix.hpp'))):
+    print 'boost ublas not found'
+    Exit(1)
+
+  # Check for boost bindings
+  if not (conf.CheckCXXHeader(os.path.join('boost', 'numeric', 'bindings',
+      'traits', 'ublas_vector.hpp')) and
+      conf.CheckCXXHeader(os.path.join('boost','numeric', 'bindings',
+      'traits', 'ublas_matrix.hpp'))):
+    print 'boost ublas bindings not found'
+    Exit(1)
+
+  # Check for boost serialization
+  if not conf.CheckCXXHeader(os.path.join('boost', 'serialization',
+      'serialization.hpp')):
+    print 'boost serialization not found'
+    Exit(1)
+
+  # Check for boost mpi
+  if not conf.CheckCXXHeader(os.path.join('boost', 'mpi.hpp')):
+    print 'boost mpi not found'
+    Exit(1)
+
+  conf.Finish()
+
+
+##
+## Build
+##
+
+# Compile
+precompile = []
+objects = []
+headers = []
+releases = []
+
+Export(['env', 'precompile', 'objects', 'headers', 'releases'])
+env.SConscript(os.path.join('src', 'SConscript'))
+
+# Build library
+library = env.StaticLibrary(target = NAME, source = objects)
+
+
+##
+## Install
+##
+
+# Install library
+to = os.path.join(env['PREFIX'], 'lib')
+installLibrary = env.Install(to, library)
+
+# Install headers
+oldDir = os.path.join(os.getcwd(), 'src')
+newDir = os.path.join(env['PREFIX'], 'include')
+installHeaders = []
+for header in headers:
+  to = header.replace(oldDir, newDir)
+  installHeaders.append(env.InstallAs(to, header))
+
+
+##
+## Release
+##
+
+# Add meta files to release
+releases += ['README.txt',
+             'INSTALL.txt',
+             'LICENSE.txt',
+             'VERSION.txt',
+             'Doxyfile',
+             'SConstruct',
+             'config.py',
+             os.path.join('tests', 'README.txt'),
+             os.path.join('tests', 'filter', 'run.sh'),
+             os.path.join('tests', 'filter', 'Doxyfile'),
+             os.path.join('tests', 'filter', 'SConstruct'),
+             os.path.join('tests', 'filter', 'config.py'),
+             os.path.join('tests', 'filter', 'hosts'),
+             os.path.join('tests', 'pdf', 'run.sh'),
+             os.path.join('tests', 'pdf', 'Doxyfile'),
+             os.path.join('tests', 'pdf', 'SConstruct'),
+             os.path.join('tests', 'pdf', 'config.py'),
+             os.path.join('tests', 'pdf', 'hosts'),
+             os.path.join('tests', 'sde', 'run.sh'),
+             os.path.join('tests', 'sde', 'Doxyfile'),
+             os.path.join('tests', 'sde', 'SConstruct'),
+             os.path.join('tests', 'sde', 'config.py')
+             ]
+
+# Add test sources to release
+for test in [ os.path.join('tests', 'filter', 'src'),
+    os.path.join('tests', 'pdf', 'src'),
+    os.path.join('tests', 'sde', 'src') ]:
+  for file in os.listdir(test):
+    if file.endswith('.cpp') or file.endswith('.hpp'):
+      releases.append(os.path.join(test, file))
+
+# Add test images to release
+for test in [ os.path.join('tests', 'filter', 'images'),
+    os.path.join('tests', 'pdf', 'images'),
+    os.path.join('tests', 'sde', 'images') ]:
+  for file in os.listdir(test):
+    if file.endswith('.gnuplot'):
+      releases.append(os.path.join(test, file))
+
+# Copy files to directory
+oldDir = os.getcwd()
+newDir = DISTRO
+for release in releases:
+  # for absolute paths...
+  to = release.replace(oldDir, newDir)
+
+  # for relative paths...
+  if not to.startswith(newDir):
+    to = os.path.join(newDir, to)
+
+  env.Command(to, release, Copy(to, release))
+
+# Tar
+releaseEnv = Environment(TARFLAGS = '-cz')
+tar = releaseEnv.Tar(DISTRO + '.tar.gz', DISTRO)
+
+
+##
+## Build control
+##
+Alias('build', precompile + [ library ])
+Alias('install', [ installLibrary, installHeaders ])
+Alias('release', [ tar ])
+Alias('all', [ 'build', 'release', 'install' ])
+Default('build')
+
+Clean('release', [ Dir(DISTRO) ])

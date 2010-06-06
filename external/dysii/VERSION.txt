@@ -1,0 +1,104 @@
+1.4.0
+------------------------------------------------------------------------
+
+* Decoupled filters and smoothers.
+* Added kernel forward-backward and two-filter smoothers
+  (KernelForwardBackwardSmoother, KernelTwoFilterSmoother) with optimisations.
+* Finished kd tree implementation (KDTree and related classes):
+    - Dual-tree and self-tree evaluations (kde.hpp)
+    - Median partition function (MedianPartitioner)
+    - Redistribution of samples across nodes using kd tree with 
+      distributed median partitioner (DiracMixturePdf::redistributeBySpace()).
+* Added distributed kernel density estimators (KernelDensityPdf,
+  KernelDensityMixturePdf).
+* Improved stochastic adaptive Runge-Kutta:
+    - Permits use of any numerical scheme in GSL.
+    - Improved performance under additive noise using templates.
+* Added text file reader and writer (TextFileReader, TextFileWriter).
+* Corrected autocorrelator (AutoCorrelator).
+* WienerProcess updated to be more convenient for its most common use with
+  numerical solvers for SDE.
+* Some renaming of classes to standardise terminology.
+* Updated build scripts to automatically detect f2c.
+* Performance improvements, including more aggressive inlining and less
+  dependence on virtuals.
+* Minor bug fixes.
+* Added installation guide (INSTALL.txt).
+
+Notes:
+
+1. DeterministicParticleResampler has been renamed
+   StratifiedParticleResampler.
+2. KernelDensityParticleResampler has been renamed
+   RegularisedParticleResampler.
+3. Smoothers are no longer coupled to a filter. Instead, perform a filter,
+   and pass its final result to the constructor of a Smoother object to 
+   initialise a method for the backward pass.
+
+
+1.3.0
+------------------------------------------------------------------------
+
+* Added stochastic adaptive Runge-Kutta.
+* Added density and kernel density (KD) trees.
+
+Notes:
+
+1. The KD tree implementation is preliminary and lacks approximation
+   optimisations. These will be added in future releases.
+
+
+1.2.0
+------------------------------------------------------------------------
+
+* Added auxiliary particle filter.
+* Added generalised resampling strategy framework.
+* Fixed diagonal covariance detection for optimised Gaussian density
+  calculations.
+* Fixed several serialization bugs.
+* Fixed Wiener process variance bug.
+
+Notes:
+
+1. ParticleFilter and ParticleSmoother no longer automatically perform
+   resampling. Instead, calls to filter() or smooth() should be
+   preceeded by calls to resample() or smoothedResample() when
+   resampling is desired, passing in an object representing the chosen
+   resampling strategy, such as
+   indii::ml::filter::DeterministicParticleResampler or
+   indii::ml::filter::AuxiliaryParticleResampler.
+
+
+1.1.0
+------------------------------------------------------------------------
+
+* Overhauled parallel implementations from master-slave to SPMD.
+* Improved particle smoother with further parallelisation.
+* Added distributed storage of mixtures.
+* Added Gaussian mixture distributions.
+* Added serialization of probability distributions.
+* Fixed Wiener process variance bug.
+
+Notes:
+
+1. ParallelParticleFilter and ParallelParticleSmoother have been
+   removed. ParticleFilter and ParticleSmoother now have built-in
+   parallel support. MPI is now required in order to use particle
+   methods, even if only running on a single machine. The rationale
+   behind this is to avoid maintenance of both serial and parallel
+   versions of the same code.
+
+2. The overhauled particle methods take advantage of the new
+   distributed storage for mixtures, so that particles are distributed
+   across all nodes rather than stored on one central node as
+   before. The parallel implementation of the forward-backward
+   particle smoother also now parallelises multiplications involving
+   the alpha matrix.
+
+3. SampledPdf has been removed in favour of the new DiracMixturePdf.
+
+
+1.0.0
+------------------------------------------------------------------------
+
+* First release

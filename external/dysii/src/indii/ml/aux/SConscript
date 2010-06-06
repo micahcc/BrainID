@@ -1,0 +1,37 @@
+import os
+import os.path
+
+Import(['env', 'precompile', 'objects', 'headers', 'releases'])
+
+# Precompile aux.hpp
+if env['GCC_PCH']:
+  defines = ''
+  if env.has_key('CPPDEFINES'):
+    for define in env['CPPDEFINES']:
+      defines += ' -D' + define
+  precompile.append(env.Command('aux.hpp.gch', 'aux.hpp', env['CXX'] + " " +
+      env['CXXFLAGS'] + defines +
+      " -xc++-header -o $TARGET $SOURCES"))
+
+# Build list of source files and subdirectories
+cwd = os.getcwd()
+files = os.listdir(cwd)
+for file in files:
+  path = os.path.join(cwd, file)
+
+  if os.path.isdir(file):
+    file = os.path.join(file, 'SConscript')
+    if os.path.isfile(file):
+      env.SConscript(file)
+  elif os.path.isfile(file):
+    if file.endswith('.cpp') or file.endswith('.c'):
+      objects.append(env.StaticObject(file))
+      releases.append(path)
+    elif file.endswith('.hpp') or file.endswith('.h'):
+      headers.append(path)
+      releases.append(path)
+      if env['GCC_PCH']:
+        # aux.hpp not scanned when compiled, so need to record dependencies
+        env.Depends('aux.hpp.gch', file)
+    elif file == 'SConscript':
+      releases.append(path)

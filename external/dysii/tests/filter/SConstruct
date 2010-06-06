@@ -1,0 +1,135 @@
+import os
+import os.path
+
+##
+## Environment
+##
+env = Environment(ENV = os.environ)
+
+# Command line options
+opts = Options('config.py')
+opts.AddOptions(BoolOption('NDEBUG',
+                           'Set to disable assertion checking', 0),
+                BoolOption('SKIPCONFIG',
+                           'Set to skip configuration', 0),
+                ('CXX', 'Compiler', env['CXX']),
+                ('CXXFLAGS', 'Compiler flags', env['CXXFLAGS']),
+                ('LINKFLAGS', 'Linker flags', env['LINKFLAGS']),
+                ('BOOST_SERIALIZATION', 'Name of boost serialization library',
+                    'boost_serialization'),
+                ('BOOST_MPI', 'Name of boost mpi library',
+                    'boost_mpi')
+               )
+opts.Update(env)
+if env['NDEBUG']:
+  env.Append(CPPDEFINES = 'NDEBUG')
+
+# Help
+Help(opts.GenerateHelpText(env))
+
+
+##
+## Libraries
+##
+libs = [ 'dysii', 'blas', 'lapack', env['BOOST_SERIALIZATION'], env['BOOST_MPI'], 'gslcblas', 'gsl', 'm' ]
+
+
+##
+## Configuration
+##
+if not env.GetOption('clean') and not env['SKIPCONFIG']:
+  conf = Configure(env)
+
+  # Check for dysii
+  if not conf.CheckLib('dysii'):
+    print 'dysii not found'
+    Exit(1)
+
+  # Check for f2c
+  if conf.CheckLib('f2c'):
+    print 'including f2c'
+    libs.append('f2c')
+  else:
+    print 'assuming unneeded'
+
+  # Check for BLAS
+  if not conf.CheckLib('blas'):
+    print 'blas not found'
+    Exit(1)
+
+  # Check for LAPACK
+  if not conf.CheckLib('lapack'):
+    print 'lapack not found'
+    Exit(1)
+
+  # Check for GSL BLAS
+  if not conf.CheckLibWithHeader('gslcblas',
+      os.path.join('gsl', 'gsl_cblas.h'), 'C'):
+    print 'gsl not found'
+    Exit(1)
+
+  # Check for GSL
+  if not conf.CheckLibWithHeader('gsl',
+      os.path.join('gsl', 'gsl_odeiv.h'), 'C'):
+    print 'gsl not found'
+    Exit(1)
+
+  # Check for math library
+  if not conf.CheckLibWithHeader('m', 'math.h', 'C'):
+    print 'math library not found'
+    Exit(1)
+
+  # Check for mpi
+  if not conf.CheckCXXHeader('mpi.h') or not conf.CheckFunc('MPI_Init'):
+    print 'mpi not found'
+    Exit(1)
+
+  # Check for boost ublas
+  if not (conf.CheckCXXHeader(os.path.join('boost', 'numeric', 'ublas',
+      'vector.hpp')) and conf.CheckCXXHeader(os.path.join('boost', 'numeric',
+      'ublas', 'matrix.hpp'))):
+    print 'boost ublas not found'
+    Exit(1)
+
+  # Check for boost bindings
+  if not (conf.CheckCXXHeader(os.path.join('boost', 'numeric', 'bindings',
+      'traits', 'ublas_vector.hpp')) and
+      conf.CheckCXXHeader(os.path.join('boost','numeric', 'bindings',
+      'traits', 'ublas_matrix.hpp'))):
+    print 'boost ublas bindings not found'
+    Exit(1)
+
+  # Check for boost serialization
+  if not conf.CheckLibWithHeader(env['BOOST_SERIALIZATION'], os.path.join('boost',
+      'serialization', 'base_object.hpp'), 'C++'):
+    print 'boost serialization not found'
+    Exit(1)
+
+  # Check for boost mpi
+  if not conf.CheckLibWithHeader(env['BOOST_MPI'], os.path.join('boost',
+      'mpi.hpp'), 'C++'):
+    print 'boost mpi not found'
+    Exit(1)
+
+  conf.Finish()
+
+
+##
+## Build
+##
+
+MobileRobot = env.Object(source = 'src/MobileRobot.cpp')
+MobileRobotUnscentedKalmanFilterModel = env.Object(source = 'src/MobileRobotUnscentedKalmanFilterModel.cpp')
+MobileRobotParticleFilterModel = env.Object(source = 'src/MobileRobotParticleFilterModel.cpp')
+
+KalmanFilterHarness = env.Program(target = 'KalmanFilterHarness', source = [ 'src/KalmanFilterHarness.cpp', MobileRobot ], LIBS = libs)
+RauchTungStriebelHarness = env.Program(target = 'RauchTungStriebelHarness', source = [ 'src/RauchTungStriebelHarness.cpp', MobileRobot ], LIBS = libs)
+KalmanSmootherHarness = env.Program(target = 'KalmanSmootherHarness', source = [ 'src/KalmanSmootherHarness.cpp', MobileRobot ], LIBS = libs)
+UnscentedTransformationHarness = env.Program(target = 'UnscentedTransformationHarness', source = [ 'src/UnscentedTransformationHarness.cpp' ], LIBS = libs)
+UnscentedKalmanFilterHarness = env.Program(target = 'UnscentedKalmanFilterHarness', source = [ 'src/UnscentedKalmanFilterHarness.cpp', MobileRobot, MobileRobotUnscentedKalmanFilterModel ], LIBS = libs)
+UnscentedKalmanSmootherHarness = env.Program(target = 'UnscentedKalmanSmootherHarness', source = [ 'src/UnscentedKalmanSmootherHarness.cpp', MobileRobot, MobileRobotUnscentedKalmanFilterModel ], LIBS = libs)
+ParticleFilterHarness = env.Program(target = 'ParticleFilterHarness', source = [ 'src/ParticleFilterHarness.cpp', MobileRobot, MobileRobotParticleFilterModel ], LIBS = libs)
+ParticleSmootherHarness = env.Program(target = 'ParticleSmootherHarness', source = [ 'src/ParticleSmootherHarness.cpp', MobileRobot, MobileRobotParticleFilterModel ], LIBS = libs)
+KernelForwardBackwardSmootherHarness = env.Program(target = 'KernelForwardBackwardSmootherHarness', source = [ 'src/KernelForwardBackwardSmootherHarness.cpp', MobileRobot, MobileRobotParticleFilterModel ], LIBS = libs)
+KernelTwoFilterSmootherHarness = env.Program(target = 'KernelTwoFilterSmootherHarness', source = [ 'src/KernelTwoFilterSmootherHarness.cpp', MobileRobot, MobileRobotParticleFilterModel ], LIBS = libs)
+

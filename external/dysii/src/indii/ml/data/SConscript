@@ -1,0 +1,24 @@
+import os
+import os.path
+
+Import(['env', 'objects', 'headers', 'releases'])
+
+# Build list of source files and subdirectories
+cwd = os.getcwd()
+files = os.listdir(cwd)
+for file in files:
+  path = os.path.join(cwd, file)
+
+  if os.path.isdir(file):
+    file = os.path.join(file, 'SConscript')
+    if os.path.isfile(file):
+      env.SConscript(file)
+  elif os.path.isfile(file):
+    if file.endswith('.cpp') or file.endswith('.c'):
+      objects.append(env.StaticObject(file))
+      releases.append(path)
+    elif file.endswith('.hpp') or file.endswith('.h'):
+      headers.append(path)
+      releases.append(path)
+    elif file == 'SConscript':
+      releases.append(path)
