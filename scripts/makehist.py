@@ -9,6 +9,7 @@ import scipy.stats
 from scipy.stats.distributions import gamma
 import scipy.io as io
 from bar import histo, plothisto
+from math import isinf
 
 DIVIDER =512
 HRFDIVIDER = 16
@@ -137,6 +138,8 @@ for t in range(0, histimg.get_header()['dim'][4]):
     count = histimg.get_header()['dim'][6] - 2
     width = (upper-lower)/count
     print lower, upper, count, width
+    if isinf(lower) :
+        print histimg.get_data()[0,0,0,t, PARAM, :]
     histinput = [[] for j in range(0, histimg.get_header()['dim'][6]-2)]
     for j in range(0, histimg.get_header()['dim'][6]-2):
         histinput[j] = [histimg.get_data()[0,0,0,t, PARAM, j], lower+width*j, \
@@ -157,6 +160,13 @@ plothisto(histograms, TR)
 #            for ii in range(0, len(real.get_data()[0,0,0,:]))]
     
 P.plot([i*TR for i in range(actual.get_header()['dim'][4])], actual.get_data()[0,0,0,:], '-*');
+
+try:
+    truth = nibabel.load(sys.argv[1] + "truth.nii.gz")
+    print "Ground truth found"
+    P.plot([i*TR for i in range(truth.get_header()['dim'][4])], truth.get_data()[0,0,0,:], 'g-+');
+except:
+    print "No ground truth available, if you have some put it in ", sys.argv[1] + "truth.nii.gz"
 #P.plot(initest)
 #P.plot(measmu.get_data()[0,0,0,:]);
 #P.plot(final)

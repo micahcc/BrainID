@@ -30,8 +30,12 @@ class histo:
 
     def plot(self, pos, Width):
 #        print "Plotting"
+        pred = max([comp.weight for comp in self.elems])
         for elem in self.elems:
-            c = tuple([cpos*(1-elem.weight) for cpos in basecolor])
+            if elem.weight == pred:
+                c = [0, 1, 0]
+            else:
+                c = tuple([cpos*(1-elem.weight) for cpos in basecolor])
             plt.broken_barh([(pos, Width)], elem.seq, color=c, edgecolor="w")
     
     def __str__(self):

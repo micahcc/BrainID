@@ -323,7 +323,8 @@ itk::Image<DataType, 1>::Pointer getCanonical(std::vector<Activation> stim, doub
     conv->SetInput(inputs);
     conv->Update();
     conv->GetOutput()->SetSpacing(&dt);
-    conv->GetOutput()->SetOrigin(&hrfParam[6]);
+    double tmp = -hrfParam[6];
+    conv->GetOutput()->SetOrigin(&tmp);
     {
         itk::ImageFileWriter< itk::Image<DataType, 1> >::Pointer writer = 
                     itk::ImageFileWriter< itk::Image<DataType, 1> >::New();
@@ -332,11 +333,6 @@ itk::Image<DataType, 1>::Pointer getCanonical(std::vector<Activation> stim, doub
         writer->Update();
     }
    
-    //debug
-    if(conv->GetOutput()->GetRequestedRegion().GetSize()[0] != 
-                inputs->GetRequestedRegion().GetSize()[0])
-        throw "WTH?";
-    
     //downsample
     itk::Image<DataType, 1>::SizeType outsize = {{(int)((stop - start)/TR)}};
     typedef itk::ResampleImageFilter< itk::Image<DataType, 1>, 

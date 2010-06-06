@@ -169,8 +169,8 @@ int main(int argc, char* argv[])
     vul_arg<int> a_smart("-S", "Use \"smart\" knots based on less active regions"
                 , false);
     
-    vul_arg<unsigned> a_num_particles("-p", "Number of particles.", 3000);
-    vul_arg<unsigned> a_divider("-d", "Intermediate Steps between samples.", 128);
+    vul_arg<unsigned int> a_num_particles("-p", "Number of particles.", 3000);
+    vul_arg<unsigned int> a_divider("-d", "Intermediate Steps between samples.", 128);
     vul_arg<string> a_stimfile("-s", "file containing \"<time> <value>\""
                 "pairs which give the time at which input changed", "");
     vul_arg<int> a_flat("-f", "Flatten prior?", true);

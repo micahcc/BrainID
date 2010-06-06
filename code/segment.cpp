@@ -875,16 +875,21 @@ int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType inde
             level[0] = tmp[1];
         }
     }
-    
+   
+    posmin = 0;
+    posmin2 = 0;
     for(index[3] = knots.back()-1 ; index[3] < knots.back()+2 ; index[3]++) 
         tmp[index[3]-knots.back()+1] = fmri_img->GetPixel(index);
     std::sort(tmp.begin(), tmp.end());
     for(index[3] = knots.back()-1 ; index[3] < knots.back()+2 ; index[3]++) {
-        if(tmp[1] - fmri_img->GetPixel(index) < .0001) {
-            xpos[knots.size()-1] = index[3];
-            level[knots.size()-1] = tmp[1];
-        }
+        if(tmp[1] > fmri_img->GetPixel(index))
+            posmin = index[3];
+        if(tmp[1] == fmri_img->GetPixel(index)) 
+            posmin2 = index[3];
     }
+    xpos[knots.size()-1] = posmin;
+    index[3] = posmin;
+    level[knots.size()-1] = fmri_img->GetPixel(index);
 
     //set all the other knots based on the lower 2/5
     for(unsigned int ii = 1 ; ii < knots.size()-1 ; ii++) {
@@ -1029,10 +1034,10 @@ Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
     //add first three
     std::vector<unsigned int> knots(1, 1);
 
-    const unsigned int SKIP = 5;
-    const double THRESH = .0001;
-    double prev = 0;
-    double cur = 0;
+    const unsigned int SKIP = 6;
+    const double THRESH = .02;
+    double prev = THRESH+1;
+    double cur = THRESH+1;
     unsigned int zeroStart = 0;
     bool zeroZone = false;
     // Find points in the middle that are 0 crossings/0
