@@ -64,17 +64,34 @@ BoldModel::~BoldModel()
 
 }
 
-void BoldModel::steadyState(aux::vector& dustin, const aux::vector& u_t)
+aux::vector BoldModel::steadyMeas(const aux::vector& dustin, const aux::vector& u_t)
 {
+    aux::vector out = dustin;
     for(unsigned int ii=0 ; ii<SIMUL_STATES ; ii++) {
-        dustin[indexof(S_T,ii)] = 0;
-        dustin[indexof(F_T,ii)] = dustin[indexof(TAU_F, ii)]*
-                    dustin[indexof(EPSILON, ii)]*u_t[0] + 1;
-        dustin[indexof(V_T,ii)] = pow(dustin[indexof(F_T,ii)], 
-                    dustin[indexof(ALPHA,ii)]);
-        dustin[indexof(Q_T,ii)] = (dustin[indexof(V_T,ii)]/dustin[indexof(E_0, ii)])*
-                    (1-pow(1-dustin[indexof(E_0,ii)], 1/dustin[indexof(F_T,ii)]));
+        out[indexof(S_T,ii)] = 0;
+        out[indexof(F_T,ii)] = out[indexof(TAU_F, ii)]*
+                    out[indexof(EPSILON, ii)]*u_t[0] + 1;
+        out[indexof(V_T,ii)] = pow(out[indexof(F_T,ii)], 
+                    out[indexof(ALPHA,ii)]);
+        out[indexof(Q_T,ii)] = (out[indexof(V_T,ii)]/out[indexof(E_0, ii)])*
+                    (1-pow(1-out[indexof(E_0,ii)], 1/out[indexof(F_T,ii)]));
     }
+    return measure(out);
+}
+
+aux::vector BoldModel::steadyState(const aux::vector& dustin, const aux::vector& u_t)
+{
+    aux::vector out = dustin;
+    for(unsigned int ii=0 ; ii<SIMUL_STATES ; ii++) {
+        out[indexof(S_T,ii)] = 0;
+        out[indexof(F_T,ii)] = out[indexof(TAU_F, ii)]*
+                    out[indexof(EPSILON, ii)]*u_t[0] + 1;
+        out[indexof(V_T,ii)] = pow(out[indexof(F_T,ii)], 
+                    out[indexof(ALPHA,ii)]);
+        out[indexof(Q_T,ii)] = (out[indexof(V_T,ii)]/out[indexof(E_0, ii)])*
+                    (1-pow(1-out[indexof(E_0,ii)], 1/out[indexof(F_T,ii)]));
+    }
+    return out;
 }
 
 int BoldModel::transition(aux::vector& s, const double t, const double delta) const

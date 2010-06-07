@@ -55,9 +55,9 @@ void cb_all_init(cb_all_data* cdata, BoldPF::CallPoints* cp,
 int cb_all_call(BoldPF* bold, void* data);
 
 //callbacks to save histogram
-//dimensions 0-3 what you expect
-//dimension 4 sets parameter | mu
-//dimension 5 sets histogram element [start stop concentration0 conc1 conc2 ... ]
+//dimensions 0-3 what you expect, with 1 extra time value for the initial
+//dimension 4 sets parameter (with SS replacing DC in mu and var) | measurement
+//dimension 5 sets histogram element [concentration0 conc1 conc2 ... start stop mu var]
 struct cb_hist_data
 {
     unsigned int pos[3];
@@ -303,7 +303,7 @@ void cb_hist_init(cb_hist_data* cdata, BoldPF::CallPoints* cp,
     if(rank == 0) {
         //parameters, then measurement, histcount +3 for the min/max of the bars, and mean
         itk::OrientedImage<float, 6>::SizeType size6 = {{size[0], size[1], size[2], 
-                    size[3]+1, parameters + meassize, histcount + 3}}; 
+                    size[3]+1, parameters + meassize, histcount + 4}}; 
         
         
         histogram = itk::OrientedImage<float, 6>::New();
@@ -333,6 +333,44 @@ double truemeas(BoldPF* bold, unsigned int p, unsigned int n)
         return bold->getModel().measure(bold->getDistribution().get(p))[n];
 }
 
+
+typedef aux::vector (*MeanVar)(const aux::vector&);
+aux::vector nop(const aux::vector& in) 
+{
+    return in;
+}
+
+aux::vector calcMu(BoldPF* bold, MeanVar op)
+{
+    boost::mpi::communicator world;
+    const unsigned int rank = world.rank();
+    
+    DiracMixturePdf& dist = bold->getDistribution();
+    aux::vector sum = dist.getWeight(jj)*op(dist.get(0));
+    for(unsigned int jj = 1 ; jj < dist.getSize() ; jj++) {
+        sum += dist.getWeight(jj)*op(dist.get(jj));
+    }
+    
+    return boost::mpi::all_reduce(world, sum, std::plus<aux::vector>)/
+                dist.getDistributedTotalWeight();
+}
+
+aux::vector calcVar(BoldPF* bold, aux::vector mu, MeanVar op)
+{
+    boost::mpi::communicator world;
+    const unsigned int rank = world.rank();
+    
+    DiracMixturePdf& dist = bold->getDistribution();
+    aux::vector sum = dist.getWeight(0)*elem_sqr(op(dist.get(0)) - mu);
+    for(unsigned int jj = 1 ; jj < dist.getSize() ; jj++) {
+        sum += dist.getWeight(jj)*elem_sqr(op(dist.get(jj)) - mu);
+    }
+    
+    return boost::mpi::all_reduce(world, sum, std::plus<aux::vector>)/
+                dist.getDistributedTotalWeight();
+
+}
+
 int cb_hist_call(BoldPF* bold, void* data)
 {
     boost::mpi::communicator world;
@@ -351,9 +389,22 @@ int cb_hist_call(BoldPF* bold, void* data)
     DiracMixturePdf& dist = bold->getDistribution();
     assert(dist.getSize() > 0);
     
-    /* Get Expected Values: todo: use real expectation of measurement */
+    /* Get Expected Values/variances: */
     aux::vector parammu = bold->getDistribution().getDistributedExpectation();
-    aux::vector measmu =  bold->getModel().measure(parammu);
+    aux::vector paramvar = diag(bold->getDistribution().getDistributedCovariance());
+    
+    aux::vector measmu = calcMu(bold, bold->getModel().measure);
+    aux::vector measvar = calcVar(bold, measmu, bold->getModel().measure);
+
+    //steady state, copy into drift parameters (I know this is a kludge)
+    aux::vector ssmu = calcMu(bold, steadyMeas);
+    aux::vector ssvar = calcVar(bold, ssmu, steadyMeas);
+    for(unsigned int i = 0 ; i < bold->getModel().getMeasurementSize() ; i++) {
+        parammu[i+bold->getModel().getStateSize()-bold->getModel()->getMeasurementSize()]=
+                    ssmu[i];
+        paramvar[i+bold->getModel().getStateSize()-bold->getModel()->getMeasurementSize()]=
+                    ssvar[i];
+    }
         
     //put parameters into bins
     aux::vector bins(cdata->size, 0);
@@ -392,6 +443,10 @@ int cb_hist_call(BoldPF* bold, void* data)
             cdata->histogram->SetPixel(index, min);
             index[5]++;
             cdata->histogram->SetPixel(index, max);
+            index[5]++;
+            cdata->histogram->SetPixel(index, parammu[j]);
+            index[5]++;
+            cdata->histogram->SetPixel(index, paramvar[j]);
         }
     }
     
@@ -430,6 +485,11 @@ int cb_hist_call(BoldPF* bold, void* data)
             cdata->histogram->SetPixel(index, min);
             index[5]++;
             cdata->histogram->SetPixel(index, max);
+            index[5]++;
+            cdata->histogram->SetPixel(index, measmu[j]);
+            index[5]++;
+            cdata->histogram->SetPixel(index, measvar[j]);
+            
         }
     }
 
