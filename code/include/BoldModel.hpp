@@ -51,6 +51,11 @@ public:
     void generatePrior(aux::DiracMixturePdf& x0, int samples,
                 std::vector<struct BoldModel::Dist>& dists, bool flat) const;
 
+    aux::vector steadyMeas(const aux::vector& dustin, 
+                const aux::vector u_t=aux::vector(1,1));
+    aux::vector steadyState(const aux::vector& dustin, 
+                const aux::vector u_t=aux::vector(1,1));
+
     //since the particle filter doesn't yet support input, we are
     //going to hack around that and set it directly
     void setinput(aux::vector in) { input = in; };

@@ -5,6 +5,8 @@
 #include "BoldPF.h"
 #include <float.h>
 
+#include "boost/mpi/operations.hpp"
+
 //base
 struct cb_data
 {
@@ -346,12 +348,12 @@ aux::vector calcMu(BoldPF* bold, MeanVar op)
     const unsigned int rank = world.rank();
     
     DiracMixturePdf& dist = bold->getDistribution();
-    aux::vector sum = dist.getWeight(jj)*op(dist.get(0));
+    aux::vector sum = dist.getWeight(0)*op(dist.get(0));
     for(unsigned int jj = 1 ; jj < dist.getSize() ; jj++) {
         sum += dist.getWeight(jj)*op(dist.get(jj));
     }
     
-    return boost::mpi::all_reduce(world, sum, std::plus<aux::vector>)/
+    return boost::mpi::all_reduce(world, sum, std::plus<aux::vector>())/
                 dist.getDistributedTotalWeight();
 }
 
@@ -361,12 +363,12 @@ aux::vector calcVar(BoldPF* bold, aux::vector mu, MeanVar op)
     const unsigned int rank = world.rank();
     
     DiracMixturePdf& dist = bold->getDistribution();
-    aux::vector sum = dist.getWeight(0)*elem_sqr(op(dist.get(0)) - mu);
+    aux::vector sum = dist.getWeight(0)*scalar_pow(op(dist.get(0)) - mu, 2);
     for(unsigned int jj = 1 ; jj < dist.getSize() ; jj++) {
-        sum += dist.getWeight(jj)*elem_sqr(op(dist.get(jj)) - mu);
+        sum += dist.getWeight(jj)*scalar_pow(op(dist.get(jj)) - mu, 2);
     }
     
-    return boost::mpi::all_reduce(world, sum, std::plus<aux::vector>)/
+    return boost::mpi::all_reduce(world, sum, std::plus<aux::vector>())/
                 dist.getDistributedTotalWeight();
 
 }
@@ -391,10 +393,11 @@ int cb_hist_call(BoldPF* bold, void* data)
     
     /* Get Expected Values/variances: */
     aux::vector parammu = bold->getDistribution().getDistributedExpectation();
-    aux::vector paramvar = diag(bold->getDistribution().getDistributedCovariance());
+    aux::matrix tmp = bold->getDistribution().getDistributedCovariance();
+    aux::vector paramvar = diag(tmp);
     
     aux::vector measmu = calcMu(bold, bold->getModel().measure);
-    aux::vector measvar = calcVar(bold, measmu, bold->getModel().measure);
+    aux::vector measvar = calcVar(bold, measmu, &bold->getModel().measure);
 
     //steady state, copy into drift parameters (I know this is a kludge)
     aux::vector ssmu = calcMu(bold, steadyMeas);

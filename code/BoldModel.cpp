@@ -64,7 +64,7 @@ BoldModel::~BoldModel()
 
 }
 
-aux::vector BoldModel::steadyMeas(const aux::vector& dustin, const aux::vector& u_t)
+aux::vector BoldModel::steadyMeas(const aux::vector& dustin, const aux::vector u_t)
 {
     aux::vector out = dustin;
     for(unsigned int ii=0 ; ii<SIMUL_STATES ; ii++) {
@@ -79,7 +79,7 @@ aux::vector BoldModel::steadyMeas(const aux::vector& dustin, const aux::vector& 
     return measure(out);
 }
 
-aux::vector BoldModel::steadyState(const aux::vector& dustin, const aux::vector& u_t)
+aux::vector BoldModel::steadyState(const aux::vector& dustin, const aux::vector u_t)
 {
     aux::vector out = dustin;
     for(unsigned int ii=0 ; ii<SIMUL_STATES ; ii++) {
