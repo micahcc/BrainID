@@ -402,4 +402,5 @@ for ldd in prof_ld:
 FILE.write("export LD_LIBRARY_PATH\n")
 for bin in prof_bin:
     FILE.write("PATH=\"" + bin + ":$PATH\"\n")
+FILE.write(join(srcpath, "scripts\n"))
 FILE.close()

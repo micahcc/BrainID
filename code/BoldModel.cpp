@@ -64,6 +64,19 @@ BoldModel::~BoldModel()
 
 }
 
+void BoldModel::steadyState(aux::vector& dustin, const aux::vector& u_t)
+{
+    for(unsigned int ii=0 ; ii<SIMUL_STATES ; ii++) {
+        dustin[indexof(S_T,ii)] = 0;
+        dustin[indexof(F_T,ii)] = dustin[indexof(TAU_F, ii)]*
+                    dustin[indexof(EPSILON, ii)]*u_t[0] + 1;
+        dustin[indexof(V_T,ii)] = pow(dustin[indexof(F_T,ii)], 
+                    dustin[indexof(ALPHA,ii)]);
+        dustin[indexof(Q_T,ii)] = (dustin[indexof(V_T,ii)]/dustin[indexof(E_0, ii)])*
+                    (1-pow(1-dustin[indexof(E_0,ii)], 1/dustin[indexof(F_T,ii)]));
+    }
+}
+
 int BoldModel::transition(aux::vector& s, const double t, const double delta) const
 {
     //use the default input
@@ -426,18 +439,18 @@ std::vector<BoldModel::Dist> BoldModel::defdist(unsigned int simul,
 {
     std::vector<BoldModel::Dist> ret(loc.size());
     for(unsigned int ii = 0 ; ii < simul ; ii++) {
-        ret[indexof(TAU_S  ,ii)].type = GAMMA_MODE;
-        ret[indexof(TAU_F  ,ii)].type = GAMMA_MODE;
-        ret[indexof(EPSILON,ii)].type = GAMMA_MODE;
-        ret[indexof(TAU_0  ,ii)].type = GAMMA_MODE;
-        ret[indexof(ALPHA  ,ii)].type = GAMMA_MODE;
-        ret[indexof(E_0    ,ii)].type = GAMMA_MODE;
-        ret[indexof(V_0    ,ii)].type = GAMMA_MODE;
+        ret[indexof(TAU_S  ,ii)].type = GAMMA_MU;
+        ret[indexof(TAU_F  ,ii)].type = GAMMA_MU;
+        ret[indexof(EPSILON,ii)].type = GAMMA_MU;
+        ret[indexof(TAU_0  ,ii)].type = GAMMA_MU;
+        ret[indexof(ALPHA  ,ii)].type = GAMMA_MU;
+        ret[indexof(E_0    ,ii)].type = GAMMA_MU;
+        ret[indexof(V_0    ,ii)].type = GAMMA_MU;
 
-        ret[indexof(V_T,ii)].type = GAMMA_MODE;
-        ret[indexof(Q_T,ii)].type = GAMMA_MODE;
+        ret[indexof(V_T,ii)].type = GAMMA_MU;
+        ret[indexof(Q_T,ii)].type = GAMMA_MU;
         ret[indexof(S_T,ii)].type = NORMAL;
-        ret[indexof(F_T,ii)].type = GAMMA_MODE;
+        ret[indexof(F_T,ii)].type = GAMMA_MU;
     }
     for(unsigned int i = 0 ; i < simul; i++) {
         ret[GVAR_SIZE+simul*LVAR_SIZE+i].type = NORMAL;

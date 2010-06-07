@@ -74,6 +74,7 @@ public:
     /* Primary Functions */
     int run(void* pass);
     int pause() { return status = PAUSED; };
+    int restart() { disctime_l = 0; disctime_s = 0; return status = UNSTARTED; };
 
     /* Accessors */
     double getContTime() const {return disctime_s*dt_s;};
@@ -172,6 +173,20 @@ int BoldPF::getStatus()
 {
     return status;
 };
+
+aux::vector BoldPF::steadyStateMean(const aux::DiracMixturePdf& p)
+{
+    aux::vector sum(p.getDimensions(), 0);
+    for(size_t i = 0 ; i < in.size() ; i++) 
+        sum = sum + model->steadyState(p.get(i), 1);
+    return sum/in.size();
+};
+
+aux::vector BoldPF::steadyStateVar(const aux::vector& mean, 
+            const aux::DiracMixturePdf& p)
+{
+
+}
 
 aux::matrix calcCov(indii::ml::aux::DiracMixturePdf& p)
 {
@@ -313,7 +328,7 @@ int BoldPF::run(void* pass = NULL)
             } 
             
             //time to resample
-            if(conttime > 30 && ess < ESS_THRESH) {
+            if(conttime > 50 && ess < ESS_THRESH) {
                 *debug << " ESS: " << ess << ", Stratified Resampling\n";
 
                 filter->getFilteredState().distributedNormalise();
@@ -430,8 +445,9 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
             double shortstep, unsigned int method_p, int weightf, bool flatten) : 
             dt_l(longstep), dt_s(shortstep), 
             disctime_l(0), disctime_s(0), status(UNSTARTED), method(method_p),
-            measure(measurements), stim(activations), 
-            ESS_THRESH(50 > .15*numparticles ? 50 : .15*numparticles)
+            resampler(numparticles), measure(measurements), stim(activations), 
+            //ESS_THRESH(50 > .15*numparticles ? 50 : .15*numparticles)
+            ESS_THRESH(20)
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
@@ -451,7 +467,7 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
      * Particles Setup 
      */
     *debug << "Generating prior" << std::endl;
-    unsigned int localparticles = numparticles/size;
+    unsigned int localparticles = 5*numparticles/size;
     
     //give excess particles to last rank
     if(rank == (size-1))
@@ -461,7 +477,7 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     aux::vector boldstd = bold_stddev(measurements, boldmu);
 
     /* Generate Prior */
-    aux::vector width = model->defscale(measurements.front().size());
+    aux::vector width = 2*model->defscale(measurements.front().size());
     aux::vector loc = model->defloc(measurements.front().size());
     
     for(unsigned int ii = model->getStateSize() - model->getMeasurementSize(); 

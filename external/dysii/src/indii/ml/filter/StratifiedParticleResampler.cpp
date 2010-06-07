@@ -11,7 +11,7 @@ using namespace indii::ml::filter;
 
 #include <iostream>
 StratifiedParticleResampler::StratifiedParticleResampler(
-    const unsigned int P) : P(P), method(CUSTOM) 
+    const unsigned int P) : P(P), method(DETERMINISTIC) 
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
@@ -86,7 +86,6 @@ void StratifiedParticleResampler::resample_custom(
   if (P == 0) {
     P = p.getDistributedSize();
   }
-
   /* Prep old distribution */
   p.gatherToNode(0);
   if(rank == 0) {

@@ -301,9 +301,9 @@ void cb_hist_init(cb_hist_data* cdata, BoldPF::CallPoints* cp,
     itk::OrientedImage<float, 6>::Pointer histogram;
     
     if(rank == 0) {
-        //parameters, then measurement, histcount +2 for the min/max of the bars
+        //parameters, then measurement, histcount +3 for the min/max of the bars, and mean
         itk::OrientedImage<float, 6>::SizeType size6 = {{size[0], size[1], size[2], 
-                    size[3]+1, parameters + meassize, histcount + 2}}; 
+                    size[3]+1, parameters + meassize, histcount + 3}}; 
         
         
         histogram = itk::OrientedImage<float, 6>::New();
@@ -350,6 +350,10 @@ int cb_hist_call(BoldPF* bold, void* data)
 
     DiracMixturePdf& dist = bold->getDistribution();
     assert(dist.getSize() > 0);
+    
+    /* Get Expected Values: todo: use real expectation of measurement */
+    aux::vector parammu = bold->getDistribution().getDistributedExpectation();
+    aux::vector measmu =  bold->getModel().measure(parammu);
         
     //put parameters into bins
     aux::vector bins(cdata->size, 0);

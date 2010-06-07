@@ -34,6 +34,8 @@
 
 using namespace std;
 
+const double VARTHRESH = .01;
+
 typedef itk::ImageFileReader< Image4DType >  ImageReaderType;
 typedef itk::ImageFileWriter< Image4DType >  WriterType;
 
