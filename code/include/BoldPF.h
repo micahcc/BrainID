@@ -174,20 +174,6 @@ int BoldPF::getStatus()
     return status;
 };
 
-aux::vector BoldPF::steadyStateMean(const aux::DiracMixturePdf& p)
-{
-    aux::vector sum(p.getDimensions(), 0);
-    for(size_t i = 0 ; i < in.size() ; i++) 
-        sum = sum + model->steadyState(p.get(i), 1);
-    return sum/in.size();
-};
-
-aux::vector BoldPF::steadyStateVar(const aux::vector& mean, 
-            const aux::DiracMixturePdf& p)
-{
-
-}
-
 aux::matrix calcCov(indii::ml::aux::DiracMixturePdf& p)
 {
     boost::mpi::communicator world;
