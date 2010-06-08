@@ -462,7 +462,7 @@ std::vector<BoldModel::Dist> BoldModel::defdist(unsigned int simul,
         ret[indexof(TAU_0  ,ii)].type = GAMMA_MODE;
         ret[indexof(ALPHA  ,ii)].type = GAMMA_MU;
         ret[indexof(E_0    ,ii)].type = GAMMA_MU;
-        ret[indexof(V_0    ,ii)].type = GAMMA_MODE;
+        ret[indexof(V_0    ,ii)].type = GAMMA_MU;
 
         ret[indexof(V_T,ii)].type = CONST;
         ret[indexof(Q_T,ii)].type = CONST;

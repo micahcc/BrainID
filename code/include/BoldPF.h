@@ -74,7 +74,7 @@ public:
     /* Primary Functions */
     int run(void* pass);
     int pause() { return status = PAUSED; };
-    int restart(bool resetstate = false); 
+    int restart(bool resetstate = true); 
 
     /* Accessors */
     double getContTime() const {return disctime_s*dt_s;};
@@ -242,7 +242,16 @@ int BoldPF::restart(bool resetstate)
     disctime_l = 0;
     disctime_s = 0;
     status = UNSTARTED; 
-    if(resetstate) throw "NOT IMPLEMENTED";
+    if(resetstate) {
+        for(int i = 0 ; i < getDistribution().getSize() ; i++) {
+            for(int j = 0 ; j < getModel().getMeasurementSize() ; j++) {
+                getDistribution().get(i)[getModel().indexof(getModel().V_T, j)] = 1;
+                getDistribution().get(i)[getModel().indexof(getModel().Q_T, j)] = 1;
+                getDistribution().get(i)[getModel().indexof(getModel().F_T, j)] = 1;
+                getDistribution().get(i)[getModel().indexof(getModel().S_T, j)] = 0;
+            }
+        }
+    }
     return status;
 }
 
@@ -259,6 +268,9 @@ int BoldPF::run(void* pass = NULL)
     if(status == ERROR || status == RUNNING || status == DONE) {
         return status;
     }
+
+    double ess = filter->getFilteredState().getSize();
+    double essprev = ess;
 
     *debug << "mu size: " << filter->getFilteredState().getDistributedExpectation().size()
                 << std::endl << "dimensions: " 
@@ -311,7 +323,8 @@ int BoldPF::run(void* pass = NULL)
 
             //check to see if resampling is necessary
             filter->getFilteredState().distributedNormalise();
-            double ess = filter->getFilteredState().calculateDistributedEss();
+            essprev = ess;
+            ess = filter->getFilteredState().calculateDistributedEss();
             
             //check for errors, could be caused by total collapse of particles,
             //for instance if all the particles go to an unreasonable value like 
@@ -323,7 +336,7 @@ int BoldPF::run(void* pass = NULL)
             } 
             
             //time to resample
-            if(ess < ESS_THRESH) {
+            if(ess < ESS_THRESH && essprev < ESS_THRESH) {
                 *debug << " ESS: " << ess << ", Stratified Resampling\n";
 
                 filter->getFilteredState().distributedNormalise();
@@ -468,7 +481,7 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     if(rank == (size-1))
         localparticles += numparticles - localparticles*size;
 
-    localparticles *= 4;
+    localparticles *= 10;
     
     aux::vector boldmu = bold_mean(measurements);
     aux::vector boldstd = bold_stddev(measurements, boldmu);

@@ -75,7 +75,7 @@ def sim(stims, params, TR, num):
     statevars = State()
     stopt = num*TR/DIVIDER
     for t in range(0, num*DIVIDER):
-        if inputt < len(stims) and t*TR/DIVIDER > stims[inputt][0]:
+        if inputt < len(stims) and t*TR/DIVIDER+SHIFT*TR > stims[inputt][0]:
             inputl = stims[inputt][1]
             inputt = inputt+1
         statevars = transition(statevars, params, TR/DIVIDER, inputl);
@@ -116,6 +116,7 @@ def HRF(stims, TR, num):
 
 #Begin Main, main
 PARAM = -1
+SHIFT=4
 param = PARAM
 if len(sys.argv) == 3:
     try:
@@ -204,20 +205,15 @@ if param < 0:
     print getparams_mode(0, histimg)
     print getparams_mu(-1, histimg)
     print getparams_mode(-1, histimg)
-    exp_init = sim(stims, getparams_mu(0,histimg), TR, actual.get_header()['dim'][4])
     exp_final= sim(stims, getparams_mu(-1, histimg), TR, actual.get_header()['dim'][4])
-    mode_init = sim(stims, getparams_mode(0, histimg), TR, actual.get_header()['dim'][4])
     mode_final= sim(stims, getparams_mode(-1, histimg), TR, actual.get_header()['dim'][4])
-    print len(exp_init)
     print len(exp_final)
-    print len(mode_init)
     print len(mode_final)
     
-    P.plot([i*TR for i in range(len(exp_init))], exp_init)
     P.plot([i*TR for i in range(len(exp_final))], exp_final)
-    P.plot([i*TR for i in range(len(mode_init))], mode_init)
     P.plot([i*TR for i in range(len(mode_final))], mode_final)
-    leg.extend(["I_mu", "F_mu", "I_mod", "F_mod"])
+    leg.extend(["FinalMu", "FinalMod"])
+    P.legend(leg)
     
 else:
     try:
@@ -226,6 +222,7 @@ else:
                     truestate.get_data()[0,param,0,:], 'g-+');
         print "Truth", truestate.get_data()[0,param,0,0];
         leg = ["truth"]
+        P.legend(leg)
     except:
         print "No ground truth for bold available, if you have some put it in ", \
                     sys.argv[1] + "truestate.nii.gz"
@@ -235,7 +232,6 @@ else:
 #P.plot(final)
 #P.plot(canonical)
 
-P.legend(leg)
 
 P.show()
 #

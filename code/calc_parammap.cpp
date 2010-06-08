@@ -296,7 +296,7 @@ int main(int argc, char* argv[])
 //        outsize[i] = inImage->GetRequestedRegion().GetSize()[i];
     outsize = inImage->GetRequestedRegion().GetSize();
     outsize[3] = BASICPARAMS + STATICPARAMS;
-    
+
 //    paramMuImg = Image4DType::New();
 //    paramMuImg->SetRegions(outsize);
 //    paramMuImg->Allocate();
@@ -308,13 +308,13 @@ int main(int argc, char* argv[])
 //    paramVarImg->FillBuffer(0);
     
     
+    inImage = preprocess_help(inImage, input, a_timestep(), a_erase(), a_delta() || 
+                a_nospline(), a_smart(), a_output());
+    
     unsigned int xlen = inImage->GetRequestedRegion().GetSize()[0];
     unsigned int ylen = inImage->GetRequestedRegion().GetSize()[1];
     unsigned int zlen = inImage->GetRequestedRegion().GetSize()[2];
     unsigned int tlen = inImage->GetRequestedRegion().GetSize()[3];
-
-    inImage = preprocess_help(inImage, input, a_timestep(), a_erase(), a_delta() || 
-                a_nospline(), a_smart(), a_output());
     
     /* Save detrended image */
     if(rank == 0) try {
@@ -395,30 +395,20 @@ int main(int argc, char* argv[])
                         ((cb_data*)cbdata)->pos[j] = index4[j];
                     boldpf.setCallBack(callpoints, cbfunc);
                     
-                    aux::vector ssvar(1, 1);
                     for(int i = 0 ; i < RETRIES ; i++) {
                         //run the particle filter
                         result = boldpf.run(cbdata);
-                        aux::vector ssmu = ssMu(&boldpf);
-                        *output << endl << endl << "---------------------------------" << endl;
-                        *output << endl << endl << "FINAL STEADY STATE Mean !" 
-                            << endl << ssmu[0] << endl << endl;
-                        *output << endl << endl << "---------------------------------" << endl;
-                        ssvar = ssVar(&boldpf, ssmu);
-                        *output << endl << endl << "FINAL STEADY STATE VARIANCE!" 
-                            << endl <<  ssvar[0] << endl << endl;
-                        *output << endl << endl << "---------------------------------" << endl;
-                        *output << endl << endl << "---------------------------------" << endl;
                         aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
-                        *output << endl << endl << "FINAL COVARIANCE!" << endl;
+                        *output << "FINAL COVARIANCE!" << endl;
                         for(int i = 0 ; i < cov.size1() ; i++) {
                             for(int j = 0 ; j < cov.size2() ; j++) {
-                                cout << cov(i,j) << " ";
+                                cout << setw(15) << cov(i,j);
                             }
                             cout << endl;
                         }
-                        *output << endl << endl << endl << endl << "---------------------------------" << endl;
-                        if(ssvar[0] < .2) {
+                        *output << endl << endl <<"---------------------------------" << endl << endl;
+                        if(cov(6,6) < .01) {
+                            *output << "Leaving Loop" << endl << endl;
                             break;
                         } else {
                             boldpf.restart();

@@ -792,29 +792,24 @@ int dc_bump(const Image4DType::Pointer fmri_img, Image4DType::IndexType index,
                 fmri_it(fmri_img, fmri_img->GetRequestedRegion());
     fmri_it.SetDirection(3);
     fmri_it.SetIndex(index);
-
-    //generate a vector of point lists
-    std::list<double> points;
-    double median;
-    for(fmri_it.GoToBeginOfLine(); !fmri_it.IsAtEndOfLine(); ++fmri_it) {
-        points.push_back(fmri_it.Get());
+    
+    //generate a vector of point lists, get median
+    std::vector<double> points(fmri_img->GetRequestedRegion().GetSize()[3]);
+    std::vector<double>::iterator vit = points.begin();
+    for(fmri_it.GoToBeginOfLine(); !fmri_it.IsAtEndOfLine(); vit++, ++fmri_it) {
+        *vit = fmri_it.Get();
     }
-    points.sort();
+    sort(points.begin(), points.end());
+    double median = points[points.size()/2];
 
-    if(points.size()%2 == 0) {
-        std::list<double>::iterator it = points.begin();
-        for(unsigned int j = 0 ; j != points.size()/2-1 ; j++)
-            it++;
-        median = *it;
-        it++;
-        median += *it;
-        median /= 2.;
-    } else {
-        std::list<double>::iterator it = points.begin();
-        for(unsigned int j = 0 ; j != points.size()/2 ; j++)
-            it++;
-        median = *it;
+    //calculate the absolute deviations, median
+    vit = points.begin();
+    while(vit != points.end()) {
+        *vit = fabs(*vit - median);
+        vit++;
     }
+    sort(points.begin(), points.end());
+    double mad = 1.4826*points[points.size()/2];
     
     itk::ImageLinearIteratorWithIndex< Image4DType > 
                 out_it(output, output->GetRequestedRegion());
@@ -822,7 +817,7 @@ int dc_bump(const Image4DType::Pointer fmri_img, Image4DType::IndexType index,
     out_it.SetIndex(index);
     for(out_it.GoToBeginOfLine(), fmri_it.GoToBeginOfLine(); !out_it.IsAtEndOfLine();
                 ++out_it, ++fmri_it) {
-        out_it.Set(fmri_it.Get()-median);
+        out_it.Set(fmri_it.Get()+mad);
     }
 
     return 0;
