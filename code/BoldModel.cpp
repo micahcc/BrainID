@@ -409,8 +409,8 @@ aux::vector BoldModel::defscale(unsigned int simul)
         ret(indexof(EPSILON,ii)) = .3; //originally .1
         ret(indexof(TAU_0  ,ii)) = .75; //originally .25
         ret(indexof(ALPHA  ,ii)) = .045;
-        ret(indexof(E_0    ,ii)) = .1;
-        ret(indexof(V_0    ,ii)) = .03;
+        ret(indexof(E_0    ,ii)) = .03;
+        ret(indexof(V_0    ,ii)) = .015;
 
         ret(indexof(V_T,ii)) = 0;
         ret(indexof(Q_T,ii)) = 0;
@@ -458,16 +458,16 @@ std::vector<BoldModel::Dist> BoldModel::defdist(unsigned int simul,
     for(unsigned int ii = 0 ; ii < simul ; ii++) {
         ret[indexof(TAU_S  ,ii)].type = GAMMA_MU;
         ret[indexof(TAU_F  ,ii)].type = GAMMA_MU;
-        ret[indexof(EPSILON,ii)].type = GAMMA_MU;
-        ret[indexof(TAU_0  ,ii)].type = GAMMA_MU;
+        ret[indexof(EPSILON,ii)].type = GAMMA_MODE;
+        ret[indexof(TAU_0  ,ii)].type = GAMMA_MODE;
         ret[indexof(ALPHA  ,ii)].type = GAMMA_MU;
         ret[indexof(E_0    ,ii)].type = GAMMA_MU;
-        ret[indexof(V_0    ,ii)].type = GAMMA_MU;
+        ret[indexof(V_0    ,ii)].type = GAMMA_MODE;
 
-        ret[indexof(V_T,ii)].type = GAMMA_MU;
-        ret[indexof(Q_T,ii)].type = GAMMA_MU;
+        ret[indexof(V_T,ii)].type = CONST;
+        ret[indexof(Q_T,ii)].type = CONST;
         ret[indexof(S_T,ii)].type = NORMAL;
-        ret[indexof(F_T,ii)].type = GAMMA_MU;
+        ret[indexof(F_T,ii)].type = CONST;
     }
     for(unsigned int i = 0 ; i < simul; i++) {
         ret[GVAR_SIZE+simul*LVAR_SIZE+i].type = NORMAL;

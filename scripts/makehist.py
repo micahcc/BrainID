@@ -27,13 +27,13 @@ HRFDIVIDER = 16
 def getparams_mode(time, source):
     params = [0 for i in range(0,7)]
     for pp in range(0, 7):
-        upper = source.get_data()[0,0,0,time,pp, -1]
-        lower = source.get_data()[0,0,0,time,pp, -2]
-        count = source.get_header()['dim'][6] - 2
+        upper = source.get_data()[0,0,0,time,pp, -2]
+        lower = source.get_data()[0,0,0,time,pp, -3]
+        count = source.get_header()['dim'][6] - 3
         width = (upper-lower)/count
         print lower, upper, width, count
-        histinput = [[] for j in range(0, histimg.get_header()['dim'][6]-2)]
-        for j in range(0, histimg.get_header()['dim'][6]-2):
+        histinput = [[] for j in range(0, histimg.get_header()['dim'][6]-3)]
+        for j in range(0, histimg.get_header()['dim'][6]-3):
             histinput[j] = [histimg.get_data()[0,0,0,time, pp, j], lower+width/2.+j*width]
         params[pp] = max(histinput, key=lambda pair: pair[0])[1]
     return params
@@ -41,14 +41,14 @@ def getparams_mode(time, source):
 def getparams_mu(time, source):
     params = [0 for i in range(0,7)]
     for pp in range(0, 7):
-        upper = source.get_data()[0,0,0,time,pp, -1]
-        lower = source.get_data()[0,0,0,time,pp, -2]
-        count = source.get_header()['dim'][6] - 2
+        upper = source.get_data()[0,0,0,time,pp, -2]
+        lower = source.get_data()[0,0,0,time,pp, -3]
+        count = source.get_header()['dim'][6] - 3
         width = (upper-lower)/count
         total = 0
         params[pp] = 0
         print lower, upper, width, count
-        for j in range(0, histimg.get_header()['dim'][6]-2):
+        for j in range(0, histimg.get_header()['dim'][6]-3):
             total = total + histimg.get_data()[0,0,0,time, pp, j] 
             params[pp] = params[pp] + histimg.get_data()[0,0,0,time, pp, j] * (lower+width/2.+j*width)
         params[pp] = params[pp]/total
@@ -112,7 +112,9 @@ def HRF(stims, TR, num):
                 if i%HRFDIVIDER == 0 and i*dt > hrfparam[6] and \
                 i*dt < len(stimarr)*dt-hrfparam[6]]
     return (signal, delta)
-    
+
+
+#Begin Main, main
 PARAM = -1
 param = PARAM
 if len(sys.argv) == 3:
@@ -121,13 +123,11 @@ if len(sys.argv) == 3:
     except:
         param = PARAM 
 elif len(sys.argv) != 2:
-    print "Usage: ", sys.argv[0], "<InDir>"
+    print "Usage: ", sys.argv[0], "<InDir> [param number]"
     print "Looks in Dir for: "
     print "stim0, stim1 (must be shifted to match pfilter_input), histogram.nii.gz"
     print "pfilter_input.nii.gz, truebold.nii.gz, truestate.nii.gz"
     sys.exit(-1);
-
-
 
 actual = nibabel.load(sys.argv[1] + "pfilter_input.nii.gz")
 histimg = nibabel.load(sys.argv[1] + "histogram.nii.gz")
@@ -172,15 +172,15 @@ print stims
 histograms = [[] for t in range(0, histimg.get_header()['dim'][4])]
 #generate the histogram for measurements
 for t in range(0, histimg.get_header()['dim'][4]):
-    upper = histimg.get_data()[0,0,0,t,param, -1]
-    lower = histimg.get_data()[0,0,0,t,param, -2]
-    count = histimg.get_header()['dim'][6] - 2
+    upper = histimg.get_data()[0,0,0,t,param, -2]
+    lower = histimg.get_data()[0,0,0,t,param, -3]
+    count = histimg.get_header()['dim'][6] - 3
     width = (upper-lower)/count
 #    print lower, upper, count, width
     if isinf(lower) :
-        print histimg.get_data()[0,0,0,t, param, 0:-2]
-    histinput = [[] for j in range(0, histimg.get_header()['dim'][6]-2)]
-    for j in range(0, histimg.get_header()['dim'][6]-2):
+        print histimg.get_data()[0,0,0,t, param, 0:-3]
+    histinput = [[] for j in range(0, histimg.get_header()['dim'][6]-3)]
+    for j in range(0, histimg.get_header()['dim'][6]-3):
         histinput[j] = [histimg.get_data()[0,0,0,t, param, j], lower+width*j, \
                     lower+width*(j+1)]
     histograms[t] = histo(histinput)

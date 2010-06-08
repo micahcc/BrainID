@@ -58,8 +58,8 @@ int cb_all_call(BoldPF* bold, void* data);
 
 //callbacks to save histogram
 //dimensions 0-3 what you expect, with 1 extra time value for the initial
-//dimension 4 sets parameter (with SS replacing DC in mu and var) | measurement
-//dimension 5 sets histogram element [concentration0 conc1 conc2 ... start stop mu var]
+//dimension 4 sets parameter | measurement
+//dimension 5 sets histogram element [concentration0 conc1 conc2 ... start stop mu]
 struct cb_hist_data
 {
     unsigned int pos[3];
@@ -305,7 +305,7 @@ void cb_hist_init(cb_hist_data* cdata, BoldPF::CallPoints* cp,
     if(rank == 0) {
         //parameters, then measurement, histcount +3 for the min/max of the bars, and mean
         itk::OrientedImage<float, 6>::SizeType size6 = {{size[0], size[1], size[2], 
-                    size[3]+1, parameters + meassize, histcount + 4}}; 
+                    size[3]+1, parameters + meassize, histcount + 3}}; 
         
         
         histogram = itk::OrientedImage<float, 6>::New();
@@ -327,51 +327,14 @@ void cb_hist_init(cb_hist_data* cdata, BoldPF::CallPoints* cp,
 
 double truemeas(BoldPF* bold, unsigned int p, unsigned int n)
 {
-    if(bold->isDC())
-        return bold->getModel().measure(bold->getDistribution().get(p))[n] - 
-                    bold->getDistribution().get(p)[bold->getModel().getStateSize()-
-                    bold->getModel().getMeasurementSize()+n];
-    else
+//    if(bold->isDC())
+//        return bold->getModel().measure(bold->getDistribution().get(p))[n] - 
+//                    bold->getDistribution().get(p)[bold->getModel().getStateSize()-
+//                    bold->getModel().getMeasurementSize()+n];
+//    else
         return bold->getModel().measure(bold->getDistribution().get(p))[n];
 }
 
-
-typedef aux::vector (*MeanVar)(const aux::vector&);
-aux::vector nop(const aux::vector& in) 
-{
-    return in;
-}
-
-aux::vector calcMu(BoldPF* bold, MeanVar op)
-{
-    boost::mpi::communicator world;
-    const unsigned int rank = world.rank();
-    
-    DiracMixturePdf& dist = bold->getDistribution();
-    aux::vector sum = dist.getWeight(0)*op(dist.get(0));
-    for(unsigned int jj = 1 ; jj < dist.getSize() ; jj++) {
-        sum += dist.getWeight(jj)*op(dist.get(jj));
-    }
-    
-    return boost::mpi::all_reduce(world, sum, std::plus<aux::vector>())/
-                dist.getDistributedTotalWeight();
-}
-
-aux::vector calcVar(BoldPF* bold, aux::vector mu, MeanVar op)
-{
-    boost::mpi::communicator world;
-    const unsigned int rank = world.rank();
-    
-    DiracMixturePdf& dist = bold->getDistribution();
-    aux::vector sum = dist.getWeight(0)*scalar_pow(op(dist.get(0)) - mu, 2);
-    for(unsigned int jj = 1 ; jj < dist.getSize() ; jj++) {
-        sum += dist.getWeight(jj)*scalar_pow(op(dist.get(jj)) - mu, 2);
-    }
-    
-    return boost::mpi::all_reduce(world, sum, std::plus<aux::vector>())/
-                dist.getDistributedTotalWeight();
-
-}
 
 int cb_hist_call(BoldPF* bold, void* data)
 {
@@ -393,22 +356,15 @@ int cb_hist_call(BoldPF* bold, void* data)
     
     /* Get Expected Values/variances: */
     aux::vector parammu = bold->getDistribution().getDistributedExpectation();
-    aux::matrix tmp = bold->getDistribution().getDistributedCovariance();
-    aux::vector paramvar = diag(tmp);
     
-    aux::vector measmu = calcMu(bold, bold->getModel().measure);
-    aux::vector measvar = calcVar(bold, measmu, &bold->getModel().measure);
-
-    //steady state, copy into drift parameters (I know this is a kludge)
-    aux::vector ssmu = calcMu(bold, steadyMeas);
-    aux::vector ssvar = calcVar(bold, ssmu, steadyMeas);
-    for(unsigned int i = 0 ; i < bold->getModel().getMeasurementSize() ; i++) {
-        parammu[i+bold->getModel().getStateSize()-bold->getModel()->getMeasurementSize()]=
-                    ssmu[i];
-        paramvar[i+bold->getModel().getStateSize()-bold->getModel()->getMeasurementSize()]=
-                    ssvar[i];
+    aux::vector measmu =  dist.getWeight(0)*bold->getModel().measure(dist.get(0));
+    for(unsigned int jj = 1 ; jj < dist.getSize() ; jj++) {
+        if(dist.getWeight(jj) > 0)
+            measmu += dist.getWeight(jj)*bold->getModel().measure(dist.get(jj));
     }
-        
+    measmu = boost::mpi::all_reduce(world, measmu, std::plus<aux::vector>())/
+                dist.getDistributedTotalWeight();
+
     //put parameters into bins
     aux::vector bins(cdata->size, 0);
     
@@ -418,19 +374,20 @@ int cb_hist_call(BoldPF* bold, void* data)
         double min = dist.get(0)[j];
         double max = dist.get(0)[j];
         for(unsigned int i = 0 ; i < dist.getSize(); i++) {
-            if(min > dist.get(i)[j])
+            if(min > dist.get(i)[j] && dist.getWeight(i) > 0)
                 min = dist.get(i)[j];
-            if(max < dist.get(i)[j])
+            if(max < dist.get(i)[j] && dist.getWeight(i) > 0)
                 max = dist.get(i)[j];
         }
         min = boost::mpi::all_reduce(world, min, boost::mpi::minimum<double>());
         max = boost::mpi::all_reduce(world, max, boost::mpi::maximum<double>());
-        max += 1e-10;
+        max += 1e-8;
      
         //put each parameter in a bin, then get the total
         double binsize = (max-min)/cdata->size;
         for(unsigned int i = 0 ; i < dist.getSize(); i++) {
-            bins[(int)((dist.get(i)[j] - min)/binsize)] += dist.getWeight(i);
+            if(dist.getWeight(i) > 0)
+                bins[(int)((dist.get(i)[j] - min)/binsize)] += dist.getWeight(i);
         }
         
         for(unsigned int i = 0 ; i < cdata->size ; i++) {
@@ -448,8 +405,6 @@ int cb_hist_call(BoldPF* bold, void* data)
             cdata->histogram->SetPixel(index, max);
             index[5]++;
             cdata->histogram->SetPixel(index, parammu[j]);
-            index[5]++;
-            cdata->histogram->SetPixel(index, paramvar[j]);
         }
     }
     
@@ -459,20 +414,22 @@ int cb_hist_call(BoldPF* bold, void* data)
         double min = truemeas(bold, 0, j); 
         double max = truemeas(bold, 0, j);
         for(unsigned int i = 0 ; i < dist.getSize(); i++) {
-            if(min > truemeas(bold, i, j))
+            if(min > truemeas(bold, i, j) && dist.getWeight(i) > 0)
                 min = truemeas(bold, i, j);
-            if(max < truemeas(bold, i, j))
+            if(max < truemeas(bold, i, j) && dist.getWeight(i) > 0)
                 max = truemeas(bold, i, j);
         }
         min = boost::mpi::all_reduce(world, min, boost::mpi::minimum<double>());
         max = boost::mpi::all_reduce(world, max, boost::mpi::maximum<double>());
-        max += 1e-10; //so that the max fits in the top bin
+        max += 1e-8; //so that the max fits in the top bin
      
         //put each parameter in a bin, then get the total
         double binsize = (max-min)/cdata->size;
         for(unsigned int i = 0 ; i < dist.getSize(); i++) {
-            bins[(int)((truemeas(bold, i, j) - min)/binsize)] 
-                        += dist.getWeight(i);
+            if(dist.getWeight(i) > 0) {
+                bins[(int)((truemeas(bold, i, j) - min)/binsize)] 
+                            += dist.getWeight(i);
+            }
         }
         
         for(unsigned int i = 0 ; i < cdata->size ; i++) {
@@ -490,8 +447,6 @@ int cb_hist_call(BoldPF* bold, void* data)
             cdata->histogram->SetPixel(index, max);
             index[5]++;
             cdata->histogram->SetPixel(index, measmu[j]);
-            index[5]++;
-            cdata->histogram->SetPixel(index, measvar[j]);
             
         }
     }

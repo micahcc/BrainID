@@ -59,6 +59,36 @@ bool checkmask(Label4DType::Pointer maskimg, Image4DType::PointType point)
 
     return false;
 }
+ 
+aux::vector ssMu(BoldPF* bold)
+{
+    boost::mpi::communicator world;
+    aux::DiracMixturePdf& dist = bold->getDistribution();
+    aux::vector ssmu =  aux::vector(bold->getModel().getMeasurementSize(),0);
+    for(unsigned int jj = 0 ; jj < dist.getSize() ; jj++) {
+        if(dist.getWeight(jj) > 0)
+            ssmu += dist.getWeight(jj)*bold->getModel().steadyMeas(dist.get(jj));
+    }
+    ssmu = boost::mpi::all_reduce(world, ssmu, std::plus<aux::vector>())/
+                dist.getDistributedTotalWeight();
+    return ssmu;
+}
+ 
+aux::vector ssVar(BoldPF* bold, const aux::vector& ssmu)
+{
+    boost::mpi::communicator world;
+    aux::DiracMixturePdf& dist = bold->getDistribution();
+    aux::vector ssvar =  aux::vector(bold->getModel().getMeasurementSize(),0);
+    for(unsigned int jj = 0 ; jj < dist.getSize() ; jj++) {
+        if(dist.getWeight(jj) > 0) {
+            ssvar += scalar_pow(dist.getWeight(jj)*bold->getModel().
+                        steadyMeas(dist.get(jj)) - ssmu,2);
+        }
+    }
+    ssvar = boost::mpi::all_reduce(world, ssvar , std::plus<aux::vector>())/
+                dist.getDistributedTotalWeight();
+    return ssvar;
+}
 
 void fillvector(std::vector< aux::vector >& output, Image4DType* input,
             Image4DType::IndexType pos, bool delta)
@@ -306,7 +336,7 @@ int main(int argc, char* argv[])
     
     unsigned int method = BoldPF::DIRECT;
     if(a_delta()) method = BoldPF::DELTA;
-    else if(a_dc()) method = BoldPF::DC;
+//    else if(a_dc()) method = BoldPF::DC;
 
     //callback variables, to fill in 
     BoldPF::CallPoints callpoints;
@@ -356,7 +386,7 @@ int main(int argc, char* argv[])
                     fillvector(meas, inImage, index4, a_delta());
 
                     //create the bold particle filter
-                    BoldPF boldpf(meas, input, rms->GetPixel(index3)*a_scale(), a_timestep(),
+                    BoldPF boldpf(meas, input, a_scale(), a_timestep(),
                             output, a_num_particles()*(1<<i), 1./a_divider(), method,
                             a_weight(), a_flat());
                     
@@ -364,16 +394,40 @@ int main(int argc, char* argv[])
                     for(unsigned int j = 0; j < 3 ; j++)
                         ((cb_data*)cbdata)->pos[j] = index4[j];
                     boldpf.setCallBack(callpoints, cbfunc);
-
-                    //run the particle filter
-                    result = boldpf.run(cbdata);
+                    
+                    aux::vector ssvar(1, 1);
+                    for(int i = 0 ; i < RETRIES ; i++) {
+                        //run the particle filter
+                        result = boldpf.run(cbdata);
+                        aux::vector ssmu = ssMu(&boldpf);
+                        *output << endl << endl << "---------------------------------" << endl;
+                        *output << endl << endl << "FINAL STEADY STATE Mean !" 
+                            << endl << ssmu[0] << endl << endl;
+                        *output << endl << endl << "---------------------------------" << endl;
+                        ssvar = ssVar(&boldpf, ssmu);
+                        *output << endl << endl << "FINAL STEADY STATE VARIANCE!" 
+                            << endl <<  ssvar[0] << endl << endl;
+                        *output << endl << endl << "---------------------------------" << endl;
+                        *output << endl << endl << "---------------------------------" << endl;
+                        aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
+                        *output << endl << endl << "FINAL COVARIANCE!" << endl;
+                        for(int i = 0 ; i < cov.size1() ; i++) {
+                            for(int j = 0 ; j < cov.size2() ; j++) {
+                                cout << cov(i,j) << " ";
+                            }
+                            cout << endl;
+                        }
+                        *output << endl << endl << endl << endl << "---------------------------------" << endl;
+                        if(ssvar[0] < .2) {
+                            break;
+                        } else {
+                            boldpf.restart();
+                        }
+                    }
                 }
 
                 //set the output to a standard -1 if BoldPF failed
-                if(result != BoldPF::DONE) {
-//                    mu = aux::vector(BASICPARAMS+STATICPARAMS, -1);
-//                    var = aux::vector(BASICPARAMS+STATICPARAMS, -1);
-                } else {
+                if(checkmask(mask, point4)) {
                     //run time calculation
                     time_t tmp = time(NULL);
                     traveled++;

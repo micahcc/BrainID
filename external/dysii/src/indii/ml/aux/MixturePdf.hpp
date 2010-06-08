@@ -1191,7 +1191,8 @@ void indii::ml::aux::MixturePdf<T>::calculateExpectation() {
   unsigned int i;
   Zmu.clear();
   for (i = 0; i < xs.size(); i++) {
-    noalias(Zmu) += ws(i) * xs[i].getExpectation();
+    if(ws(i) > 0)
+        noalias(Zmu) += ws(i) * xs[i].getExpectation();
   }
   noalias(mu) = Zmu / getTotalWeight();
   haveMu = true;

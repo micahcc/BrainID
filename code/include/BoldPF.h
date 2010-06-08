@@ -74,7 +74,7 @@ public:
     /* Primary Functions */
     int run(void* pass);
     int pause() { return status = PAUSED; };
-    int restart() { disctime_l = 0; disctime_s = 0; return status = UNSTARTED; };
+    int restart(bool resetstate = false); 
 
     /* Accessors */
     double getContTime() const {return disctime_s*dt_s;};
@@ -237,6 +237,15 @@ aux::matrix calcStdDev(indii::ml::aux::DiracMixturePdf& p)
     return cov;
 }
 
+int BoldPF::restart(bool resetstate)
+{
+    disctime_l = 0;
+    disctime_s = 0;
+    status = UNSTARTED; 
+    if(resetstate) throw "NOT IMPLEMENTED";
+    return status;
+}
+
 /* Run - runs the particle filter
  * pass - variable to pass to callback function
 **/
@@ -314,7 +323,7 @@ int BoldPF::run(void* pass = NULL)
             } 
             
             //time to resample
-            if(conttime > 50 && ess < ESS_THRESH) {
+            if(ess < ESS_THRESH) {
                 *debug << " ESS: " << ess << ", Stratified Resampling\n";
 
                 filter->getFilteredState().distributedNormalise();
@@ -453,11 +462,13 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
      * Particles Setup 
      */
     *debug << "Generating prior" << std::endl;
-    unsigned int localparticles = 5*numparticles/size;
+    unsigned int localparticles = numparticles/size;
     
     //give excess particles to last rank
     if(rank == (size-1))
         localparticles += numparticles - localparticles*size;
+
+    localparticles *= 4;
     
     aux::vector boldmu = bold_mean(measurements);
     aux::vector boldstd = bold_stddev(measurements, boldmu);
