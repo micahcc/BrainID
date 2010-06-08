@@ -487,7 +487,7 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
     aux::vector boldstd = bold_stddev(measurements, boldmu);
 
     /* Generate Prior */
-    aux::vector width = 2*model->defscale(measurements.front().size());
+    aux::vector width = 1.5*model->defscale(measurements.front().size());
     aux::vector loc = model->defloc(measurements.front().size());
     
     for(unsigned int ii = model->getStateSize() - model->getMeasurementSize(); 
