@@ -14,7 +14,7 @@ const unsigned int BINSX = 20;
 const unsigned int BINSY = 20;
 const double MU[DIMS] = {1, 1};
 const double SIGMA[DIMS] = {3, 7};
-const unsigned int COMPS = 100000;
+const unsigned int COMPS = 500;
 
 aux::DiracMixturePdf generate()
 {
