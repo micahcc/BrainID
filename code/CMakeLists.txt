@@ -46,6 +46,7 @@ ADD_EXECUTABLE(parammap_calc calc_parammap.cpp)
 ADD_EXECUTABLE(printtags printtags.cpp)
 ADD_EXECUTABLE(setorientation setorientation.cpp)
 #ADD_EXECUTABLE(fmri_timeseries fmri_timeseries.cpp)
+ADD_EXECUTABLE(chop chop.cpp)
 ADD_EXECUTABLE(boldgen boldgen.cpp)
 ADD_EXECUTABLE(concatinate concat.cpp)
 ADD_EXECUTABLE(prune prune.cpp)
@@ -60,6 +61,7 @@ ADD_EXECUTABLE(mse mse.cpp)
 ADD_EXECUTABLE(extract_pos extract_pos.cc)
 
 TARGET_LINK_LIBRARIES(prune modNiftiImageIO ITKIO)
+TARGET_LINK_LIBRARIES(chop ITKBasicFilters ITKIO vullib)
 TARGET_LINK_LIBRARIES(concatinate modNiftiImageIO ITKIO)
 #TARGET_LINK_LIBRARIES(fmri_timeseries modNiftiImageIO segment 
 #    ITKAlgorithms ITKBasicFilters ITKCommon ITKIO 

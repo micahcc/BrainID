@@ -15,8 +15,8 @@ def dist2(mean, sigma):
     return (shape, scale)
 
 mode=.34
-mean=.64
-sigma=.4*1.5
+mean=1.54
+sigma=1.5
 
 #shape, scale = dist1(mode,sigma)
 shape, scale = dist2(mean,sigma)

@@ -152,7 +152,7 @@ vector< vector<double> > read_params(string filename)
             parsed = strtod(prev, &curr);
         }
 
-        if(tmp.size() > 0)
+        if(tmp.size() > 0 && input[0] != '#')
             params.push_back(tmp);
         free(input);
         input = NULL;
