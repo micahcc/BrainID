@@ -475,14 +475,12 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
      * Particles Setup 
      */
     *debug << "Generating prior" << std::endl;
-    unsigned int localparticles = numparticles/size;
+    unsigned int localparticles = 28000/size;
     
     //give excess particles to last rank
     if(rank == (size-1))
-        localparticles += numparticles - localparticles*size;
+        localparticles += 28000 - localparticles*size;
 
-    localparticles *= 10;
-    
     aux::vector boldmu = bold_mean(measurements);
     aux::vector boldstd = bold_stddev(measurements, boldmu);
 

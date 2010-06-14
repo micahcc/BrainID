@@ -11,7 +11,7 @@ import scipy.io as io
 from bar import histo, plothisto
 from math import isinf
 
-DIVIDER = 128
+DIVIDER = 2048
 HRFDIVIDER = 16
 
 #t = arange(0.0, 2.0, 0.01)
@@ -39,20 +39,7 @@ def getparams_mode(time, source):
     return params
 
 def getparams_mu(time, source):
-    params = [0 for i in range(0,7)]
-    for pp in range(0, 7):
-        upper = source.get_data()[0,0,0,time,pp, -2]
-        lower = source.get_data()[0,0,0,time,pp, -3]
-        count = source.get_header()['dim'][6] - 3
-        width = (upper-lower)/count
-        total = 0
-        params[pp] = 0
-        print lower, upper, width, count
-        for j in range(0, histimg.get_header()['dim'][6]-3):
-            total = total + histimg.get_data()[0,0,0,time, pp, j] 
-            params[pp] = params[pp] + histimg.get_data()[0,0,0,time, pp, j] * (lower+width/2.+j*width)
-        params[pp] = params[pp]/total
-    return params
+    return source.get_data()[0,0,0, time, 0:7, -1] 
 
 def printparams(params):
     print "TAU_0  " , params[0]
@@ -201,18 +188,13 @@ if param < 0:
     except:
         print "No ground truth for bold available, if you have some put it in ", \
                     sys.argv[1] + "truebold.nii.gz"
-    print getparams_mu(0, histimg)
-    print getparams_mode(0, histimg)
+    print "params"
     print getparams_mu(-1, histimg)
-    print getparams_mode(-1, histimg)
     exp_final= sim(stims, getparams_mu(-1, histimg), TR, actual.get_header()['dim'][4])
-    mode_final= sim(stims, getparams_mode(-1, histimg), TR, actual.get_header()['dim'][4])
     print len(exp_final)
-    print len(mode_final)
     
     P.plot([i*TR for i in range(len(exp_final))], exp_final)
-    P.plot([i*TR for i in range(len(mode_final))], mode_final)
-    leg.extend(["FinalMu", "FinalMod"])
+    leg.extend(["FinalMu"])
     P.legend(leg)
     
 else:
