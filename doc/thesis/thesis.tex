@@ -2,7 +2,7 @@
 \usepackage[left=3cm,top=2cm,right=3cm,nohead,nofoot]{geometry}
 
 \usepackage{times}
-%\usepackage{tikz}
+\usepackage[siunitx]{circuitikz}
 %\usetikzlibrary{trees}
 %\usetikzlibrary{shapes,snakes}
 \usepackage{verbatim}
@@ -465,6 +465,58 @@ are going to have to be made to reach a solution. However, it would be
 nice to have an algorithm that is robust to these effects, and could
 still give a good solution when Gaussianity is violated.
 
+\section{Unscented Kalman Filter}
+The unscented kalman filter is a powerful bayes-gaussian filter that attempts
+to model the posterior distribution of dynamical systems as a multivariate
+Gaussian. The Unscented Kalman Filter (UKF) generalizes the Extended Kalman
+Filter by allowing the state update to be a function, $g$,
+
+\begin{eqnarray}
+X(t) = g(u(t), X(t-1))\\
+Y(t) = h(X(t)
+\end{eqnarray}
+
+In order to estimate the posterior at $t$, a deterministic set of points (often 2 
+per dimension, plus 1 at the mean)
+weighted according to a Gaussian estimate of $X(t-1)$ are passed through
+the update equation. This set of points are then used to estimate the 
+mean and covariance of $X(t)$. The benefit of this, is that it requires
+no Jacobian and only a few extra calculations to get a decent esimate of
+a posterior Gaussian. In the BOLD case, the set of equations we are modeling have no 
+closed form solution, and finding the Jacobian is impossible without approximations. Although 
+\cite{Riera2004} claims to use a Jacobian for their solution, they are
+in fact using the Jacobian of $\dot{s}$, $\dot{q}$, $\dot{f}$, $\dot{v}$,
+rather than $s$, $q$, $f$, and $v$. This is important because the Extended
+Kalman filter depends on the jacobian to map a gaussian through the 
+advancement of time. Thus the popular Extended Kalman Filter won't work
+in this case, whereas the Unscented Kalman Filter still does.
+
+The difficulty with the Kalman filter is that it is not well suited
+to parameter estimation. If we wanted to find the mean of a static
+parameters, such as $V_0$, it would be necessary to guess a mean 
+and variance for all time. This is because the Kalman filter is primarily
+concenrned with estimating the output, and is not really concerned
+with estimating the underlying state, $X(t)$. As such estimated 
+output, $\hat{Y}(t)$, is simply a weighted sum of the measurement,
+$Y(t)$, and the expected value of the output based on the propagated
+state variables, $\hat{X}(t)$. As such, when the  the filter will attenuate measurements
+the vastly disagree with $E[h(\hat{X}(t))]$, but eventually 
+
+The difficulty
+of using a Kalman Filter, however, is that it assumes a multivariate 
+Gaussian for the state variables, $X(t-1)$. The problem with this is that 
+when a system is significantly nonlinear, the state at 
+$X(t)$ will almost certainly be non-Gaussian, and thus estimating
+$X(t+1)$ with $X(t)$ as a multivariate Gaussian will perpetually introduce
+error in the distribution. Furthermore, it is not really known what 
+sort of underlying distributions may exist in such a mixed biological,
+mechanical, chemical system such as the brain. Assuming the parameters
+all to be Gaussian may in fact be a gross error. On the other hand, if
+the our tests indicate a Gaussian distribution is a good fit, it would
+be a wise plan to go back and consider the use of a modified Unscented 
+Kalman Filter rather
+than the full Particle Filter we discuss in the next section. 
+
 \section{Proposed Approach}
 \subsection{Goal}
 The ultimate goal of this project is to provide a new set of tools
@@ -575,10 +627,10 @@ other biochemical intervention could all lead to either $\nu_d$ or $\nu_y$.
 The goal of the particle filter is to evolve a probably distribution 
 $Pr(\hat{x}(T) | u[0:T], y[0:T])$,
 that asymptotically approaches the probability distribution $Pr(x(T) | u[0:T])$.
-Considering that $y$ contains measurement noise and noise in $x$ can drive
-changes in $y$, it is clear that $Pr(x(t) | u[0:T])$ is not a single true value
+Considering that $y$ contains measurement noise as well as noise from $x$,
+ it is clear that $Pr(x(t) | u[0:T])$ is not a single true value
 but a true posterior. 
-To begin with, the particle filter starts with a proposal distribution, and $N_p$
+To begin with, the particle filter starts with a prior distribution, and $N_p$
 particles need to be drawn from that distribution, $\alpha(x)$:
 \begin{equation}
 \{\hat{Pr}x_i(0),w_i] : x_i(0) \sim \alpha(x), w_i = \frac{1}{N_p}, i \in \{1, 2, ... , N_p\} \}
@@ -943,6 +995,35 @@ even if the scale is completely wrong, particles will still be well differentiat
 
 <Q-Q plot of real fmri data with Gaussian, DC>
 <Q-Q plot of real fmri data with Gaussian, deltas>
+
+\section{Simple Example}
+So a simple example may be used to demonstrate the proposed use of a particle filter.
+Thus, let us consider a simple half wave rectifier circuit, shown in figure 
+\ref{fig:HalfWaveRectifier}
+
+\begin{figure}
+\begin{center}
+\begin{circuitikz}[scale=2, american]
+\draw
+ (0,0)  node[transformer core] (T) {}
+ (T.A1) -- (-1,0)
+ (T.A2) -- (-1,-1.05)  to[V, v=$u(t)$] (-1, 0)
+ (T.B1) -- (.5, 0) to[D, l=$v_t$] (1.5,0) to[C=$C$] (1.5, -1.05)
+ (1.5, 0) -- (2.5, 0) to[R=$Rm$, v=$v_y$] (2.5, -1.05) -- (T.B2) 
+ (T.base) node {G};
+\end{circuitikz}
+\label{fig:HalfWaveRectifier}
+\caption{An Example Half Wave Rectifier Circuit, where $G$ is the transformer
+gain, $v_t$ is the activation voltage of the diode, $u(t)$ is the input at time $t$, 
+$C$ is the capacitance, $R$ is the load resistance and $v_y$ is the output voltage}
+\end{center}
+\end{figure}
+
+Thus when $u(t)G$ is less than $v_t$, the circuit will discharge the capacitor,
+but when $u(t)G$ is greater than $v_t$, the capacitor will charge up. Unlike
+the normal rectifier circuit, we'll deal with a generic input
+Let $V_C$ be the 
+
 
 \section{Methods}
 This paper describes two types of experiments; first we will cover
