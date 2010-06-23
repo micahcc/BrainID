@@ -466,7 +466,7 @@ nice to have an algorithm that is robust to these effects, and could
 still give a good solution when Gaussianity is violated.
 
 \section{Unscented Kalman Filter}
-The unscented kalman filter is a powerful bayes-gaussian filter that attempts
+The unscented kalman filter is a powerful gaussian/bayes filter that attempts
 to model the posterior distribution of dynamical systems as a multivariate
 Gaussian. The Unscented Kalman Filter (UKF) generalizes the Extended Kalman
 Filter by allowing the state update to be a function, $g$,
@@ -476,8 +476,8 @@ X(t) = g(u(t), X(t-1))\\
 Y(t) = h(X(t)
 \end{eqnarray}
 
-In order to estimate the posterior at $t$, a deterministic set of points (often 2 
-per dimension, plus 1 at the mean)
+In order to estimate the posterior at $t$, a deterministic set of "sigma" points 
+(often 2 per dimension, plus 1 at the mode of the multivariate distribution)
 weighted according to a Gaussian estimate of $X(t-1)$ are passed through
 the update equation. This set of points are then used to estimate the 
 mean and covariance of $X(t)$. The benefit of this, is that it requires
@@ -491,16 +491,10 @@ Kalman filter depends on the jacobian to map a gaussian through the
 advancement of time. Thus the popular Extended Kalman Filter won't work
 in this case, whereas the Unscented Kalman Filter still does.
 
-The difficulty with the Kalman filter is that it is not well suited
-to parameter estimation. If we wanted to find the mean of a static
-parameters, such as $V_0$, it would be necessary to guess a mean 
-and variance for all time. This is because the Kalman filter is primarily
-concenrned with estimating the output, and is not really concerned
-with estimating the underlying state, $X(t)$. As such estimated 
-output, $\hat{Y}(t)$, is simply a weighted sum of the measurement,
-$Y(t)$, and the expected value of the output based on the propagated
-state variables, $\hat{X}(t)$. As such, when the  the filter will attenuate measurements
-the vastly disagree with $E[h(\hat{X}(t))]$, but eventually 
+\begin{figure}
+\label{fig:EKFWorking}
+\caption{Examples of update distributions, using an Kalman Filter, \cite{Thrun}}
+\end{figure}
 
 The difficulty
 of using a Kalman Filter, however, is that it assumes a multivariate 
@@ -515,7 +509,34 @@ all to be Gaussian may in fact be a gross error. On the other hand, if
 the our tests indicate a Gaussian distribution is a good fit, it would
 be a wise plan to go back and consider the use of a modified Unscented 
 Kalman Filter rather
-than the full Particle Filter we discuss in the next section. 
+than the full Particle Filter we discuss in the next section. These are 
+non-trivial issues given that the assumption of Gaussianity is what allows
+the UKF to estimate the posterior using only the first and second moments;
+two parameters that don't uniquely describe most distributions.
+
+Another potential problem with the UKF is that typically the sigma points,
+used to estimate the posterior probability, $P(X(t) | X(t-1), u(t))$, are
+located on the main axes. As a result, the covariances are not allowed to 
+be effected by the state transition the same way the variances are. While
+this may be reasonable in low-dimensional systems, high demsional systems
+have a much greater potential for interplay between the variables. While
+this problem is relatively easy to fix (by using more sigma points off
+the main axes), there is a definite cost in complexity.
+
+Ultimately, the nonlinearities of the BOLD model make Gaussian estimates
+too unrealistic for practical use. As \ref{fig:Transformation} shows, even 
+holding all other parameters steady, the nonlinearities due to $q$ and $v$
+alone are enough to give a non-gaussian result from a two variables 
+gaussian input. 
+
+\begin{figure}
+
+\label{fig:Transformation}
+\caption{a) A Two-Variables gaussian input of $q$ and $v$, b) The 
+resulting distribution after being evolved for two seconds. c) The
+estimated Gaussian based on the mean and covariance of b). d) The
+residual between the two distributions.}
+\end{figure}
 
 \section{Proposed Approach}
 \subsection{Goal}
@@ -528,8 +549,8 @@ error due to model variance, this effect is mitigated by the fact
 that we plan to use a model that is based on first principals. The
 purpose of this paper is thus to evaluate the potential of using
 a particle filter along with the BOLD model to derive physical 
-parameters. In so doing, we hope to be able to show that neuronal
-efficacy, $\epsilon$ is a suitable variable for estimating voxel 
+parameters. In so doing, we hope to be able to show that one or more
+parameters are a suitable replacement for estimating voxel 
 activation from a standard FMRI image. We also hope to show that 
 estimated posterior distribution of the parameters, derived from
 the particle filter, is able to provide an accurate measure of the
@@ -580,15 +601,16 @@ constants, $u(t)$ is a stimulus, $y(t)$ an observation, and
 $\nu_x$ and $\nu_y$ are random variates. Obviously any one of these could
 be a vector, so for instance $u(t)$ could encode multiple types of stimuli.
 
-Although not generally necessary for particle filters, we will make a few
+Although not strictly necessary for particle filters, we will make a few
 assumptions based on the particular type of systems faced in biological 
 processes. First, the systems are assumed to be time invariant. This 
 assumption is based on the idea that if you froze the system for $\Delta t$
 seconds, when unfrozen the system would continue as if nothing happend. 
-Few biological systems are predictible enough for them to be summarized
-by a time varying function. Although the heart may seem like an obvious
-exception, period between heartbeats vary often enough that prediction
-would necessate another state-space model. In short, we
+Few biological systems are predictable enough for them to be summarized
+by a time varying function. Even systems that one might assume work in that
+way are actually much more complicated. The heart may seem like an obvious
+exception, however, the period between heartbeats vary often enough that prediction
+would necessitate another state-space model. In short, we
 assume no parameters are time varying, because not enough information exists to
 describe any of theme in that way. Luckily particle filters are capable 
 of dealing with non-white, non-Gaussian noise, so unanticipated influence
@@ -597,7 +619,7 @@ influence the output, which in the case of the BOLD signal is a good assumption.
 %Third, through some sort of preprocessing, we will assume that $\nu_d$ can be
 %decreased or completely removed, since it 
 Third, we will assume noise is additive, and that $\nu_x$ may be projected into
-a weiner, or other summing process that is additive with $g$ and $\nu_y$, which
+a Weiner, or other summing process that is additive with $g$ and $\nu_y$, which
 will be named $\nu_d$.
 Finally, $x(t)$ will encapsulate $\theta$, the unknown model constants, which
 means that the vector $\dot{x}$ will always have members
@@ -996,8 +1018,8 @@ even if the scale is completely wrong, particles will still be well differentiat
 <Q-Q plot of real fmri data with Gaussian, DC>
 <Q-Q plot of real fmri data with Gaussian, deltas>
 
-\section{Simple Example}
-So a simple example may be used to demonstrate the proposed use of a particle filter.
+\section{Simple, Nonlinear Example}
+A simple example may be used to demonstrate the proposed use of a particle filter.
 Thus, let us consider a simple half wave rectifier circuit, shown in figure 
 \ref{fig:HalfWaveRectifier}
 
@@ -1010,7 +1032,8 @@ Thus, let us consider a simple half wave rectifier circuit, shown in figure
  (T.A2) -- (-1,-1.05)  to[V, v=$u(t)$] (-1, 0)
  (T.B1) -- (.5, 0) to[D, l=$v_t$] (1.5,0) to[C=$C$] (1.5, -1.05)
  (1.5, 0) -- (2.5, 0) to[R=$Rm$, v=$v_y$] (2.5, -1.05) -- (T.B2) 
- (T.base) node {G};
+ (T.base) node {G}
+ (T.B1) to[open, *-*, v=$V_1$] (T.B2); 
 \end{circuitikz}
 \label{fig:HalfWaveRectifier}
 \caption{An Example Half Wave Rectifier Circuit, where $G$ is the transformer
@@ -1019,11 +1042,69 @@ $C$ is the capacitance, $R$ is the load resistance and $v_y$ is the output volta
 \end{center}
 \end{figure}
 
-Thus when $u(t)G$ is less than $v_t$, the circuit will discharge the capacitor,
-but when $u(t)G$ is greater than $v_t$, the capacitor will charge up. Unlike
-the normal rectifier circuit, we'll deal with a generic input
-Let $V_C$ be the 
+The half wave rectifier circuit smoothes the gaps between high voltage
+with a capacitor. Thu, when $u(t)G$ is less than $v_t$, the circuit will 
+discharge the capacitor and maintain a non-zero voltage,
+but when $u(t)G$ is greater than $v_t$, the output voltage will be set
+by $u(t)G$ and the capacitor will charge up. We will assume a very simple
+model for all the components, ignoring the complex nonlinear behavior
+that can occur in a diode. Although rectifiers are typically thought
+of as receiving an AC circuit 60 Hz, we will ignore such specifics and 
+assume the voltage across the output of the transformer is simply a scalar
+multiple of the input voltage.  As discussed in the \ref{Sec:ParticleFilter} any
+variable with uncertainty must be part of the state variable. Therefore
+the state variable will be: $X(t) = \{G, v_t, C, R_m, v_y\}$. Of course,
+$u(t)$ cannot be allowed to be a square wave in such a system, since that
+such a signal would never get across the transformer and regardless it
+would necessitate an unrealistic infinite current across the capacitor.
+The state equations would then be 
 
+\begin{equation}
+v_y(t)  = f(v_y(t-1, u(t)) =  \begin{cases} 
+        u(t)G & \text{ if }  u(t)G-v_y \ge v_t\\
+        v_y(t-1)\left(1 - \frac{1}{R_mC}\right) & \text{ if }  u(t)G-v_y < v_t
+    \end{cases} 
+\end{equation}
+
+To run the particle filter is relatively easy then, since there exists 
+a recursive definition of the dynamic state variable, $v_y$. To start
+with, an initial distribution must be assumed and while at first a 
+Gaussian seems like a good idea, all the static state variables are strictly
+positive and thus not well suited to the Gaussian. In this case then,
+it would be wise to start with a Gamma distribution, and just be wary of
+any standard deviation that gets larger than the prior mean. We will define
+the gamma distribution as follows:
+
+\begin{equation}
+X \sim Gamma(k, \theta) \rightarrow f(x) = x^{k-1}\frac{e^{-x/\theta}}{\theta^k\Gamma(k)}
+\end{equation}
+
+where $\Gamma$ is the gamma function.
+The in some ways the margin for error is decided by the weighting function, which
+here will define as $W(V_y, v_y)$, where $V_y$ is the actual measurement, and 
+$v_y$ is the estimate by a particular particle. The choice of this function is difficult,
+and although the Gaussian is typically used, we found the exponential helpful
+in dealing with particle deprivation.  The algorithm will then look like the following,
+
+\begin{algorithmic}
+\STATE Initialize $N_p$ Particles
+\FOR{$i$ in $N_p$}
+    \STATE $G \sim Gamma(\frac{\mu^2_G}{\sigma^2_G}, \frac{\sigma^2_G}{\mu_G})$
+    \STATE $v_t \sim Gamma(\frac{\mu^2_{v_t}}{\sigma^2_{v_t}}, \frac{\sigma^2_{v_t}}{\mu_{v_t}})$
+    \STATE $C \sim Gamma(\frac{\mu^2_C}{\sigma^2_C}, \frac{\sigma^2_C}{\mu_C})$
+    \STATE $R_m \sim Gamma(\frac{\mu^2_R}{\sigma^2_R}, \frac{\sigma^2_R}{\mu_R})$
+    \STATE $v_y = 0$, (Assume the system has been off for a long time)
+    \STATE let $X_i(0) = \{G, v_t, C, R_m, v_y\}$
+    \STATE let $w_i(0) = 1$ or to make a flat prior, $w_i(0) = \frac{1}{Pr(X_i(0))}$ 
+\ENDFOR
+\FOR{$t$ in Set of Measurement Times}
+    \FOR{$i$ in $N_p$}
+        \STATE $v_y(t) = f(v_y(t-1, u(t))$
+        \STATE $w_i(t) = w_i(t-1)W(V_y(t), v_y(t))$
+    \ENDFOR
+\ENDFOR
+
+\end{algorithmic}
 
 \section{Methods}
 This paper describes two types of experiments; first we will cover
