@@ -356,6 +356,61 @@ coregistration between volumes, it is unlikely that movement was
 the cause of the drift either (otherwise the effect would not be 
 widely reported).
 
+In order to characterize the noise in the FMRI we took a few 
+sample time-series during resting state, which should theoretically be all noise and 
+used Q-Q plots to analyze the type of noise present. \ref{fig:QQDC} shows the 
+results of a Q-Q plots between the samples and a Gaussian of mean and variance based
+on the samples. Because it the noise is often considered to have Weiner noise with
+Gaussian steps, \ref{fig:QQDelta} shows a Q-Q plot using the steps, rather than 
+absolute values.
+\begin{figure}
+\label{fig:QQDC}
+\caption{Q-Q Plots of resting state data}
+\end{figure}
+
+\begin{figure}
+\label{fig:QQDelta}
+\caption{Q-Q Plots of resting state data, using the steps as the samples}
+\end{figure}
+
+Finally, to determine whether much of the autocorrelation was removed by taking
+steps we plotted the autocorrelation of each sample location, before for the
+actual value (\ref{fig:CorrDC}), and the steps between values (\ref{fig:CorrDelta}).
+Ideally, if the steps are Gaussian, they should be independent and have a
+flat autocorrelation; although in real life this is far too much to expect.
+
+\begin{figure}
+\label{fig:CorrDC}
+\caption{Autocorrelation of the absolute value of various time-series}
+\end{figure}
+
+\begin{figure}
+\label{fig:CorrDelta}
+\caption{Autocorrelation of the steps of various time-series}
+\end{figure}
+
+<conclusion about the noise>
+
+\subsection{Analysis of the BOLD Signal}
+Several studies have endeavored to analyze the BOLD equations, which
+we will review here. The most obvious analysis is to calculate the
+steady state signal, when $u$ is held constant long enough for
+all the transients to settle out. 
+
+\begin{eqnarray}
+s_{ss} &=& 0 \nonumber \\
+f_{ss} &=& \tau_f\epsilon u + 1\nonumber \\
+v_{ss} &=& (\tau_f\epsilon u + 1)^\alpha\nonumber \\
+q_{ss} &=& \frac{(\tau_f\epsilon u + 1)^\alpha}{E_0}(1-(1-E_0)^{1/(\tau_f\epsilon u + 1)})\nonumber \\
+y_{ss} &=& V_0((k_1+k_2)(1-q_{ss}) - (k_2+k_3)(1-v_{ss}))
+\label{steadystate}
+\end{eqnarray}
+
+[Image with two different $\alpha$'s]
+
+[image comparing the results of 10\% changes in various signals]
+
+
 \section{Current Techniques}
 \subsection{Basic Statistical Parametric Mapping}
 Although not strictly the same thing as parameter calculation from 
@@ -395,7 +450,8 @@ Mapping, but is able to account for several different levels or types
 of stimulus (see \cite{Hofmann1997}). By using hierarchical models
 the output signal timeseries is considered the weighted
 sum of the various input timeseries. Essentially every experimental factor
-is considered as another level inputs (ex. which patient is an input). 
+is considered as another level inputs (ex. different type of stimulus,
+different run with the same patient, different patient). 
 The equation for a general linear model is then
 \begin{equation}
 Y(t) = X(t)\beta + \epsilon(t)
@@ -403,60 +459,53 @@ Y(t) = X(t)\beta + \epsilon(t)
 where $Y(t)$ is the smoothed or detrended timeseries of measurements,
 $X(t)$ is a row vector of input, $\beta$ is a column vector of weights,
 and $\epsilon$ is the error. Thus for every time, the measurement is
-assumed to be a weighted sum of the inputs plus some error. The calculation
-of $\beta$ then performed using a maximum likelihood or gradient descent search 
+assumed to be a weighted sum of the columns of $X$ plus some error. The calculation
+of $\beta$ is then performed using a maximum likelihood or gradient descent search 
 to minimize the error.
 
 <Image of GLM>
 
 It is well known of course that a square wave stimulus does not result in a square wave
 in the activation of brain regions. Thus, various methods are used to 
-smooth $X(t)$'s related to actual input (as opposed to experimental confounds
-such as patient number, age etc) through time, and bandlimit the input. 
-The best technique is convolving the stimulus input with a hemodynamic 
-response function, which mimicks the basic shape of BOLD activation, including a delay
+smooth the columns of $X$, and thus bandlimit the input. 
+The best technique is convolving the stimulus input with a Hemodynamic 
+Response Function (HRF), which mimics the basic shape of BOLD activation, including a delay
 due to rise time and fall time. The downside of this method, however is that 
-the hemodynamic signal is static, meaning the same hemodynamic function is
-used for every region of the brain, and $Y(t)$ must be a constant
-scalar multiple of $X(t)$ to be appropiately identified. 
+the shape of the Hemodynamic Signal is static, meaning the same Hemodynamic Function is
+used for every region of the brain, and $Y(t)$ must linear combination 
+of scalar the columns of $X$ to be appropriately identified. Additionally, 
+it is well known that different Hemodynamic Response Functions are necessary for different 
+regions of the brain. The "Canonical" HRF that is most used, has been fitted
+for the visual cortex. Thus the shape of the HRF may differ significantly in
+terms of onset and fall time in other areas of the brain. The inability to
+fit parameters other than scale certainly hinders SPM's
+ability to locate voxels that do not conform to the "canonical" hemodynamic 
+response function. If there are different HRF's for different regions 
+of the brain, might there also be more subtle differences even within
+a particular region? It seems reasonable to think so. As a result, the 
+most common use of SPM will be heavily biased toward the visual cortex.
 
 <Image of Hemodynamic Response Function>
 
 The GLM is extremely powerful at determining the linear dependence of
 a set of regressors on the output. Unfortunately, there is significant evidence
 that many of these dependencies are nonlinear, which means they may be
-difficult or impossible to detect using linear techniques. Additionally, 
-the lack of flexibility in delay variables certainly hinders SPM's
-ability to locate voxels that do not conform to the canonical hemodynamic 
-response function. The very fact that different hemodynamic response functions
-work better for different regions/experiments is a testament to the need
-for increased flexibility. 
+difficult or impossible to detect using linear techniques. This presents
+a significant and unknown problem that is often left un-addressed in 
+neural studies.
 
-Linear models also ignore prior knowledge about the system. Combined FMRI
-CBF or CBV imaging methods are available and could shed much light on
-neural activation; however there is no way of combining that data into a
-linear model. Although the most advanced form of the general linear model includes
-a Hemodynamic Response Function, it is static across every region of the brain;
-yet it is well known that capillary beds are not uniform and so blood perfusion 
-cannot possibly be static across the brain. Its possible that activation is
-every bit as strong in regions that aren't found by SPM, but that there are
-nonlinearities that do not match the canonical HRF; resulting in signficant bias error. 
-It is not uncommon
-for data to be thrown out in FMRI studies because no significant activation
-has been seen. This practice highlights the fact that strictly linear
-approaches are insufficiently flexible to account for relatively common
-variations of neural activation. 
-
-<Image with two different $\alpha$s>
-
-<image comparing the results of 10\% changes in various signals>
-
-In general activation detection type methods also don't have the ability 
-to find pathologies based on state variables or parameters.  It
-is quite possible that physical properties such as decreased compliance of
-blood vessels could indicate a neurological condition that is not easily
-seen in a T1 or T2 map. In essence, this could make FMRI a much more 
-useful clinical tool than it is now. 
+A static linear model is also unable to incorporate other forms of physiological
+data that may be available. Combined FMRI
+CBF or CBV imaging methods are not uncommon and they could shed much light on
+neural activation. However, there is no way of actively combining that data 
+into a static HRF. The fact of the matter is that the relation between the 
+BOLD signal and CBV/CBF simply cannot be described by any linear relationship.
+While it may be possible to determine some regionally varying set of parameters
+for the HRF based on CBV/CBF, the lack of physiologically inspired parameters
+impairs this. The importance of regional differences in the HRF cannot be
+over-stated; it is well known that capillary beds are far from uniformly distributed
+and thus blood perfusion and regional oxygenation cannot possibly be uniform
+either. 
 
 Finally, all these techniques require the noise to be Gaussian to reach
 an optimal solution. In fact there is no known optimal solution to
@@ -465,6 +514,23 @@ are going to have to be made to reach a solution. However, it would be
 nice to have an algorithm that is robust to these effects, and could
 still give a good solution when Gaussianity is violated.
 
+Because of these limitations, its entirely possible that activation exists
+in regions that SPM doesn't detect, but because the activation does not conform
+to the set HRF, it is impossible for these signals to be detected. Perhaps
+because of this, it is not uncommon for data to be thrown out or averaged
+together in FMRI studies because 
+no significant activation could be seen in a single run \cite{Riera2004}
+\cite{Johnston2008}. This practice highlights 
+limitations in strictly linear approaches; and suggests that a single HRF is 
+insufficiently flexible to account for relatively common variations of neural activation. 
+
+In general activation detection type methods also don't have the ability 
+to find pathologies based on state variables or parameters.  It
+is quite possible that physical properties such as decreased compliance of
+blood vessels could indicate a neurological condition that is not easily
+seen in a T1 or T2 map. In essence, this could make FMRI a much more 
+useful clinical tool than it is now. 
+
 \section{Unscented Kalman Filter}
 The unscented kalman filter is a powerful gaussian/bayes filter that attempts
 to model the posterior distribution of dynamical systems as a multivariate
@@ -472,8 +538,8 @@ Gaussian. The Unscented Kalman Filter (UKF) generalizes the Extended Kalman
 Filter by allowing the state update to be a function, $g$,
 
 \begin{eqnarray}
-X(t) = g(u(t), X(t-1))\\
-Y(t) = h(X(t)
+X(t) &=& g(u(t), X(t-1))\\
+Y(t) &=& h(X(t)
 \end{eqnarray}
 
 In order to estimate the posterior at $t$, a deterministic set of "sigma" points 
@@ -484,12 +550,14 @@ mean and covariance of $X(t)$. The benefit of this, is that it requires
 no Jacobian and only a few extra calculations to get a decent esimate of
 a posterior Gaussian. In the BOLD case, the set of equations we are modeling have no 
 closed form solution, and finding the Jacobian is impossible without approximations. Although 
-\cite{Riera2004} claims to use a Jacobian for their solution, they are
-in fact using the Jacobian of $\dot{s}$, $\dot{q}$, $\dot{f}$, $\dot{v}$,
-rather than $s$, $q$, $f$, and $v$. This is important because the Extended
-Kalman filter depends on the jacobian to map a gaussian through the 
+\cite{Riera2004}, \cite{Hu2009} mention a Jacobian of the BOLD response, this is
+not strictly the case and is rather $\frac{\partial J}{\partial t}$
+rather than a true Jacobian.  This is important because the Extended
+Kalman filter depends on the Jacobian to map a Gaussian through the 
 advancement of time. Thus the popular Extended Kalman Filter won't work
-in this case, whereas the Unscented Kalman Filter still does.
+in this case, whereas the Unscented Kalman Filter still does. In fact
+\cite{Hu2009} uses the UKF to perform a similar type of analysis to
+the one performed in this work. 
 
 \begin{figure}
 \label{fig:EKFWorking}
@@ -537,6 +605,8 @@ resulting distribution after being evolved for two seconds. c) The
 estimated Gaussian based on the mean and covariance of b). d) The
 residual between the two distributions.}
 \end{figure}
+
+\subsection{Conclusion}
 
 \section{Proposed Approach}
 \subsection{Goal}
@@ -809,6 +879,7 @@ is relatively simple.
 The result is then a discrete approximation of the posterior distribution. 
 
 \subsubsection{Resampling}
+\label{Sub:Resampling}
 As a consequence 
 of the wide prior distribution (required for a proper discretization of a continuous
 distribution), there will be many particles with insignificant weights. While this does help
@@ -975,48 +1046,54 @@ Because $\nu_d$ is a Weiner process, then $\nu_d(t) - \nu_d(t-1)$ is simply a Ga
 $\nu_d$ is some other additive process, the difference will still be one of a few stable
 distributions. If $\nu_y$ is i.i.d. then the resulting distribution will still be zero mean
 with a maximum variance of twice the original variance. All the assumptions made originally
-for the particle filter hold, and all of the parameters may be distringuished based on
+for the particle filter hold, and all of the parameters may be distinguished based on
 the step sizes, thus it is not unreasonable to attempt to match the string of step sizes
 rather than string of direct readings. 
 
-<frequncy response graphs, highlighting noise frequency range and signal frequency range>
+<frequency response graphs, highlighting noise frequency range and signal frequency range>
 
 \subsubsection{Weighting Function}
-Because $\hat{Pr}(y(T) | x(T))$, what I will call the weighting funciton,
+Because $\hat{Pr}(y(T) | x(T))$, what I will call the weighting function,
 is based on an unknown distribution, it is necessary to decide on a function
 that will approximate $\hat{Pr}(y(t) | x(T))$. Obviously the function, $\omega(y(t), f(x(t))$
-needs to centered at zero and have a scale comparable to the signal levels.
-While a Gaussian function is the natural choice, we also wanted to try a distribution
-with wider tails, so that outliers don't completely destroy particle's weights.
-Therefore, we tried three weighting functions; Gaussian, exponential and 
-the Cauchy distribution. The standard deviations (or scale) was set to 
-$\sigma_y/5$, where $\sigma_y$ is the variance of all $y[0:\infty]$. Of course 
-since the particle filter requires a weighting function to run, this means that
-before the particle filter starts all the measurements have to be in. In cases where
-this is impossible, a heuristic based on a small sample may work just as well.
+needs to be centered at zero and have a scale comparable to the signal levels.
+Obviously if the actual noise present in $y(t)$ were to be known, then that would
+be the best distribution for $\Omega$. In that case, particles that fell
+far out on that distribution would be statistically impossible representations
+of the system, and it would be completely reasonable to throw such particles away.
+While a Gaussian function is the natural choice, because this distribution
+and weight are unknown we wanted to try distributions
+with wider tails, so that outliers don't completely destroy particle's weights
+(and thus convergence proceeds more slowly).
 
-The shape of the weighting function is extremely important, because it essentially decides
-the rejection rate of particles. A very thin gaussian probability 
-distribution function has nice properties, but thin tails. As a result, large
-outliers in the measurement vector could easily force all the particles to
-have near 0 weights, thus forcing the particle filter to converge improperly. 
-On the other end of the spectrum, a cauchy PDF, has relatively fat tails, and
-may not weight central particles high enough, preventing the particles from 
-converging at a reasonable rate. Exponetials have the benefit of having an 
-extremely smooth drop to zero, and a slope of 1 at the origin. Having a non-zero
-slope at the origin is beneficial because it discriminates all the way up until
-the measured and predicted $y$ are the same. The importance of the weighting function
-cannot be overstated, as this is the primary factor in deciding the rate at
-which the particle filter converges. 
+Another natural choice might be one of the robust estimator weight functions, for
+example the Huber or bi-square. For the purpose of this work we will stick
+with long tailed distributions, however it is worth noting that long tails
+may not be the optimal choice in all, or even this situation. The justification
+for long tailed distributions is that we believe the noise to be long tailed,
+and the variance of the noise is not well known.
 
-Obviously the optimal $\hat{Pr}(y(T) | x(T))$ is the true $Pr(y(T) | x(T))$; however
-since that is unknown, I tested multiple different distributions. As stated previous,
-because the exact scale of $Pr(y(T) | x(T))$ it not even known, the exponential distribution
-has the added benefit of having a negative slope all the way form zeo to infinity. Thus
-even if the scale is completely wrong, particles will still be well differentiated. 
+Therefore, we tried three weighting functions based on three distributions: Gaussian, 
+Laplace and the Cauchy. The standard deviation of the distribution is extremely
+important to the convergence of particle filter. A standard deviation that is 
+too large will not allow the distribution to converge in any reasonable number of 
+measurements. A standard deviation below the standard deviation of the noise 
+will cause the algorithm to throw out perfectly acceptable particles. 
+The weighting function ultimately will shape the output distribution, $P[y]$, into that
+distribution, however the distribution of $x$ will still approach a reasonable
+estimate of its true distribution. Even an overly wide weighting function, will
+allow the Gaussian Mixture estimate of $X$ to converge to the correct location 
+parameters of the "real" posterior distribution, though the scale parameters may 
+be overly large.
 
-<Q-Q plot of real fmri data with Gaussian, DC>
-<Q-Q plot of real fmri data with Gaussian, deltas>
+A reasonable method of setting the standard deviation of $\Omega$ may be by 
+taking a small sample from "resting" data and using the sample standard deviation.
+Since this is the first attempt at using particle filters for modeling the 
+BOLD model, in this work we set the standard deviation manually at <weight standard dev>,
+because it gives a more consistency and control. Of course this could be taken
+further, by testing the sample data against a set of stock distributions
+and choosing the best fit. This of course depends on having enough samples
+to make a reasonable inference, which may not always exist. 
 
 \section{Simple, Nonlinear Example}
 A simple example may be used to demonstrate the proposed use of a particle filter.
@@ -1062,7 +1139,7 @@ The state equations would then be
 \begin{equation}
 v_y(t)  = f(v_y(t-1, u(t)) =  \begin{cases} 
         u(t)G & \text{ if }  u(t)G-v_y \ge v_t\\
-        v_y(t-1)\left(1 - \frac{1}{R_mC}\right) & \text{ if }  u(t)G-v_y < v_t
+        v_y(t-1)\left(1 - \frac{\delta t}{R_mC}\right) & \text{ if }  u(t)G-v_y < v_t
     \end{cases} 
 \end{equation}
 
@@ -1081,13 +1158,14 @@ X \sim Gamma(k, \theta) \rightarrow f(x) = x^{k-1}\frac{e^{-x/\theta}}{\theta^k\
 
 where $\Gamma$ is the gamma function.
 The in some ways the margin for error is decided by the weighting function, which
-here will define as $W(V_y, v_y)$, where $V_y$ is the actual measurement, and 
-$v_y$ is the estimate by a particular particle. The choice of this function is difficult,
+here will define as $W(V_y, v_{yi})$, where $V_y$ is the actual measurement, $v_y$ is the 
+estimate based on all the particles, and 
+$v_{yi}$ is the estimate by a particular (i$^{\text{th}}$) particle. The choice of this function is difficult,
 and although the Gaussian is typically used, we found the exponential helpful
 in dealing with particle deprivation.  The algorithm will then look like the following,
 
 \begin{algorithmic}
-\STATE Initialize $N_p$ Particles
+\STATE Initialize $N_p$ Particles:
 \FOR{$i$ in $N_p$}
     \STATE $G \sim Gamma(\frac{\mu^2_G}{\sigma^2_G}, \frac{\sigma^2_G}{\mu_G})$
     \STATE $v_t \sim Gamma(\frac{\mu^2_{v_t}}{\sigma^2_{v_t}}, \frac{\sigma^2_{v_t}}{\mu_{v_t}})$
@@ -1097,14 +1175,24 @@ in dealing with particle deprivation.  The algorithm will then look like the fol
     \STATE let $X_i(0) = \{G, v_t, C, R_m, v_y\}$
     \STATE let $w_i(0) = 1$ or to make a flat prior, $w_i(0) = \frac{1}{Pr(X_i(0))}$ 
 \ENDFOR
+\STATE Run the Filter:
 \FOR{$t$ in Set of Measurement Times}
     \FOR{$i$ in $N_p$}
-        \STATE $v_y(t) = f(v_y(t-1, u(t))$
+        \STATE $v_{yi}(t) = f(v_{yi}(t-1), u(t))$
+        \STATE (All other members of $X_i(t)$ remain the same)
         \STATE $w_i(t) = w_i(t-1)W(V_y(t), v_y(t))$
     \ENDFOR
 \ENDFOR
-
 \end{algorithmic}
+
+Initially the particles will have the same output, $0$, however, as $u(t)$
+changes, the response of each particle to that input will result in different
+outputs. Particles that have a $v_{yi}$ near $V_y$ will be weighted higher,
+and others farther away will be weighted lower. As the particle filter
+runs, weights will compound resulting in a distribution that asymptotically
+approaches the true joint distribution of the $X(t)$.  Of course, as we
+mentioned in \ref{Sub:Resampling}, particles weighted zero do not significantly
+contribute to the empirical distribution, so re-sampling may be necessary.
 
 \section{Methods}
 This paper describes two types of experiments; first we will cover
