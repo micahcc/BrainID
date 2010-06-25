@@ -1,5 +1,5 @@
-\documentclass{article}
-\usepackage[left=3cm,top=2cm,right=3cm,nohead,nofoot]{geometry}
+\documentclass{report}
+\usepackage[left=3cm,top=2cm,right=3cm]{geometry}
 
 \usepackage{times}
 \usepackage[siunitx]{circuitikz}
@@ -12,7 +12,7 @@
 \usepackage{setspace}
 \usepackage{graphicx}
 \usepackage{cancel}
-\usepackage{hyperref}
+\usepackage[colorlinks=true]{hyperref}
 
 \doublespacing
 
@@ -36,7 +36,7 @@
 \end{comment}
 
 \begin{document}
-\section{Introduction}
+\chapter{Introduction}
 Functional Magnetic Resonance Imaging (FMRI) is a powerful tool in the analysis
 of neural activity. Despite its rather limited temporal resolution, FMRI is still
 the best way of measuring neural activity for the majority of the brain.
@@ -85,7 +85,7 @@ blood flow, blood volume, and oxygenated hemoglobin; though not necessarily
 in sync. The lag between these
 various factors is what causes many of the complexities of the BOLD signal.
 
-\subsection{FMRI}
+\section{FMRI}
 Magnetic Resonance Imaging, MRI is a method of building 3D images
 non-invasively, based on the difference between nuclear spin
 relaxation times in various molecules. Initially the entity being
@@ -138,7 +138,8 @@ from the baseline. Luckily the assumption that tissue content does not change in
 the short run is actually pretty good, although other factors can pollute
 the baseline signal, as we will discuss later. 
 
-\subsection{BOLD Physiology}
+\section{BOLD Physiology}
+\label{sec:BOLD Physiology}
 It is well known that the two types of hemoglobin act as a contrast agents in 
 EPI imaging
 \cite{Buxton1998}, \cite{WEISSKOFF1994}, \cite{Ogawa}, however the connection
@@ -164,7 +165,7 @@ model, could fully account for the BOLD signal.
 
 Although \cite{Buxton1998} showed that a well chosen flow waveform could 
 explain much of the BOLD signal, there was still a matter of proposing a
-realistic waveform for the CBF and for the CMRO2. \cite{friston2000} gave
+realistic waveform for the CBF and for the CMRO2. \cite{Friston2000} gave
 a reasonable and simple
 expressoin for CBF input,$f$, based on a flow inducing signal, $s$, 
 \begin{eqnarray}
@@ -263,11 +264,11 @@ between the model will often times be below the noise floor. In essence this
 is a classic bias-variance
 dilemma: at some point increased model flexibility, and thus variance, is not
 worth the decrease in model bias. For now it remains to be seen where this
-line may be drawn in the BOLD signal, although \cite{deneux2006} does not
+line may be drawn in the BOLD signal, although \cite{Deneux2006} does not
 show a significant improvement from the additional parameters added in 
 \cite{Buxton2004}.
 
-\subsection{Previous Studies of Parameters}
+\section{Previous Studies of Parameters}
 There have been quite a few efforts to quantify the parameters of the
 various BOLD models.  Although \cite{Buxton1998} and \cite{Friston2000}
 both proposed physiologically reasonable values for the model parameters, 
@@ -307,7 +308,7 @@ priors. The starting point of the parameters could have a huge impact on the
 results, and while one can be hopeful that this isn't the reason for the agreement
 between \cite{Friston2000} and later results, there is no way to know. 
 
-In \cite{Jonston2008}, a hybrid particle filter/gradient
+In \cite{Johnston2008}, a hybrid particle filter/gradient
 descent algorithm was used to simultaneously derive the static (classicly called
 parameters) and dynamic parameters (classically known as state variables).
 Essentially a particle filter is used to calculate the state variables at some
@@ -334,7 +335,7 @@ without detrimental cost in variance error. I do not think this is the case, how
 and I will work to dispell this possibility in the results with simulated time
 series.
 
-\subsection{Noise}
+\section{Noise}
 Thus, despite some discrepencies, the cause of the BOLD signal is
 relatively well known.  but FMRI doesn't detect this happening in one neuron,
 but rather as the 
@@ -352,46 +353,39 @@ fields \cite{Smith2007}. It is clear that this drift signal is not soley
 due to a physiological
 effects, given its presence in cadavers and phantoms \cite{Smith1999}.
 Additionally, since it is standard operating procedure to perform
-coregistration between volumes, it is unlikely that movement was
+co-registration between volumes, it is unlikely that movement was
 the cause of the drift either (otherwise the effect would not be 
 widely reported).
 
 In order to characterize the noise in the FMRI we took a few 
 sample time-series during resting state, which should theoretically be all noise and 
-used Q-Q plots to analyze the type of noise present. \ref{fig:QQDC} shows the 
-results of a Q-Q plots between the samples and a Gaussian of mean and variance based
-on the samples. Because it the noise is often considered to have Weiner noise with
-Gaussian steps, \ref{fig:QQDelta} shows a Q-Q plot using the steps, rather than 
-absolute values.
+used Q-Q plots to analyze the type of noise present. Additionally, the autocorrelation
+was also calculated since most methods (including the one used in this paper)
+assume the noise is independent from time and
+identically distributed.  If these assumptions fail, then error rate will
+be higher than expected. \autoref{fig:QQDC} shows the 
+results with a regression line fit to the points. A set of points that are exactly 
+Gaussian should all fall on the same line.  Because it the noise is often considered 
+to have Weiner noise with Gaussian steps, as first described in \cite{Riera2003}, we
+also performed the same tests again, but on the steps, rather than the 
+direct measurements. \autoref{fig:QQDelta} shows the analysis of the same
+set of time-series as \autoref{fig:QQDC}, after being converted to steps.
+Finally, as we will discuss in \autoref{sec:Methods Preprocessing}, some
+amount of drift can be removed by subtracting off a spline from the timeseries.
+
 \begin{figure}
-\label{fig:QQDC}
 \caption{Q-Q Plots of resting state data}
+\label{fig:QQDC}
 \end{figure}
 
 \begin{figure}
-\label{fig:QQDelta}
 \caption{Q-Q Plots of resting state data, using the steps as the samples}
-\end{figure}
-
-Finally, to determine whether much of the autocorrelation was removed by taking
-steps we plotted the autocorrelation of each sample location, before for the
-actual value (\ref{fig:CorrDC}), and the steps between values (\ref{fig:CorrDelta}).
-Ideally, if the steps are Gaussian, they should be independent and have a
-flat autocorrelation; although in real life this is far too much to expect.
-
-\begin{figure}
-\label{fig:CorrDC}
-\caption{Autocorrelation of the absolute value of various time-series}
-\end{figure}
-
-\begin{figure}
-\label{fig:CorrDelta}
-\caption{Autocorrelation of the steps of various time-series}
+\label{fig:QQDelta}
 \end{figure}
 
 <conclusion about the noise>
 
-\subsection{Analysis of the BOLD Signal}
+\section{Analysis of the BOLD Signal}
 Several studies have endeavored to analyze the BOLD equations, which
 we will review here. The most obvious analysis is to calculate the
 steady state signal, when $u$ is held constant long enough for
@@ -403,7 +397,7 @@ f_{ss} &=& \tau_f\epsilon u + 1\nonumber \\
 v_{ss} &=& (\tau_f\epsilon u + 1)^\alpha\nonumber \\
 q_{ss} &=& \frac{(\tau_f\epsilon u + 1)^\alpha}{E_0}(1-(1-E_0)^{1/(\tau_f\epsilon u + 1)})\nonumber \\
 y_{ss} &=& V_0((k_1+k_2)(1-q_{ss}) - (k_2+k_3)(1-v_{ss}))
-\label{steadystate}
+\label{eq:steadystate}
 \end{eqnarray}
 
 [Image with two different $\alpha$'s]
@@ -411,8 +405,8 @@ y_{ss} &=& V_0((k_1+k_2)(1-q_{ss}) - (k_2+k_3)(1-v_{ss}))
 [image comparing the results of 10\% changes in various signals]
 
 
-\section{Current Techniques}
-\subsection{Basic Statistical Parametric Mapping}
+\chapter{Current Techniques}
+\section{Basic Statistical Parametric Mapping}
 Although not strictly the same thing as parameter calculation from 
 FMRI, activation detection is very similar. In fact, estimation of 
 parameters is somewhat a generalization of the idea of activation detection.
@@ -442,9 +436,9 @@ as well as decreasing the effective number of voxels. Since t-tests are
 now no longer being applied to n <I need to define n> independent voxels,
 the factor by which the p-value must be divided by can be decreased.
 <Do I need to mathematically define all this?> The derivation and application
-of random field theory, and its use can be found in various papers \cite{univ_mult_rft}.
+of random field theory, and its use can be found in various papers \cite{Worsley2004}.
 
-\subsection{General Linear Model}
+\section{General Linear Model}
 The most used form of FMRI analysis is Statistical Parametric
 Mapping, but is able to account for several different levels or types
 of stimulus (see \cite{Hofmann1997}). By using hierarchical models
@@ -463,7 +457,7 @@ assumed to be a weighted sum of the columns of $X$ plus some error. The calculat
 of $\beta$ is then performed using a maximum likelihood or gradient descent search 
 to minimize the error.
 
-<Image of GLM>
+[Image of GLM]
 
 It is well known of course that a square wave stimulus does not result in a square wave
 in the activation of brain regions. Thus, various methods are used to 
@@ -485,7 +479,7 @@ of the brain, might there also be more subtle differences even within
 a particular region? It seems reasonable to think so. As a result, the 
 most common use of SPM will be heavily biased toward the visual cortex.
 
-<Image of Hemodynamic Response Function>
+[Image of Hemodynamic Response Function]
 
 The GLM is extremely powerful at determining the linear dependence of
 a set of regressors on the output. Unfortunately, there is significant evidence
@@ -560,8 +554,8 @@ in this case, whereas the Unscented Kalman Filter still does. In fact
 the one performed in this work. 
 
 \begin{figure}
+\caption{Examples of update distributions, using an Kalman Filter, \cite{Thrun2005}}
 \label{fig:EKFWorking}
-\caption{Examples of update distributions, using an Kalman Filter, \cite{Thrun}}
 \end{figure}
 
 The difficulty
@@ -573,60 +567,106 @@ $X(t+1)$ with $X(t)$ as a multivariate Gaussian will perpetually introduce
 error in the distribution. Furthermore, it is not really known what 
 sort of underlying distributions may exist in such a mixed biological,
 mechanical, chemical system such as the brain. Assuming the parameters
-all to be Gaussian may in fact be a gross error. On the other hand, if
-the our tests indicate a Gaussian distribution is a good fit, it would
-be a wise plan to go back and consider the use of a modified Unscented 
-Kalman Filter rather
-than the full Particle Filter we discuss in the next section. These are 
+all to be Gaussian may in fact be a gross error. On the other hand, for
+small variances and short time steps the gaussiann distribution is a good 
+fit, and so in some limited cases the Unscented Kalman Filter could work
+well. These are 
 non-trivial issues given that the assumption of Gaussianity is what allows
 the UKF to estimate the posterior using only the first and second moments;
 two parameters that don't uniquely describe most distributions.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c || c |}
+\hline 
+Parameter & Run 1 \\
+\hline
+$\tau_0$ & .98  \\
+$\alpha$ & .33 \\
+$E_0$ & .34  \\
+$V_0$ & .03  \\
+$\tau_s$ & 1.54  \\
+$\tau_f$ & 2.46  \\
+$\epsilon$ & .54  \\
+$V_t$ & N(1, .3)  \\
+$Q_t$ & N(1, .3)  \\
+$S_t$ & N(1, .3) \\
+$F_t$ & N(1, .3) \\
+\hline
+\end{tabular}
+\caption{Parameters used to test Gaussianity of variables after being transitioned through
+the BOLD model}
+\label{tab:steptable} 
+\end{table}
+
+To determine the amount of error incurred in a Gaussian estimate during
+a typical sample period, the states of BOLD equations were assigned according
+to four dimensional Gaussian. The states were then propagated through two
+seconds of simulation (a typical TR in FMRI) and then the resulting
+marginal distributions were compared with a Gaussian distribution. The 
+purpose is to determine the degree to which the results of simulation will
+result in non-Gaussian output, given a Gaussian input. This also demonstrates
+the degree of nonlinearity present in the system. The parameters used are 
+shown in \autoref{tab:steptable}
+
+Notably $s_t$ has intentionally been set to a non-equilibrium, but physiologically
+plausible value. The value of $u$ is left at zero the entire time, so the 
+system will decay naturally (see \autoref{sec:BOLD Physiology}), though initializing 
+$s$ at a non-zero level will drive the system for several seconds. 
+\autoref{fig:transp1s} shows the results when the system is essentially
+left on for 100 milliseconds after setting the variables according to \autoref{tab:steptable}.
+The Q-Q plots fit very will with a Gaussian, demonstrating that at this short
+time interval nonlinearities have not yet begun to effect the distribution.
+However, \autoref{fig:trans1s} us the result after 1 second, which is faster
+than most FMRI scanners are capable of sampling at. At that range the tails 
+of the distributions for $v$ and $q$ are clearly starting to deviate from the
+Gaussian distribution. As a result the uncertainty in $y$ is deviating from
+the Gaussian distribution as well. This is important, because although 
+approximating the distribution with a Gaussian based on the first two
+moments will work in the short run, there will be residual error in the
+distribution. 
+
+On the other hand, this effect is more limited if the initial variance is somewhat
+smaller. In tests with those cases, it took much longer for the nonlinearities to skew
+the distribution. That result could be encouraging to those looking to use the
+UKF, if the distributions are kept relatively thin.
 
 Another potential problem with the UKF is that typically the sigma points,
 used to estimate the posterior probability, $P(X(t) | X(t-1), u(t))$, are
 located on the main axes. As a result, the covariances are not allowed to 
 be effected by the state transition the same way the variances are. While
-this may be reasonable in low-dimensional systems, high demsional systems
+this may be reasonable in low-dimensional systems, high dimensional systems
 have a much greater potential for interplay between the variables. While
 this problem is relatively easy to fix (by using more sigma points off
 the main axes), there is a definite cost in complexity.
 
-Ultimately, the nonlinearities of the BOLD model make Gaussian estimates
-too unrealistic for practical use. As \ref{fig:Transformation} shows, even 
-holding all other parameters steady, the nonlinearities due to $q$ and $v$
-alone are enough to give a non-gaussian result from a two variables 
-gaussian input. 
+Ultimately, there is a distinct possibility that the nonlinearities of 
+the BOLD model make Gaussian estimates unrealistic and thus less effective.
+More advanced tests where static variables such as $\alpha$ are varied
+as well could shed even more light on the issue. The trouble with using
+the UKF then to estimate parameters is that all eleven members of $X$ would
+be treated like a single joint Gaussian distribution which certainly 
+compound the issues of nonlinearity seen in \autoref{fig:transp1s} and 
+\autoref{fig:trans1s}
 
 \begin{figure}
-
-\label{fig:Transformation}
-\caption{a) A Two-Variables gaussian input of $q$ and $v$, b) The 
-resulting distribution after being evolved for two seconds. c) The
-estimated Gaussian based on the mean and covariance of b). d) The
-residual between the two distributions.}
+\centering
+\includegraphics[trim=6cm .75cm 6cm .75cm,width=16cm]{images/gauss_step_point1sec_3sigma.pdf}
+\caption{Distributions of state variables after simulating for .1s}
+\label{fig:transp1s}
 \end{figure}
 
-\subsection{Conclusion}
+\begin{figure}
+\includegraphics[trim=6cm .75cm 6cm .75cm,width=16cm]{images/gauss_step_1sec_3sigma.pdf}
+\caption{Distributions of state variables after simulating for 1s}
+\label{fig:trans1s}
+\end{figure}
 
-\section{Proposed Approach}
-\subsection{Goal}
-The ultimate goal of this project is to provide a new set of tools
-for analyzing FMRI data. Whereas SPM techniques have been highly 
-successful at finding macroscopic regions of activation, linear 
-modeling can carry significant bias error due to lack of model
-flexibility. While adding parameters can significantly increase
-error due to model variance, this effect is mitigated by the fact
-that we plan to use a model that is based on first principals. The
-purpose of this paper is thus to evaluate the potential of using
-a particle filter along with the BOLD model to derive physical 
-parameters. In so doing, we hope to be able to show that one or more
-parameters are a suitable replacement for estimating voxel 
-activation from a standard FMRI image. We also hope to show that 
-estimated posterior distribution of the parameters, derived from
-the particle filter, is able to provide an accurate measure of the
-confidence interval.
+\section{Conclusion}
+These other methods ....
 
-\subsection{Introduction to Particle Filters}
+\chapter{Particle Filters}
+\section{Introduction}
 Particle filters, a type of Sequential Monte Carlo (SMC) methods
 are a powerful way of estimating the posterior probability distribution
 of a set of parameters give a timeseries of measurements. Unlike Markov 
@@ -635,9 +675,9 @@ to be used with parameters that vary with time. Unlike variations of the
 Kalman filter, particle filters do not make the assumption that noise
 is Gaussian. Thus particle filters are often the best solution to bayesian 
 tracking for non-linear, non-gaussian systems. 
-%todo: might need to reference attempts to model a system of our type with
-%unscented kalman filter
-\subsubsection{Model}
+
+\subsection{Model}
+\label{sec:Particle Filter Model}
 The idea of the particle
 filter is to start with a wide mixture PDF of possible parameter sets, 
 and then, as measurements come in, to weight more heavily parameter sets 
@@ -697,13 +737,13 @@ that are 0. The results of these assumptions are a simplified version of the
 state space equations:
 
 \begin{equation}
-\label{stateass}
 \dot{x}(t) = f(x(t), u(t))
+\label{eq:stateass}
 \end{equation}
 
 \begin{equation}
-\label{measass}
 y(t) = g(x(t)) + \nu_y + \nu_d
+\label{eq:measass}
 \end{equation}
 
 Because $\nu_d$ is something akin to and additive Weiner process $y[0:T]$, it 
@@ -711,10 +751,10 @@ will include low frequency noise. $\nu_y$ on the other hand will cause i.i.d. no
 in $y[0:T]$. For some of the tests, I will use de-trending methods to reduce the effects of 
 $\nu_d$, the remainder of which will be re-factored into $\nu_y$. Both $\nu_d$ and $\nu_y$
 have biological and non-biological sources. MR can lead to both types of noise, 
-as demonstrated in \cite{drift}. Meanwhile changes in metabolism, heart rate, or
+as demonstrated in \cite{Smith1999}. Meanwhile changes in metabolism, heart rate, or
 other biochemical intervention could all lead to either $\nu_d$ or $\nu_y$.
 
-\subsubsection{Prior}
+\subsection{Prior}
 
 The goal of the particle filter is to evolve a probably distribution 
 $Pr(\hat{x}(T) | u[0:T], y[0:T])$,
@@ -766,15 +806,15 @@ time without a measurement passes.
 \sum_{i=1}^{N_p} w_i\delta\left(x - (x_i(T) + \int_T^{T+\Delta} \dot{x}_i(t) dt) \right)
 \end{equation}
 
-\subsubsection{Weighting}
+\subsection{Weighting}
 When a measurement becomes available it is incorporated into the probability.
 This process of incorporating new data is called sequential importance sampling,
 and eventually causes the probability to converge. The weight is defined
 as
 
 \begin{equation}
-\label{weightfunc}
 w_i(T) \propto \frac{\hat{Pr}(x_i[0:T] | y[0:T])}{q(x_i[0:T] | y[0:T])}
+\label{eq:weightfunc}
 \end{equation}
 
 where $q$ is called an \emph{importance density}, meaning it decides where
@@ -818,8 +858,8 @@ which may be broken up as follows.
  & = & \frac{\hat{Pr}(y(T)| x[0:T], y[0:T-1]) \hat{Pr}(x(T) | x[0:T-1], y[0:T-1]) \hat{Pr}(x[0:T-1] | y[0:T-1])}{\hat{Pr}(y(T) | y[0:T-1])} \nonumber \\
 \end{eqnarray}
 
-Using the assumption that $y(t)$ is fully constrained by $x(t)$ \eqref{measass},
-and that $x(t)$ is fully constrained by $x(t-1)$ \eqref{stateass}, we are able to
+Using the assumption that $y(t)$ is fully constrained by $x(t)$ \autoref{eq:measass},
+and that $x(t)$ is fully constrained by $x(t-1)$ \autoref{eq:stateass}, we are able to
 make the reasonably good assumptions that:
 \begin{equation}
 \hat{Pr}(y(T) | x[0:T], y[0:T-1]) = \hat{Pr}(y(T) | x(T))
@@ -839,12 +879,12 @@ may be simplified to:
 & \propto & \hat{Pr}(y(T)| x(T)) \hat{Pr}(x(T) | x(T-1)) \hat{Pr}(x[0:T-1] | y[0:T-1])
 \end{eqnarray}
 
-Plugging these simplifications into \eqref{weightfunc} leads to:
+Plugging these simplifications into \autoref{eq:weightfunc} leads to:
 \begin{eqnarray}
-\label{weightevolve}
 w_i(T) & \propto & \frac{\hat{Pr}(y(T)| x(T)) \cancel{\hat{Pr}(x(T) | x(T-1))} \hat{Pr}(x[0:T-1] | y[0:T-1])}
                          {\cancel{\hat{Pr}(x_i(T) | x_i(T-1))}q(x[0:T-1] | y[0:T-1])} \nonumber \\
 & \propto & w_i(T-1)\hat{Pr}(y(T)| x(T)) 
+\label{eq:weightevolve}
 \end{eqnarray}
 
 Thus, by making the following relatively weak assumptions, evolving a posterior
@@ -858,7 +898,7 @@ a sufficiently flexible model to encapsulate the true time series.
 \item $q(x[0:T-1] | y[0:T]) = q(x[0:T-1] | y[0:T-1])$
 \end{enumerate}
 
-\subsubsection{Basic Particle Filter Algorithm}
+\subsection{Basic Particle Filter Algorithm}
 From the definition of $w_i$, the algorithm sequential importance sampling (SIS) 
 is relatively simple. 
 
@@ -878,8 +918,8 @@ is relatively simple.
 \end{algorithmic}
 The result is then a discrete approximation of the posterior distribution. 
 
-\subsubsection{Resampling}
-\label{Sub:Resampling}
+\subsection{Resampling}
+\label{sec:Particle Filter Resampling}
 As a consequence 
 of the wide prior distribution (required for a proper discretization of a continuous
 distribution), there will be many particles with insignificant weights. While this does help
@@ -893,8 +933,8 @@ Monte Carlo Methods for Dynamical Systems", 1998), which is based on the "true w
 of each particle. Of course the true weight is unknown, so a heuristic approximating 
 $N_{eff}$ is used:
 \begin{equation}
-\label{neff}
 \hat{N}_{eff} \approx \frac{N_p}{\sum_{i=1}^{N_p} w_i^2}
+\label{eq:neff}
 \end{equation}
 Any quick run of a particle filter will reveal that unless the prior is particularly accurate,
 $N_{eff}$ drops precipitously.  To alleviate this problem
@@ -973,7 +1013,7 @@ importance sampling filter (SIS).
         \STATE $w_i(t) = w_i(t-1)\hat{Pr}(y(t) | x(t))$
     \ENDFOR
 
-    \STATE Calculate $N_{eff}$ with \eqref{neff}
+    \STATE Calculate $N_{eff}$ with \autoref{eq:neff}
     \IF{$N_{eff} < N_R$ (recommend $N_R = min(50, .1N_p)$ )}
         \STATE Calculate empirical $\sigma$ 
         \STATE $h = [N_s8c^{-1}_{n_x}(n_x + 4)(2\sqrt{\pi})^{n_x}]^{\frac{1}{n_x +4}}$
@@ -997,23 +1037,42 @@ As the variance of the estimated
 $x$'s decrease, the radius in which children are spawned also decreases. Eventually the radius
 will approach the width of the underlying uncertainty, $\nu_x$ and $\nu_y$.
 
-\subsection{Choosing $\hat{Pr}(y(T) | x(T))$}
+\chapter{Proposed Approach}
+\section{Goal}
+The ultimate goal of this project is to provide a new set of tools
+for analyzing FMRI data. Whereas SPM techniques have been highly 
+successful at finding macroscopic regions of activation, linear 
+modeling can carry significant bias error due to lack of model
+flexibility. While adding parameters can significantly increase
+error due to model variance, this effect is mitigated by the fact
+that we plan to use a model that is based on first principals. The
+purpose of this paper is thus to evaluate the potential of using
+a particle filter along with the BOLD model to derive physical 
+parameters. In so doing, we hope to be able to show that one or more
+parameters are a suitable replacement for estimating voxel 
+activation from a standard FMRI image. We also hope to show that 
+estimated posterior distribution of the parameters, derived from
+the particle filter, is able to provide an accurate measure of the
+confidence interval.
+
+
+\section{Choosing $\hat{Pr}(y(T) | x(T))$}
 Choosing a representation of an unknown distribution is certainly tricky,
 and so the fact that $\hat{Pr}(y(T) | x(T)) = \nu_d + \nu_y$ means that
 there is a significant piece of the algorithm that is based primarily conjecture.
 Studies of the noise in FMRI typically attribute noise to a Gaussian random
 variable or an additive noise process with Gaussian steps. 
 
-\subsubsection{Classical De-trending}
+\subsection{Classical De-trending}
 The non-stationary
 aspect of a Weiner process as with $\nu_d$ is difficult to compensate for, and so various methods
-have been developed to compensate for it. \cite{detrend} and \cite{drift} have
+have been developed to compensate for it. \cite{Tanabe2002} and \cite{Smith1999} have
 demonstrated that this component is prevalent, and may in fact be a characteristic
 of FMRI. In some studies, as many as half the voxels benefit from detrending, meaning
 that this is certainly a serious barrier to inference. All the existing methods are performed
 during the preprocessing stage, rather than as an integral part of analyzing the BOLD
 signal. There is no shortage of theories on the "best" method of detrending, however
-a head to head comparison, \cite{detrend}, showed that in most cases subtracting off
+a head to head comparison, \cite{Tanabe2002}, showed that in most cases subtracting off
 a spline works the best. The benefit of the spline versus wavelets, high pass 
 filtering or other DC removal techniques is that the frequency response is not set.
 A spline is able to move quickly when the signal is moving quickly, and move more
@@ -1022,7 +1081,7 @@ amount of signal, just like all of these methods.
 
 <image of de-spline'd lines with "true" lines>
 
-\subsubsection{Delta Based Inference}
+\subsection{Delta Based Inference}
 I also propose and test a different method of dealing with the so called "drift". 
 Instead of comparing the direct output of the particle filter with the direct
 measurement, the algorith compares the change in signal over a single TR. 
@@ -1038,8 +1097,8 @@ without de-trending would give awful results, using the difference removes the
 DC component and turns a Weiner process into a Gaussian random variable. 
 
 \begin{equation}
-\label{measass}
 \Delta y = y(t) - y(t-1) = g(x(t)) - g(x(t-1)) + \nu_y(t) - \nu_y(t-1) + \nu_d(t) - \nu(t-1)
+\label{eq:measass_delta}
 \end{equation}
 
 Because $\nu_d$ is a Weiner process, then $\nu_d(t) - \nu_d(t-1)$ is simply a Gaussian step. If
@@ -1052,7 +1111,7 @@ rather than string of direct readings.
 
 <frequency response graphs, highlighting noise frequency range and signal frequency range>
 
-\subsubsection{Weighting Function}
+\subsection{Weighting Function}
 Because $\hat{Pr}(y(T) | x(T))$, what I will call the weighting function,
 is based on an unknown distribution, it is necessary to decide on a function
 that will approximate $\hat{Pr}(y(t) | x(T))$. Obviously the function, $\omega(y(t), f(x(t))$
@@ -1096,12 +1155,26 @@ and choosing the best fit. This of course depends on having enough samples
 to make a reasonable inference, which may not always exist. 
 
 \section{Simple, Nonlinear Example}
-A simple example may be used to demonstrate the proposed use of a particle filter.
-Thus, let us consider a simple half wave rectifier circuit, shown in figure 
-\ref{fig:HalfWaveRectifier}
+A typical half wave rectifier takes a AC voltage circuit and removes
+one half (say the negative half) of the signal. The resulting waveform
+is still not DC, however it is then possible to use a capacitor to 
+smooth the signal into something similar to DC, as shown in \autoref{fig:HalfWaveIO}.
+There are other, more
+complex circuits that convert the negative portion into positive and
+waste less energy but but here we will keep the system simple.
+Thus, let us consider a simple half wave rectifier circuit, shown in 
+\autoref{fig:HalfWaveRectifier}.
+
+The half wave rectifier circuit smoothes the gaps between high voltage
+with a capacitor. Thus, when $u(t)G$ is less than $v_t$, the circuit will 
+discharge the capacitor and maintain a non-zero voltage,
+but when $u(t)G$ is greater than $v_t$, the output voltage will be set
+by $u(t)G$ and the capacitor will charge up. We will assume a very simple
+model for all the components, ignoring the complex nonlinear behavior
+that can occur in a diode. 
 
 \begin{figure}
-\begin{center}
+\centering
 \begin{circuitikz}[scale=2, american]
 \draw
  (0,0)  node[transformer core] (T) {}
@@ -1112,24 +1185,23 @@ Thus, let us consider a simple half wave rectifier circuit, shown in figure
  (T.base) node {G}
  (T.B1) to[open, *-*, v=$V_1$] (T.B2); 
 \end{circuitikz}
-\label{fig:HalfWaveRectifier}
 \caption{An Example Half Wave Rectifier Circuit, where $G$ is the transformer
 gain, $v_t$ is the activation voltage of the diode, $u(t)$ is the input at time $t$, 
 $C$ is the capacitance, $R$ is the load resistance and $v_y$ is the output voltage}
-\end{center}
+\label{fig:HalfWaveRectifier}
 \end{figure}
 
-The half wave rectifier circuit smoothes the gaps between high voltage
-with a capacitor. Thu, when $u(t)G$ is less than $v_t$, the circuit will 
-discharge the capacitor and maintain a non-zero voltage,
-but when $u(t)G$ is greater than $v_t$, the output voltage will be set
-by $u(t)G$ and the capacitor will charge up. We will assume a very simple
-model for all the components, ignoring the complex nonlinear behavior
-that can occur in a diode. Although rectifiers are typically thought
+\begin{figure}
+\centering
+\caption{Example Input/Output of the Half Wave Rectifier}
+\label{fig:HalfWaveIO}
+\end{figure}
+
+Although rectifiers are typically thought
 of as receiving an AC circuit 60 Hz, we will ignore such specifics and 
 assume the voltage across the output of the transformer is simply a scalar
-multiple of the input voltage.  As discussed in the \ref{Sec:ParticleFilter} any
-variable with uncertainty must be part of the state variable. Therefore
+multiple of the input voltage.  As discussed in the \autoref{sec:Particle Filter Model}
+any variable with uncertainty must be part of the state variable. Therefore
 the state variable will be: $X(t) = \{G, v_t, C, R_m, v_y\}$. Of course,
 $u(t)$ cannot be allowed to be a square wave in such a system, since that
 such a signal would never get across the transformer and regardless it
@@ -1191,15 +1263,16 @@ outputs. Particles that have a $v_{yi}$ near $V_y$ will be weighted higher,
 and others farther away will be weighted lower. As the particle filter
 runs, weights will compound resulting in a distribution that asymptotically
 approaches the true joint distribution of the $X(t)$.  Of course, as we
-mentioned in \ref{Sub:Resampling}, particles weighted zero do not significantly
+mentioned in \autoref{sec:Particle Filter Resampling}, particles weighted zero do not significantly
 contribute to the empirical distribution, so re-sampling may be necessary.
 
-\section{Methods}
+\chapter{Methods}
 This paper describes two types of experiments; first we will cover
 simulations which have the benefit of a ground truth, then we will
 cover the methods used in the use of the particle filter on real data.
 
-\subsection{Preprocessing}
+\section{Preprocessing}
+\label{sec:Methods Preprocessing}
 As discussed in the section on de-trending, the normal pipeline for analyzing
 FMRI involves a great deal of preprocessing. In this paper we make an effort to
 minimize any type of preprocessing that will degrade the signal. 
@@ -1227,7 +1300,7 @@ practice to apply a Gaussian spatial filter to the images at each timestep. Obvi
 a spatial filter such as Gaussian filtering increased SNR but can also lead to less
 precision in the output maps.
 
-\subsection{Simulation}
+\section{Simulation}
 We performed two types of simulations. First, we simulated a single BOLD time-series based
 on a random chosen set of model parameters. This process was relatively straight forward
 given the state-space equations for the BOLD signal. After a "true" signal was generated,
@@ -1281,7 +1354,7 @@ In this case the \% difference between the parameters will be large in each case
 difference between the parameters will not be great. This is obviously a bad situation, which
 is why we wanted to test for it.
 
-\subsection{Real Data}
+\section{Real Data}
 Finally, we also performed inference based on real FMRI data. The scanner we used...
 %... more specifics...
 
@@ -1289,8 +1362,8 @@ The final result from calculating parameters with the real data was similar to t
 from the results from the POSSUM simulated data. The difference being that there was
 no ground truth the check it with. 
 
-\section{Results}
-\subsection{Single Time-Series Simulation}
+\chapter{Results}
+\section{Single Time-Series Simulation}
 
 Graphs: 
 
@@ -1311,7 +1384,7 @@ For \{delta, DC/Spline\}, \{exponential, gaussian, cauchy\}, \{biased, unbiased 
 For Simulated Data, Full Volume:
 
 %note to self, epsilon should probably be uniform between 0 and something
-\subsection{Simulated Volume}
+\section{Simulated Volume}
 \begin{enumerate}
 \item Parameter Map 
 \item Error map of parameters
@@ -1319,12 +1392,12 @@ For Simulated Data, Full Volume:
 \item Activation Map based on a single region with high $\epsilon$, compared with linear
 \end{enumerate}
 
-\subsection{FMRI Data}
+\section{FMRI Data}
 ....
 
 image comparing epsilon-map with GLM activation map
 
-\section{Conclusion}
+\chapter{Conclusion}
 
 \bibliographystyle{apalike}
 %\bibliographystyle{abbrvnat}
