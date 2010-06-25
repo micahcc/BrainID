@@ -45,12 +45,14 @@ void writeImage(Image4DType::Pointer image, std::string filename)
 
 Image4DType::Pointer preprocess_help(Image4DType::Pointer input, 
             std::vector<Activation>& stim, double sampletime, unsigned int erase,
-            bool nospline, bool smart)
+            bool nospline, bool smart, std::string base = "")
 {
+//    boost::mpi::communicator world;
+//    const unsigned int rank = world.rank();
     /* Set up measurements image */
+    //*output << "Conditioning FMRI Image" << endl;
     //remove first 2 time step, since they are typically polluted
     input = pruneFMRI(input, stim, sampletime, erase);
-    writeImage(input, "pruned_input.nii.gz");
 
     //calculate %difference, which is used normally for the bold signal
     // or the modified % difference (with spline rather than mean)
@@ -68,24 +70,14 @@ Image4DType::Pointer preprocess_help(Image4DType::Pointer input,
         input = div->GetOutput();
     } else if(smart){
         std::cerr << "De-trending, then dividing by mean" << endl;
-        input = deSplineByStim(input, stim, sampletime);
+        input = deSplineByStim(input, stim, sampletime, base);
     } else {
         std::cerr << "De-trending, then dividing by mean" << endl;
-        input = deSplineBlind(input, 10);
-        writeImage(input, "detrended.nii.gz");
-        std::cerr << "Adding RMS" << endl;
-        Image4DType::Pointer rms = extrude(get_rms(input), 
-                    input->GetRequestedRegion().GetSize()[3]);
-        AddF4::Pointer add = AddF4::New();
-        add->SetInput1(input);
-        add->SetInput2(rms);
-        add->Update();
-        input = add->GetOutput();
+        input = deSplineBlind(input, input->GetRequestedRegion().GetSize()[3]/15, base);
+        input = dc_bump(input, 5);
     }
     std::cerr << "Done." << endl;
 
-    /* Save detrended image */
-    writeImage(input, "pfilter_input.nii.gz");
     return input;
 }
 
@@ -93,6 +85,7 @@ Image4DType::Pointer preprocess_help(Image4DType::Pointer input,
 int main(int argc, char* argv[])
 {
     vul_arg<string> a_input(0, "4D timeseries file");
+    vul_arg<string> a_output(0, "output base (may be a directory)");
     
     vul_arg<bool> a_smart("-S", "Use \"smart\" knots based on less active regions"
                 , false);
@@ -147,9 +140,8 @@ int main(int argc, char* argv[])
 
     /* Create Output Images */
     cout << "Creating Output Images" << endl;
-    
     inImage = preprocess_help(inImage, input, a_timestep(), a_erase(), a_delta(),
-                a_smart());
+                a_smart(), a_output());
 
     return 0;
 }

@@ -27,32 +27,37 @@ def QQplot(observations):
     yvals = [observations[0]*m+b, observations[-1]*m+b]
     P.plot(xvals, yvals,'-*')
 
-particles = [State() for i in range(400)]
+particles = [State() for i in range(1000)]
 for var in particles:
-    var.F = random.normalvariate(1, .2)
-    var.S = random.normalvariate(1, .2)
-    var.V = random.normalvariate(1, .2)
-    var.Q = random.normalvariate(1, .2)
+    var.F = random.normalvariate(1, .3)
+    var.S = random.normalvariate(1, .3)
+    var.V = random.normalvariate(1, .3)
+    var.Q = random.normalvariate(1, .3)
 #P.hist([p.Q for p in particles])
-out = sim(particles, .001, 2000)
-P.subplot(221)
+out = sim(particles, .0001, 10000)
+P.subplot(321)
 P.xlabel("f - normalized blood flow")
 fs = [p.F for p in particles]
 QQplot(fs)
 
-P.subplot(222)
+P.subplot(322)
 P.xlabel("q - normalized deoxy/oxyhemoglobin ratio")
 qs = [p.Q for p in particles]
 QQplot(qs)
 
-P.subplot(223)
+P.subplot(323)
 P.xlabel("v - normalized blood volume")
 vs = [p.V for p in particles]
 QQplot(vs)
 
-P.subplot(224)
+P.subplot(324)
 P.xlabel("s - flow inducing signal")
 ss = [p.S for p in particles]
 QQplot(ss)
+
+P.subplot(325)
+P.xlabel("y - BOLD signal")
+ys = [readout(p, PARAMS) for p in particles]
+QQplot(ys)
 
 P.show()
