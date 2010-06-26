@@ -239,6 +239,7 @@ aux::matrix calcStdDev(indii::ml::aux::DiracMixturePdf& p)
 
 int BoldPF::restart(bool resetstate)
 {
+    filter->setTime(0);
     disctime_l = 0;
     disctime_s = 0;
     status = UNSTARTED; 
