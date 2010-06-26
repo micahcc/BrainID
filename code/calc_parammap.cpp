@@ -380,8 +380,6 @@ int main(int argc, char* argv[])
                 for(unsigned int i = 0 ; checkmask(mask, point4) && 
                             result != BoldPF::DONE && i < RETRIES; i++) { 
                     *output << index3 << endl;
-                    *output << index3[0]*ylen*zlen + (index3[2]+1)+index3[1]*zlen << "/" 
-                                << xlen*ylen*zlen << endl;
                     *output << "RESTARTING!!!!\n" ;
                     fillvector(meas, inImage, index4, a_delta());
 
