@@ -100,7 +100,7 @@ def confmakeinst(basedir, instdir, name, url, defstrings = ""):
 #defstrings should be a tuple of extra arguments to give to cmake
 def cmakeinst(basedir, instdir, name, url, defstrings = "", src_dir = ""):
     topdir = os.getcwd()
-
+    print url
     if src_dir == "":
         src_dir = getep(basedir,name,url)
 #    install_dir = join(instdir, name)
@@ -326,7 +326,7 @@ os.chdir(topdir)
 ###########################
 # ITK
 ###########################
-itk_install_dir = cmakeinst(depdir, depprefix, "itk", ITK_URL, ("-DITK_USE_REVIEW=ON", "-DBUILD_TESTING=OFF", "-DBUILD_EXAMPLES=OFF"))
+itk_install_dir = cmakeinst(depdir, depprefix, "itk", ITK_URL, defstrings=("-DITK_USE_REVIEW=ON", "-DBUILD_TESTING=OFF", "-DBUILD_EXAMPLES=OFF"))
 os.environ["PATH"] = join(itk_install_dir, "bin") + ":"+ os.environ["PATH"]
 if not join(itk_install_dir, "bin") in prof_bin:
     prof_bin += [join(itk_install_dir, "bin")];
@@ -338,8 +338,8 @@ print prof_ld, prof_bin
 # dysii
 ###########################
 os.chdir(srcpath)
-dysii_install_dir = cmakeinst(srcpath+"/external/", depprefix, "dysii", "", ("-DGSL=%s" % gsl_install_dir, \
-            "-DMPI=%s" % mpi_install_dir, "-DBOOST=%s" % boost_install_dir), srcpath+"/external/dysii")
+dysii_install_dir = cmakeinst(srcpath+"/external/", depprefix, "dysii", "", defstrings=("-DGSL=%s" % gsl_install_dir, \
+            "-DMPI=%s" % mpi_install_dir, "-DBOOST=%s" % boost_install_dir), src_dir=srcpath+"/external/dysii")
 if not join(dysii_install_dir, "lib") in prof_ld:
     prof_ld += [join(dysii_install_dir, "lib")];
 print prof_ld, prof_bin

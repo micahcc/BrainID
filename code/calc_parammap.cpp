@@ -401,6 +401,7 @@ int main(int argc, char* argv[])
                         for(int i = 0 ; i < cov.size1() ; i++) {
                             for(int j = 0 ; j < cov.size2() ; j++) {
                                 cout << setw(15) << cov(i,j);
+                            }
                             for(int j = 0 ; j < cov.size2() ; j++) {
                                 cout << setw(15) << cov(i,j);
                             }
@@ -426,7 +427,7 @@ int main(int argc, char* argv[])
                                     (double)traveled 
                          << endl << "Ratio: " << traveled << "/" << total << endl
                          << "Left: " << total-traveled << "/" << total
-                         << endl;
+                         << endl << "Rate: " << difftime(tmp,start)/(double)traveled << endl;
                 }
             }
         }
