@@ -3,6 +3,7 @@
 import scipy 
 from scipy.stats.distributions import norm
 from matplotlib.widgets import Slider, Button, RadioButtons
+import matplotlib
 import pylab
 import sys
 import nibabel
@@ -30,7 +31,6 @@ def QQplot(observations):
     xvals = [observations[0], observations[-1]]
     yvals = [observations[0]*m+b, observations[-1]*m+b]
     pylab.plot(xvals, yvals,'-*')
-    pylab.show()
 
 def getequivindex(point, targetimg, img2):
     head1 = targetimg.get_header()
@@ -72,9 +72,10 @@ for arg in sys.argv[1:]:
 
 #Initialize
 g_dir = 'x-y'
+matplotlib.rcParams["font.size"] = 9
 fig3d = pylab.figure()
 ax = fig3d.add_subplot(111)
-pylab.subplots_adjust(left=0.25, bottom=0.25)
+pylab.subplots_adjust(left=0.05, right=0.95, bottom=.2)
 imshowslice(g_dir, 0, 0)
 
 # - - - - - - - - - -
@@ -141,27 +142,35 @@ def mousecall(event):
         #get timesteps for x axis
         dt = images[0].get_header()['pixdim'][4]
         stop = (images[0].get_header()['dim'][4]+1)*dt
-        mu = numpy.mean(images[0].get_data()[x,y,z,5:])
-        samples = [(sample-mu)/mu for sample in images[0].get_data()[x,y,z,5:]]
-        xpoints = range(0, stop, dt)[0:images[0].get_header()['dim'][4]-5]
+#        mu = numpy.mean(images[0].get_data()[x,y,z,5:])
+#        samples = [(sample-mu)/mu for sample in images[0].get_data()[x,y,z,5:]]
+        samples = [sample for sample in images[0].get_data()[x,y,z,:]]
+        xpoints = range(0, stop, dt)[0:images[0].get_header()['dim'][4]]
 #        samples = numpy.random.randn(100)
 #        xpoints = range(0, len(samples))
 
         #plot
-        pylab.subplot(221)
-        pylab.plot(xpoints, samples, '*-')
+        pylab.subplot(141)
+        pylab.subplots_adjust(left=0.05, right=0.95)
+#        pylab.title("Timeseries")
         pylab.xlabel('Time (seconds)')
+        pylab.plot(xpoints, samples, '*-')
 
         print samples
-        pylab.subplot(223)
+        pylab.subplot(143)
+#        pylab.title("Autocorrelation")
         pylab.acorr(samples, usevlines=True, normed=True, maxlags=None, lw=2)
         pylab.grid(True)
         pylab.axhline(0, color='black', lw=2)
 
-        pylab.subplot(222)
+        pylab.subplot(142)
+#        pylab.title("Q-Q Plot vs. N(0,1)")
         QQplot(samples)
         
-        pylab.title("%u %u %u" % (x, y ,z))
+        pylab.subplot(144)
+#        pylab.title("Histogram")
+        pylab.hist(samples)
+        
         pylab.show()
 
 cid = fig3d.canvas.mpl_connect('button_press_event', mousecall)

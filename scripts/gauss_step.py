@@ -36,27 +36,27 @@ for var in particles:
 #P.hist([p.Q for p in particles])
 out = sim(particles, .0001, 10000)
 P.subplot(321)
-P.xlabel("f - normalized blood flow")
+P.title("f - normalized blood flow")
 fs = [p.F for p in particles]
 QQplot(fs)
 
 P.subplot(322)
-P.xlabel("q - normalized deoxy/oxyhemoglobin ratio")
+P.title("q - normalized deoxy/oxyhemoglobin ratio")
 qs = [p.Q for p in particles]
 QQplot(qs)
 
 P.subplot(323)
-P.xlabel("v - normalized blood volume")
+P.title("v - normalized blood volume")
 vs = [p.V for p in particles]
 QQplot(vs)
 
 P.subplot(324)
-P.xlabel("s - flow inducing signal")
+P.title("s - flow inducing signal")
 ss = [p.S for p in particles]
 QQplot(ss)
 
 P.subplot(325)
-P.xlabel("y - BOLD signal")
+P.title("y - BOLD signal")
 ys = [readout(p, PARAMS) for p in particles]
 QQplot(ys)
 

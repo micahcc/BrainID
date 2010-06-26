@@ -142,7 +142,9 @@ int main(int argc, char* argv[])
     cout << "Creating Output Images" << endl;
     inImage = preprocess_help(inImage, input, a_timestep(), a_erase(), a_delta(),
                 a_smart(), a_output());
-
+    std::string finalout = a_output();
+    finalout.append("final.nii.gz");
+    writeImage(inImage, finalout);
     return 0;
 }
 
