@@ -362,7 +362,7 @@ int main(int argc, char* argv[])
     /* Set constant A1, A2 */
     int total = countValid(inImage, mask);
     int traveled = 0;
-    *output << "Total Voxels: " << endl;
+    *output << "Total Voxels: " << total << endl;
        
     /* Calculate parameters for every voxel */
     for(index3[0] = 0 ; index3[0] < xlen ; index3[0]++) {
