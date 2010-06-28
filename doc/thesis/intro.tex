@@ -1,0 +1,436 @@
+\chapter{Introduction}
+Functional Magnetic Resonance Imaging (FMRI) is a powerful tool in the analysis
+of neural activity. Despite its rather limited temporal resolution, FMRI is still
+the best way of measuring neural activity for the majority of the brain.
+Whereas other methods
+of analyzing neural signals can be invasive or difficult to acquire, 
+FMRI is relatively quick and cheap, and its analysis straight forward.
+Because of these benefits, FMRI continues to be crucial to the study of human 
+cognition. Despite its prevalence, there have been relatively few developments
+in the actual analysis of FMRI images. A steady stream of studies have built
+on the original BOLD signal derivation first described in \cite{Ogawa}, 
+from the Baloon model first proposed by \cite{Buxton1998}
+all the way to full fully autonomous system of equations \cite{Riera2004}. And while
+there have been numerous forks in the model, enough in fact to make an entire paper
+studying the differences,\cite{Deneux2006}, it is widely known that all these
+models have quantitatively less bias error than General Linear Model which is
+typically employed today. Then again, depending on the model there may be between
+seven \cite{Riera2004} and 50 \cite{Behzadi2005} parameters per voxel to
+be optimized. Clearly there is a significant risk of error due to variance
+with so many degrees of freedom, not to mention a significantly increased
+computation cost. In this thesis I demonstrate the use of a 
+particle filter as a means of addressing these problems.
+
+FMRI images as a method of detecting neural activation is based on 
+temporal changes of the Blood Oxygen Level Dependent (BOLD) signal.
+The BOLD signal is caused by minute changes in the ratio of Deoxygenated
+Hemoglobin to Oxygenated Hemoglobin in blood vessels throughout the brain.
+Because Deoxygenated hemoglobin is paramagnetic, higher concentrations
+attenuate the signal when using T2 weighted imaging techniques, such 
+as Echo Planar Imaging (EPI) which is used in FMRI. When axons becomes active,
+a large amount of ions quickly flow out of the cell. In order for the action
+potential to be used again, an active pumping process moves ions back into the
+axon. This process of recharging the axon takes a large amout of enengy, which 
+naturally uses oxygen. On a massive scale (cubic millimiter) this activation/recharge
+process is happening all
+the time; however, it happens at a much higher rate when a portion of
+the brain is very active. Thus, blood vessels in a very active area will 
+tend to have less oxygenated hemoglobin, and more deoxygenated hemoglobin,
+resulting in lower FMRI signal. However, to compensate for activation, muscles that
+control blood vessels relax in that region to allow more blow flow, which 
+in fact results in a higher concentration of oxygenated hemoglobin. Thus,
+increased activation actually tends to \emph{increase} the MR signal in
+comparison with the base level. It is this overcompensation that is the 
+primary signal detected with FMRI imaging. This cascade of events
+can, as a consequence of increased activity, increase the local metabolism, 
+blood flow, blood volume, and oxygenated hemoglobin; though not necessarily
+in sync. The lag between these
+various factors is what causes many of the complexities of the BOLD signal.
+
+\section{FMRI}
+Magnetic Resonance Imaging, MRI is a method of building 3D images
+non-invasively, based on the difference between nuclear spin
+relaxation times in various molecules. Initially the entity being
+imaged is brought into a large magnetic field which aligns the spins
+of molecules in the same direction; radio frequency (RF) signals may
+then be used to excite nuclear spin away from the steady alignment. 
+As the nuclei precess back to their original orientation, they resonate
+at the same RF frequency of their original excitation. Conveniently, the
+excitation of nuclear spins return their original state at different
+rates, called the T1 relaxation time, depending on the properties of 
+the material excited. Additionally, the
+coherence of the spins also decay differently (and quite a bit faster
+than T1) based on the properties of the region that has been excited.
+This gives two primary methods of contrasting substances,
+which is the basis of T1 and T2 weighted images. Additionally, there
+dephasing occurs at two different rates, the T2 relaxation time,
+which is impossible to recover from, and T2$^*$ relaxation, which is
+much faster, but possible to recover from with an inversion pulse.
+Oftentimes T1 relaxation times can be on the order of seconds if 
+a significant excitation pulse is applied. 
+In order to rapidly acquire entire brain images, as is done in Functional 
+MRI, a single large excitation pulse is applied to the entire brain,
+and the entire volume is acquired in a single T1 relaxation period. 
+Because the entire k-space (spatial-frequency) volume is acquired 
+from a single excitation, the signal to noise ration is very low
+in this type  of imaging (Echo Planar Imaging). 
+
+Increasing the spatial resolution of EPI imaging necessarily 
+requires more time or faster magnetic field switching. Increasing
+magnet switching rates though is difficult, because it can result in
+more artifacts, or even lower signal to noise ratios. The result is
+that at \emph{best} FMRI is capable of 1 second temporal resolution. 
+Additionally, the means that each voxel of the image will contain 
+the sum of a large amount neurons, capillaries and veins. Thus, the
+FMRI signal, which is sensitive to the chemical composition of 
+materials, is summing up the composition of various types of tissue
+in addition to the blood, whose composition is what we actually care about.
+In particular, the presence of Deoxyhemoglobin, Hemoglobin whose
+oxygen has been used by a metabolic process, has a decreased magnetic
+response compared to Oxygenated Hemoglobin. Thus, capillaries near
+very active cells will typically have a higher Deoxyhemoglobin content and
+lower signal, and regions with lower activity will have a lower 
+Deoxyhamoglobin content and thus higher signal.
+Unfortunately, as mentioned previously, blood is only a small part of
+each voxel, which means that a single EPI image doesn't tell much about
+Deoxyhemoglobin content. However assuming blood is the only thing changing
+in the short term, percent difference from a baseline signal \emph{will}
+tell us something. FMRI analysis is thus necessarily performed on the percent change
+from the baseline. Luckily the assumption that tissue content does not change in
+the short run is actually pretty good, although other factors can pollute
+the baseline signal, as we will discuss later. 
+
+\section{BOLD Physiology}
+\label{sec:BOLD Physiology}
+It is well known that the two types of hemoglobin act as a contrast agents in 
+EPI imaging
+\cite{Buxton1998}, \cite{WEISSKOFF1994}, \cite{Ogawa}, however the connection
+between Deoxyhemoglobin/Oxygenated Hemoglobin and neural activity is non-trivial. 
+Intuitively, increased 
+metabolism will increase Deoxyhemoglobin, however blood vessels are quick
+to compensate by increasing local blood flow. Increased inflow will of course
+preceed increased outflow, and increased inflow is accomplished by loosening 
+capilary beds. Both of these factors drive increased storage capacity.
+Since the local MR signal depends on the ratio of Deoxyhemoglobin to Oxygenated
+Hemoglobin, increased volume of blood can certainly effect this ratio if 
+metabolism doesn't exactly match the increased inflow of oxygenated blood.
+This was the impetus
+for the ground breaking balloon model (\cite{Buxton1998}) and windkessel
+model (\cite{Mandeville1999}). These models derive from first principals
+the increased deoxyhemoglobin ratio and volume of capillaries based on a given flow.
+These were the first two attempts to quantitatively account for the shape of the 
+BOLD signal as a consequence of the lag between the cerebral blood volume (CBV) 
+and the cerebral blood flow (CBF). In fact \cite{Buxton1998} went to far as
+to show that a simple, well chosen blood flow waveform coupled with a square 
+wave cerebral metabolic rate of oxygen (CMRO2) curve, in the context of a balloon 
+model, could fully account for the BOLD signal. 
+
+Although \cite{Buxton1998} showed that a well chosen flow waveform could 
+explain much of the BOLD signal, there was still a matter of proposing a
+realistic waveform for the CBF and for the CMRO2. \cite{Friston2000} gave
+a reasonable and simple
+expressoin for CBF input,$f$, based on a flow inducing signal, $s$, 
+\begin{eqnarray}
+\dot{s} &=& \epsilon u(t) - \frac{s}{\tau_s} - \frac{f - 1}{\tau_f} \\
+\dot{f} &=& s
+\end{eqnarray}
+where $\epsilon$ is a neuronal efficiency term, $u(t)$ is a stimulus, and $\tau_f$, $\tau_s$
+are both time constants. In \cite{Buxton2004} the final piece of the simple balloon
+model was put into place, by describing the CMRO2 as a constant multiple of
+the CBF (the inflow of blood). This completed the basic balloon model, and 
+was well summarized in \cite{Riera2004}. 
+\begin{eqnarray}
+\dot{v} &=& \frac{1}{\tau_0}(f - v^\alpha)\\
+\dot{q} &=& \frac{1}{\tau_0}(\frac{f(1-(1-E_0)^f)}{E_0} - \frac{q}{v^{1-1/\alpha}})
+\end{eqnarray}
+where $v$ is normalized cerebral blood volume (CBV), and $q$ is the normalized
+local deoxyhemoglobin/oxygenated hemoglobin ratio, $E_0$ is the resting metabolic
+rate and $\alpha$ is Grubb's parameter controling the balloon model. 
+\cite{Obata2004} refined the readout equation of the BOLD signal based on the
+deoxyhemoglobin content (q) and local blood volume (v), resulting in the
+final BOLD equation:
+\begin{eqnarray}
+y   &=& V_0((k_1 + k_2)(1-q) - (k_2 + k_3)(1-v))\\
+k_1 &=& 4.3 \times \nu_0 \times E_0 \times TE = 2.8\\
+K_2 &=& \epsilon_0 \times r_0 \times E_0 \times TE = .57\\
+k_3 &=& \epsilon_0 - 1 = .43
+\end{eqnarray}
+Where $\nu_0 = 40.3 s^{-1}$  is the frequency offset in Hz for fully
+deoxygenated blood (at 1.5T), $r_0 = 25 s^{-1}$  is the slope relating
+change in relaxation rate with change in blood oxygenation, and
+$\epsilon_0 = 1.43$ is the 
+ratio of signal MR from intravascular to extravascular at rest. Although,
+obviously these constants change with experiment ($TE$, $\nu_0$, $r_0$),
+patient, and brain 
+region ($E_0$, $r_0$), often the estimated values taken from \cite{Obata2004} are used
+as constants ($k_1 + k_2 = 3.4$, and $k_2+k_3 = 1$) in 1.5 Tesla studies..
+While this model is in a sense complete, it is far from perfect. The major
+problem often brought up with this version of the BOLD model is that it
+does not represent the so called "post-stimulus undershoot" well.
+The post-stimulus undershoot is the name for a prolonged sub-normal
+BOLD response for a period of 10 to 60 seconds after stimulus has
+ceased (\cite{Chen2009}, \cite{Mandeville1999a}).
+
+There are two theories for the cause of the post stimulus undershoot. Recall
+that a lower than base signal means that there is an increased deoxyhemoglobin
+content in the voxel. The first and simplest explanation is that the post-stimulus
+undershoot is caused by a prolonged increase in CMRO2 after CBV and CBF
+have returned to their base levels. This theory is justified by quite a few
+studies that show CBV and CBF returning to the baseline before the BOLD signal
+(\cite{Frahm2008}, \cite{Donahue2009}, \cite{Buxton2004}, \cite{Lu2004},
+\cite{Shen2008}). Unfortunately, because of limitations on FMRI and en vivo
+CBV/CBF measurement techniques it is difficult to isolate whether CBF and
+CBV truly have returned to their baseline. Other research seems to indicate
+that there can be a prolonged residual supernormal CBV (\cite{Mandeville1999a}, 
+\cite{Behzadi2005}, \cite{Chen2009a}), although none of these papers completely
+rule out the possiblity of increased CMRO2. Additionally, in \cite{Yacoub2006}, it 
+was found that the post-stimulus undershoot varried across regions of the brain, 
+which could further explain the contradictions found elsewhere. \cite{Chen2009a}
+makes a compelling case that most of the post stimulus undershoot could be 
+explained be a prolonged CBV increase, and a prolonged CBF undershoot, and that
+many of the previous measurements showing a quick recovery of CBV 
+may have been dominated arterial CBV's return to baseline. 
+
+Because of the significant possility of a completely independent CMRO2,
+extremely complex models for metabolism exist (\cite{Zheng2005}), although 
+most recent studies have
+focused on their ability to explain the prolonged BOLD post stimulus 
+undershoot \cite{Zheng2005}, \cite{Buxton2004}. This is because \cite{Buxton2004}
+and later \cite{Riera2004} showed that the main portion of the signal may be 
+accurately estimated by a simple blood flow locked expression of the CMRO2.. 
+Although \cite{Deneux2006} did not deal extensively with prolonged post
+stimulus undershoot, the comparisons made in that publication showed minimal
+improvement from separate expressions of CMRO2, in comparison to the much 
+increased complexity. \cite{Deneux2006} did show that by simply adding viscoelastic
+terms, first proposed in \cite{Buxton2004}, that a slowed return to baseline for
+the BOLD signal is possible to model. However, viscoelastic effects primarily
+control CBV, which, as mentioned already, many studies have claimed cannot be 
+responsible for the BOLD post-stimulus undershoot. Another extensive model
+that attempts to quantify the post-stimulus undershoot is the compliance model 
+proposed by \cite{Behzadi2005}. Although through a somewhat different means than
+the \cite{Zheng2005} and \cite{Buxton2004} papers, its possible the increased
+model flexibility ultimately is the key reason for the improvements, as opposed
+to increased plausibility. Because of these controversies, and because this is
+the first time a particle filter has been used for this problem in this way, 
+our aim to keep the model simple was best met by using the original balloon
+model with the possible addition of the visco-elastic effects from \cite{Buxton2004}.
+
+Even more advanced versions of the Balloon model exist. In fact \cite{Buxton2004}
+introduced several additional state variables, including the CMRO2, the O2 extraction
+fraction, which is closely related to CMR02, and the neural response, which 
+causes the stimulus to decay toward some steady state value. The 
+neural response is intended to emulate neural habituation, wherein neurons
+become less sensitive to a prolonged stimulus. While these advanced may be more
+capable of capturing a more exact version of the BOLD signal, the difference
+between the model will often times be below the noise floor. In essence this 
+is a classic bias-variance
+dilemma: at some point increased model flexibility, and thus variance, is not
+worth the decrease in model bias. For now it remains to be seen where this
+line may be drawn in the BOLD signal, although \cite{Deneux2006} does not
+show a significant improvement from the additional parameters added in 
+\cite{Buxton2004}.
+
+\section{Previous Studies of Parameters}
+There have been quite a few efforts to quantify the parameters of the
+various BOLD models.  Although \cite{Buxton1998} and \cite{Friston2000}
+both proposed physiologically reasonable values for the model parameters, 
+\cite{Friston2002} was the first paper to calculate the parameters based 
+on actual FMRI data. In that paper, Friston et. al. used a variation of
+Expectation Maximization to find a normal distribution for the parameters:
+\begin{eqnarray}
+\epsilon &=& N(.54 , .1 ^2 )  \nonumber \\
+\tau_s & =&  N(1.54, .25^2)   \nonumber \\
+\tau_f & =&  N(2.46, .25^2)   \nonumber \\
+\tau_0 & =&  N(.98 , .25^2 )   \nonumber \\
+\alpha & =&  N(.33 , .45^2 )   \nonumber \\
+E_0   & =&  N(.34 ,  .1 ^2 )   \nonumber \\
+V_0  & = &  .03 (not\ estimated) \nonumber
+\end{eqnarray}
+Since then, several other methods of have been used to calculate
+BOLD parameters from FMRI timecourses. In \cite{Riera2004}, a maximum
+likelihood method for innovation processes was used, as described by
+\cite{Ozaki1994}. \cite{Ozaki1994} uses a similar construction to a 
+Kalman filter, to break the time series into a series of innovations,
+for which Maximum Likelihood was performed. While this is in some since the
+"right" way to find the solution, it comes with several caveats. First, every
+step in parameter space requires a recalculation of all the state variables. With
+two or three parameters this is fine, more than that, and calculations could go on
+indefinitely. Second, it still assumes the parameters and noise are Gaussian, and
+will only be optimal in that case. Third, depending on the nonlinearities present
+in the system, local minima may be extremely common. Later \cite{Hu2009} used an 
+Unscented Kalman Filter over all the parameters and state variables to find the 
+parameter set/variable time series. While this method has the drawback of not necessarily
+being optimal, unfortunately there is no general optimal solution to non-linear non
+Gaussian models. Hu et. al.'s technique also will run significantly faster than
+ML based techniques, since it does not require recalculating the entire timeseries
+for every step in parameters. Both \cite{Hu2009} and \cite{Friston2002} came to results 
+very similar to the expected values stated in \cite{Buxton1998} and \cite{Friston2000}.
+One potential problem with all these techniques are that the depend heavily on the
+priors. The starting point of the parameters could have a huge impact on the
+results, and while one can be hopeful that this isn't the reason for the agreement
+between \cite{Friston2000} and later results, there is no way to know. 
+
+In \cite{Johnston2008}, a hybrid particle filter/gradient
+descent algorithm was used to simultaneously derive the static (classicly called
+parameters) and dynamic parameters (classically known as state variables).
+Essentially a particle filter is used to calculate the state variables at some
+time, and then the estimated distribution of the particles was used to find
+the most likely set of parameters that would give that distribution of state variables.
+\cite{Johnston2008} comes to a very different set of parameter estimates as compared
+to the original \cite{Friston2000} guesses:
+\begin{eqnarray}
+epsilon &=& .069 \pm .014    \nonumber \\
+tau_s & =& 4.98 \pm 1.07  \nonumber \\
+tau_f & =& 8.31 \pm 1.51   \nonumber \\
+tau_0 & =& 8.38 \pm 1.5    \nonumber \\
+alpha & =& .189 \pm .004   \nonumber \\
+E_0   & =& .635 \pm .072     \nonumber \\
+V_0   & =& .0149 \pm .006     \nonumber 
+\end{eqnarray}
+Notably, the time constants are significantly longer. This could be a result of
+some preprocessing to the stimulus timeseries performed in \cite{Friston2002} and
+later works but not in \cite{Johnston2008}, or it could be that \cite{Johnston2008}
+depended less on the priors. 
+
+Its possible, although unlikely that the balloon model is not possible to learn
+without detrimental cost in variance error. I do not think this is the case, however,
+and I will work to dispell this possibility in the results with simulated time
+series.
+
+\section{Noise}
+Thus, despite some small discrepancies, the cause of the BOLD signal is
+relatively well known. However, FMRI doesn't detect this happening in one neuron 
+or one capillary bed, but rather as the 
+aggregate over a space of several millimeters. Though local neurons act
+"together" (i.e. around the same time), the density of neurons, the
+density of capillaries, and slight differences in activation across 
+a particular voxel can all lead to signal attenuation or noise. 
+
+A particularly insidious type of noise present in FMRI is a low frequency
+drift, often characterized as a Wiener process (\cite{Riera2004}). 
+Though not present in all regions, as much as ten to fifteen percent
+of voxels can be affected, thus it is prevalent enough to cause significant
+inference problems \cite{Tanabe2002}. It is still not
+clear what exactly causes this noise noise comes from, although it is possible it is 
+the result of magnets heating up, or some distortion in magnetic
+fields \cite{Smith2007}. It is clear that this drift signal is not solely
+due to a physiological effects, given its presence in cadavers and phantoms 
+\cite{Smith1999}. Interestingly, it is usually spatially correlated, and
+more prevalent at interfaces between regions,  although
+by no means limited to such areas. Often times the noise is written off
+as movement, however given that co-registration of volumes to a single time
+point is standard, this seems unlikely. Regardless, the problem mandates
+the use of some sort of high pass filter to make models useful at all
+\cite{Smith2007}.
+
+Given the complexity of the noise, it seemed prudent to characterize
+it. In order to do so we took 
+sample time-series during resting state, which should theoretically be all noise, and 
+analyzed the type of noise present. Both Q-Q plots, and the autocorrelation
+are useful in determining the noise distribution observed.
+Because most methods (including the one used in this paper)
+assume the noise realization are independent of each other, the auto-
+correlation is of particular interest. Gaussianity is also a common
+assumption made in studies of FMRI data, though that assumption is not
+made here. Anytime the assumptions are violated, the error rate will be 
+significantly harder to predict and may in fact skyrocket.
+Because the noise is often considered 
+to have Wiener noise with Gaussian steps, as first described in \cite{Riera2003}, we
+also performed the same tests again, but on the steps, rather than the 
+direct measurements. 
+
+Finally, removal of the so called "drift" is often
+performed with some variation of a high pass filter, 
+so we checked the noise distribution after applying such a filter (in
+this case the subtraction of a spline, see \autoref{sec:Methods Preprocessing}).
+Here we wanted to know whether the subtraction of a spline from the
+data will result in complete removal of Wiener noise, and whether the resulting
+timeseries better conforms to the common assumption of Gaussianity.
+
+\autoref{fig:QQDC} shows the 
+results with a regression line fit to the points on the Q-Q plot.
+Recall that in a Quartile-Quartile (Q-Q) plot, if the points plotted on the 
+x-axis and the points
+on the y-axis come from the same \emph{type} of distribution then all the points will
+fall on a line. Differences in the variance will cause the line to have a slope
+other than 1, while differences in the expected value will cause the fitted line
+to be shifted. In these Q-Q plots, the points are being compared to the standard
+Gaussian distribution, so the quality of the line fit determines how closely the points
+fit the Gaussian distribution. Note that in \autoref{fig:QQDC} the points have all been 
+normalized (changed to percent difference).
+\begin{figure}
+\centering
+\subfigure[]{\label{fig:QQDC:A}\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009_29_49_9}}
+\subfigure[]{\label{fig:QQDC:B}\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009_34_43_24}}
+\subfigure[]{\label{fig:QQDC:C}\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009_22_38_23}}
+\subfigure[]{\label{fig:QQDC:D}\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009_37_29_24}}
+
+%\subfigure{\includegraphics[trim=6cm 1cm 0 0cm,width=17cm]{images/noise_0009_19-24-10.pdf}}
+%\subfigure{\includegraphics[trim=6cm 1cm 0 0cm,width=17cm]{images/noise_0009_20-45-18.pdf}}
+%\subfigure{\includegraphics[trim=6cm 1cm 0 0cm,width=17cm]{images/noise_0009_23-47-18.pdf}}
+%\subfigure{\includegraphics[trim=6cm 1cm 0 0cm,width=17cm]{images/noise_0009_35-49-9.pdf}}
+
+\caption{Q-Q Plots of normalized resting state data}
+\label{fig:QQDC}
+\end{figure}
+
+\begin{figure}
+\centering
+\subfigure[]{\label{fig:QQDDlta:A}\includegraphics[trim=6cm 1cm 6cm 0,width=14cm]{images/noise2_0009d_29_49_9}}
+\subfigure[]{\label{fig:QQDDlta:B}\includegraphics[trim=6cm 1cm 6cm 0,width=14cm]{images/noise2_0009d_34_43_24}}
+\subfigure[]{\label{fig:QQDelta:C}\includegraphics[trim=6cm 1cm 6cm 0,width=14cm]{images/noise2_0009d_22_38_23}}
+\subfigure[]{\label{fig:QQDDlta:D}\includegraphics[trim=6cm 1cm 6cm 0,width=14cm]{images/noise2_0009d_37_29_24}}
+\caption{Q-Q Plots of resting state data, using the BOLD signal changes}
+\label{fig:QQDelta}
+\end{figure}
+
+A Wiener process should still conform to the normal distribution, albeit with a 
+variance proportional to the run-time. Note that \autoref{fig:QQDC:A} and \autoref{fig:QQDC:B}
+are relatively well described by a Gaussian process with a small autocorrelation, 
+\autoref{fig:QQDC:C} and \autoref{fig:QQDC:D} aren't. In particular the tails don't
+seem to fit, which could be well explained by the much more significant drift in the
+signal. Thus, its possible a Wiener process does not well describe the error, since overall
+the distribution does not tend toward a Gaussian. Still, the steps still seem to
+be relatively normal, meaning at the very least that the process is close to Wiener.
+As one would expect most of the autocorrelation disappears for the step data, indicating
+that the steps are relatively independent. Therefore, the assumption of I.I.D. Normal 
+steps is relatively good, even though the accumulated result seems to be less varied than
+Wiener.
+
+\begin{figure}
+\centering
+\subfigure[]{\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009s_29_49_9}}
+\subfigure[]{\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009s_34_43_24}}
+\subfigure[]{\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009s_22_38_23}}
+\subfigure[]{\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009s_37_29_24}}
+\caption{Q-Q Plots of resting state data, after the de-trending}
+\label{fig:QQSpline}
+\end{figure}
+
+[todo analysis after detrending]
+
+\section{Analysis of the BOLD Signal}
+Several studies have endeavored to analyze the BOLD equations, which
+we will review here. The most obvious analysis is to calculate the
+steady state signal, when $u$ is held constant long enough for
+all the transients to settle out. 
+
+\begin{eqnarray}
+s_{ss} &=& 0 \nonumber \\
+f_{ss} &=& \tau_f\epsilon u + 1\nonumber \\
+v_{ss} &=& (\tau_f\epsilon u + 1)^\alpha\nonumber \\
+q_{ss} &=& \frac{(\tau_f\epsilon u + 1)^\alpha}{E_0}(1-(1-E_0)^{1/(\tau_f\epsilon u + 1)})\nonumber \\
+y_{ss} &=& V_0((k_1+k_2)(1-q_{ss}) - (k_2+k_3)(1-v_{ss}))
+\label{eq:steadystate}
+\end{eqnarray}
+
+
+todo
+[Image with two different $\alpha$'s]
+
+[image comparing the results of 10\% changes in various signals]
+
+
+
+
+

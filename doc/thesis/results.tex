@@ -1,0 +1,35 @@
+\chapter{Results}
+\section{Single Time-Series Simulation}
+
+Graphs: 
+
+For simulated data, single timeseries:
+
+For \{delta, DC/Spline\}, \{exponential, gaussian, cauchy\}, \{biased, unbiased initial\},
+\{100, 500, 1000\} particles
+\begin{enumerate}
+\item Ground truth vs. Estimated signal during particle filter run
+\item Ground truth vs. Estimated signal with final parameter set
+\item True Parameters vs. Final Parameter Sets
+\item Variance of final parameters when faced with same ground truth, different noise
+\item MSE of (a new timeseries based on X(t) vs. ground truth) for all t
+\item Estimator Variance based on different noise runs
+\item Final Particle Distribution
+\end{enumerate}
+
+For Simulated Data, Full Volume:
+
+%note to self, epsilon should probably be uniform between 0 and something
+\section{Simulated Volume}
+\begin{enumerate}
+\item Parameter Map 
+\item Error map of parameters
+\item Histogram of \%errors between parameters
+\item Activation Map based on a single region with high $\epsilon$, compared with linear
+\end{enumerate}
+
+\section{FMRI Data}
+....
+
+image comparing epsilon-map with GLM activation map
+
