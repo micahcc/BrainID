@@ -20,6 +20,73 @@ estimated posterior distribution of the parameters, derived from
 the particle filter, is able to provide an accurate measure of the
 confidence interval.
 
+\section{Previous Studies of Parameters}
+There have been quite a few efforts to quantify the parameters of the
+various BOLD models.  Although \cite{Buxton1998} and \cite{Friston2000}
+both proposed physiologically reasonable values for the model parameters, 
+\cite{Friston2002} was the first paper to calculate the parameters based 
+on actual FMRI data. In that paper, Friston et. al. used a variation of
+Expectation Maximization to find a normal distribution for the parameters:
+\begin{eqnarray}
+\epsilon &=& N(.54 , .1 ^2 )  \nonumber \\
+\tau_s & =&  N(1.54, .25^2)   \nonumber \\
+\tau_f & =&  N(2.46, .25^2)   \nonumber \\
+\tau_0 & =&  N(.98 , .25^2 )   \nonumber \\
+\alpha & =&  N(.33 , .45^2 )   \nonumber \\
+E_0   & =&  N(.34 ,  .1 ^2 )   \nonumber \\
+V_0  & = &  .03 (not\ estimated) \nonumber
+\end{eqnarray}
+Since then, several other methods of have been used to calculate
+BOLD parameters from FMRI timecourses. In \cite{Riera2004}, a maximum
+likelihood method for innovation processes was used, as described by
+\cite{Ozaki1994}. \cite{Ozaki1994} uses a similar construction to a 
+Kalman filter, to break the time series into a series of innovations,
+for which Maximum Likelihood was performed. While this is in some since the
+"right" way to find the solution, it comes with several caveats. First, every
+step in parameter space requires a recalculation of all the state variables. With
+two or three parameters this is fine, more than that, and calculations could go on
+indefinitely. Second, it still assumes the parameters and noise are Gaussian, and
+will only be optimal in that case. Third, depending on the nonlinearities present
+in the system, local minima may be extremely common. Later \cite{Hu2009} used an 
+Unscented Kalman Filter over all the parameters and state variables to find the 
+parameter set/variable time series. While this method has the drawback of not necessarily
+being optimal, unfortunately there is no general optimal solution to non-linear non
+Gaussian models. Hu et. al.'s technique also will run significantly faster than
+ML based techniques, since it does not require recalculating the entire timeseries
+for every step in parameters. Both \cite{Hu2009} and \cite{Friston2002} came to results 
+very similar to the expected values stated in \cite{Buxton1998} and \cite{Friston2000}.
+One potential problem with all these techniques are that the depend heavily on the
+priors. The starting point of the parameters could have a huge impact on the
+results, and while one can be hopeful that this isn't the reason for the agreement
+between \cite{Friston2000} and later results, there is no way to know. 
+
+In \cite{Johnston2008}, a hybrid particle filter/gradient
+descent algorithm was used to simultaneously derive the static (classicly called
+parameters) and dynamic parameters (classically known as state variables).
+Essentially a particle filter is used to calculate the state variables at some
+time, and then the estimated distribution of the particles was used to find
+the most likely set of parameters that would give that distribution of state variables.
+\cite{Johnston2008} comes to a very different set of parameter estimates as compared
+to the original \cite{Friston2000} guesses:
+\begin{eqnarray}
+epsilon &=& .069 \pm .014    \nonumber \\
+tau_s & =& 4.98 \pm 1.07  \nonumber \\
+tau_f & =& 8.31 \pm 1.51   \nonumber \\
+tau_0 & =& 8.38 \pm 1.5    \nonumber \\
+alpha & =& .189 \pm .004   \nonumber \\
+E_0   & =& .635 \pm .072     \nonumber \\
+V_0   & =& .0149 \pm .006     \nonumber 
+\end{eqnarray}
+Notably, the time constants are significantly longer. This could be a result of
+some preprocessing to the stimulus timeseries performed in \cite{Friston2002} and
+later works but not in \cite{Johnston2008}, or it could be that \cite{Johnston2008}
+depended less on the priors. 
+
+Its possible, although unlikely that the balloon model is not possible to learn
+without detrimental cost in variance error. I do not think this is the case, however,
+and I will work to dispell this possibility in the results with simulated time
+series.
+
 \section{Basic Statistical Parametric Mapping}
 Although not strictly the same thing as parameter calculation from 
 FMRI, activation detection is very similar. In fact, estimation of 
