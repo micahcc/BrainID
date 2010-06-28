@@ -29,7 +29,7 @@
 #include <fstream>
 #include <ctime>
 
-#include <vcl_list.h>
+#include <vcl_vector.h>
 #include <vul/vul_arg.h>
 
 using namespace std;
@@ -214,6 +214,7 @@ int main(int argc, char* argv[])
     vul_arg<string> a_output("-o", "Output prefix", "");
     vul_arg<unsigned int> a_erase("-e", "Number of times to erase at the front", 2);
     vul_arg<int> a_nospline("-N", "No spline?", 0);
+    vul_arg< vcl_vector<int> > a_locat("-L", "Perform at a single location, ex -L 3,12,9");
     
     vul_arg_parse(argc, argv);
     
@@ -360,7 +361,11 @@ int main(int argc, char* argv[])
     std::vector< aux::vector > meas(tlen, aux::zero_vector(1));
 
     /* Set constant A1, A2 */
-    int total = countValid(inImage, mask);
+    int total = 0;
+    if(a_locat().size() == 3)
+        total = 1;
+    else 
+        total = countValid(inImage, mask);
     int traveled = 0;
     *output << "Total Voxels: " << total << endl;
        
@@ -373,12 +378,17 @@ int main(int argc, char* argv[])
                 index4[3] = 0;
                 inImage->TransformIndexToPhysicalPoint(index4, point4);
 
+                if(a_locat().size() == 3 && !(a_locat()[0] == index3[0] && 
+                            a_locat()[1] == index3[1] && a_locat()[2] == index3[2]))
+                    continue;
+                else if(!checkmask(mask, point4)) 
+                    continue;
+
                 result = BoldPF::UNSTARTED;
 
                 //run particle filter, and retry with i times as many particles
                 //as the the initial number if it fails
-                for(unsigned int i = 0 ; checkmask(mask, point4) && 
-                            result != BoldPF::DONE && i < RETRIES; i++) { 
+                for(unsigned int i = 0 ; result != BoldPF::DONE && i < RETRIES; i++) { 
                     *output << index3 << endl;
                     *output << "RESTARTING!!!!\n" ;
                     fillvector(meas, inImage, index4, a_delta());
