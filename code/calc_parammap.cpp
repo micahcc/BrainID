@@ -59,6 +59,19 @@ bool checkmask(Label4DType::Pointer maskimg, Image4DType::PointType point)
 
     return false;
 }
+
+template <typename ImgType>
+void writeImage(typename ImgType::Pointer out, std::string prefix, 
+            std::string filename)
+{
+    prefix.append(filename);
+    typename itk::ImageFileWriter<ImgType>::Pointer writer = 
+        itk::ImageFileWriter<ImgType>::New();
+    writer->SetInput(out);
+    writer->SetFileName(prefix);
+    cout << "Writing: " << prefix<< endl;
+    writer->Update();
+}
  
 aux::vector ssMu(BoldPF* bold)
 {
@@ -215,6 +228,7 @@ int main(int argc, char* argv[])
     vul_arg<unsigned int> a_erase("-e", "Number of times to erase at the front", 2);
     vul_arg<int> a_nospline("-N", "No spline?", 0);
     vul_arg< vcl_vector<int> > a_locat("-L", "Perform at a single location, ex -L 3,12,9");
+    vul_arg<int> a_callbacktype("-D", "Data to record, 0 - histogram, 1 - mean/variance", 1);
     
     vul_arg_parse(argc, argv);
     
@@ -343,11 +357,22 @@ int main(int argc, char* argv[])
     BoldPF::CallPoints callpoints;
     void* cbdata = NULL;
     int (*cbfunc)(BoldPF*, void*) = NULL;
-    cb_hist_data* cbd = new cb_hist_data;
-    cb_hist_init(cbd, &callpoints, inImage->GetRequestedRegion().GetSize(), 
-                FILTER_PARAMS, 1, 10);
-    cbdata = (void*)cbd;
-    cbfunc = cb_hist_call;
+    switch(a_callbacktype()) {
+        case 0: {
+            cb_hist_data* cbd = new cb_hist_data;
+            cb_hist_init(cbd, &callpoints, inImage->GetRequestedRegion().GetSize(), 
+                        FILTER_PARAMS, 1, 10);
+            cbdata = (void*)cbd;
+            cbfunc = cb_hist_call;
+        } break;
+        case 1: {
+            cb_all_data* cbd = new cb_all_data;
+            cb_all_init(cbd, &callpoints, inImage->GetRequestedRegion().GetSize(), 
+                        FILTER_PARAMS);
+            cbdata = (void*)cbd;
+            cbfunc = cb_all_call;
+        } break;
+    }
     
     /* Temporary variables used in the loop */
     time_t start = time(NULL);
@@ -403,16 +428,16 @@ int main(int argc, char* argv[])
                         ((cb_data*)cbdata)->pos[j] = index4[j];
                     boldpf.setCallBack(callpoints, cbfunc);
                     
-                    for(int i = 0 ; i < RETRIES ; i++) {
+                    for(uint32_t i = 0 ; i < RETRIES ; i++) {
                         //run the particle filter
                         result = boldpf.run(cbdata);
                         aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
                         *output << "FINAL COVARIANCE!" << endl;
-                        for(int i = 0 ; i < cov.size1() ; i++) {
-                            for(int j = 0 ; j < cov.size2() ; j++) {
+                        for(uint32_t i = 0 ; i < cov.size1() ; i++) {
+                            for(uint32_t j = 0 ; j < cov.size2() ; j++) {
                                 cout << setw(15) << cov(i,j);
                             }
-                            for(int j = 0 ; j < cov.size2() ; j++) {
+                            for(uint32_t j = 0 ; j < cov.size2() ; j++) {
                                 cout << setw(15) << cov(i,j);
                             }
                             cout << endl;
@@ -445,24 +470,54 @@ int main(int argc, char* argv[])
     
     //write final output
     if(rank == 0) {
-        itk::OrientedImage<DataType, 4>::SpacingType space4 = inImage->GetSpacing();
-        space4[3] = a_timestep();
-        itk::OrientedImage<DataType, 6>::SpacingType space6;
-        for(unsigned int i = 0 ; i < 4 ; i++)
-            space6[i] = space4[i];
-        space6[4] = 1;
-        space6[5] = 1;
-        cbd->histogram->SetSpacing(space6);
-        
-        {
-	string outname = a_output();
-	outname.append("histogram.nii.gz");
-        itk::ImageFileWriter<itk::OrientedImage<DataType,6> >::Pointer out = 
-                    itk::ImageFileWriter<itk::OrientedImage<DataType,6> >::New();
-        out->SetInput(cbd->histogram);
-        out->SetFileName(outname);
-        cout << "Writing: " << outname << endl;
-        out->Update();
+        switch(a_callbacktype()) {
+        case 0: {
+            itk::OrientedImage<DataType, 4>::SpacingType space4 = inImage->GetSpacing();
+            space4[3] = a_timestep();
+            itk::OrientedImage<DataType, 6>::SpacingType space6;
+            for(unsigned int i = 0 ; i < 4 ; i++)
+                space6[i] = space4[i];
+            space6[4] = 1;
+            space6[5] = 1;
+            cb_hist_data* cbd = (cb_hist_data*)cbdata;
+            cbd->histogram->SetSpacing(space6);
+            
+            writeImage<itk::OrientedImage<DataType, 6> >(cbd->histogram, a_output(),
+                        "histogram.nii.gz");
+        } break;
+        case 1: {
+            itk::OrientedImage<float, 4>::Pointer measmu;
+            itk::OrientedImage<float, 4>::Pointer measvar;
+            itk::OrientedImage<float, 5>::Pointer parammu;
+            itk::OrientedImage<float, 6>::Pointer paramvar;
+            itk::OrientedImage<DataType, 4>::SpacingType space4 = inImage->GetSpacing();
+            itk::OrientedImage<DataType, 5>::SpacingType space5;
+            itk::OrientedImage<DataType, 6>::SpacingType space6;
+            for(unsigned int i = 0 ; i < 4 ; i++) {
+                space5[i] = space4[i];
+                space6[i] = space4[i];
+            }
+            space5[4] = 1;
+            space6[4] = 1;
+            space6[5] = 1;
+            
+            cb_all_data* cbd = (cb_all_data*)cbdata;
+            cbd->measmu->SetSpacing(space4);
+            writeImage<itk::OrientedImage<DataType, 4> >(cbd->measmu, a_output(),
+                        "measmean.nii.gz");
+            
+            cbd->measvar->SetSpacing(space4);
+            writeImage<itk::OrientedImage<DataType, 4> >(cbd->measvar, a_output(),
+                        "measvar.nii.gz");
+            
+            cbd->parammu->SetSpacing(space5);
+            writeImage<itk::OrientedImage<DataType, 5> >(cbd->parammu, a_output(),
+                        "parammu.nii.gz");
+            
+            cbd->paramvar->SetSpacing(space6);
+            writeImage<itk::OrientedImage<DataType, 6> >(cbd->paramvar, a_output(),
+                        "paramvar.nii.gz");
+        } break;
         }
     }
 

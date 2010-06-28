@@ -100,130 +100,135 @@ def HRF(stims, TR, num):
                 i*dt < len(stimarr)*dt-hrfparam[6]]
     return (signal, delta)
 
+def readStim(filename):
+    stimin = open(filename)
+    stims = [[float(var) for var in line.split()] for line in stimin.readlines()]
+    print stims
+    return stims
 
-#Begin Main, main
-PARAM = -1
-SHIFT=4
-param = PARAM
-if len(sys.argv) == 3:
-    try:
-        param = float(sys.argv[2])
-    except:
-        param = PARAM 
-elif len(sys.argv) != 2:
-    print "Usage: ", sys.argv[0], "<InDir> [param number]"
-    print "Looks in Dir for: "
-    print "stim0, stim1 (must be shifted to match pfilter_input), histogram.nii.gz"
-    print "pfilter_input.nii.gz, truebold.nii.gz, truestate.nii.gz"
-    sys.exit(-1);
+def processHistos(image, pos, p):
+    out = [[] for t in range(0, image.get_header()['dim'][4])]
+    #generate the histogram for measurements
+    for t in range(0, image.get_header()['dim'][4]):
+        upper = image.get_data()[pos[0],pos[1],pos[2],t,p, -2]
+        lower = image.get_data()[pos[0],pos[1],pos[2],t,p, -3]
+        count = image.get_header()['dim'][6] - 3
+        width = (upper-lower)/count
+    #    print lower, upper, count, width
+        if isinf(lower) :
+            print image.get_data()[pos[0],pos[1],pos[2],t, p, 0:-3]
+        histinput = [[] for j in range(0, image.get_header()['dim'][6]-3)]
+        for j in range(0, image.get_header()['dim'][6]-3):
+            histinput[j] = [image.get_data()[pos[0],pos[1],pos[2],t, p, j], lower+width*j, \
+                        lower+width*(j+1)]
+        out[t] = histo(histinput)
 
-actual = nibabel.load(sys.argv[1] + "pfilter_input.nii.gz")
-histimg = nibabel.load(sys.argv[1] + "histogram.nii.gz")
-#beta1 = nibabel.load(sys.argv[1] + "beta_0001.img")
-#beta2 = nibabel.load(sys.argv[1] + "beta_0002.img")
-#beta3 = nibabel.load(sys.argv[1] + "beta_0003.img")
-#beta4 = nibabel.load(sys.argv[1] + "beta_0004.img")
-#beta5 = nibabel.load(sys.argv[1] + "beta_0005.img")
+    return out 
 
-TR = histimg.get_header()['pixdim'][4];
-if TR == 1:
-    print "Pixdim is 1, changing to 2.1"
-    TR = 2.1
-
-#SPM = io.loadmat(sys.argv[1]+"SPM.mat")
-#design = SPM['SPM'][0,0].xX[0,0].X
-#b1 = beta1.get_data()[35,14,7]
-#b2 = beta2.get_data()[35,14,7]
-#b3 = beta3.get_data()[35,14,7]
-#b4 = beta4.get_data()[35,14,7]
-#b5 = beta5.get_data()[35,14,7]
-#
-#d1 = [b1*samp for samp in design[:,0]]
-#d2 = [b2*samp for samp in design[:,1]]
-#d3 = [b3*samp for samp in design[:,2]]
-#d4 = [b4*samp for samp in design[:,3]]
-#d5 = [b5*samp for samp in design[:,4]]
-#
-#result = map(lambda a,b,c,d : a+b+c+d, d1, d2, d3, d4)
-#
-#P.plot(result)
-#P.legend(["actual", "sum"])
-#P.show()
-#sys.exit()
-#print stims
-stimin = open(sys.argv[1]+"stim")
-stims = [[float(var) for var in line.split()] for line in stimin.readlines()]
-print stims
-
-#print real
-
-histograms = [[] for t in range(0, histimg.get_header()['dim'][4])]
-#generate the histogram for measurements
-for t in range(0, histimg.get_header()['dim'][4]):
-    upper = histimg.get_data()[0,0,0,t,param, -2]
-    lower = histimg.get_data()[0,0,0,t,param, -3]
-    count = histimg.get_header()['dim'][6] - 3
-    width = (upper-lower)/count
-#    print lower, upper, count, width
-    if isinf(lower) :
-        print histimg.get_data()[0,0,0,t, param, 0:-3]
-    histinput = [[] for j in range(0, histimg.get_header()['dim'][6]-3)]
-    for j in range(0, histimg.get_header()['dim'][6]-3):
-        histinput[j] = [histimg.get_data()[0,0,0,t, param, j], lower+width*j, \
-                    lower+width*(j+1)]
-    histograms[t] = histo(histinput)
-
-plothisto(histograms, TR)
-
-if param < 0:
-    P.plot([i*TR for i in range(actual.get_header()['dim'][4])], \
-                actual.get_data()[0,0,0,:], '-*');
-    leg = ["actual"]
-    try:
-        truebold = nibabel.load(sys.argv[1] + "truebold.nii.gz")
-        print "Ground truth for bold found"
-        P.plot([i*TR for i in range(truebold.get_header()['dim'][4])], \
-                    truebold.get_data()[0,0,0,:], 'g-+');
-        leg.append("truth")
-    except:
-        print "No ground truth for bold available, if you have some put it in ", \
-                    sys.argv[1] + "truebold.nii.gz"
-    print "params"
-    print getparams_mu(-1, histimg)
-    exp_final= sim(stims, getparams_mu(-1, histimg), TR, actual.get_header()['dim'][4])
-    print len(exp_final)
+if __name__ == "__main__":
+    #Begin Main, main
+    PARAM = -1
+    SHIFT=4
+    param = PARAM
+    if len(sys.argv) == 3:
+        try:
+            param = float(sys.argv[2])
+        except:
+            param = PARAM 
+    elif len(sys.argv) != 2:
+        print "Usage: ", sys.argv[0], "<InDir> [param number]"
+        print "Looks in Dir for: "
+        print "stim0, stim1 (must be shifted to match pfilter_input), histogram.nii.gz"
+        print "pfilter_input.nii.gz, truebold.nii.gz, truestate.nii.gz"
+        sys.exit(-1);
     
-    P.plot([i*TR for i in range(len(exp_final))], exp_final)
-    leg.extend(["FinalMu"])
-    P.legend(leg)
+    actual = nibabel.load(sys.argv[1] + "pfilter_input.nii.gz")
+    histimg = nibabel.load(sys.argv[1] + "histogram.nii.gz")
+    #beta1 = nibabel.load(sys.argv[1] + "beta_0001.img")
+    #beta2 = nibabel.load(sys.argv[1] + "beta_0002.img")
+    #beta3 = nibabel.load(sys.argv[1] + "beta_0003.img")
+    #beta4 = nibabel.load(sys.argv[1] + "beta_0004.img")
+    #beta5 = nibabel.load(sys.argv[1] + "beta_0005.img")
     
-else:
-    try:
-        truestate = nibabel.load(sys.argv[1] + "truestate.nii.gz")
-        P.plot([i*TR for i in range(truestate.get_header()['dim'][4])], \
-                    truestate.get_data()[0,param,0,:], 'g-+');
-        print "Truth", truestate.get_data()[0,param,0,0];
-        leg = ["truth"]
+    TR = histimg.get_header()['pixdim'][4];
+    if TR == 1:
+        print "Pixdim is 1, changing to 2.1"
+        TR = 2.1
+    
+    #SPM = io.loadmat(sys.argv[1]+"SPM.mat")
+    #design = SPM['SPM'][0,0].xX[0,0].X
+    #b1 = beta1.get_data()[35,14,7]
+    #b2 = beta2.get_data()[35,14,7]
+    #b3 = beta3.get_data()[35,14,7]
+    #b4 = beta4.get_data()[35,14,7]
+    #b5 = beta5.get_data()[35,14,7]
+    #
+    #d1 = [b1*samp for samp in design[:,0]]
+    #d2 = [b2*samp for samp in design[:,1]]
+    #d3 = [b3*samp for samp in design[:,2]]
+    #d4 = [b4*samp for samp in design[:,3]]
+    #d5 = [b5*samp for samp in design[:,4]]
+    #
+    #result = map(lambda a,b,c,d : a+b+c+d, d1, d2, d3, d4)
+    #
+    #P.plot(result)
+    #P.legend(["actual", "sum"])
+    #P.show()
+    #sys.exit()
+    
+    stims = readStim(sys.argv[1]+"stim")
+    histograms = processHistos(histimg, (0,0,0), param)
+    plothisto(histograms, TR)
+    
+    if param < 0:
+        P.plot([i*TR for i in range(actual.get_header()['dim'][4])], \
+                    actual.get_data()[0,0,0,:], '-*');
+        leg = ["actual"]
+        try:
+            truebold = nibabel.load(sys.argv[1] + "truebold.nii.gz")
+            print "Ground truth for bold found"
+            P.plot([i*TR for i in range(truebold.get_header()['dim'][4])], \
+                        truebold.get_data()[0,0,0,:], 'g-+');
+            leg.append("truth")
+        except:
+            print "No ground truth for bold available, if you have some put it in ", \
+                        sys.argv[1] + "truebold.nii.gz"
+        print "params"
+        print getparams_mu(-1, histimg)
+        exp_final= sim(stims, getparams_mu(-1, histimg), TR, actual.get_header()['dim'][4])
+        print len(exp_final)
+        
+        P.plot([i*TR for i in range(len(exp_final))], exp_final)
+        leg.extend(["FinalMu"])
         P.legend(leg)
-    except:
-        print "No ground truth for bold available, if you have some put it in ", \
-                    sys.argv[1] + "truestate.nii.gz"
-
-#P.plot(initest)
-#P.plot(measmu.get_data()[0,0,0,:]);
-#P.plot(final)
-#P.plot(canonical)
-
-
-P.show()
-#
-#names = ['Ts', 'Tf', 'epsilon', 'T0', 'alpha', 'E_0', 'V0', 'Vt', 'Qt', 'St', 'Ft']
-#for i in range(0,11):
-#    P.subplot(6, 2, i+1)
-#    line1 = P.plot(truestat.data[:, 0, i, 0])
-#    line2 = P.plot(eststat.data[:, 0, i, 0])
-#    P.ylabel(names[i])
-#
-#P.show()
+        
+    else:
+        try:
+            truestate = nibabel.load(sys.argv[1] + "truestate.nii.gz")
+            P.plot([i*TR for i in range(truestate.get_header()['dim'][4])], \
+                        truestate.get_data()[0,param,0,:], 'g-+');
+            print "Truth", truestate.get_data()[0,param,0,0];
+            leg = ["truth"]
+            P.legend(leg)
+        except:
+            print "No ground truth for bold available, if you have some put it in ", \
+                        sys.argv[1] + "truestate.nii.gz"
+    
+    #P.plot(initest)
+    #P.plot(measmu.get_data()[0,0,0,:]);
+    #P.plot(final)
+    #P.plot(canonical)
+    
+    
+    P.show()
+    #
+    #names = ['Ts', 'Tf', 'epsilon', 'T0', 'alpha', 'E_0', 'V0', 'Vt', 'Qt', 'St', 'Ft']
+    #for i in range(0,11):
+    #    P.subplot(6, 2, i+1)
+    #    line1 = P.plot(truestat.data[:, 0, i, 0])
+    #    line2 = P.plot(eststat.data[:, 0, i, 0])
+    #    P.ylabel(names[i])
+    #
+    #P.show()
 
 

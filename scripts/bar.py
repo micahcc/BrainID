@@ -45,8 +45,13 @@ class histo:
         return out
 
 def plothisto(ts, TR):
-    if not isinstance(ts, type([])) or not isinstance(ts[0], histo):
+    if not isinstance(ts, type([])):
+        print ts
         raise "Wrong type"
+    if not isinstance(ts[0], histo):
+        print ts[0]
+        raise "Wrong type"
+
     """note for every time, everything needs to add up to the same value"""
     xax = [i*TR-3.*TR/2. for i in range(len(ts))]
     print xax

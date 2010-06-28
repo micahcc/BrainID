@@ -7,6 +7,9 @@
 
 #include "boost/mpi/operations.hpp"
 
+/*******************************************************
+ * Definitions/Function Declarations
+ *******************************************************/
 //base
 struct cb_data
 {
@@ -49,7 +52,7 @@ struct cb_all_data
     itk::OrientedImage<float, 4>::Pointer measmu;
     itk::OrientedImage<float, 4>::Pointer measvar;
     itk::OrientedImage<float, 5>::Pointer parammu;
-    itk::OrientedImage<float, 5>::Pointer paramvar;
+    itk::OrientedImage<float, 6>::Pointer paramvar;
 };
 
 void cb_all_init(cb_all_data* cdata, BoldPF::CallPoints* cp,
@@ -71,7 +74,11 @@ void cb_hist_init(cb_all_data* cdata, BoldPF::CallPoints* cp,
             Image4DType::SizeType size, int parameters, int histcount);
 int cb_hist_call(BoldPF* bold, void* data);
 
-//implementation, needs to go to a cpp file eventually
+/********************************************************
+ * Implementation of the above functions
+ * 
+ * needs to go to a cpp file eventually
+*********************************************************/
 #include "callbacks.h"
 #include <itkImageFileWriter.h>
 #include <sstream>
@@ -207,7 +214,8 @@ void cb_all_init(cb_all_data* cdata, BoldPF::CallPoints* cp,
     const unsigned int rank = world.rank();
 
     itk::OrientedImage<float, 4>::Pointer measmu, measvar;
-    itk::OrientedImage<float, 5>::Pointer parammu, paramvar;
+    itk::OrientedImage<float, 5>::Pointer parammu;
+    itk::OrientedImage<float, 6>::Pointer paramvar;
     
     if(rank == 0) {
         measmu = itk::OrientedImage<float, 4>::New();
@@ -217,11 +225,14 @@ void cb_all_init(cb_all_data* cdata, BoldPF::CallPoints* cp,
 
         itk::OrientedImage<float, 5>::SizeType size5 = {{size[0], size[1], size[2], 
                     size[3], parameters}};
+        itk::OrientedImage<float, 6>::SizeType size6 = {{size[0], size[1], size[2], 
+                    size[3], parameters, parameters}};
         
         parammu = itk::OrientedImage<float, 5>::New();
-        paramvar = itk::OrientedImage<float, 5>::New();
         parammu->SetRegions(size5);
-        paramvar->SetRegions(size5);
+        
+        paramvar = itk::OrientedImage<float, 6>::New();
+        paramvar->SetRegions(size6);
 
         measmu->Allocate();
         measvar->Allocate();
@@ -251,43 +262,62 @@ int cb_all_call(BoldPF* bold, void* data)
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
     
+    //shortcuts
+    DiracMixturePdf& dist = bold->getDistribution();
     cb_all_data* cdata = (struct cb_all_data*)data;
-
-    itk::OrientedImage<float, 4>::IndexType index;
-    itk::OrientedImage<float, 5>::IndexType index5;
-    for(unsigned int i = 0 ; i < 3 ; i++) {
-        index[i] = cdata->pos[i];
-        index5[i] = cdata->pos[i];
-    }
-    index[3] = bold->getDiscTimeL();
-    index5[3] = bold->getDiscTimeL();
     
-    aux::vector parammu = bold->getDistribution().getDistributedExpectation();
-    aux::vector measmu =  bold->getModel().measure(parammu);
-    aux::vector paramvar(parammu.size());
-    for(unsigned int i = 0 ; i < paramvar.size(); i++) 
-        paramvar[i] = bold->getDistribution().getDistributedCovariance()(i,i);
-
-    assert(measmu.size() == 1);
-
-    //calculate sample variance
-    double measvar = 0;
-    double diff;
+    //set up location
+    itk::OrientedImage<float, 4>::IndexType index4;
+    itk::OrientedImage<float, 5>::IndexType index5;
+    itk::OrientedImage<float, 6>::IndexType index6;
+    for(unsigned int i = 0 ; i < 3 ; i++) {
+        index4[i] = cdata->pos[i];
+        index5[i] = cdata->pos[i];
+        index6[i] = cdata->pos[i];
+    }
+    index4[3] = bold->getDiscTimeL();
+    index5[3] = bold->getDiscTimeL();
+    index6[3] = bold->getDiscTimeL();
+    
     const aux::vector& weights = bold->getDistribution().getWeights();
+    
+    /* Get Expected Values/variances: */
+    aux::vector parammu = bold->getDistribution().getDistributedExpectation();
+    aux::vector measmu(bold->getModel().getMeasurementSize(),0); 
+    for(unsigned int jj = 0 ; jj < dist.getSize() ; jj++) {
+        if(weights[jj] > 0)
+            measmu += dist.getWeight(jj)*bold->getModel().measure(dist.get(jj));
+    }
+    measmu = boost::mpi::all_reduce(world, measmu, std::plus<aux::vector>())/
+                dist.getDistributedTotalWeight();
+    assert(measmu.size() == 1);
+    
+    /* Get variance of parameters */
+    aux::symmetric_matrix paramvar = bold->getDistribution().
+                getDistributedCovariance();
+
+    //calculate output variance
+    double measvar = 0;
+    double diff = 0;
     for(unsigned int i = 0 ; i < weights.size(); i++) {
-        diff = (bold->getDistribution().get(i) - measmu)[0];
-        measvar += weights[i]*diff*diff;
+        if(weights[i] > 0) {
+            diff = (bold->getDistribution().get(i) - measmu)[0];
+            measvar += weights[i]*diff*diff;
+        }
     }
     measvar = boost::mpi::all_reduce(world, measvar, std::plus<double>())
                 /bold->getDistribution().getDistributedTotalWeight();
 
     if(rank == 0) {
-         cdata->measmu->SetPixel(index, measmu[0]);
-         cdata->measvar->SetPixel(index, measvar);
-         for(unsigned int i = 0 ; i < parammu.size() ; i++) {
-            index5[4] = i;
-            cdata->parammu->SetPixel(index5, parammu[i]);
-            cdata->paramvar->SetPixel(index5, paramvar[i]);
+         cdata->measmu->SetPixel(index4, measmu[0]);
+         cdata->measvar->SetPixel(index4, measvar);
+         for(index5[4] = 0 ; index5[4] < (int)parammu.size() ; index5[4]++) {
+            cdata->parammu->SetPixel(index5, parammu[index5[4]]);
+         }
+         for(index6[4] = 0 ; index6[4] < (int)paramvar.size1() ; index6[4]++) {
+            for(index6[5] = 0 ; index6[5] < (int)paramvar.size1() ; index6[5]++) {
+                cdata->paramvar->SetPixel(index6, paramvar(index6[4], index6[5]));
+            }
          }
     }
     return 0;

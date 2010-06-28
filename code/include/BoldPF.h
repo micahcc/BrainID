@@ -244,8 +244,8 @@ int BoldPF::restart(bool resetstate)
     disctime_s = 0;
     status = UNSTARTED; 
     if(resetstate) {
-        for(int i = 0 ; i < getDistribution().getSize() ; i++) {
-            for(int j = 0 ; j < getModel().getMeasurementSize() ; j++) {
+        for(uint32_t i = 0 ; i < getDistribution().getSize() ; i++) {
+            for(uint32_t j = 0 ; j < getModel().getMeasurementSize() ; j++) {
                 getDistribution().get(i)[getModel().indexof(getModel().V_T, j)] = 1;
                 getDistribution().get(i)[getModel().indexof(getModel().Q_T, j)] = 1;
                 getDistribution().get(i)[getModel().indexof(getModel().F_T, j)] = 1;
