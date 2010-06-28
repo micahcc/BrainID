@@ -1,104 +1,122 @@
 \chapter{Introduction}
-Functional Magnetic Resonance Imaging (FMRI) is a powerful tool in the analysis
-of neural activity. Despite its rather limited temporal resolution, FMRI is still
-the best way of measuring neural activity for the majority of the brain.
-Whereas other methods
+For the past twenty years Functional Magnetic Resonance Imaging (FMRI) 
+has been at the forefront of cognitive research. Despite it's
+limited temporal resolution, FMRI is the standard tool for localizing 
+neural activation.  Whereas other methods
 of analyzing neural signals can be invasive or difficult to acquire, 
-FMRI is relatively quick and cheap, and its analysis straight forward.
-Because of these benefits, FMRI continues to be crucial to the study of human 
-cognition. Despite its prevalence, there have been relatively few developments
-in the actual analysis of FMRI images. A steady stream of studies have built
-on the original BOLD signal derivation first described in \cite{Ogawa}, 
-from the Baloon model first proposed by \cite{Buxton1998}
-all the way to full fully autonomous system of equations \cite{Riera2004}. And while
-there have been numerous forks in the model, enough in fact to make an entire paper
-studying the differences,\cite{Deneux2006}, it is widely known that all these
-models have quantitatively less bias error than General Linear Model which is
-typically employed today. Then again, depending on the model there may be between
-seven \cite{Riera2004} and 50 \cite{Behzadi2005} parameters per voxel to
-be optimized. Clearly there is a significant risk of error due to variance
-with so many degrees of freedom, not to mention a significantly increased
-computation cost. In this thesis I demonstrate the use of a 
-particle filter as a means of addressing these problems.
+FMRI is relatively quick and cheap, and its analysis relatively straight forward.
+In the past fifteen years, a steady stream of studies have built
+on the original Blood Oxygen Level Dependent (BOLD) signal 
+derivation first described by \cite{Ogawa}.
+The seminal work by \cite{Buxton1998} attempted to explain the
+time evolution of the BOLD signal using a windkessel model to
+describe the time local changes in Deoxygenated Hemoglobin content.
+Various papers made substantial improvements to this model until
+\cite{Buxton2004} brought all the changes together into a single complete 
+set of equations. And while there have been numerous adaptations in the model, 
+many of them summarized in \cite{Deneux2006}, even the most basic version
+has been shown to have less bias error than the convolution based 
+"Canonical Hemodynamic Model" \cite{Deneux2006}, \cite{Handwerker2004}.
+On the other hand many of the BOLD signal models have far more parameters
+than a simple scaling parameter. In fact, the number of parameters
+range from seven \cite{Riera2004} to 50 \cite{Behzadi2005} per
+signal time course; a signal which may be as short as 100 samples long.
+Thus, even in a small FMRI image of the brain (20x20x20), the number of parameters 
+could easily exceed 10,000. Clearly this number of parameters presents
+a significant risk of being under-determined and could suffer catastrophic
+variance error; to make no mention of the computation cost. 
+In this work a method of countering these problem is presented
+with the use of a particle filter.
 
-FMRI images as a method of detecting neural activation is based on 
-temporal changes of the Blood Oxygen Level Dependent (BOLD) signal.
+\section{Overview}
+\label{sec:Introduction Overview}
+Detecting neural activity using the changes in FMRI images is based on 
+the so called Blood Oxygen Level Dependent (BOLD) signal.
 The BOLD signal is caused by minute changes in the ratio of Deoxygenated
 Hemoglobin to Oxygenated Hemoglobin in blood vessels throughout the brain.
-Because Deoxygenated hemoglobin is paramagnetic, higher concentrations
-attenuate the signal when using T2 weighted imaging techniques, such 
-as Echo Planar Imaging (EPI) which is used in FMRI. When axons becomes active,
-a large amount of ions quickly flow out of the cell. In order for the action
-potential to be used again, an active pumping process moves ions back into the
-axon. This process of recharging the axon takes a large amout of enengy, which 
-naturally uses oxygen. On a massive scale (cubic millimiter) this activation/recharge
-process is happening all
-the time; however, it happens at a much higher rate when a portion of
-the brain is very active. Thus, blood vessels in a very active area will 
-tend to have less oxygenated hemoglobin, and more deoxygenated hemoglobin,
-resulting in lower FMRI signal. However, to compensate for activation, muscles that
-control blood vessels relax in that region to allow more blow flow, which 
-in fact results in a higher concentration of oxygenated hemoglobin. Thus,
-increased activation actually tends to \emph{increase} the MR signal in
-comparison with the base level. It is this overcompensation that is the 
+Because Deoxygenated Hemoglobin (DHb) is paramagnetic, higher concentrations
+attenuate the signal detected during T2-weighted Magnetic Resonance Imaging (MRI)
+techniques. The most common FMRI imaging technique, due to its rapid repetition 
+time (TR), is Echo Planar Imaging (EPI). When axons becomes active,
+a large amount of ions quickly flow out of the cell. In order for this
+action potential to occur again (and thus for the neuron to fire again),
+an active pumping process must move ions back into the
+axon. This process of recharging the axon requires extra energy, which temporarily
+increases the metabolic rate of oxygen. On a massive scale (cubic millimeter) 
+this activation/recharge process happens continuously. However, when a 
+particular region of the brain is very active, the action potentials
+occur significantly more often, resulting in significant local increase
+of the 
+Cerebral Metabolic Rate of Oxygen (CMRO2). Thus, blood vessels in a very 
+active area will 
+tend to have less oxygenated hemoglobin (due to the increased rate at which
+oxygen is being consumed), and more deoxygenated hemoglobin,
+resulting in an attenuated FMRI signal. In compensation for 
+activation, muscles that
+control blood vessels relax in that region to allow more blood flow,
+which actually overcompensates.
+This ultimately results in lower than average concentration of 
+deoxyhemoglobin. Thus, the BOLD signal consists of a short initial
+dip in the MR signal, followed by a prolonged increase in signal
+that slowly settles out. It is this overcompensation that is the 
 primary signal detected with FMRI imaging. This cascade of events
-can, as a consequence of increased activity, increase the local metabolism, 
-blood flow, blood volume, and oxygenated hemoglobin; though not necessarily
-in sync. The lag between these
-various factors is what causes many of the complexities of the BOLD signal.
+is believed to consist of increased the local metabolism, 
+blood flow, blood volume, and oxygenated hemoglobin. The differences
+in onsets of these various effects is what causes the overcompensation
+that is observable in FMRI. Unfortunately, FMRI has no inherent unit
+of measurement, and thus signal levels are all relative: within a particular
+person, scanner and run. 
 
 \section{FMRI}
-Magnetic Resonance Imaging, MRI is a method of building 3D images
+Magnetic Resonance Imaging, MRI, is a method of building 3D images
 non-invasively, based on the difference between nuclear spin
-relaxation times in various molecules. Initially the entity being
-imaged is brought into a large magnetic field which aligns the spins
-of molecules in the same direction; radio frequency (RF) signals may
-then be used to excite nuclear spin away from the steady alignment. 
-As the nuclei precess back to their original orientation, they resonate
-at the same RF frequency of their original excitation. Conveniently, the
+relaxation times in various molecules. First, the subject 
+is brought into a large magnetic field which causes nuclear spins
+to align. Radio Frequency (RF) signals may
+then be used to excite nuclear spin away from the base alignment. 
+As the nuclei precess back to the alignment of the magnetic
+field, they emit detectable RF signals. Conveniently, the
 excitation of nuclear spins return their original state at different
-rates, called the T1 relaxation time, depending on the properties of 
-the material excited. Additionally, the
+rates, called the T1 relaxation time, depending on the atoms excited.
+Additionally, the
 coherence of the spins also decay differently (and quite a bit faster
-than T1) based on the properties of the region that has been excited.
+than T1 relaxation) based on the properties of the region.
 This gives two primary methods of contrasting substances,
-which is the basis of T1 and T2 weighted images. Additionally, there
+which form the basis of T1 and T2 weighted images. Additionally, 
 dephasing occurs at two different rates, the T2 relaxation time,
-which is impossible to recover from, and T2$^*$ relaxation, which is
-much faster, but possible to recover from with an inversion pulse.
-Oftentimes T1 relaxation times can be on the order of seconds if 
-a significant excitation pulse is applied. 
-In order to rapidly acquire entire brain images, as is done in Functional 
+which is unrecoverable, and T2$^*$ relaxation, which is
+much faster, but possible to recover from via special RF signals.
+T1 relaxation times are typically on the order of seconds if 
+a sufficiently strong excitation was applied. 
+In order to rapidly acquire entire brain images, as done in Functional 
 MRI, a single large excitation pulse is applied to the entire brain,
 and the entire volume is acquired in a single T1 relaxation period. 
 Because the entire k-space (spatial-frequency) volume is acquired 
-from a single excitation, the signal to noise ration is very low
-in this type  of imaging (Echo Planar Imaging). 
+from a single excitation, the signal-to-noise-ratio is very low
+in this type of imaging (Echo Planar Imaging). 
 
 Increasing the spatial resolution of EPI imaging necessarily 
 requires more time or faster magnetic field switching. Increasing
 magnet switching rates though is difficult, because it can result in
 more artifacts, or even lower signal to noise ratios. The result is
 that at \emph{best} FMRI is capable of 1 second temporal resolution. 
-Additionally, the means that each voxel of the image will contain 
-the sum of a large amount neurons, capillaries and veins. Thus, the
-FMRI signal, which is sensitive to the chemical composition of 
-materials, is summing up the composition of various types of tissue
-in addition to the blood, whose composition is what we actually care about.
-In particular, the presence of Deoxyhemoglobin, Hemoglobin whose
-oxygen has been used by a metabolic process, has a decreased magnetic
-response compared to Oxygenated Hemoglobin. Thus, capillaries near
-very active cells will typically have a higher Deoxyhemoglobin content and
-lower signal, and regions with lower activity will have a lower 
-Deoxyhamoglobin content and thus higher signal.
-Unfortunately, as mentioned previously, blood is only a small part of
-each voxel, which means that a single EPI image doesn't tell much about
-Deoxyhemoglobin content. However assuming blood is the only thing changing
-in the short term, percent difference from a baseline signal \emph{will}
-tell us something. FMRI analysis is thus necessarily performed on the percent change
-from the baseline. Luckily the assumption that tissue content does not change in
-the short run is actually pretty good, although other factors can pollute
-the baseline signal, as we will discuss later. 
+The signal is further diluted because each voxel contains
+the signal from a large number of neurons, capillaries and veins. 
+Thus, the FMRI signal, which is sensitive to the chemical composition of 
+materials, is the average signal from various types of tissue
+in addition to the blood. As mentioned in \autoref{sec:Introduction Overview},
+and explored in depth in \autoref{sec:BOLD Physiology},
+the usefulness of FMRI comes from the discerning of changes in 
+Deoxyhemoglobin/Oxyhemoglobin. Therefore, it is necessary to assume
+that in the short term the only chemical changes will be in
+capillary beds feeding neurons. In practice this may not be the case, for
+instance near significant veins, and it may explain some of the
+noise seen in FMRI imaging (see \autoref{sec:Introduction Noise}. 
+Because MRI lacks units and certain
+areas will have a higher base MR signal, all FMRI studies deal with
+percent change from the base signal; rather than raw values. This
+also removes most of the structural data which is not helpful 
+in determining neural activity.
 
 \section{BOLD Physiology}
 \label{sec:BOLD Physiology}
@@ -108,44 +126,46 @@ EPI imaging
 between Deoxyhemoglobin/Oxygenated Hemoglobin and neural activity is non-trivial. 
 Intuitively, increased 
 metabolism will increase Deoxyhemoglobin, however blood vessels are quick
-to compensate by increasing local blood flow. Increased inflow will of course
-preceed increased outflow, and increased inflow is accomplished by loosening 
-capilary beds. Both of these factors drive increased storage capacity.
+to compensate by increasing local blood flow. Increased inflow, accomplished by loosening 
+capillary beds, precedes increased outflow, driving increased 
+blood storage capacity.
 Since the local MR signal depends on the ratio of Deoxyhemoglobin to Oxygenated
-Hemoglobin, increased volume of blood can certainly effect this ratio if 
+Hemoglobin, increased volume of blood can effect this ratio if 
 metabolism doesn't exactly match the increased inflow of oxygenated blood.
 This was the impetus
 for the ground breaking balloon model (\cite{Buxton1998}) and windkessel
-model (\cite{Mandeville1999}). These models derive from first principals
-the increased deoxyhemoglobin ratio and volume of capillaries based on a given flow.
+model (\cite{Mandeville1999}). These works derive from first principals
+the changes in deoxyhemoglobin ratio and volume of capillaries based on a given flow.
 These were the first two attempts to quantitatively account for the shape of the 
 BOLD signal as a consequence of the lag between the cerebral blood volume (CBV) 
-and the cerebral blood flow (CBF). In fact \cite{Buxton1998} went to far as
+and the inward cerebral blood flow (CBF). In fact \cite{Buxton1998} went so far as
 to show that a simple, well chosen blood flow waveform coupled with a square 
 wave cerebral metabolic rate of oxygen (CMRO2) curve, in the context of a balloon 
 model, could fully account for the BOLD signal. 
 
-Although \cite{Buxton1998} showed that a well chosen flow waveform could 
-explain much of the BOLD signal, there was still a matter of proposing a
+Although \cite{Buxton1998} demonstrated that a well chosen flow waveform could 
+explain most features of the BOLD signal, there was still a matter of proposing a
 realistic waveform for the CBF and for the CMRO2. \cite{Friston2000} gave
 a reasonable and simple
-expressoin for CBF input,$f$, based on a flow inducing signal, $s$, 
+expression for CBF input,$f$, based on a flow inducing signal, $s$, 
 \begin{eqnarray}
 \dot{s} &=& \epsilon u(t) - \frac{s}{\tau_s} - \frac{f - 1}{\tau_f} \\
 \dot{f} &=& s
+\label{eq:bold1}
 \end{eqnarray}
 where $\epsilon$ is a neuronal efficiency term, $u(t)$ is a stimulus, and $\tau_f$, $\tau_s$
-are both time constants. In \cite{Buxton2004} the final piece of the simple balloon
+are both time constants. In \cite{Buxton2004} the final piece of the balloon
 model was put into place, by describing the CMRO2 as a constant multiple of
 the CBF (the inflow of blood). This completed the basic balloon model, and 
-was well summarized in \cite{Riera2004}. 
+was well summarized in \cite{Riera2003}. 
 \begin{eqnarray}
 \dot{v} &=& \frac{1}{\tau_0}(f - v^\alpha)\\
 \dot{q} &=& \frac{1}{\tau_0}(\frac{f(1-(1-E_0)^f)}{E_0} - \frac{q}{v^{1-1/\alpha}})
+\label{eq:bold2}
 \end{eqnarray}
-where $v$ is normalized cerebral blood volume (CBV), and $q$ is the normalized
+where $v$ is normalized cerebral blood volume (CBV), $q$ is the normalized
 local deoxyhemoglobin/oxygenated hemoglobin ratio, $E_0$ is the resting metabolic
-rate and $\alpha$ is Grubb's parameter controling the balloon model. 
+rate and $\alpha$ is Grubb's parameter controlling the balloon model. 
 \cite{Obata2004} refined the readout equation of the BOLD signal based on the
 deoxyhemoglobin content (q) and local blood volume (v), resulting in the
 final BOLD equation:
@@ -156,18 +176,23 @@ K_2 &=& \epsilon_0 \times r_0 \times E_0 \times TE = .57\\
 k_3 &=& \epsilon_0 - 1 = .43
 \end{eqnarray}
 Where $\nu_0 = 40.3 s^{-1}$  is the frequency offset in Hz for fully
-deoxygenated blood (at 1.5T), $r_0 = 25 s^{-1}$  is the slope relating
+de-oxygenated blood (at 1.5T), $r_0 = 25 s^{-1}$  is the slope relating
 change in relaxation rate with change in blood oxygenation, and
 $\epsilon_0 = 1.43$ is the 
 ratio of signal MR from intravascular to extravascular at rest. Although,
-obviously these constants change with experiment ($TE$, $\nu_0$, $r_0$),
+these constants change with experiment ($TE$, $\nu_0$, $r_0$),
 patient, and brain 
-region ($E_0$, $r_0$), often the estimated values taken from \cite{Obata2004} are used
-as constants ($k_1 + k_2 = 3.4$, and $k_2+k_3 = 1$) in 1.5 Tesla studies..
-While this model is in a sense complete, it is far from perfect. The major
-problem often brought up with this version of the BOLD model is that it
-does not represent the so called "post-stimulus undershoot" well.
-The post-stimulus undershoot is the name for a prolonged sub-normal
+region ($E_0$, $r_0$), often the estimated values taken from \cite{Obata2004} are 
+taken as the constants $a_1 = k_1 + k_2 = 3.4$, and $a_2 = k_2+k_3 = 1$ in 
+studies using 1.5 Tesla scanners.
+While this model is very accurate, it is not perfect. 
+
+\section{Post Stimulus Undershoot}
+The primary problem with the version of the BOLD model described by 
+\autoref{eq:bold1}
+and \autoref{eq:bold2} is that it does not represent the so called 
+"post-stimulus undershoot" well.
+The "post-stimulus" undershoot is the name for a prolonged subnormal
 BOLD response for a period of 10 to 60 seconds after stimulus has
 ceased (\cite{Chen2009}, \cite{Mandeville1999a}).
 
@@ -180,28 +205,34 @@ studies that show CBV and CBF returning to the baseline before the BOLD signal
 (\cite{Frahm2008}, \cite{Donahue2009}, \cite{Buxton2004}, \cite{Lu2004},
 \cite{Shen2008}). Unfortunately, because of limitations on FMRI and en vivo
 CBV/CBF measurement techniques it is difficult to isolate whether CBF and
-CBV truly have returned to their baseline. Other research seems to indicate
-that there can be a prolonged residual supernormal CBV (\cite{Mandeville1999a}, 
+CBV truly have returned to their baseline. Other studies seems to indicate
+that there can be a prolonged supernormal CBV (\cite{Mandeville1999a}, 
 \cite{Behzadi2005}, \cite{Chen2009a}), although none of these papers completely
-rule out the possiblity of increased CMRO2. Additionally, in \cite{Yacoub2006}, it 
-was found that the post-stimulus undershoot varried across regions of the brain, 
-which could further explain the contradictions found elsewhere. \cite{Chen2009a}
-makes a compelling case that most of the post stimulus undershoot could be 
-explained be a prolonged CBV increase, and a prolonged CBF undershoot, and that
+rule out the possibility of increased CMRO2. The discrepancies may in part
+be explained by a spatial dependence in the post-stimulus undershoot; described
+by \cite{Yacoub2006}. \cite{Chen2009}
+makes a compelling case that most of the post stimulus undershoot can be 
+explained by combination of a prolonged CBV increase, and a prolonged CBF 
+undershoot, and that
 many of the previous measurements showing a quick recovery of CBV 
-may have been dominated arterial CBV's return to baseline. 
+were in fact showing a return to baseline by arterial CBV.
 
-Because of the significant possility of a completely independent CMRO2,
-extremely complex models for metabolism exist (\cite{Zheng2005}), although 
-most recent studies have
-focused on their ability to explain the prolonged BOLD post stimulus 
-undershoot \cite{Zheng2005}, \cite{Buxton2004}. This is because \cite{Buxton2004}
-and later \cite{Riera2004} showed that the main portion of the signal may be 
-accurately estimated by a simple blood flow locked expression of the CMRO2.. 
+Regardless of the probability that CMRO2 and CBF are detached,
+research into the post-stimulus undershoot has driven the creation
+of much more in depth models. In particular \cite{Zheng2005} accounted
+for much more of the physiology present by adding a compartmental model;
+the resulting fit the BOLD undershoot better than the standard Balloon
+model. 
+for all of which aim to both increase overall
+plausibility while simultaneously enhancing 
+estimation of the post-stimulus undershoot (\cite{Zheng2005}, \cite{Buxton2004}).
+As mentioned in \autoref{sec:BOLD Physiology}, the primary BOLD 
+signal may be accurately estimated by a simple blood flow locked 
+expression of the CMRO2 (\cite{Buxton2004}, \cite{Riera2004}).  
 Although \cite{Deneux2006} did not deal extensively with prolonged post
-stimulus undershoot, the comparisons made in that publication showed minimal
-improvement from separate expressions of CMRO2, in comparison to the much 
-increased complexity. \cite{Deneux2006} did show that by simply adding viscoelastic
+stimulus undershoot, the showed incremental improvements
+in quality from separate expressions of CMRO2, at the cost of extensive
+increases complexity. \cite{Deneux2006} did show that by simply adding viscoelastic
 terms, first proposed in \cite{Buxton2004}, that a slowed return to baseline for
 the BOLD signal is possible to model. However, viscoelastic effects primarily
 control CBV, which, as mentioned already, many studies have claimed cannot be 
@@ -229,6 +260,12 @@ worth the decrease in model bias. For now it remains to be seen where this
 line may be drawn in the BOLD signal, although \cite{Deneux2006} does not
 show a significant improvement from the additional parameters added in 
 \cite{Buxton2004}.
+
+These 
+controversies are both important and contentious because they determine 
+the validity of the models being used. Additionally as the next 
+
+
 
 \section{Previous Studies of Parameters}
 There have been quite a few efforts to quantify the parameters of the
