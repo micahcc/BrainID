@@ -5,6 +5,16 @@ limited temporal resolution, FMRI is the standard tool for localizing
 neural activation.  Whereas other methods
 of analyzing neural signals can be invasive or difficult to acquire, 
 FMRI is relatively quick and cheap, and its analysis relatively straight forward.
+
+By modeling the governing equations behind the neural response that
+drives FMRI, it is possible to make the analyses of FMRI even more
+powerful. The underlying state equations hold important information
+about how individual brain regions react to stimuli. The model parameters
+on the other hand, hold important information about the patients individual
+physiology including existing and future pathologies. In short,
+the long chain of events driving observable FMRI signal contains more
+information than which regions respond to which stimuli.
+
 In the past fifteen years, a steady stream of studies have built
 on the original Blood Oxygen Level Dependent (BOLD) signal 
 derivation first described by \cite{Ogawa}.
@@ -153,7 +163,7 @@ where $v$ is normalized cerebral blood volume (CBV), $q$ is the normalized
 local deoxyhemoglobin/oxygenated hemoglobin ratio.
 \begin{eqnarray}
 \dot{s} &=& \epsilon u(t) - \frac{s}{\tau_s} - \frac{f - 1}{\tau_f} \\
-\dot{f} &=& s
+\dot{f} &=& s\\
 \dot{v} &=& \frac{1}{\tau_0}(f - v^\alpha)\\
 \dot{q} &=& \frac{1}{\tau_0}(\frac{f(1-(1-E_0)^f)}{E_0} - \frac{q}{v^{1-1/\alpha}})
 \label{eq:bold}
@@ -187,6 +197,7 @@ studies using 1.5 Tesla scanners.
 While this model is very accurate, it is not perfect. 
 
 \section{Post Stimulus Undershoot}
+\label{sec:Post Stimulus Undershoot}
 Although the most widely used, the BOLD model described in \autoref{eq:bold}
 and \autoref{eq:boldout} have been extensively added on to. The most
 significant feature missing from the original model is the 
@@ -256,7 +267,7 @@ the best fit.
 As demonstrated in \autoref{sec:BOLD Phsyiology} the BOLD response has been
 extensively studied and despite minor discrepancies, the cause of the BOLD 
 signal is well known. However, as FMRI detects an  
-aggregate signal over a space of several millimeters, there are
+aggregate signal over the space of cubic centimeters, there are
 plenty of sources of noise. Though local neurons act
 "together" (i.e. around the same time), the density of neurons, the
 density of capillaries, and slight differences in activation across 
@@ -279,31 +290,44 @@ point is standard, this seems unlikely. Regardless, the problem mandates
 the use of a high pass filter to make inference reasonably powered
 \cite{Smith2007}.
 
-In order to characterize the noise, resting state data was analyzed.
-During resting state, the patient is shown no images, and is asked
-to avoid movement or extensive thought; theoretically rending an 
-image composed entirely of baseline signals and noise.
-%here todo
- Both Q-Q plots, and the autocorrelation
-are useful in determining the noise distribution observed.
+In order to characterize the noise, I analyzed resting state data.
+During resting state, the patient is shown no images, and he is asked
+to avoid movement and complex thought, to the best of his abilities.
+Some limitations exist, for instance EPI sequences are extremely loud
+which could cause some stimulus in the auditory cortex, and of course
+very long sequences could give the patient time for his mind to wander.
+Overall though there should be no activation, and thus the signal will
+consist entirely of noise. Therefore resting state data is perfect
+for analyzing the noise distribution. The locations were chosen from
+various points around the brain, all in grey matter voxels (see \autoref{sec:methods}
+for a discussion on how grey matter voxels were found). The time
+series were also chosen because they were representative of different types
+of noise I found in the resting state data.
+
 Because most methods (including the one used in this paper)
-assume the noise realization are independent of each other, the auto-
-correlation is of particular interest. Gaussianity is also a common
+assume the noise realizations are independent of each other, the auto-
+correlation is of particular interest (which is a necessary but not
+sufficient condition for independence). Gaussianity is also a common
 assumption made in studies of FMRI data, though that assumption is not
-made here. Anytime the assumptions are violated, the error rate will be 
-significantly harder to predict and may in fact skyrocket.
-Because the noise is often considered 
-to have Wiener noise with Gaussian steps, as first described in \cite{Riera2003}, we
-also performed the same tests again, but on the steps, rather than the 
-direct measurements. 
+made in this work. Regardless, comparing the distribution to a Gaussian
+is informative, so I used Q-Q plots to compare example data with the
+Normal distribution. Additionally, in FMRI data the noise is often considered 
+to be Wiener \cite{Riera2003}. Recall that a Wiener random process is
+characterized by steps that are Gaussian; in other words the difference between
+any two samples is Normally distributed. The simulations discussed in 
+\autoref{sec:Methods Single Voxel Simulation} make use of this, 
+by adding a Wiener random process to the overall signal. To determine
+whether the noise is in fact Wiener, the distribution of 
+the difference between adjacent measurements was plotted against
+a Gaussian. Wiener processes further assume that the steps are independent;
+so the steps should have near flat autocorrelation functions.
 
 Finally, removal of the so called "drift" is often
 performed with some variation of a high pass filter, 
-so we checked the noise distribution after applying such a filter (in
+so I checked the noise distribution after applying such a filter (in
 this case the subtraction of a spline, see \autoref{sec:Methods Preprocessing}).
-Here we wanted to know whether the subtraction of a spline from the
-data will result in complete removal of Wiener noise, and whether the resulting
-timeseries better conforms to the common assumption of Gaussianity.
+Here I wanted to know how effective my high pass filter at the removal of
+Wiener noise.
 
 \autoref{fig:QQDC} shows the 
 results with a regression line fit to the points on the Q-Q plot.
@@ -342,36 +366,45 @@ normalized (changed to percent difference).
 \label{fig:QQDelta}
 \end{figure}
 
-A Wiener process should still conform to the normal distribution, albeit with a 
+A Wiener process should still conform to the normal distribution, with a 
 variance proportional to the run-time. Note that \autoref{fig:QQDC:A} and \autoref{fig:QQDC:B}
 are relatively well described by a Gaussian process with a small autocorrelation, 
-\autoref{fig:QQDC:C} and \autoref{fig:QQDC:D} aren't. In particular the tails don't
-seem to fit, which could be well explained by the much more significant drift in the
-signal. Thus, its possible a Wiener process does not well describe the error, since overall
-the distribution does not tend toward a Gaussian. Still, the steps still seem to
-be relatively normal, meaning at the very least that the process is close to Wiener.
-As one would expect most of the autocorrelation disappears for the step data, indicating
-that the steps are relatively independent. Therefore, the assumption of I.I.D. Normal 
-steps is relatively good, even though the accumulated result seems to be less varied than
-Wiener.
+\autoref{fig:QQDC:C} and \autoref{fig:QQDC:D} are not. In particular the tails of \autoref{fig:QQDC:C}
+do not seem to fit the Gaussian well. Also note the significant autocorrelation in
+\autoref{fig:QQDC:C} and \autoref{fig:QQDC:D}. As expected, the noise is not strictly
+Gaussian white noise.  On the other hand, the steps do conform rather
+closely to the normal distribution.
+As expected, most of the autocorrelation disappears for the step data. Given
+that the steps seem to fit the Normal distribution, the low autocorrelation
+indicates that the steps could be Independently Distributed. 
+Therefore, the assumption that the noise follows a Wiener process seems to
+be correct. 
 
 \begin{figure}
 \centering
-\subfigure[]{\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009s_29_49_9}}
-\subfigure[]{\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009s_34_43_24}}
-\subfigure[]{\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009s_22_38_23}}
-\subfigure[]{\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009s_37_29_24}}
+\subfigure[]{\label{fig:QQs:A}\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009s_29_49_9}}
+\subfigure[]{\label{fig:QQs:B}\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009s_34_43_24}}
+\subfigure[]{\label{fig:QQs:C}\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009s_22_38_23}}
+\subfigure[]{\label{fig:QQs:D}\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009s_37_29_24}}
 \caption{Q-Q Plots of resting state data, after the de-trending}
 \label{fig:QQSpline}
 \end{figure}
 
-[todo analysis after detrending]
+De-trending the time-series by subtracting a spline fit to the distribution
+removed much of the autocorrelation present in \autoref{fig:QQDC:C} and \autoref{fig:QQDC:D},
+though clearly not perfectly. Though the distributions still do not exactly fit
+the Normal, \autoref{fig:QQs:D} clearly is much improved compared to \autoref{fig:QQDC:D}.
+In all, the de-trending is effectively removing Wiener noise. 
 
-\section{Analysis of the BOLD Signal}
-Several studies have endeavored to analyze the BOLD equations, which
-we will review here. The most obvious analysis is to calculate the
-steady state signal, when $u$ is held constant long enough for
-all the transients to settle out. 
+\section{Properties of the BOLD Model}
+\label{sec:BOLD Analysis}
+Since the first complete BOLD model was proposed by \cite{Friston2002}, 
+several studies have endeavored to analyze properties of that model. 
+The most important property is that the system is dissipative, and given
+enough time will converge to a constant value. This is found simply by
+analyzing the eigenvalues of the Jacobian of the state equations, 
+(\cite{Deneux2006}, \cite{Hu2009}). The steady state of the Balloon
+model equations gives:
 
 \begin{eqnarray}
 s_{ss} &=& 0 \nonumber \\
@@ -382,13 +415,48 @@ y_{ss} &=& V_0((k_1+k_2)(1-q_{ss}) - (k_2+k_3)(1-v_{ss}))
 \label{eq:steadystate}
 \end{eqnarray}
 
+In real FMRI data, there is a significant nonlinearity in response; with short sequences
+responding disproportionately strong (\cite{Birn2001}, \cite{Wager2005}, \cite{Deneux2006}).
+This nonlinearity is accounted for in the Balloon model, although \cite{Deneux2006}
+shows that if there will be large variance in the length of signals, 
+modeling Neural Habituation may be necessary to fully capture the range of responses. 
+Stimuli that last longer than 4 seconds 
+tend to be more linear, which is why block designs are so well accounted for
+by the General Linear Model (\cite{Birn2001}, \cite{Deneux2006}). For this 
+paper we will use only a simple version of the Balloon model, described by
+\autoref{eq:bold}, to keep the solution tractable. 
 
-todo
+Another interesting result of \cite{Deneux2006} was the sensitivity analysis.
+There it was found that many of the parameters compensate for each other,
+implying that exact inference of parameters may not be possible without
+constraint.
+
+Several studies have been able to calculate distributions for the 
+Balloon parameters, those results are summarized in \autoref{tab:Params}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c || c | c | c |}
+\hline 
+Parameter  & \cite{Friston2002} & \cite{Johnston2008} & \cite{Vakorin2007} \\
+\hline
+$\epsilon$ &  $N(.54 , .1 ^2)$  & $.069 \pm .014 $ & (NC)\\
+$\tau_s  $ &  $N(1.54, .25^2)$  & $4.98 \pm 1.07 $ & $2.2$\\
+$\tau_f  $ &  $N(2.46, .25^2)$  & $8.31 \pm 1.51 $ & $.45$\\
+$\tau_0  $ &  $N(.98 , .25^2)$  & $8.38 \pm 1.5  $ & $.94$\\
+$\alpha  $ &  $N(.33 , .45^2)$  & $.189 \pm .004 $ & $.4$ (NC) \\
+$E_0     $ &  $N(.34 , .1 ^2)$  & $.635 \pm .072 $ & $.6$ (NC) \\
+$V_0     $ &  $.03$ (NC)        & $.0149 \pm .006$ & (NC)\\
+\hline
+\end{tabular}
+\caption{Parameters found by various studies. (NC) indicates that the value
+wasn't calculated. \cite{Vakorin2007} made use of the values from \cite{Friston2002}
+where not explicitly stated}
+\label{tab:Params} 
+\end{table}
+
+Necessary?
 [Image with two different $\alpha$'s]
-
 [image comparing the results of 10\% changes in various signals]
-
-
-
 
 

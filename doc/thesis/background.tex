@@ -1,41 +1,182 @@
+\chapter{Prior Works}
+The ultimate purpose of this work is to provide a new tool
+for analyzing FMRI data. 
 
-\chapter{Current Techniques}
-The ultimate purpose of this work is to provide a new set of tools
-for analyzing FMRI data. Whereas esisting techniques have been 
-successful at finding macroscopic regions of activation, :hese
-techniques are not robust to significant noise and thus linear 
-modeling carries a significant bias error due to lack of model
-flexibility. While adding parameters can significantly increase
-error due to model variance, this effect should be mitigated first
-by the use of a highly constrained model based on first principals
-and also by the
-calculation of a full posterior distribution, rather than a single
-estimate. The
-purpose of this paper is thus to evaluate the potential of using
-a particle filter along with the BOLD model to derive physical 
-parameters. In so doing, we hope to be able to show that one or more
-parameters are a suitable replacement for estimating voxel 
-activation from a standard FMRI image. We also hope to show that 
-estimated posterior distribution of the parameters, derived from
-the particle filter, is able to provide an accurate measure of the
-confidence interval.
+Currently, FMRI is used to determine the location of responses
+to stimuli. The method of finding activation is discussed in 
+\autoref{sec:Statistical Parameteric Mapping}. The goal of this 
+work is to move away from the question "Is this region active"
+and instead ask "What does the activation look like". Answering
+this question necessitates more complex models and certainly
+will result in longer run times. Already there have been several other
+attempts to model the BOLD response; these works will be discussed
+in [all other sections basically].
 
-\section{Previous Studies of Parameters}
+\section{Statistical Parametric Mapping}
+Although not strictly the same as parameter calculation from 
+FMRI, activation detection is similar and worth discussing. Estimation of 
+parameters is a generalization of the idea of activation detection.
+Given the popularity of Statistical Parametric Mapping (SPM) 
+it is important to draw a distinction between the methods proposed
+in this work.
+
+\subsection{Square Wave Model}
+\label{sec:Square Wave}
+The most basic method of analyzing FMRI data is through a standard T-test
+between "resting state" and "active state" samples. Simply put, the
+mean is calculated separately for non-stimulus and stimulus time intervals.
+A classic t-test may then be applied, giving the probability that the
+distributions actually have the same mean. Because of the correlated
+noise present in FMRI (\autoref{sec:Introduction Noise}), it is necessary
+to apply some sort of high-pass filter to the data. Without applying
+such a filter, P values must be set extraordinarily high to prevent
+false positives \cite{Smith2007}. If there truly is signal
+due to stimuli, the distributions will not actually be independent
+Gaussians because activation does not fit a square wave 
+(\autoref{sec:BOLD Physiology}). For this reason other methods
+are often more used, as discussed in 
+\autoref{sec:Current Techniques General Linear Model}.
+
+\subsection{Random Field Theory}
+SPM methods make significant use of T-Tests across large regions;
+however, such T-tests work slightly differently than a single
+individual test. A t-test with a p-value of $.05$ over a modestly sized FMRI image,
+say 10,000 voxels, will on average generate 500 false
+positives. This is called the multiple comparison problem. Traditional
+Bonferroni Correction
+deals with this by requiring each test to pass with P
+value of $\frac{.05}{10000}$. The probability of 
+a single false positive would then $.05$. Unfortunately this leads to unrealistically
+low p-values; so low that it would be impossible for any biological system to satisfy. To
+compensate, a Gaussian kernel is applied to smooth the image. This has
+the benefit of reducing the noise variance and 
+decreasing the effective number of independent measurements. Because
+the number of independent measurements is smaller, Bonferroni correction
+can theoretically be applied with a lower scaling factor than
+the original voxel count \cite{Worsley2004}. A side effect of this,
+a single voxel activation is virtually impossible to detect.
+
+\subsection{General Linear Model}
+\label{sec:Current Techniques General Linear Model}
+The most common FMRI analysis technique is SPM, though there
+are more advanced versions that the simple square wave
+method discussed in \autoref{sec:Square Wave}. Hierarchal
+Models are one important improvement that allows researchers
+to combine data across multiple runs, patients and stimuli
+(see \cite{Hofmann1997} for more on Hierarchical Modeling). 
+Hierarchical Models
+concatenate all the data into a single dataset, then perform
+a linear fit between a design matrix and the data. The design matrix
+encapsulates all known experimental factors such as stimuli,
+young/old, etc.  The equation for a general linear model is:
+
+\begin{equation}
+Y(t) = X(t)\beta + \epsilon(t)
+\end{equation}
+
+where $Y(t)$ is the smoothed or de-trended time course of measurements,
+$X(t)$ is the design matrix, $\beta$ is a column vector of weights,
+and $\epsilon$ is the error. Thus for every time, the measurement is
+assumed to be a weighted sum of the columns of $X$ plus some error. The calculation
+of $\beta$ is then performed using a maximum likelihood or gradient descent search 
+to minimize the error. 
+
+As mentioned previously, a square wave stimulus 
+does not result in a square wave in the activation of brain regions. 
+The BOLD signal is in fact a significantly smoothed version of the 
+stimuli. As such, when fitting an FMRI time course to the input,
+the input ($X$'s columns) is usually smoothed to reduce bias error. 
+The best method, that maintains a linear fit, is convolving the input 
+with a Hemodynamic 
+Response Function (HRF). The so called "Hemodynamic Response Function"
+mimics the basic shape of BOLD activation, including a delay
+due to rise time and fall time. The fitting 
+process is then a least squares fit over the space of the vector $\beta$. 
+Therefore $Y(t)$ is estimated as a linear combination 
+of the columns of $X$. 
+
+Smoothing the input with a single HRF poses certain problems.
+It is well known that different Hemodynamic Response Functions are necessary 
+for different regions of the brain. The "Canonical" HRF that is most used, 
+has been optimized for the visual cortex. As \autoref{sec:Post Stimulus Undershoot}
+discussed, there are certainly variations in the shape of the
+BOLD response, both between brain regions and patients.  \cite{Handwerker2004}
+discusses the implications of choosing an incorrect HRF, the most important
+of which is a definite increase in false negatives. While an atlas
+of Hemodynamic Response Functions for each region could definitely 
+mitigate this risk, it does not deal with variation between patients.
+Thus, the inability to fit parameters other than scale definitely hinders 
+analysis of activation. As a result, there is significant bias error
+when using a linear fit to localize activation. Notably, studies
+will also have a bias toward the visual cortex, precisely because
+it is so well studied.
+
+\begin{figure}
+\caption{Hemodynamic Response Function todo}
+\label{fig:HRF}
+\end{figure}
+
+\subsection{Hierarchical Linear Models}
+As mentioned previously and discussed extensively
+in \cite{Friston2002} and \cite{Hoffman1997}, hierarchical models may be 
+applied to account for systematic differences between subjects. For instance, if the
+study happens to be a mix between young and old, incorporating
+that into the model is wise, regardless if that is the purpose of the test. 
+The reason to do this is to account for additional variance that may not
+be present in similar studies. The Hierarchical form used by
+\cite{Friston2002} is shown in \autoref{eq:Hiearchical}.
+
+\begin{eqnarray}
+\label{eq:Hierarchical}
+Y(t) = X_1(t)\theta_1 + \epsilon_1(t)            \nonumber \\
+\theta_1(t) = X_2(t)\theta_2 + \epsilon_2(t)     \nonumber \\
+...                                              \nonumber \\
+\theta_{n-1}(t) = X_n(t)\theta_n + \epsilon_n(t) 
+\end{eqnarray}
+
+The Empirical Bayes algorithm is used in both in both \cite{Friston2002} 
+and \cite{Hoffman1997}. As a consequence, point estimators 
+are used for each $\theta$, rather than the full distributions.
+
+\subsection{Conclusion}
+In all, the GLM is extremely useful for determining linear 
+dependence of a set of regressors on the output. Unfortunately, as discussed in
+\autoref{sec:BOLD Analysis} there are significant nonlinearities 
+that almost certainly cause false negatives in the Statistical Parametric
+Maps. Unfortunately nonlinear analyses have only recently become feasible,
+so the scale of the problem is still unknown. The problem is 
+highlighted by the relatively common scenario where no significant
+activation can be found in a single run \cite{Riera2004}
+\cite{Johnston2008}.  
+
+The static nature of the  linear model also limits its inference power. 
+Besides not permitting HRF differences between patients, there is no
+reasonable way to incorporate other forms of physiological
+data. Combined FMRI CBF or CBV imaging methods are rapidly getting better,
+as seen in \cite{Chan2009}. These techniques could shed light on
+neural activation by providing extra measurements, yet a 
+physiologically reasonable model is necessary for this.
+In reverse, activation detection methods also don't have the ability 
+to identify pathologies based on state variables or parameters. For
+example decreased compliance of
+blood vessels could indicate, or even cause, a neurological condition that 
+is not easily seen in other imaging modalities. Thus, the benefits
+of physiologically meaningful models are manifold.
+
+\section{Previous Studies of the BOLD Model}
+Unlike Statistical Parametric Mapping, the techniques described in this
+section are all attempts to learn some version of the BOLD model. 
+Of particular interest are the calculated distributions for the 
+BOLD parameters, since they are used as prior distributions for
+the particles filter, described in \autoref{sec:Methods}.
+
+%todo
 There have been quite a few efforts to quantify the parameters of the
 various BOLD models.  Although \cite{Buxton1998} and \cite{Friston2000}
 both proposed physiologically reasonable values for the model parameters, 
 \cite{Friston2002} was the first paper to calculate the parameters based 
 on actual FMRI data. In that paper, Friston et. al. used a variation of
 Expectation Maximization to find a normal distribution for the parameters:
-\begin{eqnarray}
-\epsilon &=& N(.54 , .1 ^2 )  \nonumber \\
-\tau_s & =&  N(1.54, .25^2)   \nonumber \\
-\tau_f & =&  N(2.46, .25^2)   \nonumber \\
-\tau_0 & =&  N(.98 , .25^2 )   \nonumber \\
-\alpha & =&  N(.33 , .45^2 )   \nonumber \\
-E_0   & =&  N(.34 ,  .1 ^2 )   \nonumber \\
-V_0  & = &  .03 (not\ estimated) \nonumber
-\end{eqnarray}
 Since then, several other methods of have been used to calculate
 BOLD parameters from FMRI timecourses. In \cite{Riera2004}, a maximum
 likelihood method for innovation processes was used, as described by
@@ -68,15 +209,6 @@ time, and then the estimated distribution of the particles was used to find
 the most likely set of parameters that would give that distribution of state variables.
 \cite{Johnston2008} comes to a very different set of parameter estimates as compared
 to the original \cite{Friston2000} guesses:
-\begin{eqnarray}
-epsilon &=& .069 \pm .014    \nonumber \\
-tau_s & =& 4.98 \pm 1.07  \nonumber \\
-tau_f & =& 8.31 \pm 1.51   \nonumber \\
-tau_0 & =& 8.38 \pm 1.5    \nonumber \\
-alpha & =& .189 \pm .004   \nonumber \\
-E_0   & =& .635 \pm .072     \nonumber \\
-V_0   & =& .0149 \pm .006     \nonumber 
-\end{eqnarray}
 Notably, the time constants are significantly longer. This could be a result of
 some preprocessing to the stimulus timeseries performed in \cite{Friston2002} and
 later works but not in \cite{Johnston2008}, or it could be that \cite{Johnston2008}
@@ -86,134 +218,6 @@ Its possible, although unlikely that the balloon model is not possible to learn
 without detrimental cost in variance error. I do not think this is the case, however,
 and I will work to dispell this possibility in the results with simulated time
 series.
-
-\section{Basic Statistical Parametric Mapping}
-Although not strictly the same thing as parameter calculation from 
-FMRI, activation detection is very similar. In fact, estimation of 
-parameters is somewhat a generalization of the idea of activation detection.
-Therefore, it is important to draw a comparison between the methods proposed
-in this thesis with existing methods of activation detection.
-
-The most basic method of analyzing FMRI data is through a standard T-test
-between "resting state" and "active state" samples. This is done by 
-taking the average and variance of the inactive period, and the 
-period during which the stimulus was activate separately then treating 
-them both as gaussian distributions.
-If they are in fact Gaussian distributions, then a basic t-test will
-give the probability that the samples came from the same distribution
-(the null hypothesis). Of course, this test is fraught with problems; even if
-the drift mentioned earlier has been removed, there is little reason
-to believe that the noise is Gaussian, or even stable. Additionally, 
-even if the noise were Gaussian, a t-test with a p-value of .05 over
-50000 or more samples is on average going to generate $.05*50000$ false
-positives. To compensate for this, bonferoni correction, also known as
-multiple comparison tests are performed; essentially p-values are 
-divided by the number of independent
-tests being run. This, however, leads to extremely low p-values, so
-low that it would be impossible for any biological system to satisfy. To
-compensate, a Gaussian kernel is applied to the image, thus reducing
-variance (and thus separating the active and inactive distributions)
-as well as decreasing the effective number of voxels. Since t-tests are
-now no longer being applied to n <I need to define n> independent voxels,
-the factor by which the p-value must be divided by can be decreased.
-<Do I need to mathematically define all this?> The derivation and application
-of random field theory, and its use can be found in various papers \cite{Worsley2004}.
-
-\subsection{General Linear Model}
-\label{sec:Current Techniques General Linear Model}
-The most used form of FMRI analysis is Statistical Parametric
-Mapping, but is able to account for several different levels or types
-of stimulus (see \cite{Hofmann1997}). By using hierarchical models
-the output signal timeseries is considered the weighted
-sum of the various input timeseries. Essentially every experimental factor
-is considered as another level inputs (ex. different type of stimulus,
-different run with the same patient, different patient). 
-The equation for a general linear model is then
-\begin{equation}
-Y(t) = X(t)\beta + \epsilon(t)
-\end{equation}
-where $Y(t)$ is the smoothed or detrended timeseries of measurements,
-$X(t)$ is a row vector of input, $\beta$ is a column vector of weights,
-and $\epsilon$ is the error. Thus for every time, the measurement is
-assumed to be a weighted sum of the columns of $X$ plus some error. The calculation
-of $\beta$ is then performed using a maximum likelihood or gradient descent search 
-to minimize the error.
-
-\begin{figure}
-\caption{GLM todo}
-\label{fig:GLM}
-\end{figure}
-
-It is well known of course that a square wave stimulus does not result in a square wave
-in the activation of brain regions. Thus, various methods are used to 
-smooth the columns of $X$, and thus bandlimit the input. 
-The best technique is convolving the stimulus input with a Hemodynamic 
-Response Function (HRF), which mimics the basic shape of BOLD activation, including a delay
-due to rise time and fall time. The downside of this method, however is that 
-the shape of the Hemodynamic Signal is static, meaning the same Hemodynamic Function is
-used for every region of the brain, and $Y(t)$ must linear combination 
-of scalar the columns of $X$ to be appropriately identified. Additionally, 
-it is well known that different Hemodynamic Response Functions are necessary for different 
-regions of the brain. The "Canonical" HRF that is most used, has been fitted
-for the visual cortex. Thus the shape of the HRF may differ significantly in
-terms of onset and fall time in other areas of the brain \cite{Handwerker2004}. 
-The inability to
-fit parameters other than scale certainly hinders SPM's
-ability to locate voxels that do not conform to the "canonical" hemodynamic 
-response function. If there are different HRF's for different regions 
-of the brain, might there also be more subtle differences even within
-a particular region? It seems reasonable to think so. As a result, the 
-most common use of SPM will be heavily biased toward the visual cortex.
-
-\begin{figure}
-\caption{Hemodynamic Response Function todo}
-\label{fig:HRF}
-\end{figure}
-
-The GLM is extremely powerful at determining the linear dependence of
-a set of regressors on the output. Unfortunately, there is significant evidence
-that many of these dependencies are nonlinear, which means they may be
-difficult or impossible to detect using linear techniques. This presents
-a significant and unknown problem that is often left un-addressed in 
-neural studies.
-
-A static linear model is also unable to incorporate other forms of physiological
-data that may be available. Combined FMRI
-CBF or CBV imaging methods are not uncommon and they could shed much light on
-neural activation. However, there is no way of actively combining that data 
-into a static HRF. The fact of the matter is that the relation between the 
-BOLD signal and CBV/CBF simply cannot be described by any linear relationship.
-While it may be possible to determine some regionally varying set of parameters
-for the HRF based on CBV/CBF, the lack of physiologically inspired parameters
-impairs this. The importance of regional differences in the HRF cannot be
-over-stated; it is well known that capillary beds are far from uniformly distributed
-and thus blood perfusion and regional oxygenation cannot possibly be uniform
-either. 
-
-Finally, all these techniques require the noise to be Gaussian to reach
-an optimal solution. In fact there is no known optimal solution to
-nonlinear models with non-Guassian noise, so obviously some assumptions
-are going to have to be made to reach a solution. However, it would be
-nice to have an algorithm that is robust to these effects, and could
-still give a good solution when Gaussianity is violated.
-
-Because of these limitations, its entirely possible that activation exists
-in regions that SPM doesn't detect, but because the activation does not conform
-to the set HRF, it is impossible for these signals to be detected. Perhaps
-because of this, it is not uncommon for data to be thrown out or averaged
-together in FMRI studies because 
-no significant activation could be seen in a single run \cite{Riera2004}
-\cite{Johnston2008}. This practice highlights 
-limitations in strictly linear approaches; and suggests that a single HRF is 
-insufficiently flexible to account for relatively common variations of neural activation
-\cite{Handwerker2004}. 
-
-In general activation detection type methods also don't have the ability 
-to find pathologies based on state variables or parameters.  It
-is quite possible that physical properties such as decreased compliance of
-blood vessels could indicate a neurological condition that is not easily
-seen in a T1 or T2 map. In essence, this could make FMRI a much more 
-useful clinical tool than it is now. 
 
 \section{Nonlinear Least Squares}
 \label{sec:Nonlinear Least Squares}
