@@ -3,93 +3,82 @@
 \section{Introduction}
 Particle filters, a type of Sequential Monte Carlo (SMC) methods,
 are a powerful way of estimating the posterior probability distribution
-of a set of parameters give a timeseries of measurements. Unlike Markov 
-Chain Monte Carlo estimation, Sequential Monte-Carlo methods are designed
-to be used with parameters that vary with time. Unlike variations of the
-Kalman filter, particle filters do not make the assumption that noise
-is Gaussian. Thus particle filters are often the best solution to bayesian 
-tracking for non-linear, non-gaussian systems. 
+a set of parameters given a timeseries of measurements. Unlike Markov 
+Chain Monte Carlo (MCMC) estimation, particle filters are designed for 
+time-varying random variables. The idea behind particle filters is
+extremely similar to Kalman Filters; however, unlike Kalman Filters,
+distributions are stored as an empircal distribution rather than the
+as the first two moments of a Gaussian. Thus particle filters are 
+preferred when the model is nonlinear, and thus non-gaussian.
 
 \subsection{Model}
 \label{sec:Particle Filter Model}
-The idea of the particle
-filter is to start with a wide mixture PDF of possible parameter sets, 
-and then, as measurements come in, to weight more heavily parameter sets 
-that tend to give good estimations of the measurements. The reliance on
-an initial mixture PDF can introduce bias; however, this effect can be
-minimized by alterring the initial weights in the mixture pdf. Of course
-every gradient descent must choose starting points and it is often quite
-easy to establish a reasonable range of parameters, especially when the
-model being used has a physical meaning. Suppose a set or stream of measurements
-are given, $\{y(t), t = 1, 2, 3, ... T\}$, where $T$ is permitted to go
- to infinity. Then the goal is to find the 
-parameters, $\hat{\theta}$, and underlying state time series, $\hat{x}[0:T]$
-that minimize the difference between $\hat{y}[0:T]$
-and $y[0:T]$. In our case, we will assume that we know the form
-of the model, which is based on first principals, and that
-there is some true $\theta$ and a true time-series of underlying
-state variable, $x[0:T]$ that drives $y[0:T]$. Assuming a model form 
-such as we do here reduces model variance, potentially at the cost of increased
-bias (or systematic) error. We will assume a basic state space model:
+The idea of the particle filter is to build an empirical distribution
+out of a large number of parameter \emph{sets}, called particles. Each
+particle contains all the parameters and states needed to propagate
+the model forward.  The particle filter begins with a wide distribution 
+(called the Prior Distribution)
+of possible particles and then, as measurements come in, weights 
+particles based on the quality of their output estimates. Thus parameter sets 
+that tend to give good estimations of the measurements get weighted higher
+than parameter sets that give poor estimates. Although the reliance on
+a prior distribution can be troublesome, when the system being modeled
+has physical meaning, establishing reasonable ranges for parameters can 
+actually be quite easy. Optimizing the prior can be more difficult though,
+unless the system has been extensively studied.
 
-\begin{equation}
-\dot{x}(t) = f(t, x(t), u(t), \theta, \nu_x)
-\end{equation}
+Suppose a discrete set or stream of measurements are given, 
+$\{y_k, k = 1, 2, 3, ... K\}$, where $K$ is infinite for a stream. 
+Suppose also that there is a hidden set of state variables,
+denoted $\{x_k, k = 1, 2, 3, ... K\}$ the dictates the movement
+of $y_k$. The goal of the particle filter is to estimate the 
+\emph{distribution} of the
+true parameters $\Theta$ that dictates the movement of $x_k$. Additionally
+the particle filter also estimates the distribution of $x_k$.
+The only difference between the members of parameter vector
+$\Theta$ and the members of $x_k$ is that the memebers of
+$\Theta$ have no known update equation. Members of both vectors
+are permitted to have some time varying noise, although this
+is often not explicitly modeled. The generic, continuous, nonlinear
+system definition is shown in \autoref{eq:GenericNonlinear}.
 
-\begin{equation}
+\begin{eqnarray}
+\dot{x}(t) = f(t, x(t), u(t), \theta, \nu_x) \nonumber \\
 y(t) = g(t, x(t), u(t), \theta, \nu_y)
-\end{equation}
+\label{eq:GenericNonlinear}
+\end{eqnarray}
 
-Where $x(t)$ is a vector of state variables, $\theta$ is a vector of system
-constants, $u(t)$ is a stimulus, $y(t)$ an observation, and
-$\nu_x$ and $\nu_y$ are random variates. Obviously any one of these could
-be a vector, so for instance $u(t)$ could encode multiple types of stimuli.
+$x(t)$ is vector of state variables, $\theta$ is a vector of system
+constants, $u(t)$ is an input, $y(t)$ the observation, and
+$\nu_x$ and $\nu_y$ are random variates. Although any of these
+variables could be a vector, for the sake of simplicity only
+$\theta$ and $x(t)$ will be considered as such. 
 
-Although not strictly necessary for particle filters, we will make a few
-assumptions based on the particular type of systems faced in biological 
-processes. First, the systems are assumed to be time invariant. This 
-assumption is based on the idea that if you froze the system for $\Delta t$
+Although not strictly for particle filters in general, a few 
+assumptions are made for this work. First, the systems are assumed to be 
+time invariant. This 
+assumption is based on the idea that if you paused the system for $\Delta t$
 seconds, when unfrozen the system would continue as if nothing happend. 
 Few biological systems are predictable enough for them to be summarized
-by a time varying function. Even systems that one might assume work in that
-way are actually much more complicated. The heart may seem like an obvious
-exception, however, the period between heartbeats vary often enough that prediction
-would necessitate another state-space model. In short, we
-assume no parameters are time varying, because not enough information exists to
-describe any of theme in that way. Luckily particle filters are capable 
-of dealing with non-white, non-Gaussian noise, so unanticipated influence
-may be re-factored as noise. Secondly we assume that input cannot directly
+by a time varying function, least of all the brain. While heart beats are certainly
+periodic and have an effect on the BOLD signal, the period varies too much
+for the system to be considered varying with time. 
+Next, its assumes that input cannot directly
 influence the output, which in the case of the BOLD signal is a good assumption.
-%Third, through some sort of preprocessing, we will assume that $\nu_d$ can be
-%decreased or completely removed, since it 
-Third, we will assume noise is additive, and that $\nu_x$ may be projected into
-a Weiner, or other summing process that is additive with $g$ and $\nu_y$, which
-will be named $\nu_d$.
-Finally, $x(t)$ will encapsulate $\theta$, the unknown model constants, which
-means that the vector $\dot{x}$ will always have members
-that are 0. The results of these assumptions are a simplified version of the
+Also, time is treated as discrete and noise is considered to be additive.
+Finally, because the only difference between the members of $x(t)$ and 
+$\theta$ is an update function, from now on $x$ will contain 
+$\theta$. The assumptions now allow for a simplified version of the
 state space equations:
 
-\begin{equation}
-\dot{x}(t) = f(x(t), u(t))
-\label{eq:stateass}
-\end{equation}
-
-\begin{equation}
-y(t) = g(x(t)) + \nu_y + \nu_d
+\begin{eqnarray}
+\dot{x}_k = f(x_{k-1}, u_k) + \nu_x 
+\label{eq:stateass}\\
+y_k = g(x_k) + \nu_y 
 \label{eq:measass}
-\end{equation}
-
-Because $\nu_d$ is something akin to and additive Weiner process $y[0:T]$, it 
-will include low frequency noise. $\nu_y$ on the other hand will cause i.i.d. noise
-in $y[0:T]$. For some of the tests, I will use de-trending methods to reduce the effects of 
-$\nu_d$, the remainder of which will be re-factored into $\nu_y$. Both $\nu_d$ and $\nu_y$
-have biological and non-biological sources. MR can lead to both types of noise, 
-as demonstrated in \cite{Smith1999}. Meanwhile changes in metabolism, heart rate, or
-other biochemical intervention could all lead to either $\nu_d$ or $\nu_y$.
+\end{eqnarray}
 
 \subsection{Prior}
-
 The goal of the particle filter is to evolve a probably distribution 
 $Pr(\hat{x}(T) | u[0:T], y[0:T])$,
 that asymptotically approaches the probability distribution $Pr(x(T) | u[0:T])$.
