@@ -20,7 +20,7 @@ Given the popularity of Statistical Parametric Mapping (SPM)
 it is important to draw a distinction between the methods proposed
 in this work.
 
-\subsection{Square Wave Model}
+\subsection{Classical Activation Detection}
 \label{sec:Square Wave}
 The most basic method of analyzing FMRI data is through a standard T-test
 between "resting state" and "active state" samples. Simply put, the
@@ -163,63 +163,56 @@ blood vessels could indicate, or even cause, a neurological condition that
 is not easily seen in other imaging modalities. Thus, the benefits
 of physiologically meaningful models are manifold.
 
-\section{Previous Studies of the BOLD Model}
+\section{Solving the BOLD Model}
 Unlike Statistical Parametric Mapping, the techniques described in this
 section are all attempts to learn some version of the BOLD model. 
-Of particular interest are the calculated distributions for the 
-BOLD parameters, since they are used as prior distributions for
-the particles filter, described in \autoref{sec:Methods}.
-
-%todo
 There have been quite a few efforts to quantify the parameters of the
 various BOLD models.  Although \cite{Buxton1998} and \cite{Friston2000}
 both proposed physiologically reasonable values for the model parameters, 
 \cite{Friston2002} was the first paper to calculate the parameters based 
-on actual FMRI data. In that paper, Friston et. al. used a variation of
-Expectation Maximization to find a normal distribution for the parameters:
-Since then, several other methods of have been used to calculate
-BOLD parameters from FMRI timecourses. In \cite{Riera2004}, a maximum
-likelihood method for innovation processes was used, as described by
-\cite{Ozaki1994}. \cite{Ozaki1994} uses a similar construction to a 
-Kalman filter, to break the time series into a series of innovations,
-for which Maximum Likelihood was performed. While this is in some since the
-"right" way to find the solution, it comes with several caveats. First, every
-step in parameter space requires a recalculation of all the state variables. With
-two or three parameters this is fine, more than that, and calculations could go on
-indefinitely. Second, it still assumes the parameters and noise are Gaussian, and
-will only be optimal in that case. Third, depending on the nonlinearities present
-in the system, local minima may be extremely common. Later \cite{Hu2009} used an 
-Unscented Kalman Filter over all the parameters and state variables to find the 
-parameter set/variable time series. While this method has the drawback of not necessarily
-being optimal, unfortunately there is no general optimal solution to non-linear non
-Gaussian models. Hu et. al.'s technique also will run significantly faster than
-ML based techniques, since it does not require recalculating the entire timeseries
-for every step in parameters. Both \cite{Hu2009} and \cite{Friston2002} came to results 
-very similar to the expected values stated in \cite{Buxton1998} and \cite{Friston2000}.
-One potential problem with all these techniques are that the depend heavily on the
-priors. The starting point of the parameters could have a huge impact on the
-results, and while one can be hopeful that this isn't the reason for the agreement
-between \cite{Friston2000} and later results, there is no way to know. 
+on actual FMRI data. However, in that case, the voxels were chosen from
+regions that were detected as active by the GLM. It is therefore possible
+that the parameters are biased toward parameters that fit the linear model.
 
-In \cite{Johnston2008}, a hybrid particle filter/gradient
-descent algorithm was used to simultaneously derive the static (classicly called
-parameters) and dynamic parameters (classically known as state variables).
-Essentially a particle filter is used to calculate the state variables at some
-time, and then the estimated distribution of the particles was used to find
-the most likely set of parameters that would give that distribution of state variables.
-\cite{Johnston2008} comes to a very different set of parameter estimates as compared
-to the original \cite{Friston2000} guesses:
-Notably, the time constants are significantly longer. This could be a result of
-some preprocessing to the stimulus timeseries performed in \cite{Friston2002} and
-later works but not in \cite{Johnston2008}, or it could be that \cite{Johnston2008}
-depended less on the priors. 
+\subsection{Linear Approximation}
+In \cite{Friston2002b}, a novel combination of linear and nonlinear modeling
+was used to generate parameter estimates. Because it is impossible to 
+calculate the partial derivative of
+the output with respect to parameters, $\frac{\partial \theta}{\theta}$, 
+\cite{Friston2002b} approximates the partial. At each step of the Expectation-
+Maximization algorithm, the differential equation is integrated, calculating
+the residuals. Then, for each $\theta_i$ surrounding the current estimate of 
+$\theta$, a Volterra-Kernel expansion of the output $y$ is generated. Generation
+of the Volterra Kernel is relatively quick, and, since it is linear there
+is an analytical solution. Thus, once the Volterra Kernel exists, the value
+of $y$ at that measurement point, for that $\theta_i$ can easily be found. 
+Thus, one part of the partial is calculated at one point using
+$\frac{y(t) - y_i(t)}{\theta - \theta_i}$. This is repeated for
+every dimension of $\theta$ to give the full $\frac{\partial y}{\theta}(t)$.
+This is only at time $t$ though, and it must be repeated for every
+measurement. Finally the full derivate matrix is filled out, and
+the next step in the E-M algorithm can proceed. The full E-M algorithm
+for estimating the states is notation-heavy and can be found in \cite{Friston2002b}.
 
-Its possible, although unlikely that the balloon model is not possible to learn
-without detrimental cost in variance error. I do not think this is the case, however,
-and I will work to dispell this possibility in the results with simulated time
-series.
+Although this is certainly an interesting method of performing non-linear
+regression, there are a few caveats. First, the partials are numerical
+approximations, based on an approximate values (using Volterra-Kernels) of $y$.
+Importantly, the Volterra-Expansion of $y$ is not able to model interactions
+between state variables; interactions that were found to cause interesting
+behavior in this work. In \autoref{sec:Unscented Kalman Filter}, for
+the purpose of demonstrating nonlinearities in the signal, it was 
+necessary to propagate state variables through 1 second of simulation.
+For the distribution of state variables mentioned in \autoref{tab:steptable}
+it was necessary to use step sizes smaller than $.001$ to prevent 
+unpredictable behavior. This is using the average parameters, thus the
+only complication came from the interplay between states, which can 
+certainly lead to interesting behavior. Additionally, all the tests performed
+in \cite{Friston2002b} were on regions found to be active by the General
+Linear Model. For this reason, the reliability of the approximation is unknown
+for regions that are active but
+sufficiently nonlinear to avoid detection by conventional tests.
 
-\section{Nonlinear Least Squares}
+\subsection{Nonlinear Least Squares}
 \label{sec:Nonlinear Least Squares}
 Rather than localizing activation, by using the physiologically
 plausible BOLD model, it is possible to determine the values of
@@ -315,15 +308,8 @@ must be spent re-simulating the BOLD model for the set of parameters. As we'll
 discuss in \autoref{sec:Particle Filters}, the Particle Filter method is able
 to circumvent this re-calculation to some degree.
 
-It would not be unreasonable at this point to back off and work with a linearized
-or more static version of the model. This is the approach taken by the
-standard General Linear Model discussed in \autoref{sec:Current Techniques General Linear Model}.
-
-
-\section{Unscented Kalman Filter}
-Although the classical methods mentioned in \autoref{sec:Nonlinear Least Squares}
-won't work for the nonlinear model presented in \autoref{sec:BOLD Physiology},
-there is another Bayesian technique that is worth considering.
+\subsection{Unscented Kalman Filter}
+\label{sec:Unscented Kalman Filter}
 The Unscented Kalman Filter (UKF) is a powerful Gaussian/Bayes filter that attempts
 to model the posterior distribution of dynamical systems as a multivariate
 Gaussian. The Unscented Kalman Filter (UKF) generalizes the Extended Kalman
@@ -386,10 +372,10 @@ $V_0$ & .03  \\
 $\tau_s$ & 1.54  \\
 $\tau_f$ & 2.46  \\
 $\epsilon$ & .54  \\
-$V_t$ & N(1, .3)  \\
-$Q_t$ & N(1, .3)  \\
-$S_t$ & N(1, .3) \\
-$F_t$ & N(1, .3) \\
+$V_t$ & N(1, .09)  \\
+$Q_t$ & N(1, .09)  \\
+$S_t$ & N(1, .09) \\
+$F_t$ & N(1, .09) \\
 \hline
 \end{tabular}
 \caption{Parameters used to test Gaussianity of variables after being transitioned through
@@ -460,13 +446,39 @@ compound the issues of nonlinearity seen in \autoref{fig:transp1s} and
 \label{fig:trans1s}
 \end{figure}
 
-\section{Variational Filtering}
-\cite{Friston2008}, \cite{Friston2008b}
-
 \section{Hybrid Methods}
-A large number of hybrid methods have been tried, in order to elicit 
-parameter estimates from the BOLD model. \cite{Vakorin2007},
-\cite{Johnston2007}, \cite{Hu2009}
+In \cite{Riera2004}, a maximum
+likelihood method for innovation processes was used, as described by
+\cite{Ozaki1994}. \cite{Ozaki1994} uses a similar construction to a 
+Kalman filter, to break the time series into a series of innovations,
+for which Maximum Likelihood was performed. While this is probably the most
+likely solution to give the correct output, there are a few problems. First, every
+step in parameter space requires a recalculation of all the state variables. With
+two or three parameters this is fine, more than that, and calculations can become
+intractable. Additionally, there is no way to ensure a global minimum is reached.
+Although this is also true of the methods in \autoref{sec:Nonlinear Least Squares},
+those methods contained random elements designed to overcome this issue.
+[results?]
+
+In \cite{Johnston2008}, a hybrid particle filter/gradient
+descent algorithm was used to simultaneously derive the static and dynamic 
+parameters, (classically known as parameters and state variables, respectively).
+Essentially a particle filter is used to calculate the state variables at each
+time; then the estimated distribution of the particles is used to find
+the most likely set of parameters that would give that distribution of state variables.
+This process is repeated until the parameters converge. Interestingly
+\cite{Johnston2008} comes to a very different set of parameter estimates as compared
+to the original \cite{Friston2000} estimates (\autoref{tab:Params}). In fact the results 
+are significantly different from virtually every other study. The most obvious discrepancy
+is the significantly longer time constants, $\tau_f$, $\tau_s$ and $\tau_0$. 
+While of course this could be poor convergence of the algorithm, there is another other possibility.
+Unlike all the other methods mentioned, excepting the methods in \autoref{sec:Least Squares},
+the algorithm described in \cite{Johnston2008} does not depend on prior distributions.
+It is possible then that the bias toward the prior in other methods screwed the results. 
+While \cite{Johnston2008} is certainly in the minority; further exhaustive studies 
+of the parameters, using unbiased techniques may be called for. 
+
+[graph of friston parameters vs. johnston]
 
 \section{Conclusion}
 In summary, several other approaches could be taken 
