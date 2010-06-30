@@ -1,4 +1,5 @@
 \chapter{Prior Works}
+\label{sec:Prior Works}
 The ultimate purpose of this work is to provide a new tool
 for analyzing FMRI data. 
 
@@ -483,4 +484,16 @@ of the parameters, using unbiased techniques may be called for.
 [might want to mention dynamic causal modeling]
 
 \section{Conclusion}
-In summary, several other approaches could be taken 
+Clearly there is no ideal solution to solving this system of nonlinear
+equations. Exhaustive search type methods such as those employed by
+\cite{Johnston2008} and \cite{Vakorin2007} can have extremely long
+run times even for a single voxel. While Volterra models are an interesting
+solution,there have not yet been exhaustive tests to determine whether
+such approximations work well throughout state space. The most promising
+method of those reviewed here is the Kalman filter based method. It is
+able to maintain a very fast runtime while still approaching the solution.
+While the reliance on a Gaussian estimate to the true posterior distribution could
+cause problems, some modifications could make it extremely powerful. 
+The particle filter method proposed in the next section bears a strong 
+resemblance to the unscented Kalman filter; albeit with more point estimating
+the posterior. 
