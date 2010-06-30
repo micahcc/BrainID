@@ -11,7 +11,7 @@ distributions are stored as an empircal distribution rather than the
 as the first two moments of a Gaussian. Thus particle filters are 
 preferred when the model is nonlinear, and thus non-gaussian.
 
-\subsection{Model}
+\section{Model}
 \label{sec:Particle Filter Model}
 The idea of the particle filter is to build an empirical distribution
 out of a large number of parameter \emph{sets}, called particles. Each
@@ -27,34 +27,38 @@ has physical meaning, establishing reasonable ranges for parameters can
 actually be quite easy. Optimizing the prior can be more difficult though,
 unless the system has been extensively studied.
 
-Suppose a discrete set or stream of measurements are given, 
-$\{y_k, k = 1, 2, 3, ... K\}$, where $K$ is infinite for a stream. 
+Suppose set or stream of measurements at discrete times are given, 
+$\{Y_k, k = 1, 2, 3, ... K\}$, where $K$ is infinite for a stream. 
+Because $k$ is a discrete time, let $t_k$ define the continuous
+time of $k$
 Suppose also that there is a hidden set of state variables,
-denoted $\{x_k, k = 1, 2, 3, ... K\}$ the dictates the movement
-of $y_k$. The goal of the particle filter is to estimate the 
+$X(t)$ that dictates the movement
+of $Y(t)$, although for most of the time dealings will be
+with $X_k = X(t_k)$. The goal of the particle filter is to estimate the 
 \emph{distribution} of the
-true parameters $\Theta$ that dictates the movement of $x_k$. Additionally
-the particle filter also estimates the distribution of $x_k$.
+true parameters $\Theta$ that dictates the movement of $X(t)$.
+The model also permits random motion in $X(t)$, so the 
+particle filter also estimates the distribution of $X(t)$.
 The only difference between the members of parameter vector
-$\Theta$ and the members of $x_k$ is that the memebers of
+$\Theta$ and those of $X(t)$ is that the memebers of
 $\Theta$ have no known update equation. Members of both vectors
-are permitted to have some time varying noise, although this
-is often not explicitly modeled. The generic, continuous, nonlinear
+are permitted to have some noise, although this
+may not be explicitly stated in the model. The generic, continuous, nonlinear
 system definition is shown in \autoref{eq:GenericNonlinear}.
 
 \begin{eqnarray}
-\dot{x}(t) = f(t, x(t), u(t), \theta, \nu_x) \nonumber \\
-y(t) = g(t, x(t), u(t), \theta, \nu_y)
+\dot{X}(t) = f(t, X(t), u(t), \theta, \nu_x) \nonumber \\
+Y(t) = g(t, X(t), u(t), \theta, \nu_y)
 \label{eq:GenericNonlinear}
 \end{eqnarray}
 
-$x(t)$ is vector of state variables, $\theta$ is a vector of system
-constants, $u(t)$ is an input, $y(t)$ the observation, and
+$X(t)$ is vector of state variables, $\Theta$ is a vector of system
+constants, $u(t)$ is an input, $Y(t)$ the observation, and
 $\nu_x$ and $\nu_y$ are random variates. Although any of these
 variables could be a vector, for the sake of simplicity only
-$\theta$ and $x(t)$ will be considered as such. 
+$\Theta$ and $X(t)$ will be considered as such. 
 
-Although not strictly for particle filters in general, a few 
+Although not necessary for particle filters in general, a few  simplifying
 assumptions are made for this work. First, the systems are assumed to be 
 time invariant. This 
 assumption is based on the idea that if you paused the system for $\Delta t$
@@ -65,210 +69,256 @@ periodic and have an effect on the BOLD signal, the period varies too much
 for the system to be considered varying with time. 
 Next, its assumes that input cannot directly
 influence the output, which in the case of the BOLD signal is a good assumption.
-Also, time is treated as discrete and noise is considered to be additive.
-Finally, because the only difference between the members of $x(t)$ and 
-$\theta$ is an update function, from now on $x$ will contain 
-$\theta$. The assumptions now allow for a simplified version of the
+Also, noise is considered to be additive.
+Finally, because the only difference between the members of $X(t)$ and 
+$\Theta$ is an update function, from now on $x$ will contain 
+$\Theta$. The assumptions now allow for a simplified version of the
 state space equations:
 
 \begin{eqnarray}
-\dot{x}_k = f(x_{k-1}, u_k) + \nu_x 
+\dot{X}_k = f(X_{k-1}, u_k) + \nu_x 
 \label{eq:stateass}\\
-y_k = g(x_k) + \nu_y 
+Y_k = g(X_k) + \nu_y 
 \label{eq:measass}
 \end{eqnarray}
 
-\subsection{Prior}
-The goal of the particle filter is to evolve a probably distribution 
-$Pr(\hat{x}(T) | u[0:T], y[0:T])$,
-that asymptotically approaches the probability distribution $Pr(x(T) | u[0:T])$.
-Considering that $y$ contains measurement noise as well as noise from $x$,
- it is clear that $Pr(x(t) | u[0:T])$ is not a single true value
-but a true posterior. 
-To begin with, the particle filter starts with a prior distribution, and $N_p$
-particles need to be drawn from that distribution, $\alpha(x)$:
+\section{Derivation}
+The goal of the particle filter is to evolve an empirical distribution 
+$P(x_k | u_{0:k}, Y_{0:k})$,
+that asymptotically approaches the true probability distribution $P(X_k | u_{0:k})$.
+Note that capital $X$ will be used as the actual realizations of 
+the state variable, whereas $x$ will denote estimates of $X$.
+Additionally, the notation $a:b$ indicates the set $[a,b]$,
+as in $u_{a:b}$, which would indicate all the inputs from time $a$ to time $b$.
+Considering the noise present in $X$,
+ $P(X_k | u_{0:k})$ is not a single true value but probability distribution. 
+
+To begin with, the particle filter must be given a prior distribution, from
+which the initial $N_p$ particles are drawn. A particle contains a weight
+as well as an estimate of $X_k$, which as already stated, contains every
+variable needed to run the model. Then the prior is generated from a 
+given distribution, $\alpha(X)$, by:
+
 \begin{equation}
-\{\hat{Pr}x_i(0),w_i] : x_i(0) \sim \alpha(x), w_i = \frac{1}{N_p}, i \in \{1, 2, ... , N_p\} \}
+\{[x^i_0,w^i] : x^i_0 \sim \alpha(X), w^i = \frac{1}{N_p}, i \in \{1, 2, ... , N_p\} \}
 \end{equation}
 
 Where $N_p$ is the number of particles or points used to describe the prior 
 using a Mixture PDF. 
+Note that any exponents will be explicitly labeled as such, to avoid confusion with
+the particle numbering scheme. 
+
+Therefore, after the particle have been generated they should approximate $\alpha(X)$:
+
 \begin{equation}
-\hat{Pr}(x(0) = \hat{x}) = \sum_{i=1}^{N_p} w_i\delta(\hat{x} - x_i(0) ) dx
+\alpha(X) \approx P(x_0) = \sum_{i=0}^{N_p} w^i\delta(X - x^i_0 ) dx
 \end{equation}
 Where $\delta(x-x_0)$ is 1 if and only if $x = x_0$ (the Kronecker delta function).
 
-If a true prior is preferred, then the weights
-should all be $1/N_p$, and since $x_i$ was drawn from the prior, this will
-be an approximation of the prior distribution. If a relatively flat prior is 
-preferred, then each particle's weight could be divided by the density, $\alpha(x_i)$,
-which creates a flat prior with support points in the region of $\alpha(x)$. Either
-way, $\alpha(x)$ should be much broader than the true posterior, $Pr(x(0))$, since the
-choice of support points is crucial to the convergence of any sampling importance
-algorithm. 
-For the BOLD signal all the parameters have been studied and have relatively well
-known mean and variance, so a prior could be very helpful. We ran simulations for
-both normalized and un-normalized priors, although we believe in cases such as this,
-where a good prior exists, it should be used. 
-For strictly positive parameters (members of $x$) we used a gamma distribution,
-whereas for parameters that could be negative, we used a Gaussian distribution. In
-both cases standard deviations twice that found in previous studies were used.
-
-Note that all the probabilities implicitly depend on $u[0:T]$, so those terms 
-will be left off for simplicity.
-Once the probability, $\hat{Pr}(x(T) | x[0:T-1], y[0:T-1])$ has been found
-(initially this is just Mixture approximating the prior since no measurements are 
-available and no previous probabilities are available), its possible to approximate
-the probability for short times between times when measurement is available, by shifting
-the probability according the progression of the state equations. This is only 
-an approximate, since integrating $\nu_d$ should increase uncertainty as
-time without a measurement passes. 
-
+If a flat prior is 
+preferred, then each particle's weight could be scaled to the reciprocal of the
+density at the particle: 
 \begin{equation}
-\hat{Pr}(x(T+\Delta t)) \approx 
-\sum_{i=1}^{N_p} w_i\delta\left(x - (x_i(T) + \int_T^{T+\Delta} \dot{x}_i(t) dt) \right)
+w^i = \frac{1}{\alpha(x^i_0)}
 \end{equation}
+Whether or not to flatten the prior is a design decision. The reason this might 
+be preferred over a direct
+uniform distribution is that the distribution width will inherently scale 
+for increased particle counts although some distributions
+flatten out better than others. Either way, $\alpha(X)$ \emph{must} be
+wide enough to incorporate any posterior that arises. If the prior is
+not sufficiently dense, the particle filter can compensate, if it is
+not sufficiently wide the particle filter won't converge. 
+
+%todo, put back?
+%Once the probability, $P(x_k | x_{0:k-1}, y_{0:k-1})$ has been found
+%(initially this is just Mixture approximating the prior since no measurements are 
+%available and no previous probabilities are available), its possible to approximate
+%the probability between times when measurement is available, by shifting
+%the probability according the progression of the state equations. This is only 
+%an approximate, since integrating $\nu_d$ should increase uncertainty as
+%time without a measurement passes. 
+%
+%\begin{equation}
+%P(x(T+\Delta t)) \approx 
+%\sum_{i=1}^{N_p} w_i\delta\left(x - (x_i(T) + \int_T^{T+\Delta} \dot{x}_i(t) dt) \right)
+%\end{equation}
 
 \subsection{Weighting}
-When a measurement becomes available it is incorporated into the probability.
-This process of incorporating new data is called sequential importance sampling,
-and eventually causes the probability to converge. The weight is defined
-as
+For all the following areas, the probabilities implicitly depend on $u_{0:k}$, 
+so those terms are left off for simplicity.
 
+Whenever a measurement becomes available it permits refinement of the
+posterior density.
+This process of incorporating new data is called sequential importance sampling,
+and eventually allows convergence. The weight is defined as
 \begin{equation}
-w_i(T) \propto \frac{\hat{Pr}(x_i[0:T] | y[0:T])}{q(x_i[0:T] | y[0:T])}
+w^i_k \propto \frac{P(x^i_{0:k} | y_{0:k})}{q(x^i_{0:k} | y_{0:k})}
 \label{eq:weightfunc}
 \end{equation}
+where $q$ is called an \emph{importance density}. The importance density
+is the density of the points, thus by dividing by this value, the weight
+should not depend on the location of the estimation points, but rather
+only on $P(x^i_{0:k} | y_{0:k})$, the probability of that particle
+being correct given all the measurements up to time $k$. 
+Of course if there is a far off peak in
+the posterior that $q$ does not have support points in, there will 
+be quantization errors, and that part of the density can't be modeled. This is why
+it is absolutely necessary that $q$ fully covers $P(x^i_{0:k} | y_{0:k})$.
 
-where $q$ is called an \emph{importance density}, meaning it decides where
-the support points for $x(T)$ are located. To remove the bias due to the
-location of the support points, we divide by $q(x_i[0:T] | y[0:T])$. By dividing by 
-the posterior density of the support points (particles), the effect of the particle 
-distribution may be removed from the posterior density. As a result the weight
-is dependent solely based
-on $\hat{Pr}(x_i[0:T] | y[0:T])$, the probability of the $i^{th}$ particle's measurements
-being different from $y[0:T]$ due to noise alone.
-An example of an importance density would be drawing a large
-number of points from the standard normal, $N(0,1)$ and then weighting each point, $l$ by 
-$1/\beta(l), \beta \sim N(0,1)$. Of course if there is a far off peak in
-the posterior that $q$ does not allocate support points in, there will 
-be a quantization error, and that part of the density can't be modeled. This is why
-it is absolutely necessary that $q$ covers $\hat{Pr}(x_i[0:T] | y[0:T])$.
-
-$q(x_i[0:T] | y[0:T])$ may be simplified by assuming that $y(T)$ doesn't contain 
-any information about $x(T-1)$, which is more practical since knowledge of future
-measurements is impractical. 
-
-\begin{eqnarray}
-q(x[0:T] | y[0:T]) & = & q(x(T) | x[0:T-1], y[0:T])q(x[0:T-1] | y[0:T]) \nonumber \\
-& = & q(x(T) | x[0:T-1], y[0:T])q(x[0:T-1] | y[0:T-1]) \nonumber \\
-& = & q(x(T) | x(T-1), y[0:T])q(x[0:T-1] | y[0:T-1])
-\end{eqnarray}
-
-In this paper we will use 
-$q(x_i(T) | x_i(T-1), y[0:T]) =  \hat{Pr}(x_i(T) | x_i(T-1))$,
-based on the Markov assumption, and the belief that the state space model is 
-able to approximate the true state. This means that prior to re-weighting 
-particles, the particles will be distributed the same as the previous time but
-moved forward according to the integration of $f(x(t), u(t))$.
-
-In addition to $q(x_i(T) | x_i[0:T-1], y[0:T])$, the weight is also based on $Pr(x_i[0:K] | y[0:K])$,
-which may be broken up as follows.
-\begin{eqnarray}
-\hat{Pr}(x[0:T] | y[0:T]) & = & \frac{\hat{Pr}(y[0:T], x[0:T])}{\hat{Pr}(y[0:T])} \nonumber \\
- & = & \frac{\hat{Pr}(y(T), x[0:T] | y[0:T-1]) \cancel{\hat{Pr}(y[0:T-1])}}{\hat{Pr}(y(T) | y[0:T-1]) \cancel{\hat{Pr}(y[0:T-1])}} \nonumber \\
- & = & \frac{\hat{Pr}(y(T)| x[0:T], y[0:T-1]) \hat{Pr}(x[0:T] | y[0:T-1])}{\hat{Pr}(y(T) | y[0:T-1]) } \nonumber \\
- & = & \frac{\hat{Pr}(y(T)| x[0:T], y[0:T-1]) \hat{Pr}(x(T) | x[0:T-1], y[0:T-1]) \hat{Pr}(x[0:T-1] | y[0:T-1])}{\hat{Pr}(y(T) | y[0:T-1])} \nonumber \\
-\end{eqnarray}
-
-Using the assumption that $y(t)$ is fully constrained by $x(t)$ \autoref{eq:measass},
-and that $x(t)$ is fully constrained by $x(t-1)$ \autoref{eq:stateass}, we are able to
-make the reasonably good assumptions that:
+It is helpful
+to consider how the importance density affects the initial distribution. 
+In the initial distribution, the weights are all the same; and for
+the sake of argument, let them all be scaled up to 1. Then
 \begin{equation}
-\hat{Pr}(y(T) | x[0:T], y[0:T-1]) = \hat{Pr}(y(T) | x(T))
+w^i_k q(x^i_{0:k} | y_{0:k}) = q(x^i_{0:k} | y_{0:k}) = P(x^i_{0:k} | y_{0:k})
+\end{equation}
+the estimated probability, $P(x^i_{0:k} | y_{0:k})$ depends only on the 
+way the particles are distributed. As new measurements are incorporated,
+the weight will accumulate probabilities through time, which will be discussed
+next. 
+
+\section{Calculating Weights}
+To calculate the weight of a particular particle, it is necessary to 
+calculate both $q(x^i_{0:k} | y_{0:k})$ and $P(x^i_{0:k} | y_{0:k})$.
+Note that $q(x^i_{0:k} | y_{0:k})$ may be simplified by assuming that 
+$y_k$ doesn't contain any information about $x_{k-1}$. Technically this 
+could be false; since later measurements may shed light on currently hidden
+changes in $x$. For practical applications though it is helpful assumption.
+\begin{equation}
+q(x^i_{0:k} | y_{0:k}) = q(x^i_{0:k} | y_{0:k-1})
+\label{eq:QAssump}
+\end{equation}
+The choice of the importance density is another design decision; however
+it is common to use the integrated state equations. 
+Although other importance density functions exist; for the particle filter
+used here, the standard importance density will be used: the modeled
+prior.
+\begin{equation}
+q(x_k | x_{k-1}, y_{0:k}) =  P(x_k | x_{k-1})
+\label{eq:ImportanceDensity}
+\end{equation}
+The benefit of this choice for importance density is that an approximation for
+$P(x_k | x_{k-1})$ is freely available: its simply the set of particles propagated
+forward in time using the state equations. Additionally it makes
+updating weights extremely simple, as seen in \autoref{eq:weightevolve}.
+
+The $q(x^i_{0:k} | y_{0:k})$ may then be simplified:
+\begin{equation}
+\begin{array}{cclr}
+q(x_{0:k} | y_{0:k}) & = & q(x_k | x_{0:k-1}, y_{0:k})q(x_{0:k-1} | y_{0:k}) &  \\
+& = & q(x_k | x_{0:k-1}, y_{0:k})q(x_{0:k-1} | y_{0:k-1})  & \text{[\autoref{eq:QAssump}]} \\
+& = & q(x_k | x_{k-1}, y_{0:k})q(x_{0:k-1} | y_{0:k-1})  & \text{[Markov Property]}\\
+& = & P(x_k | x_{k-1})q(x_{0:k-1} | y_{0:k-1})  & \text{[\autoref{eq:ImportanceDensity}]}
+\end{array}
 \end{equation}
 
-\begin{equation}
-\hat{Pr}(x(T) | x[0:T], y[0:T-1]) = \hat{Pr}(x(T) | x(T-1))
-\end{equation}
-
-Additionally, for the particle filter $y(T)$ and $y[0:T-1]$ are 
-given, and therefore constant across all particles. Thus $\hat{Pr}(x[0:T] | y[0:T])$
-may be simplified to:
+Calculating $P(x_{0:k} | y_{0:k})$ is a bit more involved. 
+First, using the assumption that the distribution of $y_k$ is 
+fully constrained by $x_k$, and that $x_k$ is similarly fully 
+constrained by $x_{k-1}$, we are able to make the very good assumptions that:
 \begin{eqnarray}
-\hat{Pr}(x[0:T] | y[0:T]) & = & \frac{\hat{Pr}(y(T)| x[0:T], y[0:T-1]) \hat{Pr}(x(T) | x[0:T-1], y[0:T-1]) 
-            \hat{Pr}(x[0:T-1] | y[0:T-1])}{\hat{Pr}(y(T) | y[0:T-1])} \nonumber \\
-& = & \frac{\hat{Pr}(y(T)| x(T)) \hat{Pr}(x(T) | x(T-1)) \hat{Pr}(x[0:T-1] | y[0:T-1])}{\hat{Pr}(y(T) | y[0:T-1])} \nonumber \\
-& \propto & \hat{Pr}(y(T)| x(T)) \hat{Pr}(x(T) | x(T-1)) \hat{Pr}(x[0:T-1] | y[0:T-1])
+P(y_k | x_{0:k}, y_{0:k-1}) &=& P(y_k | x_k) \nonumber \\
+P(x_k | x_{0:k}, y_{0:k-1}) &=& P(x_k | x_{k-1})
+\label{eq:MarkovProperty}
 \end{eqnarray}
+These are of course just re-statements of the state equations assumed by \autoref{eq:stateass}
+and \autoref{eq:measass}.
 
-Plugging these simplifications into \autoref{eq:weightfunc} leads to:
+Additionally, for the particle filter $y_k$ and $y_{0:k-1}$ are 
+constant across all particles, thus $P(y_k| y_{0:k-1})$ can
+be dropped when the equality is changed to a proportion. 
+Using these properties, $P(x^i_{0:k} | y_{0:k})$ may be broken up as follows 
+(mostly using Bayes' Theorem):
+\begin{equation}
+\begin{array}{lclr}
+P(x_{0:k} | y_{0:k}) & = & \frac{P(y_{0:k}, x_{0:k})}{P(y_{0:k})} & \\
+ & = & \frac{P(y_k, x_{0:k} | y_{0:k-1}) \cancel{P(y_{0:k-1})}}{P(y_k | y_{0:k-1}) \cancel{P(y_{0:k-1})}} & \\
+ & = & \frac{P(y_k| x_{0:k}, y_{0:k-1}) P(x_{0:k} | y_{0:k-1})}{P(y_k | y_{0:k-1}) } & \\
+ & = & \frac{P(y_k| x_{0:k}, y_{0:k-1}) P(x_k | x_{0:k-1}, y_{0:k-1}) P(x_{0:k-1} | y_{0:k-1})}{P(y_k | y_{0:k-1})} &  \\
+& = & \frac{P(y_k| x_k) P(x_k | x_{k-1}) P(x_{0:k-1} | y_{0:k-1})}{P(y_k | y_{0:k-1})}  & [\text{\autoref{eq:MarkovProperty}}]\\
+& \propto & P(y_k| x_k) P(x_k | x_{k-1}) P(x_{0:k-1} | y_{0:k-1}) & [P(y_k|y_{0:k-1}) \text{ is constant}]
+ \end{array}
+ \label{eq:UpdateBayes}
+\end{equation}
+Plugging \autoref{eq:ImportanceDensity} and the result of \autoref{eq:UpdateBayes}
+into \autoref{eq:weightfunc} leads to:
 \begin{eqnarray}
-w_i(T) & \propto & \frac{\hat{Pr}(y(T)| x(T)) \cancel{\hat{Pr}(x(T) | x(T-1))} \hat{Pr}(x[0:T-1] | y[0:T-1])}
-                         {\cancel{\hat{Pr}(x_i(T) | x_i(T-1))}q(x[0:T-1] | y[0:T-1])} \nonumber \\
-& \propto & w_i(T-1)\hat{Pr}(y(T)| x(T)) 
+w^i_k & \propto & \frac{P(y_k| x^i_k) \cancel{P(x^i_k | x^i_{k-1})} P(x^i_{0:k-1} | y_{0:k-1})}
+                         {\cancel{P(x^i_k | x^i_{k-1})}q(x^i_{0:k-1} | y_{0:k-1})} \nonumber \\
+& \propto & w^i_{k-1}P(y_k| x_k) 
 \label{eq:weightevolve}
 \end{eqnarray}
 
-Thus, by making the following relatively weak assumptions, evolving a posterior
-density  is easy and requires almost no knowledge of noise distribution.
+Thus, by making the following relatively easy assumptions, evolving a posterior
+density  requires no knowledge of noise distribution.
 \begin{enumerate}
-\item $f(t, x(t), u(t)) = f(x(t), u(t))$ and $g(t, x(t), u(t)) = g(x(t))$ provide 
-a sufficiently flexible model to encapsulate the true time series.
-\item $E[\nu_d] = 0$ and $E[\nu_y] = 0$, and $\nu_x = d\nu_d$, $\nu_y$ are stationary
-\item The PDF $q(x_i(0))$ (the prior) fully covers $Pr(x_i(0))$
-\item Markov Assumption: $Pr(x(T) | x[0:T]) = Pr(x(T) | x(T-1))$
-\item $q(x[0:T-1] | y[0:T]) = q(x[0:T-1] | y[0:T-1])$
+\item $f(t, x(t), u(t)) = f(x(t), u(t))$ and $g(t, x(t), u(t)) = g(x(t))$ 
+\item The PDF $q(x_i(0))$ (the prior) fully covers $P(x_i(0))$
+\item Markov Property: $P(x_k | x_{0:k-1}) = Pr(x_k | x_{k-1})$
+\item $q(x_{0:k-1} | y_{0:k}) = q(x_{0:k-1} | y_{0:k-1})$
 \end{enumerate}
 
 \subsection{Basic Particle Filter Algorithm}
-From the definition of $w_i$, the algorithm sequential importance sampling (SIS) 
-is relatively simple. 
+From the definition of $w_i$, the algorithm to calculate
+an approximation of $P(X(t_k) | Y_{0:k})$ or $P(X(t_k + \delta t) | Y_{0:k})$
+is relatively simple.
 
+\begin{algorithm}
+\caption{Sequential Importance Sampling}
 \begin{algorithmic}
-\STATE Initialize $N_p$ Particles: 
-        $\{x_i(0),w_i(0) : x_i(0) \sim \alpha(x), w_i(0) = \frac{1}{N_p}, i \in \{1, 2, ... , N_p\} \}$
-\STATE $T$ = \{Set of Measurement Times\}
-\FOR{$t$ in $T$}
-    \FOR{$i$ in $N_p$}
-        \STATE $x_i(t) = x_i(t-1) + \int_{t-1}^t f(x(\tau), u(\tau)) d\tau $
-        \STATE $w_i(t) = w_i(t-1)\hat{Pr}(y(t) | x(t))$
+\STATE Initialize Particles:
+\FOR{$i$ : each of $N_p$ particles }
+    \STATE $x^i_0  \sim \alpha(X)$
+    \STATE $w^i_0 = \frac{1}{N_p}$
+\ENDFOR
+\FOR{$k$ : each measurement}
+    \FOR{$i$ : each particle }
+        \STATE $x^i_k = x^i_{k-1} + \int_{t-1}^t f(x(\tau), u(\tau)) d\tau $
+        \STATE $w^i_k = w^i_{k-1}P(y_k | x_k)$
     \ENDFOR
 \ENDFOR
-
-\STATE At $t + \Delta t$, $t \in T$, $\hat{Pr}(x(t+\Delta t)) \approx 
-\sum_{i=1}^{N_p} w_i(t)\delta\left(x - (x_i(t) + \int_t^{t+\Delta t} f(x(\tau), u(\tau)) d\tau) \right)$
+\STATE $P(x(t_k+\Delta t)) \approx 
+\sum_{i=0}^{N_p} w^i_k \delta\left(x - (x^i_k + \int_{t_k}^{t_k+\Delta t} f(x(\tau), u(\tau)) d\tau) \right)$
 \end{algorithmic}
-The result is then a discrete approximation of the posterior distribution. 
+\end{algorithm}
 
 \subsection{Resampling}
 \label{sec:Particle Filter Resampling}
 As a consequence 
 of the wide prior distribution (required for a proper discretization of a continuous
 distribution), there will be many particles with insignificant weights. While this does help
-describe the tails of the distribution very well, it means that only a small portion of the
-computation will be spent describing the most probable region. Ideally every particle would 
-equally decrease the entropy of the distribution, thus the lower the variance of the weights,
-the more efficiently the discrete distribution is in describing the continuous distribution. 
-A common measure of "Particle Degeneracy" is the effective number of particles, described
-in (Bergman "Navigation and Tracking Applications", 1999, J S Liu and R Chen "Sequential 
-Monte Carlo Methods for Dynamical Systems", 1998), which is based on the "true weight"
-of each particle. Of course the true weight is unknown, so a heuristic approximating 
-$N_{eff}$ is used:
+describe the tails of the distribution, it means a lot of computation will be based.
+Instead, it would be preferable if most of the computation is spent on the most probable regions.
+Ideally the computation time spent on tails would be proportional to the actual size of the
+tails. In this case particle locations would match the true posterior and all weights would
+be equal.  The case where a large number of the weights have become irrelevantly small
+is called "particle degeneracy". In  \cite{Liu1998b}
+an ideal calculation of the "effective" number of particles is found based on the 
+particles' "true weight". However, given that only an approximation for the true weight 
+exists, they also provide a simple heuristic calculation of $N_{eff}$.
 \begin{equation}
-\hat{N}_{eff} \approx \frac{N_p}{\sum_{i=1}^{N_p} w_i^2}
+N_{eff} \approx \frac{\sum_{i=0}^{N_p} w_i}{\sum_{i=0}^{N_p} w_i^2}
 \label{eq:neff}
 \end{equation}
 Any quick run of a particle filter will reveal that unless the prior is particularly accurate,
 $N_{eff}$ drops precipitously.  To alleviate this problem
-a common technique known as resampling must be applied. The idea of re-sampling is to 
+a common technique known as resampling may be applied. The idea of resampling is to 
 draw from the approximate posterior, thus generating a replica of the posterior with 
-a support more suited to the distribution. Thus, if weights are all set to $1/N_p$, and 
-$N_p$ points are drawn from the posterior,
+a better support. Therefore, a new set of particles may be drawn from the empirical
+distribution as follows:
 \begin{equation}
-\hat{\chi}_j \sim \left(\sum_{i=1}^{N_p} w_i(t)\delta(x - x_i(t))\right), j \in \{1, ..., N_p\}
+\hat{x}_j \sim \left(\sum_{i=0}^{N_p} w^i_k\delta(x - x^i_k)\right)
 \end{equation}
-then $\hat{\chi} \sim \hat{x}$ should hold. Unfortunately, this isn't necessarily the truth: since the support is
+
+\begin{algorithm}
+\caption{Stratified Resampling Algorithm}
+\begin{algorithmic}
+
+\end{algorithmic}
+\end{algorithm}
+
+Unfortunately, this isn't necessarily the truth: since the support is
 still limited to the original particles, the number of unique particles can only go down.
 This effect, often dubbed "particle impoverishment" can result in excessive quantization
 errors in the final distribution. However, there is a solution. Instead of sampling from the
@@ -298,11 +348,11 @@ K = \left\{
 %<more here>
 
 \subsection{Weighting Function}
-Because $\hat{Pr}(y(T) | x(T))$, what I will call the weighting function,
+Because $P(y_k | x(T))$, what I will call the weighting function,
 is based on an unknown distribution, it is necessary to decide on a function
-that will approximate $\hat{Pr}(y(t) | x(T))$. Obviously the function, $\omega(y(t), f(x(t))$
+that will approximate $P(y_k | x(T))$. Obviously the function, $\omega(y_k, f(x(t))$
 needs to be centered at zero and have a scale comparable to the signal levels.
-Obviously if the actual noise present in $y(t)$ were to be known, then that would
+Obviously if the actual noise present in $y_k$ were to be known, then that would
 be the best distribution for $\Omega$. In that case, particles that fell
 far out on that distribution would be statistically impossible representations
 of the system, and it would be completely reasonable to throw such particles away.
@@ -487,7 +537,7 @@ importance sampling filter (SIS).
 \FOR{$t$ in $T$}
     \FOR{$i$ in $N_p$}
         \STATE $x_i(t) = x_i(t-1) + \int_{t-1}^t f(x(\tau), u(\tau)) d\tau $
-        \STATE $w_i(t) = w_i(t-1)\hat{Pr}(y(t) | x(t))$
+        \STATE $w_i(t) = w_i(t-1)P(y(t) | x(t))$
     \ENDFOR
 
     \STATE Calculate $N_{eff}$ with \autoref{eq:neff}
@@ -502,7 +552,7 @@ importance sampling filter (SIS).
     \ENDIF
 \ENDFOR
 
-\STATE At $t + \Delta t$, $t \in T$, $\hat{Pr}(x(t+\Delta t)) \approx 
+\STATE At $t + \Delta t$, $t \in T$, $P(x(t+\Delta t)) \approx 
 \sum_{i=1}^{N_p} w_i(t)\delta\left(x - (x_i(t) + \int_t^{t+\Delta t} f(x(\tau), u(\tau)) d\tau) \right)$
 
  \end{algorithmic}

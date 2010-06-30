@@ -1,4 +1,13 @@
 \chapter{Methods}
+\section{Prior Distribution}
+For the BOLD signal all the parameters have been studied and have relatively well
+known mean and variance, so a prior is helpful. 
+For strictly positive parameters (members of $x$) we used a gamma distribution,
+whereas for parameters that could be negative, we used a Gaussian distribution. In
+both cases standard deviations twice that found in previous studies were used.
+
+
+
 \section{Choosing $\hat{Pr}(y(T) | x(T))$}
 Choosing a representation of an unknown distribution is certainly tricky,
 and so the fact that $\hat{Pr}(y(T) | x(T)) = \nu_d + \nu_y$ means that
