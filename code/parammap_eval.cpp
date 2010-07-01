@@ -99,7 +99,7 @@ double mse(const std::list<double> listA, const std::list<double> listB)
                 
 void simulate(std::list<double>& sim, const std::vector<double>& params,
             double dt_s, double dt_l, const std::vector<Activation>& input_vector,
-            unsigned int length)
+            uint32_t length)
 {
     //Set up simulation state, initialize
     State state;
@@ -171,69 +171,165 @@ void simulate(std::list<double>& sim, const std::vector<double>& params,
     }
     
 }
+
+void analyzeHist(std::string filename, std::string outputdir,
+            Image4DType::Pointer trueParams,
+            Image4DType::Pointer preproc, 
+            Label4DType::Pointer mask,
+            std::vector<Activation>& stim,
+            double TR, double shortTR)
+{
+    /* Create Output Images */
+    cout << "Reading Histogram" << endl;
+    itk::ImageFileReader<itk::OrientedImage<float, 6> >::Pointer reader;
+    reader = itk::ImageFileReader<itk::OrientedImage<float, 6> >::New();
+    reader->SetFileName( filename );
+    reader->Update();
+    itk::OrientedImage<float,6>::Pointer hist = reader->GetOutput();
+    
+    uint32_t xlen = hist->GetRequestedRegion().GetSize()[0];
+    uint32_t ylen = hist->GetRequestedRegion().GetSize()[1];
+    uint32_t zlen = hist->GetRequestedRegion().GetSize()[2];
+    uint32_t tlen = hist->GetRequestedRegion().GetSize()[3];
+    uint32_t Plen = hist->GetRequestedRegion().GetSize()[4];
+    uint32_t Hlen = hist->GetRequestedRegion().GetSize()[5];
+
+    for(uint32_t i = 0 ; i < 4 ; i++) {
+        if(hist->GetRequestedRegion().GetSize()[i] != 
+                    preproc->GetRequestedRegion().GetSize()[i])
+            throw "SIZE MISMATCH!";
+    }
+    
+    /* Calculated Paramater Map */
+    Image4DType::SizeType size4 = {{xlen, ylen, zlen, 7}};
+    Image4DType::Pointer trueParamR = Image4DType::New();
+    trueParamR->SetRegions(size4);
+    trueParamR->Allocate();
+    trueParamR->FillBuffer(-1);
+    
+    /* Resampled Ground Pmap */
+    Image4DType::Pointer gPmap;
+    if(trueParams) {
+        gPmap = Image4DType::New();
+        gPmap->SetRegions(size4);
+        gPmap->Allocate();
+        gPmap->FillBuffer(-1);
+    }
+    
+    /* MSE with actual data */
+    Image3DType::SizeType size3 = {{xlen, ylen, zlen}};
+    Image3DType::Pointer preprocMse = Image3DType::New();
+    preprocMse->SetRegions(size3);
+    preprocMse->Allocate();
+    preprocMse->FillBuffer(-1);
+    
+    /* MSE with ground truth */
+    Image3DType::Pointer trueMse = Image3DType::New();
+    trueMse->SetRegions(size3);
+    trueMse->Allocate();
+    trueMse->FillBuffer(-1);
+    
+    /* Resampled Mask */
+    Image3DType::Pointer maskR = Image3DType::New();
+    maskR->SetRegions(size3);
+    maskR->Allocate();
+    maskR->FillBuffer(0);
+
+    for(uint32_t xx = 0 ; xx < xlen ; xx++) {
+        for(uint32_t yy = 0 ; yy < ylen ; yy++) {
+            for(uint32_t zz = 0 ; zz < zlen ; zz++) {
+                //initialize some variables
+                itk::OrientedImage<float, 6>::IndexType index6 = 
+                            {{xx, yy, zz, tlen-1,0,Hlen-1}};
+                Image4DType::IndexType index4 = {{xx, yy, zz, 0}};
+                Image4DType::PointType point;
+                Image3DType::IndexType index3 = {{xx, yy, zz}};
+                
+                preproc->TransformIndexToPhysicalPoint(index4, point);
+                
+                /* Check Mask, and add point to re-sampled Mask */
+                if(mask) {
+                    Image4DType::IndexType maskindex;
+                    mask->TransformPhysicalPointToIndex(point, maskindex);
+                    if(!mask->GetRequestedRegion().IsInside(maskindex)
+                            || mask->GetPixel(maskindex) == 0)
+                        continue;
+                    maskR->SetPixel(index3, mask->GetPixel(maskindex));
+                }
+                
+                /* Output the parameter map that the particle filter put out */
+                for(uint32_t ii = 0 ; ii < size4[3] ; ii++) {
+                    index4[3] = ii;
+                    index6[4] = ii;
+                    trueParamR->SetPixel(index4, hist->GetPixel(index6));
+                }
+                 
+                /* Calculate MSE with Particle Filter Input Image */
+                vector<double> params1(size4[3]);
+                for(uint32_t ii = 0 ; ii < size4[3] ; ii++) {
+                    index6[4] = ii;
+                    params1[ii] = hist->GetPixel(index6);
+                }
+                list<double> sim1;
+                simulate(sim1, params1, shortTR, TR,stim, tlen);
+                
+                list<double> actual;
+                for(uint32_t ii = 0 ; ii < tlen ; ii++) {
+                    index4[3] = ii;
+                    actual.push_front(preproc->GetPixel(index4));
+                }
+                
+                preprocMse->SetPixel(index3, mse(sim1, actual));
+
+                if(trueParams) {
+                    Image4DType::IndexType realParamIndex;
+                    trueParams->TransformPhysicalPointToIndex(point, realParamIndex);
+                    if(!trueParams->GetRequestedRegion().IsInside(realParamIndex))
+                        continue;
+                    for(uint32_t ii = 0 ; ii < size4[3]; ii++) {
+                        index4[3] = ii;
+                        gPmap->SetPixel(index4, trueParams->GetPixel(realParamIndex));
+                    }
+                    vector<double> params2;
+                    fillvector(params2, trueParams, index4);
+                    list<double> sim2;
+                    simulate(sim2, params2, shortTR, TR,stim, tlen);
+                    trueMse->SetPixel(index3, mse(sim1, sim2));
+                }
+                
+            }
+        }
+    }
+
+
+}
             
 /* Main Function */
 int main(int argc, char* argv[])
 {
-    vul_arg<string> a_pEst(0, "4/5D param file, should be smaller (first 3 Dims) image, "
-                "with the 4th dimension as time and the 5th dimension in the order "
-                "TAU_0, ALPHA, E_0, V_0, TAU_S, TAU_F, EPSILON");
-    vul_arg<string> a_pTrue(0, "True parameters, Either: \n\t\t4D param file, in the "
+    vul_arg<string> a_pEst(0, "File output of calc_parammap (see -D)");
+    vul_arg<string> a_output(0, "output directory: <pmap.niigz> <mseReal.nii.gz> "
+                "<maskresamp.nii.gz> <mseGround.nii.gz>");
+    vul_arg<int> a_inputtype("-D", "0 - histogram, 1 - mean", 1);
+    vul_arg<string> a_mask("-m", "3 or 4D mask file (vol 0 will be used)");
+
+    vul_arg<string> a_pfilterInput("-p", "pfilter_input.nii.gz, the data that was fed into "
+                "the particle filter");
+    vul_arg<string> a_pTrue("-T", "True parameters, Either: \n\t\t4D param file, in the "
                 "order: TAU_0, ALPHA, E_0, V_0, TAU_S, TAU_F, EPSILON, "
                 "OR, \n\t\ttext file with parameters in the same order, one set");
-    vul_arg<string> a_output(0, "3D Output Image with MSE, or if first parameter is "
-                " 5D then this will be 4D with the MSE over time");
-    vul_arg<string> a_mask("-m", "3 or 4D mask file (vol 0 will be used)");
-    vul_arg<string> a_timeseries("-t", "timeseries prefix. Will print out each voxel's "
-                "timseries. TRUE_<this> will be the timeseries from the true values, "
-                "if first input is 5D then PARAM_[T]<this> will be the timeseries from "
-                "the parameters at time T. If first input is 4D then this will just have "
-                "one image for the single times worth of parameters");
     
-    vul_arg<double> a_shortstep("-u", "micro-Step size", 1/128.);
     vul_arg<string> a_stimfile("-s", "file containing \"<time> <value>\""
                 "pairs which give the time at which input changed", "");
+    vul_arg<double> a_shortstep("-u", "micro-Step size", 1/1028.);
     vul_arg<double> a_timestep("-m", "macro step size (how often to compare, "
-                "can be anything down to the micro step size)", 2);
-    vul_arg<double> a_simlength("-n", "Number of comparisons to make for"
-                " simulation (so with macro step 3, and 300 comparisons,"
-                " will run for 900 seconds worth of simulation ",300);
+                "can be anything down to the micro step size)", 2.1);
     
     vul_arg_parse(argc, argv);
     
     vul_arg_display_usage("No Warning, just echoing");
 
     Label4DType::Pointer maskImage;
-    Image4DType::Pointer pEst;
-    Image4DType::Pointer pTrue;
-    Image3DType::Pointer output;
-
-    std::vector<Activation> input;
-
-    /* Open up the input */
-    try {
-    ImageReaderType::Pointer reader;
-    reader = ImageReaderType::New();
-    reader->SetImageIO(itk::modNiftiImageIO::New());
-    reader->SetFileName( a_pEst() );
-    reader->Update();
-    pEst = reader->GetOutput();
-    } catch(itk::ExceptionObject) {
-        fprintf(stderr, "Error opening %s\n", a_pEst().c_str());
-        exit(-1);
-    }
-    try {
-    ImageReaderType::Pointer reader;
-    reader = ImageReaderType::New();
-    reader->SetImageIO(itk::modNiftiImageIO::New());
-    reader->SetFileName( a_pTrue() );
-    reader->Update();
-    pTrue = reader->GetOutput();
-    } catch(itk::ExceptionObject) {
-        fprintf(stderr, "Error opening %s\n", a_pTrue().c_str());
-        exit(-1);
-    }
-    
     if(!a_mask().empty()) try {
         itk::ImageFileReader<Label4DType>::Pointer reader;
         reader = itk::ImageFileReader<Label4DType>::New();
@@ -245,11 +341,36 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Error opening %s\n", a_mask().c_str());
         exit(-1);
     }
-
-    unsigned int xlen = pEst->GetRequestedRegion().GetSize()[0];
-    unsigned int ylen = pEst->GetRequestedRegion().GetSize()[1];
-    unsigned int zlen = pEst->GetRequestedRegion().GetSize()[2];
     
+    Image4DType::Pointer pTrue;
+    if(!a_pTrue().empty()) try {
+        itk::ImageFileReader<Image4DType>::Pointer reader;
+        reader = itk::ImageFileReader<Image4DType>::New();
+        reader->SetImageIO(itk::modNiftiImageIO::New());
+        reader->SetFileName( a_pTrue() );
+        reader->Update();
+        pTrue= reader->GetOutput();
+    } catch(itk::ExceptionObject) {
+        fprintf(stderr, "Error opening %s\n", a_pTrue().c_str());
+        exit(-1);
+    }
+    
+    Image4DType::Pointer iReal;
+    if(!a_pfilterInput().empty()) try {
+        itk::ImageFileReader<Image4DType>::Pointer reader;
+        reader = itk::ImageFileReader<Image4DType>::New();
+        reader->SetImageIO(itk::modNiftiImageIO::New());
+        reader->SetFileName( a_pfilterInput() );
+        reader->Update();
+        iReal = reader->GetOutput();
+        if(iReal->GetSpacing()[3] != a_timestep())
+            fprintf(stderr, "Warning mismatched TR's\n");
+    } catch(itk::ExceptionObject) {
+        fprintf(stderr, "Error opening %s\n", a_pfilterInput().c_str());
+        exit(-1);
+    }
+    
+    std::vector<Activation> input;
     /* Open Stimulus file */
     if(!a_stimfile().empty()) {
         input = read_activations(a_stimfile().c_str());
@@ -264,53 +385,14 @@ int main(int argc, char* argv[])
         input = std::vector<Activation>(1,tmp);
     }
 
-    /* Create Output Images */
-    cout << "Creating Output Image" << endl;
-    Image3DType::SizeType size3 = {{xlen, ylen, zlen}};
-    
-    output = Image3DType::New();
-    output->SetRegions(size3);
-    output->Allocate();
-    output->FillBuffer(0);
-
-    for(unsigned int xx = 0 ; xx < xlen ; xx++) {
-        for(unsigned int yy = 0 ; yy < ylen ; yy++) {
-            for(unsigned int zz = 0 ; zz < zlen ; zz++) {
-                //initialize some variables
-                Image4DType::IndexType index4 = {{xx, yy, zz, 0}};
-                Image3DType::IndexType index3 = {{xx, yy, zz}};
-                Image4DType::IndexType maskindex;
-                Image4DType::IndexType img2index;;
-                Image4DType::PointType point;
-                pEst->TransformIndexToPhysicalPoint(index4, point);
-                pTrue->TransformPhysicalPointToIndex(point, img2index);
-                maskImage->TransformPhysicalPointToIndex(point, maskindex);
-                
-                cout << "image1 index: " << index4 << endl;
-                cout << "image2 index: " << img2index << endl;
-                cout << "mask index: " << maskindex << endl;
-                if(!pTrue->GetRequestedRegion().IsInside(img2index) ||
-                            !maskImage->GetRequestedRegion().IsInside(maskindex)
-                            || maskImage->GetPixel(maskindex) == 0){
-                    output->SetPixel(index3, 1);
-                    continue;
-                }
-
-                vector<double> params1;
-                vector<double> params2;
-                fillvector(params1, pEst, index4);
-                fillvector(params2, pTrue, index4);
-                list<double> sim1;
-                list<double> sim2;
-                simulate(sim1, params1, a_shortstep(), a_timestep(),input, 
-                            a_simlength());
-                simulate(sim2, params2, a_shortstep(), a_timestep(),input, 
-                            a_simlength());
-                output->SetPixel(index3, mse(sim1, sim2));
-            }
-        }
+    Image3DType::Pointer output;
+    if(a_inputtype() == 0) {
+        analyzeHist(a_pEst(), a_output(), pTrue, iReal, maskImage, input,
+                    a_timestep(), a_shortstep());
+    } else if(a_inputtype() == 1) {
+        //analyzeParamMean(a_pEst(), maskImage, input)
     }
-    
+
     //write final output
     {
     itk::ImageFileWriter<Image3DType>::Pointer out = 
