@@ -207,7 +207,7 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y) const
         case LAPLACE:
     	for(unsigned int i = 0 ; i < MEAS_SIZE ; i++)
             weight *= gsl_ran_laplace_pdf( y[i]-meas[i]+
-                        s[STATE_SIZE-MEAS_SIZE+i], sigma(i));
+                        s[STATE_SIZE-MEAS_SIZE+i], sigma(i)/sqrt(2));
         break;
         /* Normal Distribution (default) */
         case NORM:
