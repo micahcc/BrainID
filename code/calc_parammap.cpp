@@ -472,13 +472,13 @@ int main(int argc, char* argv[])
                 }
                 
 
+                aux::vector mu = boldpf.getDistribution().
+                            getDistributedExpectation();
+                const aux::matrix cov = boldpf.getDistribution().
+                            getDistributedCovariance();
                 if(oMask && paramMuImg && boldpf.getStatus() == BoldPF::DONE) {
                     oMask->SetPixel(index3, 2);
                     
-                    aux::vector mu = boldpf.getDistribution().
-                                getDistributedExpectation();
-                    const aux::matrix cov = boldpf.getDistribution().
-                                getDistributedCovariance();
                     for(uint32_t pp = 0 ; pp < BASICPARAMS ; pp++) {
                         index4[3] = pp;
                         paramMuImg->SetPixel(index4, mu[pp]);
