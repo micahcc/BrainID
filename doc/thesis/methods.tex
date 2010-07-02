@@ -6,14 +6,53 @@ For strictly positive parameters (members of $x$) we used a gamma distribution,
 whereas for parameters that could be negative, we used a Gaussian distribution. In
 both cases standard deviations twice that found in previous studies were used.
 
+\section{Model}
+As originally written in \autoref{sec:BOLD Physiology} the state variables
+for the BOLD model are as follows:
+\begin{eqnarray}
+\dot{s} &=& \epsilon u(t) - \frac{s}{\tau_s} - \frac{f - 1}{\tau_f} \\
+\dot{f} &=& s\\
+\dot{v} &=& \frac{1}{\tau_0}(f - v^\alpha)\\
+\dot{q} &=& \frac{1}{\tau_0}(\frac{f(1-(1-E_0)^f)}{E_0} - \frac{q}{v^{1-1/\alpha}})
+\end{eqnarray}
+Because there are potentially 
 
-
-\section{Choosing $\hat{Pr}(y(T) | x(T))$}
+\section{Choosing ${Pr}(y(T) | x(T))$}
 Choosing a representation of an unknown distribution is certainly tricky,
 and so the fact that $\hat{Pr}(y(T) | x(T)) = \nu_d + \nu_y$ means that
 there is a significant piece of the algorithm that is based primarily conjecture.
 Studies of the noise in FMRI typically attribute noise to a Gaussian random
 variable or an additive noise process with Gaussian steps. 
+
+Another natural choice might be one of the robust estimator weight functions, for
+example the Huber or bi-square. For the purpose of this work we will stick
+with long tailed distributions, however it is worth noting that long tails
+may not be the optimal choice in all, or even this situation. The justification
+for long tailed distributions is that we believe the noise to be long tailed,
+and the variance of the noise is not well known.
+
+Therefore, we tried three weighting functions based on three distributions: Gaussian, 
+Laplace and the Cauchy. The standard deviation of the distribution is extremely
+important to the convergence of particle filter. A standard deviation that is 
+too large will not allow the distribution to converge in any reasonable number of 
+measurements. A standard deviation below the standard deviation of the noise 
+will cause the algorithm to throw out perfectly acceptable particles. 
+The weighting function ultimately will shape the output distribution, $P[y]$, into that
+distribution, however the distribution of $x$ will still approach a reasonable
+estimate of its true distribution. Even an overly wide weighting function, will
+allow the Gaussian Mixture estimate of $X$ to converge to the correct location 
+parameters of the "real" posterior distribution, though the scale parameters may 
+be overly large.
+
+A reasonable method of setting the standard deviation of $\Omega$ may be by 
+taking a small sample from "resting" data and using the sample standard deviation.
+Since this is the first attempt at using particle filters for modeling the 
+BOLD model, in this work we set the standard deviation manually at <weight standard dev>,
+because it gives a more consistency and control. Of course this could be taken
+further, by testing the sample data against a set of stock distributions
+and choosing the best fit. This of course depends on having enough samples
+to make a reasonable inference, which may not always exist. 
+
 
 \subsection{Classical De-trending}
 The non-stationary
