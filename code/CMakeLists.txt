@@ -31,7 +31,7 @@ ADD_LIBRARY(modNiftiImageIO modNiftiImageIO.cxx)
 TARGET_LINK_LIBRARIES(modNiftiImageIO ITKIO)
 
 ADD_LIBRARY(segment segment.cpp)
-TARGET_LINK_LIBRARIES(segment ITKAlgorithms ITKBasicFilters ITKCommon gsl gslcblas tools)
+TARGET_LINK_LIBRARIES(segment ITKAlgorithms ITKBasicFilters ITKCommon gsl gslcblas tools boost_mpi mpi)
 
 ADD_LIBRARY(BoldModel BoldModel.cpp)
 

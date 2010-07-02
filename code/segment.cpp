@@ -17,6 +17,7 @@
 #include <itkNaryElevateImageFilter.h>
 #include <itkMaskImageFilter.h>
 
+#include <boost/mpi.hpp>
 #include "segment.h"
 #include "tools.h"
 #include <itkLabelStatisticsImageFilterMod.h>
@@ -855,6 +856,7 @@ Image4DType::Pointer dc_bump(const Image4DType::Pointer fmri_img, int points)
 Image4DType::Pointer getspline_m(const Image4DType::Pointer fmri_img, 
             unsigned int knots)
 {
+    
     Image4DType::Pointer outimage = Image4DType::New();
     outimage->SetRegions(fmri_img->GetRequestedRegion());
     outimage->Allocate();
@@ -885,11 +887,13 @@ Image4DType::Pointer getspline_m(const Image4DType::Pointer fmri_img,
 Image4DType::Pointer deSplineBlind(const Image4DType::Pointer fmri_img,
             unsigned int numknots, std::string base)
 {
+    boost::mpi::communicator world;
+    const unsigned int rank = world.rank();
     std::cerr << "Making Spline" << std::endl;
 //    Image4DType::Pointer spline = getspline(fmri_img, numknots);
     Image4DType::Pointer spline = getspline_m(fmri_img, numknots);
     
-    {
+    if(rank == 0){
     std::string tmp = base;
     tmp.append("spline.nii.gz");
     printf("Writing %s\n", tmp.c_str());
@@ -903,7 +907,7 @@ Image4DType::Pointer deSplineBlind(const Image4DType::Pointer fmri_img,
     /* Rescale (fmri - spline)/avg*/
     Image4DType::Pointer avg = extrude(Tmean(fmri_img), 
                 fmri_img->GetRequestedRegion().GetSize()[3]);
-    {
+    if(rank == 0 ){
     std::string tmp = base;
     tmp.append("fmri_img.nii.gz");
     printf("Writing %s\n", tmp.c_str());
@@ -913,7 +917,7 @@ Image4DType::Pointer deSplineBlind(const Image4DType::Pointer fmri_img,
     writer->SetFileName(tmp);
     writer->Update();
     }
-    {
+    if(rank == 0){
     std::string tmp = base;
     tmp.append("avg.nii.gz");
     printf("Writing %s\n", tmp.c_str());
@@ -1118,6 +1122,8 @@ Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img,
 Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
             std::vector<Activation>& stim, double dt, std::string base)
 {
+    boost::mpi::communicator world;
+    const unsigned int rank = world.rank();
     itk::Image< DataType, 1>::Pointer canon = getCanonical(stim, dt, 0,
                 fmri_img->GetRequestedRegion().GetSize()[3]*dt);
    
@@ -1188,7 +1194,7 @@ Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
     std::cerr << "Making Spline" << std::endl;
     Image4DType::Pointer spline = getspline(fmri_img, knots);
     
-    {
+    if(rank == 0){
     std::string tmp = base;
     tmp.append("spline.nii.gz");
     printf("Writing %s", tmp.c_str());
@@ -1204,7 +1210,7 @@ Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
     
     Image4DType::Pointer avg = extrude(Tmean(fmri_img), 
                 fmri_img->GetRequestedRegion().GetSize()[3]);
-    {
+    if(rank == 0){
     std::string tmp = base;
     tmp.append("fmri_img.nii.gz");
     printf("Writing %s\n", tmp.c_str());
@@ -1214,7 +1220,7 @@ Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
     writer->SetFileName(tmp);
     writer->Update();
     }
-    {
+    if(rank == 0){
     std::string tmp = base;
     tmp.append("avg.nii.gz");
     printf("Writing %s\n", tmp.c_str());

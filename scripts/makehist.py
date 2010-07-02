@@ -24,22 +24,22 @@ HRFDIVIDER = 16
 #grid(True)
 #show()
 
-def getparams_mode(time, source):
+def getparams_mode(time, source, pos):
     params = [0 for i in range(0,7)]
     for pp in range(0, 7):
-        upper = source.get_data()[0,0,0,time,pp, -2]
-        lower = source.get_data()[0,0,0,time,pp, -3]
+        upper = source.get_data()[pos[0],pos[1],pos[2],time,pp, -2]
+        lower = source.get_data()[pos[0],pos[1],pos[2],time,pp, -3]
         count = source.get_header()['dim'][6] - 3
         width = (upper-lower)/count
         print lower, upper, width, count
         histinput = [[] for j in range(0, histimg.get_header()['dim'][6]-3)]
         for j in range(0, histimg.get_header()['dim'][6]-3):
-            histinput[j] = [histimg.get_data()[0,0,0,time, pp, j], lower+width/2.+j*width]
+            histinput[j] = [histimg.get_data()[pos[0],pos[1],pos[2],time, pp, j], lower+width/2.+j*width]
         params[pp] = max(histinput, key=lambda pair: pair[0])[1]
     return params
 
-def getparams_mu(time, source):
-    return source.get_data()[0,0,0, time, 0:7, -1] 
+def getparams_mu(time, source, pos):
+    return source.get_data()[pos[0],pos[1],pos[2], time, 0:7, -1] 
 
 def printparams(params):
     print "TAU_0  " , params[0]
@@ -130,13 +130,15 @@ if __name__ == "__main__":
     PARAM = -1
     SHIFT=4
     param = PARAM
-    if len(sys.argv) == 3:
+    if len(sys.argv) == 6:
         try:
-            param = float(sys.argv[2])
+            pos = [float(arg) for arg in sys.argv[2:5]]
+            param = float(sys.argv[5])
         except:
             param = PARAM 
+            pos = (0,0,0);
     elif len(sys.argv) != 2:
-        print "Usage: ", sys.argv[0], "<InDir> [param number]"
+        print "Usage: ", sys.argv[0], "<InDir> [position + param]"
         print "Looks in Dir for: "
         print "stim0, stim1 (must be shifted to match pfilter_input), histogram.nii.gz"
         print "pfilter_input.nii.gz, truebold.nii.gz, truestate.nii.gz"
@@ -177,25 +179,25 @@ if __name__ == "__main__":
     #sys.exit()
     
     stims = readStim(sys.argv[1]+"stim")
-    histograms = processHistos(histimg, (0,0,0), param)
+    histograms = processHistos(histimg, pos, param)
     plothisto(histograms, TR)
     
     if param < 0:
         P.plot([i*TR for i in range(actual.get_header()['dim'][4])], \
-                    actual.get_data()[0,0,0,:], '-*');
+                    actual.get_data()[pos[0],pos[1],pos[2],:], '-*');
         leg = ["actual"]
         try:
             truebold = nibabel.load(sys.argv[1] + "truebold.nii.gz")
             print "Ground truth for bold found"
             P.plot([i*TR for i in range(truebold.get_header()['dim'][4])], \
-                        truebold.get_data()[0,0,0,:], 'g-+');
+                        truebold.get_data()[pos[0],pos[1],pos[2],:], 'g-+');
             leg.append("truth")
         except:
             print "No ground truth for bold available, if you have some put it in ", \
                         sys.argv[1] + "truebold.nii.gz"
         print "params"
-        print getparams_mu(-1, histimg)
-        exp_final= sim(stims, getparams_mu(-1, histimg), TR, actual.get_header()['dim'][4])
+        print getparams_mu(-1, histimg, pos)
+        exp_final= sim(stims, getparams_mu(-1, histimg, pos), TR, actual.get_header()['dim'][4])
         print len(exp_final)
         
         P.plot([i*TR for i in range(len(exp_final))], exp_final)
@@ -207,7 +209,7 @@ if __name__ == "__main__":
             truestate = nibabel.load(sys.argv[1] + "truestate.nii.gz")
             P.plot([i*TR for i in range(truestate.get_header()['dim'][4])], \
                         truestate.get_data()[0,param,0,:], 'g-+');
-            print "Truth", truestate.get_data()[0,param,0,0];
+            print "Truth", truestate.get_data()[pos[0],pos[1],pos[2],param];
             leg = ["truth"]
             P.legend(leg)
         except:
