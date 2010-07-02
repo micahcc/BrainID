@@ -331,8 +331,16 @@ int main(int argc, char* argv[])
     unsigned int zlen = inImage->GetRequestedRegion().GetSize()[2];
     unsigned int tlen = inImage->GetRequestedRegion().GetSize()[3];
     
-    /* Save detrended image */
+    Label3DType::Pointer oMask;
     if(rank == 0) try {
+    	/* Build Mask showing the results of each Voxel */
+        oMask = Label3DType::New();
+        Label3DType::SizeType size3 = {{xlen, ylen, zlen}};
+        oMask->SetRegions(size3);
+        oMask->Allocate();
+        oMask->FillBuffer(0);
+
+    	/* Save detrended image */
         itk::ImageFileWriter<Image4DType>::Pointer out = 
                     itk::ImageFileWriter<Image4DType>::New();
         out->SetInput(inImage);
@@ -402,119 +410,145 @@ int main(int argc, char* argv[])
                 for(int i = 0 ; i < 3 ; i++) index4[i] = index3[i];
                 index4[3] = 0;
                 inImage->TransformIndexToPhysicalPoint(index4, point4);
-
+                
+                //if requested, only perform test on a single location
                 if(a_locat().size() == 3 && !(a_locat()[0] == index3[0] && 
                             a_locat()[1] == index3[1] && a_locat()[2] == index3[2]))
                     continue;
                 else if(!checkmask(mask, point4)) 
                     continue;
+			
+		if(oMask) oMask->SetPixel(index3, 1);
 
                 result = BoldPF::UNSTARTED;
 
-                //run particle filter, and retry with i times as many particles
-                //as the the initial number if it fails
-                for(unsigned int i = 0 ; result != BoldPF::DONE && i < RETRIES; i++) { 
-                    *output << index3 << endl;
-                    *output << "RESTARTING!!!!\n" ;
-                    fillvector(meas, inImage, index4, a_delta());
+                *output << index3 << endl;
+                fillvector(meas, inImage, index4, a_delta());
 
-                    //create the bold particle filter
-                    BoldPF boldpf(meas, input, a_scale(), a_timestep(),
-                            output, a_num_particles()*(1<<i), 1./a_divider(), method,
-                            a_weight(), a_flat());
-                    
-                    //set the callback function
-                    for(unsigned int j = 0; j < 3 ; j++)
-                        ((cb_data*)cbdata)->pos[j] = index4[j];
-                    boldpf.setCallBack(callpoints, cbfunc);
-                    
-                    for(uint32_t i = 0 ; i < RETRIES ; i++) {
-                        //run the particle filter
-                        result = boldpf.run(cbdata);
-                        aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
-                        *output << "FINAL COVARIANCE!" << endl;
-                        for(uint32_t i = 0 ; i < cov.size1() ; i++) {
-                            for(uint32_t j = 0 ; j < cov.size2() ; j++) {
-                                cout << setw(15) << cov(i,j);
-                            }
-                            for(uint32_t j = 0 ; j < cov.size2() ; j++) {
-                                cout << setw(15) << cov(i,j);
-                            }
-                            cout << endl;
+                //create the bold particle filter
+                BoldPF boldpf(meas, input, a_scale(), a_timestep(),
+                        output, a_num_particles(), 1./a_divider(), method,
+                        a_weight(), a_flat());
+                
+                //set the callback function
+                for(unsigned int j = 0; j < 3 ; j++)
+                    ((cb_data*)cbdata)->pos[j] = index4[j];
+                boldpf.setCallBack(callpoints, cbfunc);
+                
+                for(uint32_t i = 0 ; i < RETRIES ; i++) {
+                    //run the particle filter
+                    result = boldpf.run(cbdata);
+                    aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
+                    *output << "FINAL COVARIANCE!" << endl;
+                    for(uint32_t i = 0 ; i < cov.size1() ; i++) {
+                        for(uint32_t j = 0 ; j < cov.size2() ; j++) {
+                            cout << setw(15) << cov(i,j);
                         }
-                        *output << endl << endl <<"---------------------------------" << endl << endl;
-                        if(cov(6,6) < .01) {
-                            *output << "Leaving Loop" << endl << endl;
-                            break;
-                        } else {
-                            boldpf.restart();
+                        for(uint32_t j = 0 ; j < cov.size2() ; j++) {
+                            cout << setw(15) << cov(i,j);
                         }
+                        cout << endl;
+                    }
+                    *output << endl << endl <<"---------------------------------" << endl << endl;
+                    if(cov(6,6) < .01) {
+                        *output << "Leaving Loop" << endl << endl;
+                        break;
+                    } else {
+                        boldpf.restart();
                     }
                 }
 
+                if(oMask && boldpf.getStatus() == BoldPF::DONE)
+                    oMask->SetPixel(index3, 2);
+
                 //set the output to a standard -1 if BoldPF failed
-                if(checkmask(mask, point4)) {
-                    //run time calculation
-                    time_t tmp = time(NULL);
-                    traveled++;
-                    *output << "Time Elapsed: " << difftime(tmp, start) << endl
-                         << "Time Remaining: " << (total-traveled)*difftime(tmp,start)/
-                                    (double)traveled 
-                         << endl << "Ratio: " << traveled << "/" << total << endl
-                         << "Left: " << total-traveled << "/" << total
-                         << endl << "Rate: " << difftime(tmp,start)/(double)traveled << endl;
-                }
+                //run time calculation
+                time_t tmp = time(NULL);
+                traveled++;
+                *output << "Time Elapsed: " << difftime(tmp, start) << endl
+                     << "Time Remaining: " << (total-traveled)*difftime(tmp,start)/
+                                (double)traveled 
+                     << endl << "Ratio: " << traveled << "/" << total << endl
+                     << "Left: " << total-traveled << "/" << total
+                     << endl << "Rate: " << difftime(tmp,start)/(double)traveled << endl;
             }
         }
     }
     
     //write final output
     if(rank == 0) {
+        itk::OrientedImage<DataType, 4>::SpacingType space4 = inImage->GetSpacing();
+        itk::OrientedImage<DataType, 4>::DirectionType dir4 = inImage->GetDirection();
+        space4[3] = a_timestep();
+        
+        Label3DType::SpacingType space3;
+        Label3DType::DirectionType dir3;
+        for(uint32_t i = 0 ; i < 3 ; i++) {
+            space3[i] = space4[i];
+            for(uint32_t j = 0 ; j < 3 ; j++) {
+                dir3(i,j) = dir4(i,j);
+            }
+        }
+    
+        oMask->SetSpacing(space3);
+        oMask->SetDirection(dir3);
+        writeImage<Label3DType>(oMask, a_output(), "statuslabel.nii.gz");
+        
         switch(a_callbacktype()) {
         case 0: {
-            itk::OrientedImage<DataType, 4>::SpacingType space4 = inImage->GetSpacing();
-            space4[3] = a_timestep();
             itk::OrientedImage<DataType, 6>::SpacingType space6;
-            for(unsigned int i = 0 ; i < 4 ; i++)
+            itk::OrientedImage<DataType, 6>::DirectionType dir6;
+            dir6.SetIdentity();
+            for(unsigned int i = 0 ; i < 4 ; i++) {
                 space6[i] = space4[i];
-            space6[4] = 1;
-            space6[5] = 1;
+                for(uint32_t j = 0 ; j < 4 ; j++) 
+                    dir6(i,j) = dir4(i,j);
+            }
+            space6[4] = space6[5] = 1;
+
             cb_hist_data* cbd = (cb_hist_data*)cbdata;
             cbd->histogram->SetSpacing(space6);
+            cbd->histogram->SetDirection(dir6);
             
             writeImage<itk::OrientedImage<DataType, 6> >(cbd->histogram, a_output(),
                         "histogram.nii.gz");
         } break;
         case 1: {
-            itk::OrientedImage<float, 4>::Pointer measmu;
-            itk::OrientedImage<float, 4>::Pointer measvar;
-            itk::OrientedImage<float, 5>::Pointer parammu;
-            itk::OrientedImage<float, 6>::Pointer paramvar;
-            itk::OrientedImage<DataType, 4>::SpacingType space4 = inImage->GetSpacing();
             itk::OrientedImage<DataType, 5>::SpacingType space5;
             itk::OrientedImage<DataType, 6>::SpacingType space6;
+
+            itk::OrientedImage<DataType, 5>::DirectionType dir5;
+            itk::OrientedImage<DataType, 6>::DirectionType dir6;
+            dir5.SetIdentity();
+            dir6.SetIdentity();
             for(unsigned int i = 0 ; i < 4 ; i++) {
                 space5[i] = space4[i];
                 space6[i] = space4[i];
+                for(uint32_t j = 0 ; j < 4 ; j++) {
+                    dir5(i,j) = dir4(i,j);
+                    dir6(i,j) = dir4(i,j);
+                }
             }
-            space5[4] = 1;
-            space6[4] = 1;
-            space6[5] = 1;
+            space5[4] = space6[4] = space6[5] = 1;
             
             cb_all_data* cbd = (cb_all_data*)cbdata;
             cbd->measmu->SetSpacing(space4);
+            cbd->measmu->SetDirection(dir4);
             writeImage<itk::OrientedImage<DataType, 4> >(cbd->measmu, a_output(),
                         "measmean.nii.gz");
             
             cbd->measvar->SetSpacing(space4);
+            cbd->measvar->SetDirection(dir4);
             writeImage<itk::OrientedImage<DataType, 4> >(cbd->measvar, a_output(),
                         "measvar.nii.gz");
             
             cbd->parammu->SetSpacing(space5);
+            cbd->parammu->SetDirection(dir5);
             writeImage<itk::OrientedImage<DataType, 5> >(cbd->parammu, a_output(),
                         "parammu.nii.gz");
             
             cbd->paramvar->SetSpacing(space6);
+            cbd->paramvar->SetDirection(dir6);
             writeImage<itk::OrientedImage<DataType, 6> >(cbd->paramvar, a_output(),
                         "paramvar.nii.gz");
         } break;
