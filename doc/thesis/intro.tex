@@ -425,29 +425,32 @@ Stimuli that last longer than 4 seconds
 tend to be more linear, which is why block designs are so well accounted for
 by the General Linear Model (\cite{Birn2001}, \cite{Deneux2006}). For this 
 paper we will use only a simple version of the Balloon model, described by
-\autoref{eq:bold}, to keep the solution tractable. 
+\autoref{eq:bold}, to keep the solution tractable, and because it is the most
+well studied. 
 
 Another interesting result of \cite{Deneux2006} was the sensitivity analysis.
-There it was found that many of the parameters compensate for each other,
+There it was found that the parameters are far from perpendicular,
 implying that exact inference of parameters may not be possible without
-constraint.
+constraint. This could explain the extreme discrepencies in \autoref{tab:Params}.
 
 Several studies have been able to calculate distributions for the 
 Balloon parameters, those results are summarized in \autoref{tab:Params}
+
+%note to self, friston2002b's parameters are from a picture
 
 \begin{table}[t]
 \centering
 \begin{tabular}{|c || c | c | c |}
 \hline 
-Parameter  & \cite{Friston2002} & \cite{Johnston2008} & \cite{Vakorin2007} \\
+Parameter  & \cite{Friston2002} & \cite{Johnston2008} & \cite{Vakorin2007} & \cite{Deneux2006}\\
 \hline
-$\epsilon$ &  $N(.54 , .1 ^2)$  & $.069 \pm .014 $ & (NC)\\
-$\tau_s  $ &  $N(1.54, .25^2)$  & $4.98 \pm 1.07 $ & $2.2$\\
-$\tau_f  $ &  $N(2.46, .25^2)$  & $8.31 \pm 1.51 $ & $.45$\\
-$\tau_0  $ &  $N(.98 , .25^2)$  & $8.38 \pm 1.5  $ & $.94$\\
-$\alpha  $ &  $N(.33 , .45^2)$  & $.189 \pm .004 $ & $.4$ (NC) \\
-$E_0     $ &  $N(.34 , .1 ^2)$  & $.635 \pm .072 $ & $.6$ (NC) \\
-$V_0     $ &  $.03$ (NC)        & $.0149 \pm .006$ & (NC)\\
+$\epsilon$ &  $N(.54 , .1 ^2)$  & $.069 \pm .014 $ & (NC) & .89\\
+$\tau_s  $ &  $N(1.54, .25^2)$  & $4.98 \pm 1.07 $ & $2.2$ & 2.04 \\
+$\tau_f  $ &  $N(2.46, .25^2)$  & $8.31 \pm 1.51 $ & $.45$ & 5.26\\
+$\tau_0  $ &  $N(.98 , .25^2)$  & $8.38 \pm 1.5  $ & $.94$ & .27\\
+$\alpha  $ &  $N(.33 , .45^2)$  & $.189 \pm .004 $ & $.4$ (NC) & .63 \\
+$E_0     $ &  $N(.34 , .1 ^2)$  & $.635 \pm .072 $ & $.6$ (NC) & .33\\
+$V_0     $ &  $.03$ (NC)        & $.0149 \pm .006$ & (NC) & .16\\
 \hline
 \end{tabular}
 \caption{Parameters found by various studies. (NC) indicates that the value

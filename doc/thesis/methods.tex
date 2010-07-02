@@ -1,10 +1,63 @@
 \chapter{Methods}
+Although the particle filter I used for this work is a standard Regularized
+Particle filter, as described in \cite{Arulampalam2002a}, optimizing the 
+particle filter for use with FMRI data is non-trivial. 
+
 \section{Prior Distribution}
-For the BOLD signal all the parameters have been studied and have relatively well
-known mean and variance, so a prior is helpful. 
-For strictly positive parameters (members of $x$) we used a gamma distribution,
-whereas for parameters that could be negative, we used a Gaussian distribution. In
-both cases standard deviations twice that found in previous studies were used.
+For the BOLD model described in \autoref{sec:BOLD Physiology}, several
+different studies have endeavored to calculate parameters. The results
+of these studies may be found in \autoref{tab:Params}, and the methods 
+used for each may be found in \autoref{sec:Prior Works}. Unfortunately,
+\cite{Friston2000} only studied small regions; and most research with
+reasonable speed (including \cite{Friston2002b}) used these results as 
+the source for their priors. 
+The one exception is \cite{Johnston2008}, which came to an extremely different
+set of distributions. For a particle filter, the choice of a prior is
+the single most important design choice. Consequently for this work,
+I wanted to be conservative; which meant going with the accepted result,
+\cite{Friston2000}. This constrains the usefulness of the model to
+areas that fall within the prior distribution, yet will allow results
+to be comparable to other works. There is a significant need for better
+estimates of the physiological parameters; and, while physical experiments
+may not be possible, it would not be unreasonable to do a study with
+exhaustive simulated annealing or hill climbing tests for multiple
+regions and multiple patients. The purpose for this work is to determine
+the fitness of particle filters for this task; because with good 
+priors it can be extremely fast. Ultimately this algorithm may become
+more useful as more studies are done on BOLD model that don't require
+priors. 
+
+Therefore, because \cite{Friston2000} represents the current best
+knowledge about the BOLD parameters, it forms the basis
+for the prior distributions in this paper. 
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c || c | c |}
+\hline 
+Parameter & Distribution & $\mu$ & $\sigma$ \\
+\hline
+$\tau_0$ & Gamma & .98 & .5  \\
+$\alpha$ & Gamma & .33 & .045\\
+$E_0$    & Gamma & .34 & .03  \\
+$V_0$    & Gamma & .03 & .006 \\
+$\tau_s$ & Gamma & 1.54  & .5 \\
+$\tau_f$ & Gamma & 2.46  & .5 \\
+$\epsilon$ & Gamma & .64 & .4 \\
+\hline
+\end{tabular}
+\caption{}
+\label{tab:Prior} 
+\end{table}
+
+Note that although the mean remains the same for all the 
+parameters other than $\epsilon$, the standard deviation is set
+much higher to account for the disagreement between studies
+(\autoref{tab:Params}). 
+Because all the parameters are taken to be strictly positive, and the
+standard deviations are approaching the mean, I used a gamma distribution.
+This prevents the Gaussian from placing parameters in the nonsensical 
+territory of negative activation, or negative time constants.
 
 \section{Model}
 As originally written in \autoref{sec:BOLD Physiology} the state variables
@@ -15,7 +68,58 @@ for the BOLD model are as follows:
 \dot{v} &=& \frac{1}{\tau_0}(f - v^\alpha)\\
 \dot{q} &=& \frac{1}{\tau_0}(\frac{f(1-(1-E_0)^f)}{E_0} - \frac{q}{v^{1-1/\alpha}})
 \end{eqnarray}
-Because there are potentially 
+The original assumption regarding particle filter models (\autoref{sec:Particle Filter Model})
+included noise in the update of $x$, however that is not included here.
+The reason for the difference is that cloud of particles is, to some extent,
+able to model that noise. It is common, however, to actually model that noise
+in particle filters by adding a random value to each updated state variable. 
+Because the purpose of this particle filter is to learn the underlying distribution
+of the static parameters, rather than precisely model the time course of the 
+in the dynamic parameters ($\{s,f,v,q\}$) this noise is left out. Because the
+BOLD model is dissipative, when no stimuli are applied, all the particles 
+will decay to ($\{0,1,1,1\}$) which they should. If evolution noise were added, the 
+particles would then weight particles based on the results of that noise, rather
+than on the quality of the static parameters. Typical particle filter uses
+also use this state noise as an exploratory measure; however given the 
+high dimensionality of the system, a vast number of particles would be 
+necessary for this to come to fruition. The noise in the BOLD signal is such
+that several particles all tend to be equally correct; the particle filter will
+still leave variance in the solution; which turned out to be the case.
+
+Thus, at each time step, the states were linearized, and each state variable,
+$s$, $f$, $v$, $q$, were changed according their previous rate of change.
+Because of the difficulty of solving a system of nonlinear equations, I 
+did not use the typical Runge-Kutta 4/5 technique to optimize step sizes. 
+The cost of missing a feature in these differential equations typically leads
+to non-real numbers shortly down the road. Because the non-real numbers do 
+not come until the solution has had the chance to update two or three more
+times, taking long steps can result in catastrophic and un-recoverable errors. 
+Typically a step size of .001 was used, after finding that even .01 can
+at times lead to the state equations careening out of control.
+
+\section{Resampling}
+The algorithm for resampling is described in \autoref{sec:Particle Filter Resampling}.
+The primary design decision for resampling is the regularizing
+kernel. As mentioned previously, the Gaussian kernel is extremely convenient,
+because it is so easy to sample from. As discussed in \autoref{sec:Particle Filter Resampling},
+as long as resampling is kept as a last resort, some amount of over-smoothing
+won't impair convergence. Therefore, for this work I chose a Gaussian kernel of
+bandwidth equal to the original distribution's covariance. Obviously this will
+apply a rather large amount of smoothing to the distribution; however, on average
+resampling is only applied every 10 to 20 measurements, and because randomization
+is being applied to model updates this gives the filter some mobility. 
+
+The question of how often to resample is complex. The benefit of resampling
+is that particles that were minimally important can give much more 
+granularity in the middle of the distribution. At the same time, resampling
+right after a batch of outliers can result in an incorrect distribution.
+Because the memory of particle weights is not particularly long, "good" particles
+could be removed by resampling very often. Additionally, because regularized
+resampling is being with a large bandwidth, I did not want the particle filter
+to be prevented from converging by resampling too often. Therefore, only
+when the effective sample size dropped below 25 for two measurement points
+in a row did I resample. This seemed to give good results, and avoided 
+temporary drops in the $N_{eff}$ caused by outliers. 
 
 \section{Choosing ${Pr}(y(T) | x(T))$}
 Choosing a representation of an unknown distribution is certainly tricky,
