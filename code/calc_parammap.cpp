@@ -249,8 +249,8 @@ int main(int argc, char* argv[])
     fprintf(stderr, "Brainid Version: %s\n", BRAINID_VERSION);
 
     Image4DType::Pointer inImage;
-//    Image4DType::Pointer paramMuImg;
-//    Image4DType::Pointer paramVarImg;
+    Image4DType::Pointer paramMuImg;
+    Image4DType::Pointer paramVarImg;
 
     std::vector<Activation> input;
 
@@ -311,17 +311,20 @@ int main(int argc, char* argv[])
 //        outsize[i] = inImage->GetRequestedRegion().GetSize()[i];
     outsize = inImage->GetRequestedRegion().GetSize();
     outsize[3] = BASICPARAMS + STATICPARAMS;
-
-//    paramMuImg = Image4DType::New();
-//    paramMuImg->SetRegions(outsize);
-//    paramMuImg->Allocate();
-//    paramMuImg->FillBuffer(0);
-//    
-//    paramVarImg = Image4DType::New();
-//    paramVarImg->SetRegions(outsize);
-//    paramVarImg->Allocate();
-//    paramVarImg->FillBuffer(0);
     
+    if(rank == 0) {
+        paramMuImg = Image4DType::New();
+        paramMuImg->SetRegions(outsize);
+        paramMuImg->Allocate();
+        paramMuImg->FillBuffer(0);
+        paramMuImg->CopyInformation(inImage);
+        
+        paramVarImg = Image4DType::New();
+        paramVarImg->SetRegions(outsize);
+        paramVarImg->Allocate();
+        paramVarImg->FillBuffer(0);
+        paramVarImg->CopyInformation(inImage);
+    }
     
     inImage = preprocess_help(inImage, input, a_timestep(), a_erase(), a_delta() || 
                 a_nospline(), a_smart(), a_output());
@@ -355,7 +358,7 @@ int main(int argc, char* argv[])
     }
 
     //acquire rms
-    rms = get_rms(inImage);
+//    rms = get_rms(inImage);
     
     unsigned int method = BoldPF::DIRECT;
     if(a_delta()) method = BoldPF::DELTA;
@@ -367,6 +370,7 @@ int main(int argc, char* argv[])
     int (*cbfunc)(BoldPF*, void*) = NULL;
     switch(a_callbacktype()) {
         case 0: {
+            *output << "Setting up histogram" << std::endl;
             cb_hist_data* cbd = new cb_hist_data;
             cb_hist_init(cbd, &callpoints, inImage->GetRequestedRegion().GetSize(), 
                         FILTER_PARAMS, 1, 10);
@@ -374,11 +378,19 @@ int main(int argc, char* argv[])
             cbfunc = cb_hist_call;
         } break;
         case 1: {
+            *output << "Setting up mean/var images" << std::endl;
             cb_all_data* cbd = new cb_all_data;
             cb_all_init(cbd, &callpoints, inImage->GetRequestedRegion().GetSize(), 
                         FILTER_PARAMS);
             cbdata = (void*)cbd;
             cbfunc = cb_all_call;
+        } break;
+        case 2: {
+            *output << "Setting up mean/var images of meas" << std::endl;
+            cb_meas_data* cbd = new cb_meas_data;
+            cb_meas_init(cbd, &callpoints, inImage->GetRequestedRegion().GetSize());
+            cbdata = (void*)cbd;
+            cbfunc = cb_meas_call;
         } break;
     }
     
@@ -412,10 +424,11 @@ int main(int argc, char* argv[])
                 inImage->TransformIndexToPhysicalPoint(index4, point4);
                 
                 //if requested, only perform test on a single location
-                if(a_locat().size() == 3 && !(a_locat()[0] == index3[0] && 
-                            a_locat()[1] == index3[1] && a_locat()[2] == index3[2]))
-                    continue;
-                else if(!checkmask(mask, point4)) 
+                if(a_locat().size() == 3) {
+                    if(!(a_locat()[0] == index3[0] && a_locat()[1] == index3[1] 
+                        && a_locat()[2] == index3[2]))
+                        continue;
+                } else if(!checkmask(mask, point4)) 
                     continue;
 			
 		if(oMask) oMask->SetPixel(index3, 1);
@@ -457,9 +470,26 @@ int main(int argc, char* argv[])
                         boldpf.restart();
                     }
                 }
+                
 
-                if(oMask && boldpf.getStatus() == BoldPF::DONE)
+                if(oMask && paramMuImg && boldpf.getStatus() == BoldPF::DONE) {
                     oMask->SetPixel(index3, 2);
+                    
+                    aux::vector mu = boldpf.getDistribution().
+                                getDistributedExpectation();
+                    const aux::matrix cov = boldpf.getDistribution().
+                                getDistributedCovariance();
+                    for(uint32_t pp = 0 ; pp < BASICPARAMS ; pp++) {
+                        index4[3] = pp;
+                        paramMuImg->SetPixel(index4, mu[pp]);
+                        paramVarImg->SetPixel(index4, cov(pp,pp));
+                    }
+                    
+                    aux::vector a12 = BoldModel::getA(mu[BoldModel::E_0]);
+                    paramMuImg->SetPixel(index4, a12[0]);
+                    index4[3]++;
+                    paramMuImg->SetPixel(index4, a12[1]);
+                }
 
                 //set the output to a standard -1 if BoldPF failed
                 //run time calculation
@@ -493,6 +523,8 @@ int main(int argc, char* argv[])
         oMask->SetSpacing(space3);
         oMask->SetDirection(dir3);
         writeImage<Label3DType>(oMask, a_output(), "statuslabel.nii.gz");
+        writeImage<Image4DType>(paramMuImg, a_output(), "parammu_f.nii.gz");
+        writeImage<Image4DType>(paramVarImg, a_output(), "paramvar_f.nii.gz");
         
         switch(a_callbacktype()) {
         case 0: {
@@ -535,7 +567,7 @@ int main(int argc, char* argv[])
             cbd->measmu->SetSpacing(space4);
             cbd->measmu->SetDirection(dir4);
             writeImage<itk::OrientedImage<DataType, 4> >(cbd->measmu, a_output(),
-                        "measmean.nii.gz");
+                        "measmu.nii.gz");
             
             cbd->measvar->SetSpacing(space4);
             cbd->measvar->SetDirection(dir4);
@@ -551,6 +583,13 @@ int main(int argc, char* argv[])
             cbd->paramvar->SetDirection(dir6);
             writeImage<itk::OrientedImage<DataType, 6> >(cbd->paramvar, a_output(),
                         "paramvar.nii.gz");
+        } break;
+        case 2: {
+            cb_meas_data* cbd = (cb_meas_data*)cbdata;
+            cbd->measmu->CopyInformation(inImage);
+            writeImage<Image4DType>(cbd->measmu, a_output(), "measmu.nii.gz");
+            cbd->measvar->CopyInformation(inImage);
+            writeImage<Image4DType>(cbd->measvar, a_output(), "measvar.nii.gz");
         } break;
         }
     }

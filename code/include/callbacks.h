@@ -20,7 +20,8 @@ struct cb_data
 struct cb_meas_data
 {
     unsigned int pos[3];
-    itk::OrientedImage<float, 4>::Pointer image;
+    itk::OrientedImage<float, 4>::Pointer measmu;
+    itk::OrientedImage<float, 4>::Pointer measvar;
 };
 
 int cb_meas_call(BoldPF* bold, void* data);
@@ -99,11 +100,31 @@ int cb_meas_call(BoldPF* bold, void* data)
         index[i] = cdata->pos[i];
     index[3] = bold->getDiscTimeL();
     
-    aux::vector mu = bold->getDistribution().getDistributedExpectation();
-    aux::vector meas =  bold->getModel().measure(mu);
+    DiracMixturePdf& dist = bold->getDistribution();
+    const aux::vector& weights = bold->getDistribution().getWeights();
+    /* Mean */
+    aux::vector measmu(bold->getModel().getMeasurementSize(),0); 
+    for(unsigned int jj = 0 ; jj < dist.getSize() ; jj++) {
+        if(weights[jj] > 0)
+            measmu += dist.getWeight(jj)*bold->getModel().measure(dist.get(jj));
+    }
+    
+    /* Variance */
+    aux::vector measvar(measmu.size(), 0);
+    aux::vector delta(measmu.size(), 0);
+    for(unsigned int i = 0 ; i < weights.size(); i++) {
+        if(weights[i] > 0) {
+            delta = (bold->getDistribution().get(i) - measmu);
+            const aux::matrix cov = outer_prod(delta, delta);
+            measvar += weights[i]*diag(cov);
+        }
+    }
+    measvar = boost::mpi::all_reduce(world, measvar, std::plus<aux::vector>())
+                /bold->getDistribution().getDistributedTotalWeight();
 
     if(rank == 0) {
-         cdata->image->SetPixel(index, meas[0]);
+         cdata->measmu->SetPixel(index, measmu[0]);
+         cdata->measvar->SetPixel(index, measvar[0]);
 //         outputVector(std::cout, mu);
 //         std::cout << "\n" << meas[0] << "\n";
     }
@@ -113,11 +134,17 @@ int cb_meas_call(BoldPF* bold, void* data)
 void cb_meas_init(cb_meas_data* cdata, BoldPF::CallPoints* cp,
             itk::OrientedImage<float, 4>::SizeType size)
 {
-    itk::OrientedImage<float, 4>::Pointer img = itk::OrientedImage<float, 4>::New();
-    img->SetRegions(size);
-    img->Allocate();
-    img->FillBuffer(0);
-    cdata->image = img;
+    itk::OrientedImage<float, 4>::Pointer measmu = itk::OrientedImage<float, 4>::New();
+    measmu->SetRegions(size);
+    measmu->Allocate();
+    measmu->FillBuffer(0);
+    cdata->measmu = measmu;
+    
+    itk::OrientedImage<float, 4>::Pointer measvar = itk::OrientedImage<float, 4>::New();
+    measvar->SetRegions(size);
+    measvar->Allocate();
+    measvar->FillBuffer(0);
+    cdata->measvar = measvar;
     
     cp->start = false;
     cp->postMeas = true;

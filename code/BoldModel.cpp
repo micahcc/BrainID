@@ -37,22 +37,22 @@ BoldModel::BoldModel(aux::vector stddev, int weightfunc, size_t sections) :
     std::cerr << "MEAS_SIZE    " << this->MEAS_SIZE    << std::endl;
     std::cerr << "INPUT_SIZE   " << this->INPUT_SIZE   << std::endl;
 
-    for(unsigned int i = 0 ; i < 3 ; i++) {
-        std::cerr << "TAU_0 -> "   << stateString[stateAt(indexof(TAU_0, i))]  << std::endl;
-        std::cerr << "ALPHA -> "   << stateString[stateAt(indexof(ALPHA, i))]  << std::endl;
-        std::cerr << "E_0   -> "   << stateString[stateAt(indexof(E_0  , i))]  << std::endl;
-        std::cerr << "V_0   -> "   << stateString[stateAt(indexof(V_0  , i))]  << std::endl;
-        std::cerr << "TAU_S -> "   << stateString[stateAt(indexof(TAU_S, i))]  << std::endl;
-        std::cerr << "TAU_F -> "   << stateString[stateAt(indexof(TAU_F, i))]  << std::endl;
-        std::cerr << "EPSILON -> " << stateString[stateAt(indexof(EPSILON, i))] << std::endl;
-        std::cerr << "V_T  -> "    << stateString[stateAt(indexof(V_T  , i))] << std::endl;
-        std::cerr << "Q_T  -> "    << stateString[stateAt(indexof(Q_T  , i))] << std::endl;
-        std::cerr << "S_T  -> "    << stateString[stateAt(indexof(S_T  , i))] << std::endl;
-        std::cerr << "F_T  -> "    << stateString[stateAt(indexof(F_T  , i))] << std::endl;
-    }
-    for(unsigned int i = 0 ; i < MEAS_SIZE; i++) {
-        std::cerr << "Extra vars: " << i << " -> " << STATE_SIZE-MEAS_SIZE+i;
-    }
+//    for(unsigned int i = 0 ; i < 3 ; i++) {
+//        std::cerr << "TAU_0 -> "   << stateString[stateAt(indexof(TAU_0, i))]  << std::endl;
+//        std::cerr << "ALPHA -> "   << stateString[stateAt(indexof(ALPHA, i))]  << std::endl;
+//        std::cerr << "E_0   -> "   << stateString[stateAt(indexof(E_0  , i))]  << std::endl;
+//        std::cerr << "V_0   -> "   << stateString[stateAt(indexof(V_0  , i))]  << std::endl;
+//        std::cerr << "TAU_S -> "   << stateString[stateAt(indexof(TAU_S, i))]  << std::endl;
+//        std::cerr << "TAU_F -> "   << stateString[stateAt(indexof(TAU_F, i))]  << std::endl;
+//        std::cerr << "EPSILON -> " << stateString[stateAt(indexof(EPSILON, i))] << std::endl;
+//        std::cerr << "V_T  -> "    << stateString[stateAt(indexof(V_T  , i))] << std::endl;
+//        std::cerr << "Q_T  -> "    << stateString[stateAt(indexof(Q_T  , i))] << std::endl;
+//        std::cerr << "S_T  -> "    << stateString[stateAt(indexof(S_T  , i))] << std::endl;
+//        std::cerr << "F_T  -> "    << stateString[stateAt(indexof(F_T  , i))] << std::endl;
+//    }
+//    for(unsigned int i = 0 ; i < MEAS_SIZE; i++) {
+//        std::cerr << "Extra vars: " << i << " -> " << STATE_SIZE-MEAS_SIZE+i;
+//    }
 
     std::cerr << "Sigma:" << std::endl;
     for(unsigned int i = 0 ; i < this->sigma.size() ; i++)
