@@ -33,7 +33,7 @@ for the prior distributions in this paper.
 
 \begin{table}[t]
 \centering
-\begin{tabular}{|c || c | c |}
+\begin{tabular}{|c || c | c | c |}
 \hline 
 Parameter & Distribution & $\mu$ & $\sigma$ \\
 \hline
@@ -121,115 +121,159 @@ when the effective sample size dropped below 25 for two measurement points
 in a row did I resample. This seemed to give good results, and avoided 
 temporary drops in the $N_{eff}$ caused by outliers. 
 
-\section{Choosing ${Pr}(y(T) | x(T))$}
-Choosing a representation of an unknown distribution is certainly tricky,
-and so the fact that $\hat{Pr}(y(T) | x(T)) = \nu_d + \nu_y$ means that
-there is a significant piece of the algorithm that is based primarily conjecture.
-Studies of the noise in FMRI typically attribute noise to a Gaussian random
-variable or an additive noise process with Gaussian steps. 
+\section{Choosing $P(y_k | x_k)$}
+Choosing a representation of an unknown distribution tricky, and while
+the usual choice is a Gaussian distribution, there are reasons why it
+may not be the best.  Studies of the noise in FMRI typically characterise
+noise as an additive noise process with Gaussian steps; a Wiener process. 
 
-Another natural choice might be one of the robust estimator weight functions, for
-example the Huber or bi-square. For the purpose of this work we will stick
-with long tailed distributions, however it is worth noting that long tails
-may not be the optimal choice in all, or even this situation. The justification
-for long tailed distributions is that we believe the noise to be long tailed,
-and the variance of the noise is not well known.
+As noted in \autoref{sec:Introduction Noise}, the noise is not strictly Gaussian,
+nor is it strictly Wiener. As with any unknown noise however, it is necessary 
+to make some assumption. If the weighting function ($P(y_k | x_k)$) exactly
+matches the measurement error, then the ideal particle filter will result.
+Particles with $x_k$'s that estimate $y_k$ far out on the weighting
+function will quickly have weights near 0. Thus, an weighting function that
+exactly matches $P(Y(t) | X(t))$ will easily, and correctly throw out incorrect
+particles. However assuming that this function is not going to be found 
+for arbitrary voxels, it is necessary to choose a function to approximate this 
+probability. The cost of choosing an overly broad distribution for this
+function is an overly broad $P(x_k | y_k)$; and ultimately an overly
+broad $P(x_k | y_{0:k})$. On the other hand, an overly thin distribution
+will lead to, at best, an overly thin representation of these same 
+distributions; but at wost will lead to particle deprivation (all particles
+being zero-weighted). If the \emph{true} distribution were found, particle
+deprivation would indicate that that time series is not being affected
+in any way describable by the prior distribution/model. Particle deprivation
+due to an under-variant weighting function gives no information. Thus,
+the cost of under variance is significantly higher; a fact that definitely needs
+to be taken into account. 
 
-Therefore, we tried three weighting functions based on three distributions: Gaussian, 
-Laplace and the Cauchy. The standard deviation of the distribution is extremely
-important to the convergence of particle filter. A standard deviation that is 
-too large will not allow the distribution to converge in any reasonable number of 
-measurements. A standard deviation below the standard deviation of the noise 
-will cause the algorithm to throw out perfectly acceptable particles. 
-The weighting function ultimately will shape the output distribution, $P[y]$, into that
-distribution, however the distribution of $x$ will still approach a reasonable
-estimate of its true distribution. Even an overly wide weighting function, will
-allow the Gaussian Mixture estimate of $X$ to converge to the correct location 
-parameters of the "real" posterior distribution, though the scale parameters may 
-be overly large.
+Because of the need to err on the side of caution I tested several weighting
+functions. In addition to the Gaussian I also tested the Laplace and Cauchy
+distributions, both of which have much wider tales than the Gaussian. The
+benefit of the wider tailed distributions is that they don't down-weight
+particles quite as fast. Additionally, the Laplace distribution has the
+benefit of having a non-zero slope at the origin. This means that even
+if the distribution is made overly broad, it will still distinguish between
+particles that are near the origin. Results with real data compare 
+the three distribution in \autoref{sec:Results Weights}.
 
-A reasonable method of setting the standard deviation of $\Omega$ may be by 
+After trial and error, I chose the weight standard deviation to be $.005$. Obviously
+the case of the Cauchy, this is simply the scale parameter. While I 
+did attempt to automatically set the standard deviation, I found that the algorithm
+became too unpredictable. Essentially, if the weight function isn't
+fixed across voxels, very noisy time series with no actual signal will 
+converge to nonsensical results. 
+In the future, it may be possible to set the standard deviation by
 taking a small sample from "resting" data and using the sample standard deviation.
 Since this is the first attempt at using particle filters for modeling the 
-BOLD model, in this work we set the standard deviation manually at <weight standard dev>,
-because it gives a more consistency and control. Of course this could be taken
-further, by testing the sample data against a set of stock distributions
-and choosing the best fit. This of course depends on having enough samples
-to make a reasonable inference, which may not always exist. 
-
+BOLD model, in this work I set the standard deviation manually at $.005$,
+because it gives a more consistency and control. 
 
 \subsection{Classical De-trending}
 The non-stationary
-aspect of a Weiner process as with $\nu_d$ is difficult to compensate for, and so various methods
+aspect of a Weiner process, presumably the result of integrating some
+$\nu_x$ is difficult to compensate for, and so various methods
 have been developed to compensate for it. \cite{Tanabe2002} and \cite{Smith1999} have
-demonstrated that this component is prevalent, and may in fact be a characteristic
-of FMRI. In some studies, as many as half the voxels benefit from detrending, meaning
-that this is certainly a serious barrier to inference. All the existing methods are performed
+demonstrated that this component is prevalent, and may in fact be an inherent  characteristic
+of FMRI. In some studies, as many as half the voxels benefit from detrending, presenting
+a serious barrier to inference (\cite{Smith2007}). All the existing methods are performed
 during the preprocessing stage, rather than as an integral part of analyzing the BOLD
 signal. There is no shortage of theories on the "best" method of detrending; however
-a head to head comparison, \cite{Tanabe2002}, showed that in most cases subtracting off
+in a head to head comparison, \cite{Tanabe2002}, showed that in most cases subtracting off
 a spline works the best. The benefit of the spline versus wavelets, high pass 
 filtering or other DC removal techniques is that the frequency response is not set.
 Rather, the spline is adaptive to the input, having a low cut off if the signal's 
 median stays constant but a high cut off frequency if the signal's median tends to
 shift heavily over the course of time. In spite of this, the spline will still remove some
-amount of signal, just like all of these methods, which is why the the method proposed
-in \autoref{sec:Methods Delta Based Inference} was considered. 
+amount of signal, just like all of these methods, which is why I considered the method proposed
+in \autoref{sec:Methods Delta Based Inference}.
 
-When using the median-based spline techniques, the resulting signal is will almost
-certainly end with a median of zero; in other words half the signal will be above zero,
-half below. The problem with this is this is not the "natural" BOLD signal. More specifically,
+The method I used to calculate the spline was picking one knot for every 15
+measurements in an image. Thus a 10 minute session at a repetition time of 
+2.1 seconds would have 19 knots. The knot first and last knots were each 
+given half the number of samples as the rest of the knots; which were all 
+located at the center of their sample group. The median of each sample group
+was then taken and used as the magnitude for the group. Taking the median 
+versus the mean seemed to work better, given the presence of outliers. It seems
+that there is potential to optimize the spline further using a canonical 
+HRF to find resting points; however, for this to work the experiment would have
+to be designed with this in mind. 
+
+When using the median-based spline techniques, the normalized signal will,
+by definition have a median near zero. 
+The problem with this is this is not the "natural" BOLD signal. More specifically,
 when the signal is inactive, the BOLD response \emph{should} be at 0\% change from
 the base level; activation may then increase, or for short periods decrease from this base.
 After removing the spline, the BOLD resting state will be below 0\%.
-This is troublesome because it reduces the power the BOLD model. One obvious solution
-is to add an arbitrary constant to each BOLD response. Of course this won't scale well
-to whole brain analysis. A more effective technique is adding a DC gain to the BOLD
-model. Essentially every measurement would then have a constant level added to it. 
-Like all the other model parameters, enough measurements should allow the correct
-value to be found. On the downside adding another dimension increases the
-complexity of the model, for a variable that is relatively obvious to a human.
+This is problematic because it reduces the ability of an algorithm to learn.
+One quick and dirty solution is to add an arbitrary constant to each BOLD response. 
+Of course this won't scale to whole-brain analysis, so a more effective technique 
+is adding a DC gain parameter to the BOLD model. 
+Like all the other model parameters, given enough measurements, correct
+value may be found. On the downside, adding another dimension increases the
+complexity of the model, for a variable that is relatively obvious by direct
+observation.
 
-Thus, a more conventional approach was used. A robust estimator of scale, was used
-to determine roughly where the base level was. The Median Absolute Deviation (MAD)
+Thus, I used a more conventional approach to deal with this. To determine
+the DC gain to be added to the signal I used a robust estimator 
+of scale. The Median Absolute Deviation (MAD)
 proved to be extremely accurate in determining how much to shift the signal up
-by. We tested both methods during the course of analysis, and found that the increase 
-in model complexity far outweighted the slight increase in flexibility. Its 
+by. I tested both methods during the course of analysis, and found that the increase 
+in model complexity far outweighed the slight increase in flexibility. Its 
 possible that a more accurate method may exist; however, for this case the 
-MAD seemed to work perfectly, as \autoref{fig:DesplineQuality} shows. 
+MAD seems to work as it should, as \autoref{fig:DesplineQuality} shows. 
+
+\begin{equation}
+y_{\text{gain}, 0:K} = 2\text{median}_{i=0:K}(y_i - \text{median}(y_{0:K}))
+\end{equation}
 
 \begin{figure}
 \caption{image of de-spline'd lines with "true" lines}
 \label{fig:DesplineQuality}
 \end{figure}
 
+A serious concern with adding and subtracting arbitrary values to 
+real data is whether this will create false positives. This is a legitimate
+concern; however, all the additions and subtractions done in this section
+have been very low frequency changes and should not substantially change
+the BOLD response, being a relatively high frequency signal. The typical
+method of preprocessing is a high-pass filter with a cutoff of around 30
+seconds; which should about match the spline with knots every fifteen 
+measurements. \cite{Tanabe2002} found that splines tended to far outperform the
+high-pass filter method. 
+
 \subsection{Delta Based Inference}
 \label{sec:Methods Delta Based Inference}
-I also propose and test a different method of dealing with the so called "drift". 
+The alternative to these sorts of low frequency manipulation is to
+go around the problem in another way. Here, I propose and test a 
+different method of dealing with the so called "drift". 
 Instead of comparing the direct output of the particle filter with the direct
-measurement, the algorith compares the change in signal over a single TR. 
-In most signal processing cases this would foolish, but that is because the 
-general assumption that all noise is high frequency is not the case here.
-In fact, every pipeline for the analysis of BOLD signal uses a high pass filter,
-but low poss filters are rarely applied, because it is a well known fact that 
-most of the signal is in the high frequency range and most of the noise is actually 
-in the low frequency range. The particle filter is an 
-extremely robust method of inference, and so I would assert that the particle
-filter ought to be given as \emph{raw} data as possible. While taking direct measurements
+measurement, the algorithm would compare the change in signal over a single TR,
+with the result of integrating the model for the same period. 
+In most signal processing cases this would be foolish, but that is because the 
+general assumption is that all noise is high frequency. Considering 
+the fact that every BOLD analysis pipeline uses a high pass filter,
+whereas low poss temporal filter are rarely applied, it makes sense
+that a derivative type method could work. The benefit of particle filters
+is that they are extremely robust method of inference, and I would assert 
+that the particle filter ought to be given as \emph{raw} data as possible. 
+While taking direct measurements
 without de-trending would give awful results, using the difference removes the 
-DC component and turns a Weiner process into a Gaussian random variable. 
+DC component and turns what is usually assumed to be a Weiner process into 
+a simple Gaussian random variable. 
 
 \begin{equation}
 \Delta y = y(t) - y(t-1) = g(x(t)) - g(x(t-1)) + \nu_y(t) - \nu_y(t-1) + \nu_d(t) - \nu(t-1)
 \label{eq:measass_delta}
 \end{equation}
 
-Because $\nu_d$ is a Weiner process, then $\nu_d(t) - \nu_d(t-1)$ is simply a Gaussian step. If
-$\nu_d$ is some other additive process, the difference will still be one of a few stable
-distributions. If $\nu_y$ is i.i.d. then the resulting distribution will still be zero mean
-with a maximum variance of twice the original variance. All the assumptions made originally
-for the particle filter hold, and all of the parameters may be distinguished based on
-the step sizes, thus it is not unreasonable to attempt to match the string of step sizes
+Even if $\nu_d$ is some other additive process, the difference will still be closer
+to I.I.D. than a Wiener process, as the autocorrelation of the $\delta y$ shows
+in \autoref{fig:QQDDelta} in \autoref{sec:Introduction Noise}. 
+ All the assumptions made originally
+for the particle filter still hold, and all of the parameters may be distinguished based on
+the step sizes, thus it is not unreasonable to consider matching the string of step sizes
 rather than string of direct readings. 
 
 \begin{figure}
@@ -241,7 +285,7 @@ rather than string of direct readings.
 \label{sec:Methods Preprocessing}
 As discussed in the section on de-trending, the normal pipeline for analyzing
 FMRI involves a great deal of preprocessing. In this paper we make an effort to
-minimize any type of preprocessing that will degrade the signal. 
+minimize any type of preprocessing that will modify the signal. 
 After FMRI data has been acquired it is always necessary to modify the
 data in some way to make different runs comparable. Because FMRI signal
 levels are unit-less, at the very least it is necessary to convert
