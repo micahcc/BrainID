@@ -24,7 +24,7 @@
 void outputVector(std::ostream& out, indii::ml::aux::vector mat);
 void outputMatrix(std::ostream& out, indii::ml::aux::matrix mat);
 Image4DType::Pointer fft_image(Image4DType::Pointer inimg);
-std::vector<Activation> read_activations(const char* filename);
+std::vector<Activation> read_activations(std::string base, std::string extra = "");
 Image4DType::Pointer conditionFMRI(const Image4DType::Pointer fmri_img,
             int knots, std::vector<Activation>& stim);
 Image3DType::Pointer Tmean(const Image4DType::Pointer fmri_img);

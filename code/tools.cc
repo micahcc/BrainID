@@ -162,12 +162,13 @@ Image3DType::Pointer mse(const Image4DType::Pointer input1,
     return out;
 }
 
-std::vector<Activation> read_activations(const char* filename)
-{
-    FILE* fin = fopen(filename, "r");
+std::vector<Activation> read_activations(std::string filename, std::string extra)
+{       
+    filename.append(extra);
+    FILE* fin = fopen(filename.c_str(), "r");
     std::vector< Activation > output;
     if(!fin) {
-        fprintf(stderr, "read_activations: \"%s\" is invalid\n", filename);
+        fprintf(stderr, "read_activations: \"%s\" is invalid\n", filename.c_str());
         return output;
     }
     
