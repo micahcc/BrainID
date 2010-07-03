@@ -318,46 +318,32 @@ In normal statistical parametric mapping, a gaussian smoothing
 filter is applied across the image as discussed in \autoref{sec:RFT}.
 After this, detrending is performed discussed by \autoref{sec:Detrend}.
 Recall that FMRI signal levels are unit-less and even though detrending isn't
-always necessary, at the very least it is necessary to convert
-the data into \% difference from the baseline. Changing to 
-\% difference removes no real data
-from signal since it merely subtracting then dividing by a constant. This
-is the signal that was input into the delta based particle filter.
-Of course there are much more advanced ways of performing this task.
-The generally accepted standard is actually to use a high pass filter, although the
+always necessary, at the very least the data must be converted 
+into \% difference from the baseline. Changing to 
+\% difference removes no real information
+from signal. This is the signal that was input into the delta based 
+particle filter. Of course, most of the time analysis is performed on the
+direct signal; which mandates the removal of low frequency drift.
+The generally accepted method is to use a high pass filter, although the
 cutoff frequency is application dependent and often applied haphazardly.
-The high pass filter thus removes the DC component of the signal, and 
-some amount of the so called "drift". The problem with this method is that it is
-not adaptive to the input. Huge variations in drift frequencies can exist 
-in a single time-series. Thus, a single cutoff frequency could miss a significant
-drift component, or it could remove \emph{actual} signal, if the cutoff frequency is
-set too high. This is why, as I mentioned in the De-trending section, a spline
-based detrending method will generally give better results. 
 
-For simulated and real images (tests with multiple time-series), tests were 
-also run with and without Gaussian filtering with sigma of %not sure todo
-were run, since it is standard
-practice to apply a Gaussian spatial filter to the images at each timestep. Obviously
-a spatial filter such as Gaussian filtering increased SNR but can also lead to less
-precision in the output maps.
+%For simulated and real images (tests with multiple time-series), tests were 
+%also run with and without Gaussian filtering with sigma of %not sure todo
+%were run, since it is standard
+%practice to apply a Gaussian spatial filter to the images at each timestep. Obviously
+%a spatial filter such as Gaussian filtering increased SNR but can also lead to less
+%precision in the output maps.
 
 \section{Simulation}
-We performed two types of simulations. First, we simulated a single BOLD time-series based
-on a random chosen set of model parameters. This process was relatively straight forward
+I performed two types of simulations. First, I simulated a single BOLD time-series based
+on a randomly selected set of model parameters. This process was relatively straight forward,
 given the state-space equations for the BOLD signal. After a "true" signal was generated,
-we then added a carrier level, since BOLD is typically measured as a \% difference from the
-base level. Finally, we added Gaussian noise, and a Weiner Process to the clean signal. The
-variance of the Gaussian noise may be expressed in terms of the desired noise SNR, $R$ as:
-\begin{equation}
-var(y_{noisy}) = var(y) / R
-\end{equation}
-Since SNR doesn't have quite the same meaning for a Wiener process based noise, the variance 
-of the Gaussian steps was set to be:
-\begin{equation}
-var(y_{noisy}) = var(y) / (4R)
-\end{equation}
+I then added a carrier level, since BOLD is typically measured as a \% difference from the
+base level. I tested the particle filter with two types of noise; independent and identically
+distributed gaussian noise and weiner drift. For both I tested with various standard deviations.
+
 Once this noisy simulated time series was generated, the exact same particle filter algorithm
-that would later be run on full sized images, was run on this single voxel image. We ran
+that would later be run on full sized images, was run on this single voxel image. I ran
 a series of tests to determine the convergence rate of the particle filter, the number
 of particles that were required, how weighting functions compared, how different de-trending
 methods compared with each other and, finally the variance of the result. By running the exact
@@ -377,29 +363,31 @@ our model is, and how consistent it will be for real data. A single timeseries, 
 thousands present in a real image, makes it easier to 
 compare the output with the ground truth, with various parameters. 
 
-Second we used a modified version of the FSL tool 
+Second I used a modified version of the FSL tool 
 POSSUM to generate an entire FMRI image from a parameter map. The parameter map was generated
-by creating a random image, smoothing it with a large Gaussian kernel, then thresholding
-the results. Finally connected regions were each given a set of parameters from a finite
-list of randomly chosen parameter sets. The result was a four dimensional (length x width
-x height x parameter) image with spatially varying parameters. Time-series of activation level
-was generated for each set of parameters, then activation levels were fed into POSSUM's 
-function for generating frequency domain data. The patche for POSSUM will be made available.
-For each time-series in the simulate FMRI image, the final \emph{static} parameters are saved
+by taking an existing activation map and assigning discrete parameter sets to each region.
+The result was a four dimensional (length x width
+x height x parameter) image with spatially varying parameters. Possum was then modified
+to take a parameter map and generate activation levels depending on the parameters at that
+point. The patch for POSSUM will be made available. As an unfortunate side effect of 
+not using Possums' original activation scale, I manually added 750 to the total level of
+simulated Possum images. This is because the BOLD \% difference levels were in the range
+of 50 - 100\% from the base, about 5 times as large as they should have been. Ultimately
+this should not have an effect on the parameters (other than perhaps $\epsilon$ and $V_0$). 
+For each time-series in the simulated FMRI image, the final \emph{static} parameters were saved
 into a parameter map. This parameter map may then be compared to the map used to generate the 
 simulated data; additionally a new simulation using the calculated parameters may also be 
-generated to test the functional difference between the two maps. This would give an absolute 
-quantitative difference between the two parameter sets irrespective to parameter slopiness.
-So for instance, if $V_0$ is halved, $\epsilon$ doubling may very well give a similar result.
-In this case the \% difference between the parameters will be large in each case, but the functional
-difference between the parameters will not be great. This is obviously a bad situation, which
-is why we wanted to test for it.
+generated to test the difference in activation levels between the real parameters and the
+estimated ones. Since it is clear that the parameters are not fully orthogonal 
+(\cite{Deneux2006}), its possible that two sets of parameters are functionally equivalent,
+but have different parameters. This way, an absolute 
+quantitative difference between the two parameter sets may be found.
 
 \section{Real Data}
 Finally, we also performed inference based on real FMRI data. The scanner we used...
 %... more specifics...
 
-The final result from calculating parameters with the real data was similar to that
-from the results from the POSSUM simulated data. The difference being that there was
-no ground truth the check it with. 
+Before performing tests on a full image, I tested the results of the particle filter
+on regions deemed active and non-active by statistical parametric mapping. 
+
 
