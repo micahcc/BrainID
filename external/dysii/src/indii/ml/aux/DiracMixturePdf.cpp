@@ -161,19 +161,33 @@ symmetric_matrix DiracMixturePdf::getDistributedCovariance()
     return ublas::symmetric_adaptor<matrix, ublas::lower>(tmp);
 }
 
-lower_triangular_matrix DiracMixturePdf::getDistributedStandardDeviation() {
+symmetric_matrix DiracMixturePdf::getDistributedStandardDeviation() {
   boost::mpi::communicator world;
   const unsigned int size = world.size();
-  lower_triangular_matrix sd_d(N,N);
+  symmetric_matrix sd_d(N,N);
   
   if (getDistributedSize() > 1) {
-    symmetric_matrix sigma_d(getDistributedCovariance());
-    int err;
+    aux::matrix cov = getDistributedCovariance();
+    aux::vector diag_v(cov.size1());
+    int err =  lapack::syev('V', 'U', cov, diag_v);
+    if(err != 0) {
+        throw(-1);
+    }
     
-    err = lapack::pptrf(sigma_d);
-    assert (err == 0);
-    noalias(sd_d) = ublas::triangular_adaptor<symmetric_matrix,
-        ublas::lower>(sigma_d);
+    for(unsigned int i = 0 ; i < diag_v.size() ; i++) {
+        if(abs(diag_v[i]) < 1e-10)
+            diag_v[i] = 0;
+        else
+            throw(-5);
+        diag_v[i] = sqrt(diag_v[i]);
+    }
+    ublas::diagonal_matrix<double, ublas::column_major, ublas::unbounded_array<double> >
+                diag_m(diag_v.size(), diag_v.data());
+    
+    aux::matrix tmp = prod(cov, diag_m);
+    cov = prod(tmp, trans(cov));
+    noalias(sd_d) = ublas::symmetric_adaptor<matrix, ublas::lower>(cov);
+
   } else {
     sd_d.clear();
   }

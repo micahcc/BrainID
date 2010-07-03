@@ -208,7 +208,7 @@ aux::matrix calcStdDev(indii::ml::aux::DiracMixturePdf& p)
     namespace ublas = boost::numeric::ublas;
     namespace lapack = boost::numeric::bindings::lapack;
     boost::mpi::communicator world;
-    aux::matrix cov = p.getDistributedCovariance();
+    aux::matrix cov = calcCov(p);
     
     aux::vector diag_v(cov.size1());
     int err =  lapack::syev('V', 'U', cov, diag_v);
@@ -222,8 +222,13 @@ aux::matrix calcStdDev(indii::ml::aux::DiracMixturePdf& p)
             count++;
             if(abs(diag_v[i]) < 1e-10)
                 diag_v[i] = 0;
-            else
+            else {
+                fprintf(stderr, "Eig:");
+                for(uint32_t j = 0 ; j < diag_v.size() ; j++)
+                    fprintf(stderr, "%f ", diag_v[j]);
+                fprintf(stderr, "\nWTF?");
                 throw(-5);
+            }
         }
         diag_v[i] = sqrt(diag_v[i]);
     }
@@ -290,11 +295,12 @@ int BoldPF::run(void* pass = NULL)
     
     if(call_points.start) 
         callback(this, pass);
-    
+
     /* 
      * Run the particle filter either until we reach a predetermined end
      * time, or until we are done processing measurements.
      */
+     matrix savedStd;
      status = RUNNING;
      while(status == RUNNING && disctime_s*dt_s < dt_l*measure.size()) {
         /* time */
@@ -335,46 +341,59 @@ int BoldPF::run(void* pass = NULL)
                 status = ERROR;
                 break;
             } 
+        
+            if(filter->getFilteredState().getDistributedTotalWeight() < .0001) {
+                *debug << "Normalizing because total weight has dropped\n";
+                filter->getFilteredState().distributedNormalise();
+            }
+
+            aux::vector tmpmu = filter->getFilteredState().
+                        getDistributedExpectation();
+            *debug << "Mu: ";
+            outputVector(*debug, tmpmu);
+            *debug << "\n\n";
+            
+            *debug << "Covariance:\n";
+            aux::symmetric_matrix statecov = calcCov(filter->getFilteredState());
+            outputMatrix(*debug, statecov);
+            *debug << "\n\n";
+
+            matrix stdDev;
+            try{
+                stdDev = calcStdDev(filter->getFilteredState());
+            } catch(int err){
+                filter->getFilteredState().dirty();
+                statecov = calcCov(filter->getFilteredState());
+                
+                if(rank == 0){
+                    *debug << "Ess: " << ess << endl;
+                    *debug << "Mu: ";
+                    outputVector(*debug, tmpmu);
+                    *debug << endl << "Cov: ";
+                    outputMatrix(*debug, statecov);
+                    *debug << endl << err << endl;
+                }
+                status = ERROR;
+                break;
+            }
+
+            if(ess > ESS_THRESH) {
+                savedStd = stdDev;
+            }
             
             //time to resample
             if(ess < ESS_THRESH && essprev < ESS_THRESH) {
-                *debug << " ESS: " << ess << ", Stratified Resampling\n";
-
-                filter->getFilteredState().distributedNormalise();
-                aux::vector tmpmu = filter->getFilteredState().getDistributedExpectation();
-                outputVector(*debug, tmpmu);
-                *debug << "\n\n";
-                
-                *debug << " Calculating Covariance " << std::endl;;
-                aux::matrix statecov = calcCov(filter->getFilteredState());
-                *debug << " Done " << std::endl;;
-                outputMatrix(*debug, statecov);
-                *debug << "\n\n";
-
-                aux::matrix stddev;
-                try {
-                    stddev = calcStdDev(filter->getFilteredState());
-                } catch(int err){
-                    filter->getFilteredState().setWeight(0, 0);
-                    statecov = calcCov(filter->getFilteredState());
-                    
-                    if(rank == 0){
-                        *debug << "Ess: " << ess << endl;
-                        *debug << "Mu: ";
-                        outputVector(*debug, tmpmu);
-                        *debug << endl << "Cov: ";
-                        outputMatrix(*debug, statecov);
-                        *debug << endl << err << endl;
-                    }
-                    status = ERROR;
-                    break;
+                if(ess < 10) {
+                    *debug << "Particle Collapse!" << std::endl;
+                    stdDev = savedStd;
                 }
-                
+
+                *debug << " ESS: " << ess;
+                *debug << "\nStratified Resampling\n";
                 filter->resample(&resampler);
-                
-                *debug << " ESS: " << ess << ", Regularized Resampling\n\n";
+                *debug << "\nRegularized Resampling\n\n";
                 filter->setFilteredState( resampler_reg->resample(
-                                filter->getFilteredState(), stddev) );
+                                filter->getFilteredState(), stdDev) );
             } else {
                 *debug << " ESS: " << ess << ", No Resampling Necessary!\n";
             }
@@ -476,11 +495,11 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
      * Particles Setup 
      */
     *debug << "Generating prior" << std::endl;
-    unsigned int localparticles = 28000/size;
+    unsigned int localparticles = 78125/size;
     
     //give excess particles to last rank
     if(rank == (size-1))
-        localparticles += 28000 - localparticles*size;
+        localparticles += 78125 - localparticles*size;
 
     aux::vector boldmu = bold_mean(measurements);
     aux::vector boldstd = bold_stddev(measurements, boldmu);

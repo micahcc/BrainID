@@ -118,7 +118,7 @@ public:
    *
    * @return \f$\Sigma^{1/2}\f$; standard deviation of the distribution.
    */
-  lower_triangular_matrix getStandardDeviation();
+  symmetric_matrix getStandardDeviation();
 
   /**
    * Get the standard deviation of the full distribution.
@@ -126,7 +126,7 @@ public:
    * @return \f$\Sigma^{1/2}\f$; standard deviation of the full
    * distribution.
    */
-  lower_triangular_matrix getDistributedStandardDeviation();
+  symmetric_matrix getDistributedStandardDeviation();
 
   /**
    * Redistribute components across nodes by space. This builds a shallow
