@@ -59,6 +59,24 @@ standard deviations are approaching the mean, I used a gamma distribution.
 This prevents the Gaussian from placing parameters in the nonsensical 
 territory of negative activation, or negative time constants.
 
+Another aspect of the prior is using enough particles to get a 
+sufficiently dense approximation of the prior. For 7 dimensions,
+getting a dense prior is extremely difficult. Insufficiently
+dense particles will result in inconsistent results, of course the
+processing time will scale up directly with the number of particles.
+A dense initial estimate is important so that some particles land
+near the solution; but as the variance decreases the number of 
+particles needed decreases as well. Thus, as a heuristic, initially
+the number of particles is set to 28,000, but after resampling,
+the number of particles is dropped to 1,000. Typically during the 
+first few measurements the variance drops precipitously since most particles
+don't describe the system well. The particles that are left are in a
+much more compact location, allowing them to be estimated with 
+significantly fewer particles. These numbers aren't set in stone,
+and depending on the complexity of the system or desired accuracy
+they could be changed; however, they seem to be the minimum that
+will give consistent results.
+
 \section{Model}
 As originally written in \autoref{sec:BOLD Physiology} the state variables
 for the BOLD model are as follows:
@@ -171,6 +189,7 @@ BOLD model, in this work I set the standard deviation manually at $.005$,
 because it gives a more consistency and control. 
 
 \subsection{Classical De-trending}
+\label{sec:Detrend}
 The non-stationary
 aspect of a Weiner process, presumably the result of integrating some
 $\nu_x$ is difficult to compensate for, and so various methods
@@ -284,12 +303,24 @@ rather than string of direct readings.
 \section{Preprocessing}
 \label{sec:Methods Preprocessing}
 As discussed in the section on de-trending, the normal pipeline for analyzing
-FMRI involves a great deal of preprocessing. In this paper we make an effort to
-minimize any type of preprocessing that will modify the signal. 
-After FMRI data has been acquired it is always necessary to modify the
-data in some way to make different runs comparable. Because FMRI signal
-levels are unit-less, at the very least it is necessary to convert
-the data into \% difference from the baseline. This process removes no data
+FMRI involves a great deal of preprocessing. The first and most important
+task is motion correction. To do this, a single volume in time is chosen, and
+volumes at every other time are registered to this one volume. This takes care
+of motion by the patient as well as some small changes in the magnetic
+fields that cause the image to shift. After this, a structural image of the
+patient is often registered to an atlas so that a grey-matter mask may
+be created. Since all the "activation" should occur in grey matter voxels,
+it made sense to restrict analysis to only these sections; although
+there may be partially grey-matter areas that are missed. This significantly
+eases computation time though. 
+
+In normal statistical parametric mapping, a gaussian smoothing
+filter is applied across the image as discussed in \autoref{sec:RFT}.
+After this, detrending is performed discussed by \autoref{sec:Detrend}.
+Recall that FMRI signal levels are unit-less and even though detrending isn't
+always necessary, at the very least it is necessary to convert
+the data into \% difference from the baseline. Changing to 
+\% difference removes no real data
 from signal since it merely subtracting then dividing by a constant. This
 is the signal that was input into the delta based particle filter.
 Of course there are much more advanced ways of performing this task.
