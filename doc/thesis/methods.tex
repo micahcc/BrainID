@@ -119,24 +119,43 @@ at times lead to the state equations careening out of control.
 The algorithm for resampling is described in \autoref{sec:Particle Filter Resampling}.
 The primary design decision for resampling is the regularizing
 kernel. As mentioned previously, the Gaussian kernel is extremely convenient,
-because it is so easy to sample from. As discussed in \autoref{sec:Particle Filter Resampling},
+because it is very simple to sample from. As discussed in \autoref{sec:Particle Filter Resampling},
 as long as resampling is kept as a last resort, some amount of over-smoothing
 won't impair convergence. Therefore, for this work I chose a Gaussian kernel of
 bandwidth equal to the original distribution's covariance. Obviously this will
 apply a rather large amount of smoothing to the distribution; however, on average
-resampling is only applied every 10 to 20 measurements, and because randomization
+resampling is only applied every 20 to 30 measurements, and because randomization
 is being applied to model updates this gives the filter some mobility. 
 
-The question of how often to resample is complex. The benefit of resampling
-is that particles that were minimally important can give much more 
-granularity in the middle of the distribution. At the same time, resampling
-right after a batch of outliers can result in an incorrect distribution.
-Because the memory of particle weights is not particularly long, "good" particles
-could be removed by resampling very often. Additionally, because regularized
-resampling is being with a large bandwidth, I did not want the particle filter
-to be prevented from converging by resampling too often. Therefore, only
-when the effective sample size dropped below 25 for two measurement points
-in a row did I resample. This seemed to give good results, and avoided 
+Because the regularized resample will almost certainly over-smooth,
+it is necessary to wait until the $N_{eff}$ drops relatively low
+(say below 25) before resampling is performed. As an additional 
+measure against sharp drops in the $N_{eff}$ that may quickly raise
+back up, resampling is only performed when two consecutive low
+$N_{eff}$'s are found. 
+The danger in waiting longer to resample is that if there were no
+particles in the vicinity of the solution, then particle deprivation
+can occur.  When this happens, the resampling
+stage will have an inappropriately small variance which will lead to an 
+inappropriately small support for the distribution. After this, the 
+distribution will be unrecoverable. Thus, when the $N_{eff}$ gets down
+to extremely low values, usually this is an indication of particle
+deprivation; something that is also usually accompanied by extremely
+fast drops in variance. When this happens, it is preferable 
+to return to a previous, wider estimate of scale for the regularization
+and continue from there. Thus to keep particle deprivation from 
+affecting the results; a previous covariance matrix is 
+used as the regularization bandwidth. In my algorithm I use
+the last covariance matrix for which the $E_{eff}$ was greater than
+the threshold. This guarantees that there was at least some amount of 
+particle diversity, and also helps prevent converging prematurely.
+
+When some sort of particle deprivation has not occurred, regularized
+resampling with a large bandwidth will slow down convergence. Thus
+as mentioned previously, to prevent over smoothing, the particle
+filter algorithm used here waits until 
+the effective sample size drops below 25 for two measurement points
+in a row. This seemed to give good results, and avoids
 temporary drops in the $N_{eff}$ caused by outliers. 
 
 \section{Choosing $P(y_k | x_k)$}
