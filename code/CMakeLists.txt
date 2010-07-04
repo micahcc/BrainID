@@ -55,8 +55,8 @@ ADD_EXECUTABLE(applymask applymask.cpp)
 ADD_EXECUTABLE(fft fft.cpp)
 ADD_EXECUTABLE(parammap_preprocess preprocess.cpp)
 ADD_EXECUTABLE(parammap_generate make_param_image.cpp)
-ADD_EXECUTABLE(parammap_evalrun parammap_eval.cpp)
-ADD_EXECUTABLE(parammap_evaldiff parammap_diff.cpp)
+ADD_EXECUTABLE(parammap_eval parammap_eval.cpp)
+#ADD_EXECUTABLE(parammap_evaldiff parammap_diff.cpp)
 ADD_EXECUTABLE(mse mse.cpp)
 ADD_EXECUTABLE(extract_pos extract_pos.cc)
 
@@ -77,8 +77,8 @@ TARGET_LINK_LIBRARIES(parammap_preprocess segment tools modNiftiImageIO
 TARGET_LINK_LIBRARIES(parammap_calc segment tools gfortran modNiftiImageIO blas lapack mpi 
     boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO gsl gslcblas dysii vullib )
-TARGET_LINK_LIBRARIES(parammap_evalrun modNiftiImageIO ITKIO ITKCommon vullib tools)
-TARGET_LINK_LIBRARIES(parammap_evaldiff modNiftiImageIO ITKIO ITKCommon vullib tools)
+TARGET_LINK_LIBRARIES(parammap_eval modNiftiImageIO ITKIO ITKCommon vullib tools)
+#TARGET_LINK_LIBRARIES(parammap_evaldiff modNiftiImageIO ITKIO ITKCommon vullib tools)
 TARGET_LINK_LIBRARIES(mse modNiftiImageIO ITKIO ITKCommon vullib tools)
 TARGET_LINK_LIBRARIES(boldgen tools gfortran blas lapack modNiftiImageIO boost_serialization boost_mpi
     BoldModel ITKAlgorithms ITKBasicFilters 

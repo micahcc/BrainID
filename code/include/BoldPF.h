@@ -349,14 +349,14 @@ int BoldPF::run(void* pass = NULL)
 
             aux::vector tmpmu = filter->getFilteredState().
                         getDistributedExpectation();
-            *debug << "Mu: ";
-            outputVector(*debug, tmpmu);
-            *debug << "\n\n";
+//            *debug << "Mu: ";
+//            outputVector(*debug, tmpmu);
+//            *debug << "\n\n";
             
-            *debug << "Covariance:\n";
+//            *debug << "Covariance:\n";
             aux::symmetric_matrix statecov = calcCov(filter->getFilteredState());
-            outputMatrix(*debug, statecov);
-            *debug << "\n\n";
+//            outputMatrix(*debug, statecov);
+//            *debug << "\n\n";
 
             matrix stdDev;
             try{
@@ -391,7 +391,9 @@ int BoldPF::run(void* pass = NULL)
                 *debug << " ESS: " << ess;
                 *debug << "\nStratified Resampling\n";
                 filter->resample(&resampler);
-                *debug << "\nRegularized Resampling\n\n";
+                *debug << "\nRegularized Resampling\n\nStandard Deviation:\n";
+                outputMatrix(*debug, stdDev);
+                *debug << "\n";
                 filter->setFilteredState( resampler_reg->resample(
                                 filter->getFilteredState(), stdDev) );
             } else {
@@ -475,7 +477,7 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
             disctime_l(0), disctime_s(0), status(UNSTARTED), method(method_p),
             resampler(numparticles), measure(measurements), stim(activations), 
             //ESS_THRESH(50 > .15*numparticles ? 50 : .15*numparticles)
-            ESS_THRESH(20)
+            ESS_THRESH(50)
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();

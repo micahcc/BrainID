@@ -482,6 +482,9 @@ int main(int argc, char* argv[])
                     }
                     
                     aux::vector a12 = BoldModel::getA(mu[BoldModel::E_0]);
+                    *output <<"Dumping A" << std::endl;
+                    *output << a12[0] << " " << a12[1] << std::endl;
+                    index4[3]++;
                     paramMuImg->SetPixel(index4, a12[0]);
                     index4[3]++;
                     paramMuImg->SetPixel(index4, a12[1]);

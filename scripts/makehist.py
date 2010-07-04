@@ -3,7 +3,7 @@
 import pylab as P
 import sys
 import nibabel 
-from paramtest import State, readout, transition
+from paramtest import State, readout, transition, getA
 from numpy import convolve
 import scipy.stats
 from scipy.stats.distributions import gamma
@@ -11,7 +11,7 @@ import scipy.io as io
 from bar import histo, plothisto
 from math import isinf
 
-DIVIDER = 2048
+DIVIDER = 4096
 HRFDIVIDER = 16
 
 #t = arange(0.0, 2.0, 0.01)
@@ -128,7 +128,7 @@ def processHistos(image, pos, p):
 if __name__ == "__main__":
     #Begin Main, main
     PARAM = -1
-    SHIFT=4
+    SHIFT=0
     param = PARAM
     if len(sys.argv) == 6:
         try:
@@ -137,7 +137,10 @@ if __name__ == "__main__":
         except:
             param = PARAM 
             pos = (0,0,0);
-    elif len(sys.argv) != 2:
+    elif len(sys.argv) == 2:
+        param = PARAM 
+        pos = (0,0,0);
+    else: 
         print "Usage: ", sys.argv[0], "<InDir> [position + param]"
         print "Looks in Dir for: "
         print "stim0, stim1 (must be shifted to match pfilter_input), histogram.nii.gz"
@@ -197,6 +200,7 @@ if __name__ == "__main__":
                         sys.argv[1] + "truebold.nii.gz"
         print "params"
         print getparams_mu(-1, histimg, pos)
+        print getA(getparams_mu(-1, histimg, pos)[2])
         exp_final= sim(stims, getparams_mu(-1, histimg, pos), TR, actual.get_header()['dim'][4])
         print len(exp_final)
         

@@ -49,6 +49,47 @@ typename T::Pointer readImage(std::string base, std::string name)
     return reader->GetOutput();
 }
 
+template <class SrcType, class DstType>
+void copyInformation(typename SrcType::Pointer src, typename DstType::Pointer dst)
+{
+    typename SrcType::PointType srcOrigin = src->GetOrigin();
+    typename DstType::PointType dstOrigin = dst->GetOrigin();
+    
+    typename SrcType::DirectionType srcDir = src->GetDirection();
+    typename DstType::DirectionType dstDir = dst->GetDirection();
+
+    typename SrcType::SpacingType srcSpace = src->GetSpacing();
+    typename DstType::SpacingType dstSpace = dst->GetSpacing();
+
+    unsigned int mindim = min(src->GetImageDimension(), dst->GetImageDimension());
+    unsigned int maxdim = max(src->GetImageDimension(), dst->GetImageDimension());
+
+    for(unsigned int ii = 0 ; ii < mindim ; ii++) 
+        dstOrigin[ii] = srcOrigin[ii];
+    for(unsigned int ii = mindim ; ii < maxdim ; ii++) 
+        dstOrigin[ii] = 0;
+    
+    for(unsigned int ii = 0 ; ii < mindim ; ii++) 
+        dstSpace[ii] = srcSpace[ii];
+    for(unsigned int ii = mindim ; ii < maxdim ; ii++) 
+        dstSpace[ii] = 1;
+    
+    for(unsigned int ii = 0 ; ii < maxdim ; ii++) {
+        for(unsigned int jj = 0 ; jj < maxdim ; jj++) {
+            if(ii < mindim && jj < mindim) 
+                dstDir(ii,jj) = srcDir(ii,jj);
+            else if(ii == jj)
+                dstDir(ii,jj) = 1;
+            else 
+                dstDir(ii,jj) = 0;
+        }
+    }
+
+    dst->SetSpacing(dstSpace);
+    dst->SetDirection(dstDir);
+    dst->SetOrigin(dstOrigin);
+}
+
 double readout(State& state, const std::vector<double>& params)
 {
     return params[V_0]*(params[A_1]*(1-state.Q)-params[A_2]*(1-state.V));
@@ -248,7 +289,9 @@ Image3DType::Pointer activation(Image4DType::Pointer paramImg, Label3DType::Poin
                 index4[ii] = index3[ii];
             for(index4[3] = 0 ; index4[3] < (int)params.size() ; index4[3]++) {
                 params[index4[3]] = paramImg->GetPixel(index4);
+                std::cout << params[index4[3]] << " ";
             }
+            std::cout << "\n";
 
             //Set up simulation state, initialize
             State state;
@@ -421,7 +464,7 @@ int main(int argc, char* argv[])
 {
     vul_arg<string> a_dir(0, "Directory to evaluate, needs: stim pfilter_input.nii.gz,"
                 " statuslabel.nii.gz, parammu_f.nii.gz [parammap.nii.gz]\nWill be written"
-                " to the directory:\nmse.nii.gz act.nii.gz [mse_true.nii.gz] [act_true.nii.gz]");
+                " to the directory:\nest_input.nii.gz mse.nii.gz act.nii.gz [mse_true.nii.gz] [act_true.nii.gz]");
 
     vul_arg<double> a_shortstep("-u", "micro-Step size", 1/2048.);
     vul_arg<double> a_timestep("-m", "macro step size (how often to compare, "
@@ -448,8 +491,9 @@ int main(int argc, char* argv[])
 
     Image4DType::Pointer realParamImg;
     try{
-        estParamImg = readImage<Image4DType>(a_dir(), 
-                    "parammu_f.nii.gz");
+        realParamImg = readImage<Image4DType>(a_dir(), 
+                    "parammap.nii.gz");
+        //todo, need to re-sample realParamImg
     } catch (...) {
 
     }
@@ -472,9 +516,15 @@ int main(int argc, char* argv[])
      */
     Image4DType::Pointer estSim = simulate(estParamImg, statusImg, input, 
                 a_shortstep(), a_timestep(), tlen);
+    copyInformation<Image4DType, Image4DType>(realTSImg, estSim);
+    writeImage<Image4DType>(a_dir(), "est_input.nii.gz", estSim);
+    
     Image3DType::Pointer estMse = mse(estSim, realTSImg);
-    Image3DType::Pointer estAct = activation(estParamImg, statusImg, 1/2048.);
+    copyInformation<Image4DType, Image3DType>(realTSImg, estMse);
     writeImage<Image3DType>(a_dir(), "mse.nii.gz", estMse);
+
+    Image3DType::Pointer estAct = activation(estParamImg, statusImg, 1/2048.);
+    copyInformation<Image4DType, Image3DType>(realTSImg, estAct);
     writeImage<Image3DType>(a_dir(), "act.nii.gz", estAct);
     
     /* 
@@ -485,9 +535,12 @@ int main(int argc, char* argv[])
         Image4DType::Pointer realSim = simulate(realParamImg, statusImg, input,
                     a_shortstep(), a_timestep(), tlen);
         Image3DType::Pointer realMse = mse(realSim, estSim);
+        copyInformation<Image4DType, Image3DType>(realTSImg, realMse);
+        writeImage<Image3DType>(a_dir(), "mse_true.nii.gz", realMse);
+
         Image3DType::Pointer realAct = activation(realParamImg, statusImg, 1/2048.);
-        writeImage<Image3DType>(a_dir(), "mse_true.nii.gz", estMse);
-        writeImage<Image3DType>(a_dir(), "act_true.nii.gz", estAct);
+        copyInformation<Image4DType, Image3DType>(realTSImg, realMse);
+        writeImage<Image3DType>(a_dir(), "act_true.nii.gz", realAct);
 
     }
 
