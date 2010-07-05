@@ -43,6 +43,7 @@ def smooth(pos, weights):
 #time 1
 P.figure(1)
 P.subplot(411)
+P.title("Update 1")
 xvals = scipy.linspace(-10,10,num=1500)
 measmean = 1
 meas = normalize([norm.pdf(i, measmean, 2) for i in xvals])
@@ -58,6 +59,7 @@ P.legend(["Measurement", "State Predict", "Updated State", "Support"], loc=2)
 
 #time 2
 P.subplot(412)
+P.title("Update 2")
 #meas = normalize([norm.pdf(i, measmean, 2) for i in xvals])
 P.plot([val for val in xvals], meas)
 
@@ -71,7 +73,7 @@ P.legend(["Measurement", "State Predict", "Updated State", "Support"], loc=2)
 
 #time 3
 P.subplot(413)
-P.title("Resampled Support")
+P.title("Resample Support")
 P.plot([val for val in xvals], state)
 part_points = [sample(xvals, state) for val in xvals]
 state = [1./len(xvals)  for val in xvals]
@@ -81,6 +83,7 @@ P.legend(["Posterior Distribution", "New Support"], loc=2)
 
 #time 4
 P.subplot(414)
+P.title("Update 3")
 tmpx, tmpy = smooth(part_points, state)
 tmpy = normalize(tmpy)
 meas = normalize([norm.pdf(i, measmean-2, 2) for i in xvals])

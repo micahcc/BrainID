@@ -1,4 +1,60 @@
 \chapter{Results}
+
+\section{Simulation}
+I performed two types of simulations. First, I simulated a single BOLD time-series based
+on a randomly selected set of model parameters. This process was relatively straight forward,
+given the state-space equations for the BOLD signal. After a "true" signal was generated,
+I then added a carrier level, since BOLD is typically measured as a \% difference from the
+base level. I tested the particle filter with two types of noise; independent and identically
+distributed gaussian noise and weiner drift. For both I tested with various standard deviations.
+
+Once this noisy simulated time series was generated, the exact same particle filter algorithm
+that would later be run on full sized images, was run on this single voxel image. I ran
+a series of tests to determine the convergence rate of the particle filter, the number
+of particles that were required, how weighting functions compared, how different de-trending
+methods compared with each other and, finally the variance of the result. By running the exact
+time-series with different noise realizations, it was possible to determine the model variance.
+As the reader may know, the error of an estimator may be calculated as:
+\begin{equation}
+MSE(\Theta) = Var(\Theta) + Bias(\Theta)^2
+\end{equation}
+The variance is an expression of how much the result would change for different noise realizations,
+whereas the bias is an expression of how well the model matches the true underlying model. In
+this case, because the same model is being used in the particle filter and underlying simulation,
+the bias is actually zero. Obviously when this is calculated using \emph{real} data with an unknown
+underlying state space equation, there will be some amount of bias error, but assuming that the
+noise is similar to the noise used in these tests, the model variance will actually be about the
+same. Thus calculating the model variance is extremely helpful in calculating how well determined
+our model is, and how consistent it will be for real data. A single timeseries, as opposed to the
+thousands present in a real image, makes it easier to 
+compare the output with the ground truth, with various parameters. 
+
+Second I used a modified version of the FSL tool 
+POSSUM to generate an entire FMRI image from a parameter map. The parameter map was generated
+by taking an existing activation map and assigning discrete parameter sets to each region.
+The result was a four dimensional (length x width
+x height x parameter) image with spatially varying parameters. Possum was then modified
+to take a parameter map and generate activation levels depending on the parameters at that
+point. The patch for POSSUM will be made available. As an unfortunate side effect of 
+not using Possums' original activation scale, I manually added 750 to the total level of
+simulated Possum images. This is because the BOLD \% difference levels were in the range
+of 50 - 100\% from the base, about 5 times as large as they should have been. Ultimately
+this should not have an effect on the parameters (other than perhaps $\epsilon$ and $V_0$). 
+For each time-series in the simulated FMRI image, the final \emph{static} parameters were saved
+into a parameter map. This parameter map may then be compared to the map used to generate the 
+simulated data; additionally a new simulation using the calculated parameters may also be 
+generated to test the difference in activation levels between the real parameters and the
+estimated ones. Since it is clear that the parameters are not fully orthogonal 
+(\cite{Deneux2006}), its possible that two sets of parameters are functionally equivalent,
+but have different parameters. This way, an absolute 
+quantitative difference between the two parameter sets may be found.
+
+\section{Real Data}
+Finally, we also performed inference based on real FMRI data. The scanner we used...
+%... more specifics...
+
+Before performing tests on a full image, I tested the results of the particle filter
+on regions deemed active and non-active by statistical parametric mapping. 
 \section{Single-Voxel Simulation}
 The results 
 
