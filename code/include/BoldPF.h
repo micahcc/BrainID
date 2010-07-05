@@ -300,8 +300,9 @@ int BoldPF::run(void* pass = NULL)
      * Run the particle filter either until we reach a predetermined end
      * time, or until we are done processing measurements.
      */
-     matrix savedStd;
+     //matrix savedStd;
      status = RUNNING;
+     bool resampled = false;
      while(status == RUNNING && disctime_s*dt_s < dt_l*measure.size()) {
         /* time */
         conttime = disctime_s*dt_s;
@@ -329,7 +330,13 @@ int BoldPF::run(void* pass = NULL)
                 callback(this, pass);
 
             //check to see if resampling is necessary
-            filter->getFilteredState().distributedNormalise();
+            if(filter->getFilteredState().getDistributedTotalWeight() < .0001) {
+                *debug << "Normalizing because total weight has dropped to" << 
+                            filter->getFilteredState().getDistributedTotalWeight()
+                            << "\n";
+                filter->getFilteredState().distributedNormalise();
+            }
+
             essprev = ess;
             ess = filter->getFilteredState().calculateDistributedEss();
             
@@ -337,15 +344,12 @@ int BoldPF::run(void* pass = NULL)
             //for instance if all the particles go to an unreasonable value like 
             //inf/nan/neg
             if(isnan(ess) || isinf(ess)) {
-                *debug << "\n" << "Error! ESS was " << ess << "\n";
+                *debug << "\n" << "Error! ESS was " << ess << "\n"
+                            << "Total Weight was " << filter->getFilteredState().
+                            getDistributedTotalWeight() << "\n";
                 status = ERROR;
                 break;
             } 
-        
-            if(filter->getFilteredState().getDistributedTotalWeight() < .0001) {
-                *debug << "Normalizing because total weight has dropped\n";
-                filter->getFilteredState().distributedNormalise();
-            }
 
             aux::vector tmpmu = filter->getFilteredState().
                         getDistributedExpectation();
@@ -377,16 +381,18 @@ int BoldPF::run(void* pass = NULL)
                 break;
             }
 
-            if(ess > ESS_THRESH) {
-                savedStd = stdDev;
-            }
+//            if(ess > ESS_THRESH) {
+//                savedStd = stdDev;
+//            }
             
             //time to resample
-            if(ess < ESS_THRESH && essprev < ESS_THRESH) {
-                if(ess < 10) {
-                    *debug << "Particle Collapse!" << std::endl;
-                    stdDev = savedStd;
-                }
+            if((ess < ESS_THRESH && essprev < ESS_THRESH) || 
+                        (conttime > 20. && !resampled)) {
+                resampled = true;
+//                if(ess < 10) {
+//                    *debug << "Particle Collapse!" << std::endl;
+//                    stdDev = savedStd;
+//                }
 
                 *debug << " ESS: " << ess;
                 *debug << "\nStratified Resampling\n";
@@ -477,7 +483,7 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
             disctime_l(0), disctime_s(0), status(UNSTARTED), method(method_p),
             resampler(numparticles), measure(measurements), stim(activations), 
             //ESS_THRESH(50 > .15*numparticles ? 50 : .15*numparticles)
-            ESS_THRESH(50)
+            ESS_THRESH(100)
 {
     boost::mpi::communicator world;
     const unsigned int rank = world.rank();
@@ -497,11 +503,11 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
      * Particles Setup 
      */
     *debug << "Generating prior" << std::endl;
-    unsigned int localparticles = 78125/size;
+    unsigned int localparticles = 16125/size;
     
     //give excess particles to last rank
     if(rank == (size-1))
-        localparticles += 78125 - localparticles*size;
+        localparticles += 16125 - localparticles*size;
 
     aux::vector boldmu = bold_mean(measurements);
     aux::vector boldstd = bold_stddev(measurements, boldmu);

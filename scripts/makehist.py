@@ -205,6 +205,15 @@ if __name__ == "__main__":
         print len(exp_final)
         
         P.plot([i*TR for i in range(len(exp_final))], exp_final)
+        times = [val[0] for val in stims]
+        times2 = [val[0] - .00001 for val in stims]
+        times.extend(times2);
+        times = sorted(times)
+        del(times[0])
+        levels = [(i%4)/2 for i in range(0, len(times))]
+        stims = zip(times,levels)
+
+        P.plot([val[0] for val in stims], [-.01+.005*val[1] for val in stims], 'r')
         leg.extend(["FinalMu"])
         P.legend(leg)
         
