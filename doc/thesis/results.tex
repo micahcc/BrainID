@@ -8,6 +8,53 @@ applied on a single voxel. The parameters are the same as
 those used later for entire image analysis; however, the results
 are more in-depth. 
 
+The run-time for a single voxel depends on the several factors. First, the
+overall length of the signal being analyzed. For 1000 measurements it takes
+about 10 to 15 minutes. On the other hand, in real circumstances the
+length is only around 150 measurements. The number of  integration
+can certainly make a large difference, however dropping below 1000 (.001 seconds)
+is definitely not recommended. 
+
+For a period I considered 1000 to be a
+fine number; however when generating simulated data I found that every once
+in a while 1000 was not enough. This is problematic in the actual particle
+filter since, given the large number of simultaneous integrations taking 
+place, its likely that a few particles will fail and be weighted at 0 because
+of this problem. Additionally, because the typical case where a failure would
+occur is at fast moving times/parameters the particles all tend to fail together.
+The result is particle deprivation - no particles with non-zero weights remain.
+The other possible outcome is that low time constant particles get pruned resulting
+in excessively smoothed estimates for the time series'. Its possible that a
+kind of stop-gap measure could be put into place; wherein particles that are
+about to be set to NaN are integrated again with finer grained steps. However
+many times the non-real results don't occur until several time steps after the 
+numbers get strange. So for instance, the timestep was too long, allowing 
+$f$ to go negative, resulting in extremely large values of $q$. There are many
+different ways where this sort of event can occur, and unfortunately sometimes
+there is no way to get back to before the state starting going out of control.
+
+Another crucial factor to run time is how long before the first re-sampling 
+occurs. Because the prior is represented initially with significantly more
+particles, if the model fits very well, or for some reason the effective
+number of particles stays high, resampling could take a long time to occur.
+When this happens the particles filter can take a factor of 10 longer to run.
+However, if the particle count isn't initially set high, there is a much larger
+chance of particle deprivation occurring. Since there is no real way to know
+how long it will take to resmaple the first time, there is little the 
+algorithm can do to fix this. On the other end of the specture, if the time
+series don't match the model at all, particle deprivation will occur extremely
+quickly, and even the recovery technique discussed in \autoref{sec:Resampling}
+won't help. The upshot of this is that the particle filter is able to 
+identify these sections very quickly, and thus not waste much time there.
+Of course, if a fat-tailed distribution is used for the weighting function,
+or the standard deviation of a Gaussian weighting function is very large,
+the particle filter will simply converge to meaningless values.
+
+\begin{figure}
+\caption{Particle Filter converging to values that make little sense,
+because the voxel did not correlate with the input in any known way}
+\end{figure}
+
 \section{Weighting Function Comparison}
 \label{sec:Results Weights}
 
