@@ -407,7 +407,7 @@ aux::vector BoldModel::defscale(unsigned int simul)
         ret(indexof(TAU_0  ,ii)) = .5; //originally .25
         ret(indexof(ALPHA  ,ii)) = .045;
         ret(indexof(E_0    ,ii)) = .03;
-        ret(indexof(V_0    ,ii)) = .006;
+        ret(indexof(V_0    ,ii)) = .01;
         ret(indexof(TAU_S  ,ii)) = .5; //originally .25
         ret(indexof(TAU_F  ,ii)) = .5; //originally .25
         ret(indexof(EPSILON,ii)) = .4; //originally .1

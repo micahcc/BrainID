@@ -433,46 +433,30 @@ int main(int argc, char* argv[])
 
                 *output << index3 << endl;
                 fillvector(meas, inImage, index4, a_delta());
-
-                //create the bold particle filter
-                BoldPF boldpf(meas, input, a_scale(), a_timestep(),
-                        output, a_num_particles(), 1./a_divider(), method,
-                        a_weight(), a_flat());
+                aux::vector mu;
+                aux::matrix cov;
                 
-                //set the callback function
-                for(unsigned int j = 0; j < 3 ; j++)
-                    ((cb_data*)cbdata)->pos[j] = index4[j];
-                boldpf.setCallBack(callpoints, cbfunc);
-                
-                for(uint32_t i = 0 ; i < RETRIES ; i++) {
+                for(uint32_t tries = 0 ; tries < RETRIES && result != BoldPF::DONE ; tries++) {
+                    //create the bold particle filter
+                    BoldPF boldpf(meas, input, a_scale(), a_timestep(),
+                            output, a_num_particles(), 1./a_divider(), method,
+                            a_weight(), a_flat());
+                    
+                    //set the callback function
+                    for(unsigned int j = 0; j < 3 ; j++)
+                        ((cb_data*)cbdata)->pos[j] = index4[j];
+                    boldpf.setCallBack(callpoints, cbfunc);
+                    
                     //run the particle filter
                     result = boldpf.run(cbdata);
-                    aux::matrix cov = boldpf.getDistribution().getDistributedCovariance();
-                    *output << "FINAL COVARIANCE!" << endl;
-                    for(uint32_t i = 0 ; i < cov.size1() ; i++) {
-                        for(uint32_t j = 0 ; j < cov.size2() ; j++) {
-                            cout << setw(15) << cov(i,j);
-                        }
-                        for(uint32_t j = 0 ; j < cov.size2() ; j++) {
-                            cout << setw(15) << cov(i,j);
-                        }
-                        cout << endl;
-                    }
-                    *output << endl << endl <<"---------------------------------" << endl << endl;
-                    if(cov(6,6) < .01) {
-                        *output << "Leaving Loop" << endl << endl;
-                        break;
-                    } else {
-                        boldpf.restart();
-                    }
+                    mu = boldpf.getDistribution().
+                                getDistributedExpectation();
+                    cov = boldpf.getDistribution().
+                                getDistributedCovariance();
                 }
                 
 
-                aux::vector mu = boldpf.getDistribution().
-                            getDistributedExpectation();
-                const aux::matrix cov = boldpf.getDistribution().
-                            getDistributedCovariance();
-                if(oMask && paramMuImg && boldpf.getStatus() == BoldPF::DONE) {
+                if(oMask && paramMuImg && result == BoldPF::DONE) {
                     oMask->SetPixel(index3, 2);
                     
                     for(uint32_t pp = 0 ; pp < BASICPARAMS ; pp++) {
