@@ -379,13 +379,13 @@ aux::vector BoldModel::defloc(unsigned int simul)
 {
     aux::vector ret(simul+simul*LVAR_SIZE+GVAR_SIZE);
     for(unsigned int ii = 0 ; ii < simul; ii++) {
-        ret[indexof(TAU_S, ii)] = 1.54; //Hu = 1.54, Vakorin = 2.72
-        ret[indexof(TAU_F, ii)] = 2.46; //Hu = 2.46, Vakorin = .56
-        ret[indexof(EPSILON, ii)] = .64; //Hu = .54
         ret[indexof(TAU_0, ii)] = .98; //Hu = .98, Vakorin = 1.18
         ret[indexof(ALPHA, ii)] = .33; //Hu = .33, 
         ret[indexof(E_0, ii)] = .34; //Hu = .34
         ret[indexof(V_0, ii)] = 0.03; //Hu = .03
+        ret[indexof(TAU_S, ii)] = 1.54; //Hu = 1.54, Vakorin = 2.72
+        ret[indexof(TAU_F, ii)] = 2.46; //Hu = 2.46, Vakorin = .56
+        ret[indexof(EPSILON, ii)] = .64; //Hu = .54
 
         ret[indexof(V_T,ii)] = 1;
         ret[indexof(Q_T,ii)] = 1;
@@ -404,13 +404,13 @@ aux::vector BoldModel::defscale(unsigned int simul)
     
     for(unsigned int ii = 0 ; ii < simul ; ii++) {
         //set the variances for all the variables to 3*sigma
-        ret(indexof(TAU_S  ,ii)) = .5; //originally .25
-        ret(indexof(TAU_F  ,ii)) = .5; //originally .25
-        ret(indexof(EPSILON,ii)) = .4; //originally .1
         ret(indexof(TAU_0  ,ii)) = .5; //originally .25
         ret(indexof(ALPHA  ,ii)) = .045;
         ret(indexof(E_0    ,ii)) = .03;
         ret(indexof(V_0    ,ii)) = .006;
+        ret(indexof(TAU_S  ,ii)) = .5; //originally .25
+        ret(indexof(TAU_F  ,ii)) = .5; //originally .25
+        ret(indexof(EPSILON,ii)) = .4; //originally .1
 
         ret(indexof(V_T,ii)) = 0;
         ret(indexof(Q_T,ii)) = 0;

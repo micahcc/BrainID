@@ -198,6 +198,7 @@ if __name__ == "__main__":
         except:
             print "No ground truth for bold available, if you have some put it in ", \
                         sys.argv[1] + "truebold.nii.gz"
+        P.plot([val[0] for val in stims], [.005*val[1] - .01 for val in stims], 'r')
         print "params"
         print getparams_mu(-1, histimg, pos)
         print getA(getparams_mu(-1, histimg, pos)[2])
@@ -214,7 +215,7 @@ if __name__ == "__main__":
         stims = zip(times,levels)
 
         P.plot([val[0] for val in stims], [-.01+.005*val[1] for val in stims], 'r')
-        leg.extend(["FinalMu"])
+        leg.extend(["FinalMu", "Stimuli"])
         P.legend(leg)
         
     else:
