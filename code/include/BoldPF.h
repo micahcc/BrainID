@@ -301,6 +301,7 @@ int BoldPF::run(void* pass = NULL)
      * time, or until we are done processing measurements.
      */
      matrix savedStd;
+     bool resampled = false;
      status = RUNNING;
      while(status == RUNNING && disctime_s*dt_s < dt_l*measure.size()) {
         /* time */
@@ -329,7 +330,12 @@ int BoldPF::run(void* pass = NULL)
                 callback(this, pass);
 
             //check to see if resampling is necessary
-            filter->getFilteredState().distributedNormalise();
+            if(filter->getFilteredState().getDistributedTotalWeight() < .0001) {
+                *debug << "Normalizing because total weight has dropped to" << 
+                            filter->getFilteredState().getDistributedTotalWeight()
+                            << "\n";
+                filter->getFilteredState().distributedNormalise();
+            }
             essprev = ess;
             ess = filter->getFilteredState().calculateDistributedEss();
             
@@ -342,11 +348,6 @@ int BoldPF::run(void* pass = NULL)
                 break;
             } 
         
-            if(filter->getFilteredState().getDistributedTotalWeight() < .0001) {
-                *debug << "Normalizing because total weight has dropped\n";
-                filter->getFilteredState().distributedNormalise();
-            }
-
             aux::vector tmpmu = filter->getFilteredState().
                         getDistributedExpectation();
 //            *debug << "Mu: ";
@@ -382,7 +383,9 @@ int BoldPF::run(void* pass = NULL)
             }
             
             //time to resample
-            if(ess < ESS_THRESH && essprev < ESS_THRESH) {
+            if((ess < ESS_THRESH && essprev < ESS_THRESH) || 
+                        (conttime > 20. && !resampled)) {
+                resampled = true;
                 if(ess < 10) {
                     *debug << "Particle Collapse!" << std::endl;
                     stdDev = savedStd;
