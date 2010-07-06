@@ -774,7 +774,7 @@ Image4DType::Pointer getspline(const Image4DType::Pointer fmri_img,
 }
 
 int dc_bump(const Image4DType::Pointer fmri_img, Image4DType::IndexType index, 
-            Image4DType::Pointer output, int count)
+            Image4DType::Pointer output)
 {
     /* Go to index and start at time 0 at that voxel*/
     itk::ImageLinearConstIteratorWithIndex< Image4DType > 
@@ -798,7 +798,7 @@ int dc_bump(const Image4DType::Pointer fmri_img, Image4DType::IndexType index,
         vit++;
     }
     sort(points.begin(), points.end());
-    double mad = 2*points[points.size()/2];
+    double mad = points[points.size()/2];
     
     itk::ImageLinearIteratorWithIndex< Image4DType > 
                 out_it(output, output->GetRequestedRegion());
@@ -812,7 +812,7 @@ int dc_bump(const Image4DType::Pointer fmri_img, Image4DType::IndexType index,
     return 0;
 }
 
-Image4DType::Pointer dc_bump(const Image4DType::Pointer fmri_img, int points)
+Image4DType::Pointer dc_bump(const Image4DType::Pointer fmri_img)
 {
     Image4DType::Pointer outimage = Image4DType::New();
     outimage->SetRegions(fmri_img->GetRequestedRegion());
@@ -832,7 +832,7 @@ Image4DType::Pointer dc_bump(const Image4DType::Pointer fmri_img, int points)
 
     for(fmri_it.GoToBegin(); fmri_it != fmri_stop ; fmri_it.NextLine()) {
         for( ; !fmri_it.IsAtEndOfLine(); ++fmri_it) {
-            dc_bump(fmri_img, fmri_it.GetIndex(), outimage, points);
+            dc_bump(fmri_img, fmri_it.GetIndex(), outimage);
         }
     }
 

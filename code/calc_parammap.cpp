@@ -158,8 +158,8 @@ Image4DType::Pointer preprocess_help(Image4DType::Pointer input,
         input = deSplineByStim(input, stim, sampletime, base);
     } else {
         std::cerr << "De-trending, then dividing by mean" << endl;
-        input = deSplineBlind(input, input->GetRequestedRegion().GetSize()[3]/15, base);
-        input = dc_bump(input, 5);
+        input = deSplineBlind(input, input->GetRequestedRegion().GetSize()[3]/25, base);
+        input = dc_bump(input);
     }
     std::cerr << "Done." << endl;
 

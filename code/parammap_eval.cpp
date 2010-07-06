@@ -227,7 +227,7 @@ Image4DType::Pointer simulate(Image4DType::Pointer paramImg, Label3DType::Pointe
             }
 
             std::cout << "Simulating " << index3 << std::endl;
-            for(uint32_t ll = 0 ; ll < size4[3] ; ll++)
+            for(uint32_t ll = 0 ; ll < params.size() ; ll++)
                 std::cout << params[ll] << " ";
             std::cout  << std::endl;
 

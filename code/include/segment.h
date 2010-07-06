@@ -26,8 +26,7 @@ Image4DType::Pointer deSplineByStim(const Image4DType::Pointer fmri_img,
 
 Image4DType::Pointer deSplineBlind(const Image4DType::Pointer fmri_img,
             unsigned int numknots, std::string base = "");
-Image4DType::Pointer dc_bump(const Image4DType::Pointer fmri_img,
-            int count);
+Image4DType::Pointer dc_bump(const Image4DType::Pointer fmri_img);
 
 Image4DType::Pointer splitByRegion(const Image4DType::Pointer fmri_img,
             const Label3DType::Pointer labelmap, int label);
