@@ -139,7 +139,10 @@ def mousecall(event):
                 continue
 
             #get timesteps for x axis
-            dt = images[i].get_header()['pixdim'][4]
+            if images[i].get_header()['pixdim'][4] > 0:
+                dt = images[i].get_header()['pixdim'][4]
+            else:
+                dt = 2.1
             stop = (images[i].get_header()['dim'][4]+1)*dt
             xpoints = range(0, stop, dt)[0:images[i].get_header()['dim'][4]]
 

@@ -2,6 +2,9 @@
 #include <itkImageFileWriter.h>
 #include <itkImageFileReader.h>
 #include <itkImageLinearIteratorWithIndex.h>
+#include <itkResampleImageFilter.h>
+#include <itkNearestNeighborInterpolateImageFunction.h>
+#include <itkLinearInterpolateImageFunction.h>
 #include <itkMetaDataObject.h>
 
 #include "tools.h"
@@ -29,11 +32,13 @@ template <typename T>
 void writeImage(std::string base, std::string name, typename T::Pointer in)
 {
     base.append(name);
+    std::cout << "Writing " << base << std::endl;
     typename itk::ImageFileWriter<T>::Pointer writer;
     writer = itk::ImageFileWriter<T>::New();
     writer->SetImageIO(itk::modNiftiImageIO::New());
     writer->SetFileName( base );
     writer->SetInput( in );
+    std::cout << "Done " << std::endl;
     writer->Update();
 }
 
@@ -41,11 +46,13 @@ template <typename T>
 typename T::Pointer readImage(std::string base, std::string name)
 {
     base.append(name);
+    std::cout << "Reading " << base << std::endl;
     typename itk::ImageFileReader<T>::Pointer reader;
     reader = itk::ImageFileReader<T>::New();
     reader->SetImageIO(itk::modNiftiImageIO::New());
     reader->SetFileName( base );
     reader->Update();
+    std::cout << "Done " << std::endl;
     return reader->GetOutput();
 }
 
@@ -218,6 +225,11 @@ Image4DType::Pointer simulate(Image4DType::Pointer paramImg, Label3DType::Pointe
             for(index4[3] = 0 ; index4[3] < (int)params.size() ; index4[3]++) {
                 params[index4[3]] = paramImg->GetPixel(index4);
             }
+
+            std::cout << "Simulating " << index3 << std::endl;
+            for(uint32_t ll = 0 ; ll < size4[3] ; ll++)
+                std::cout << params[ll] << " ";
+            std::cout  << std::endl;
 
             //Set up simulation state, initialize
             State state;
@@ -491,11 +503,11 @@ int main(int argc, char* argv[])
 
     Image4DType::Pointer realParamImg;
     try{
-        realParamImg = readImage<Image4DType>(a_dir(), 
-                    "parammap.nii.gz");
+        realParamImg = readImage<Image4DType>(a_dir(), "parammap.nii.gz");
         //todo, need to re-sample realParamImg
     } catch (...) {
-
+        std::cout << "...none there. If you want to compare with real " 
+                    << "parameters you need to add parammap.nii.gz to the dir" << std::endl;
     }
     
     /* Open Stimulus file */
@@ -532,13 +544,23 @@ int main(int argc, char* argv[])
      * the simulation with the true paramters
      */
     if(realParamImg) {
-        Image4DType::Pointer realSim = simulate(realParamImg, statusImg, input,
+        typedef itk::LinearInterpolateImageFunction<Image4DType, double> InterpT;
+        typedef itk::ResampleImageFilter<Image4DType, Image4DType, double> ResampT;
+        InterpT::Pointer interp = InterpT::New();
+        ResampT::Pointer resampler = ResampT::New();
+        resampler->SetInterpolator(interp);
+        resampler->SetInput(realParamImg);
+        resampler->SetOutputParametersFromImage(estParamImg);
+        resampler->Update();
+        writeImage<Image4DType>(a_dir(), "hmmm.nii.gz", resampler->GetOutput());
+        Image4DType::Pointer realParamImg2 = resampler->GetOutput();
+        Image4DType::Pointer realSim = simulate(realParamImg2, statusImg, input,
                     a_shortstep(), a_timestep(), tlen);
         Image3DType::Pointer realMse = mse(realSim, estSim);
         copyInformation<Image4DType, Image3DType>(realTSImg, realMse);
         writeImage<Image3DType>(a_dir(), "mse_true.nii.gz", realMse);
 
-        Image3DType::Pointer realAct = activation(realParamImg, statusImg, 1/2048.);
+        Image3DType::Pointer realAct = activation(realParamImg2, statusImg, 1/2048.);
         copyInformation<Image4DType, Image3DType>(realTSImg, realMse);
         writeImage<Image3DType>(a_dir(), "act_true.nii.gz", realAct);
 

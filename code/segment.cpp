@@ -687,56 +687,44 @@ int detrend_avg(const Image4DType::Pointer fmri_img, Image4DType::IndexType inde
     fmri_it.SetDirection(3);
     fmri_it.SetIndex(index);
 
+    const unsigned int COUNT_FB = 3; //2 points each for front and back
     double averages[knots];
     int counts[knots];
-    int starts[knots-2];
-
-    int length = fmri_img->GetRequestedRegion().GetSize()[3];
-    double rsize = length / (knots-2);
-    for(int i = 0 ; i < (knots-2) ; i++) {
-        starts[i] = rsize*i;
-    }
+    uint32_t length = fmri_img->GetRequestedRegion().GetSize()[3];
+    double rsize = (length - 2*COUNT_FB) / (knots-2);
+//    std::cout << "rsize: " << rsize << ", length:" << length << "\n";
     for(int i = 0 ; i < knots ; i++) {
         counts[i] = 0;
         averages[i] = 0;
     }
     
-    int region = 0;
-    for(fmri_it.GoToBeginOfLine(); !fmri_it.IsAtEndOfLine(); ++fmri_it) {
+    fmri_it.GoToBeginOfLine();
+    for(uint32_t i=0; i < length; i++) {
         /* Figure out Region */
-        if(fmri_it.GetIndex()[3] < length/((knots-2)*2)) {
-            averages[0] += fmri_it.Get();
+        if(i < COUNT_FB) {
             counts[0]++;
-        } else if(fmri_it.GetIndex()[3] > (length - length/((knots-2)*2))) {
-            averages[(knots-2)+1] += fmri_it.Get();
-            counts[(knots-2)+1]++;
-        }
-
-        /* Check to see if the index is for the last region(since there is no)
-         * start for the region after that */
-        if(fmri_it.GetIndex()[3] > starts[(knots-2)-1]) {
-            averages[(knots-2)] += fmri_it.Get();
-            counts[(knots-2)]++;
-        /* Check to see if the index is for the next region and
-         * if that is the case, then add the data to the next region
-         * and iterate the region count*/
-        } else if(fmri_it.GetIndex()[3] > starts[region+1]) {
-            averages[region+2] += fmri_it.Get();
-            counts[region+2]++;
-            region++;
-        /* Otherwise, just go with the current region */
+            averages[0] += fmri_it.Get();
+        } else if(i >= length - COUNT_FB) {
+            counts[knots-1]++;
+            averages[knots-1] += fmri_it.Get();
         } else {
-            averages[region+1] += fmri_it.Get();
-            counts[region+1]++;
+            counts[(int)((i-COUNT_FB)/rsize)+1]++;
+            averages[(int)((i-COUNT_FB)/rsize)+1] += fmri_it.Get();
         }
+        ++fmri_it;
     }
+
+//    std::cout << "knots " << knots << "\n";
+//    for(unsigned int i = 0 ; i < knots ; i++)
+//        std::cout << i << ": " << counts[i] << "\n";
 
     double xpos[knots];
     xpos[0] = 0;
-    xpos[(knots-2)+1] = length-1;;
-    xpos[(knots-2)] = (length + starts[(knots-2)-1])/2;
-    for(int i = 0 ; i < (knots-2)-1 ; i++){
-        xpos[i+1] = (starts[i+1] + starts[i])/2;
+    xpos[knots-1] = length-1;
+    unsigned int pos = COUNT_FB;
+    for(int i = 1 ; i < knots-1 ; i++){
+        xpos[i] = (pos + counts[i]-1 + pos)/2.;
+        pos += counts[i];
     }
 
     for(int i = 0 ; i < knots ; i++) {
