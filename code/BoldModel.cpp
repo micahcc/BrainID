@@ -107,40 +107,55 @@ int BoldModel::transition(aux::vector& dustin, const double time,
     double dotV, dotQ, dotS;
     double tmpA, tmpB;
     double tmp = 0;
+    double input = u_t[0];
+    assert(indexof(ALPHA, 0) == indexof(ALPHA, 1));
+    assert(indexof(E_0, 0)   ==   indexof(E_0, 1));
+    assert(indexof(TAU_0, 0) == indexof(TAU_0, 1));
+    double alpha_i = 1./dustin[indexof(ALPHA, 0)];
+    double e_0 = dustin[indexof(E_0, 0)];
+    double k_0 = 1./dustin[indexof(TAU_0, 0)];
 
     //transition the actual state variables
     for(unsigned int ii=0 ; ii<SIMUL_STATES ; ii++) {
-        unsigned int v_t = indexof(V_T,ii);
-        unsigned int q_t = indexof(Q_T,ii);
-        unsigned int s_t = indexof(S_T,ii);
-        unsigned int f_t = indexof(F_T,ii);
+        double v_t = dustin[indexof(V_T,ii)];
+        double q_t = dustin[indexof(Q_T,ii)];
+        double f_t = dustin[indexof(F_T,ii)];
+//    asm("noop");
+//    asm("noop");
+//    asm("noop");
+//    asm("noop");
+//    asm("noop");
+
         // Normalized Blood Volume
         //V_t* = (1/tau_0) * ( f_t - v_t ^ (1/\alpha)) 
-        dotV = (  ( dustin[f_t] - 
-                    pow(dustin[v_t], 1./dustin[indexof(ALPHA, ii)]) ) / 
-                    dustin[indexof(TAU_0,ii)]  );
+        dotV = k_0*( f_t-pow(v_t, alpha_i) );
 
         // Normalized Deoxyhaemoglobin Content
         //Q_t* = \frac{1}{tau_0} * (\frac{f_t}{E_0} * (1- (1-E_0)^{1/f_t}) - 
         //              \frac{q_t}{v_t^{1-1/\alpha})
-        tmpA = (dustin[f_t] / dustin[indexof(E_0, ii)]) * 
-                    (1 - pow( 1. - dustin[indexof(E_0, ii)], 1./dustin[f_t]));
-        tmpB = dustin[q_t] / 
-                    pow(dustin[v_t], 1.-1./dustin[indexof(ALPHA,ii)]);
-        dotQ =  ( tmpA - tmpB )/dustin[indexof(TAU_0,ii)];
+        tmpA = (f_t / e_0) * (1 - pow(1. - e_0, 1./f_t));
+        tmpB = q_t / pow(v_t, 1.-alpha_i);
+        dotQ =  k_0*( tmpA - tmpB );
 
         // Second Derivative of Cerebral Blood Flow
         //S_t* = \epsilon*u_t - 1/\tau_s * s_t - 1/\tau_f * (f_t - 1)
-        dotS = u_t[0]*dustin[indexof(EPSILON, ii)] 
-                    - dustin[s_t]/dustin[indexof(TAU_S, ii)]
-                    - (dustin[f_t] - 1.) / dustin[indexof(TAU_F,ii)];
+        double s_t = dustin[indexof(S_T,ii)];
+        double epsilon = dustin[indexof(EPSILON, ii)];
+        double tau_f = dustin[indexof(TAU_F, ii)];
+        double tau_s = dustin[indexof(TAU_S, ii)];
+        dotS = epsilon - s_t/tau_s - (f_t - 1.) / tau_f;
         // Normalized Cerebral Blood Flow
         //f_t* = s_t;
-        dustin[f_t] += dustin[s_t]*delta_t;
-        dustin[v_t] += dotV*delta_t;
-        dustin[q_t] += dotQ*delta_t;
-        dustin[s_t] += dotS*delta_t;
-        tmp += dustin[f_t] + dustin[v_t] + dustin[q_t] + dustin[s_t];
+        dustin[indexof(F_T,ii)] += dustin[s_t]*delta_t;
+        dustin[indexof(F_T,ii)] += dotV*delta_t;
+        dustin[indexof(Q_T,ii)] += dotQ*delta_t;
+        dustin[indexof(S_T,ii)] += dotS*delta_t;
+        tmp += dotS + dotQ+ s_t + dotV;
+//    asm("noop");
+//    asm("noop");
+//    asm("noop");
+//    asm("noop");
+//    asm("noop");
     }
 
     /* Check for Nan, (nan operated with anything is nan),
