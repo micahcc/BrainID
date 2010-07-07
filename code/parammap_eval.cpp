@@ -102,6 +102,15 @@ double readout(State& state, const std::vector<double>& params)
     return params[V_0]*(params[A_1]*(1-state.Q)-params[A_2]*(1-state.V));
 }
 
+//typedef int v4sf __attribute__ ((mode(V4SF))); // vector of four single floats
+
+#include <xmmintrin.h>
+union d2vector 
+{
+  __v2df v;
+  double f[2];
+};
+
 int transition(State& state, const std::vector<double>& params, double delta, 
             double in)
 {
@@ -112,14 +121,11 @@ int transition(State& state, const std::vector<double>& params, double delta,
     change.V = (state.F - pow(state.V, 1./params[ALPHA]))/params[TAU_0];
     change.Q = (state.F*(1.-pow(1.-params[E_0],1./state.F))/params[E_0] -
                 state.Q/pow(state.V, 1.-1./params[ALPHA]))/params[TAU_0];
+
     state.S += change.S*delta;
     state.F += change.F*delta;
     state.V += change.V*delta;
     state.Q += change.Q*delta;
-    if(isinf(state.S) || isnan(state.S)) return -1;
-    if(isinf(state.F) || isnan(state.F)) return -2;
-    if(isinf(state.V) || isnan(state.V)) return -3;
-    if(isinf(state.Q) || isnan(state.Q)) return -4;
     return 0;
 }
 
@@ -163,7 +169,7 @@ void printError(int err, std::vector<double>& params, State& state,
                     "TAU_F=%f, EPSILON=%f, A_1=%f, A_2=%f\n", params[TAU_0], 
                     params[ALPHA], params[E_0], params[V_0], params[TAU_S], 
                     params[TAU_F], params[EPSILON], params[A_1], params[A_2]);
-            exit(err);
+            throw(err);
         case -2:
             printf("Error in f at %f - %f\n", rt, prev_rt);
             printf("State: V:%f Q:%f F:%f S:%f\n", state.V, state.Q, state.F, state.S);
@@ -171,7 +177,7 @@ void printError(int err, std::vector<double>& params, State& state,
                     "TAU_F=%f, EPSILON=%f, A_1=%f, A_2=%f\n", params[TAU_0], 
                     params[ALPHA], params[E_0], params[V_0], params[TAU_S], 
                     params[TAU_F], params[EPSILON], params[A_1], params[A_2]);
-            exit(err);
+            throw(err);
         case -3:
             printf("Error in v at %f - %f\n", rt, prev_rt);
             printf("State: V:%f Q:%f F:%f S:%f\n", state.V, state.Q, state.F, state.S);
@@ -179,7 +185,7 @@ void printError(int err, std::vector<double>& params, State& state,
                     "TAU_F=%f, EPSILON=%f, A_1=%f, A_2=%f\n", params[TAU_0], 
                     params[ALPHA], params[E_0], params[V_0], params[TAU_S], 
                     params[TAU_F], params[EPSILON], params[A_1], params[A_2]);
-            exit(err);
+            throw(err);
         case -4:
             printf("Error in q at %f - %f\n", rt, prev_rt);
             printf("State: V:%f Q:%f F:%f S:%f\n", state.V, state.Q, state.F, state.S);
@@ -187,7 +193,7 @@ void printError(int err, std::vector<double>& params, State& state,
                     "TAU_F=%f, EPSILON=%f, A_1=%f, A_2=%f\n", params[TAU_0], 
                     params[ALPHA], params[E_0], params[V_0], params[TAU_S], 
                     params[TAU_F], params[EPSILON], params[A_1], params[A_2]);
-            exit(err);
+            throw(err);
         default:
         break;
     }
@@ -225,11 +231,8 @@ Image4DType::Pointer simulate(Image4DType::Pointer paramImg, Label3DType::Pointe
             for(index4[3] = 0 ; index4[3] < (int)params.size() ; index4[3]++) {
                 params[index4[3]] = paramImg->GetPixel(index4);
             }
-
-            std::cout << "Simulating " << index3 << std::endl;
-            for(uint32_t ll = 0 ; ll < params.size() ; ll++)
-                std::cout << params[ll] << " ";
-            std::cout  << std::endl;
+            
+            std::cout << index3 << " ";
 
             //Set up simulation state, initialize
             State state;
@@ -244,7 +247,7 @@ Image4DType::Pointer simulate(Image4DType::Pointer paramImg, Label3DType::Pointe
             size_t input_index = 0;
             double rt = 0;
             double prev_rt = 0;
-
+            try {
             for(size_t ii = 0 ; index4[3] != count; ii++) {
                 prev_rt = rt;
                 rt = ii*dt_s; //"real" time
@@ -258,13 +261,18 @@ Image4DType::Pointer simulate(Image4DType::Pointer paramImg, Label3DType::Pointe
 
                 /*Update state variables*/
                 int res = transition(state, params, rt-prev_rt, input);
-                printError(res, params, state, rt, prev_rt);
+//                printError(res, params, state, rt, prev_rt);
 
                 /*If it is time to sample, do so*/
                 while(dt_l*index4[3] <= rt) {
+                    if(isnan(readout(state, params)) || isinf(readout(state,params))) 
+                        throw(-2);
                     out->SetPixel(index4, readout(state, params));
                     index4[3]++;
                 }
+            }
+            } catch(...) {
+                std::cout << "Skipping " << index4 << std::endl;
             }
             ++itL;
         }
