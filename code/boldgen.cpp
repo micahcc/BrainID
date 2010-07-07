@@ -357,28 +357,6 @@ int main (int argc, char** argv)
         writer->SetInput(measImage);
         writer->Update();
     }
-    {
-        AddF::Pointer add = AddF::New();
-        MultF::Pointer mul = MultF::New();
-        mul->SetInput(measImage);
-        mul->SetConstant(a_carrier());
-        add->SetInput(mul->GetOutput());
-        add->SetConstant(a_carrier());
-        add->Update();
-        measImage = add->GetOutput();
-    }
-    
-    if(!a_boldfile().empty()) {
-        itk::ImageFileWriter< Image4DType >::Pointer writer = 
-            itk::ImageFileWriter< Image4DType >::New();
-        writer->SetImageIO(itk::modNiftiImageIO::New());
-        ostringstream oss("");
-        oss << "carrier-" << a_boldfile();
-        writer->SetFileName(oss.str());  
-        writer->SetInput(measImage);
-        writer->Update();
-    }
-
     if(fout.is_open()) {
         fout.close();
     }
@@ -430,6 +408,28 @@ int main (int argc, char** argv)
         }
         gsl_rng_free(rng);
     }
+    {
+        AddF::Pointer add = AddF::New();
+        MultF::Pointer mul = MultF::New();
+        mul->SetInput(measImage);
+        mul->SetConstant(a_carrier());
+        add->SetInput(mul->GetOutput());
+        add->SetConstant(a_carrier());
+        add->Update();
+        measImage = add->GetOutput();
+    }
+    
+    if(!a_boldfile().empty()) {
+        itk::ImageFileWriter< Image4DType >::Pointer writer = 
+            itk::ImageFileWriter< Image4DType >::New();
+        writer->SetImageIO(itk::modNiftiImageIO::New());
+        ostringstream oss("");
+        oss << "carrier-" << a_boldfile();
+        writer->SetFileName(oss.str());  
+        writer->SetInput(measImage);
+        writer->Update();
+    }
+
     
     if(!a_statefile().empty()) {
         itk::ImageFileWriter< Image4DType >::Pointer writer = 
