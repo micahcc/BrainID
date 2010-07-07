@@ -238,7 +238,7 @@ aux::matrix calcStdDev(indii::ml::aux::DiracMixturePdf& p)
     tmp = prod(cov, diag_m);
     cov = prod(tmp, trans(cov));
 
-    fprintf(stdout, "(%i)\n", count);
+//    fprintf(stdout, "(%i)\n", count);
     return cov;
 }
 
@@ -329,9 +329,11 @@ int BoldPF::run(void* pass = NULL)
             if(call_points.postMeas) 
                 callback(this, pass);
 
+            
             //check to see if resampling is necessary
-            if(filter->getFilteredState().getDistributedTotalWeight() < .0001) {
-                *debug << "Normalizing because total weight has dropped to" << 
+            if(filter->getFilteredState().getDistributedTotalWeight() < .0001 ||
+                        filter->getFilteredState().getDistributedTotalWeight() > 1000) {
+                *debug << "Normalizing total weight reached " << 
                             filter->getFilteredState().getDistributedTotalWeight()
                             << "\n";
                 filter->getFilteredState().distributedNormalise();
@@ -342,11 +344,12 @@ int BoldPF::run(void* pass = NULL)
             //check for errors, could be caused by total collapse of particles,
             //for instance if all the particles go to an unreasonable value like 
             //inf/nan/neg
-            if(isnan(ess) || isinf(ess)) {
+            if(isnan(ess)) {
                 *debug << "\n" << "Error! ESS was " << ess << "\n";
                 status = ERROR;
                 break;
             } 
+            *debug << "Total Weight " << filter->getFilteredState().getDistributedTotalWeight() << "\n";
         
             aux::vector tmpmu = filter->getFilteredState().
                         getDistributedExpectation();
@@ -500,17 +503,17 @@ BoldPF::BoldPF(const std::vector<aux::vector>& measurements,
      * Particles Setup 
      */
     *debug << "Generating prior" << std::endl;
-    unsigned int localparticles = numparticles/size;
+    unsigned int localparticles = 16000/size;
     
     //give excess particles to last rank
     if(rank == (size-1))
-        localparticles += numparticles - localparticles*size;
+        localparticles += numparticles - 16000*size;
 
     aux::vector boldmu = bold_mean(measurements);
     aux::vector boldstd = bold_stddev(measurements, boldmu);
 
     /* Generate Prior */
-    aux::vector width = 1.5*model->defscale(measurements.front().size());
+    aux::vector width = model->defscale(measurements.front().size());
     aux::vector loc = model->defloc(measurements.front().size());
     
     for(unsigned int ii = model->getStateSize() - model->getMeasurementSize(); 
