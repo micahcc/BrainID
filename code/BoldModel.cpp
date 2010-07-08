@@ -385,7 +385,7 @@ aux::vector BoldModel::defloc(unsigned int simul)
         ret[indexof(V_0, ii)] = 0.03; //Hu = .03
         ret[indexof(TAU_S, ii)] = 1.54; //Hu = 1.54, Vakorin = 2.72
         ret[indexof(TAU_F, ii)] = 2.46; //Hu = 2.46, Vakorin = .56
-        ret[indexof(EPSILON, ii)] = .54; //Hu = .54
+        ret[indexof(EPSILON, ii)] = .7; //Hu = .54
 
         ret[indexof(V_T,ii)] = 1;
         ret[indexof(Q_T,ii)] = 1;

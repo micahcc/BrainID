@@ -798,7 +798,7 @@ int dc_bump(const Image4DType::Pointer fmri_img, Image4DType::IndexType index,
         vit++;
     }
     sort(points.begin(), points.end());
-    double mad = points[points.size()/2];
+    double mad = 1.4826*points[points.size()/2];
     
     itk::ImageLinearIteratorWithIndex< Image4DType > 
                 out_it(output, output->GetRequestedRegion());
