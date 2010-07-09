@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-basecolor = [.9, 1, .9]
+basecolor = [.95, .95, .95]
 
 class histelem:
     weight  = 0
