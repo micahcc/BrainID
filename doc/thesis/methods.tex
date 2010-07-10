@@ -4,6 +4,7 @@ Particle filter, as described in \cite{Arulampalam2002a}, optimizing the
 particle filter for use with FMRI data is non-trivial. 
 
 \section{Prior Distribution}
+\label{sec:PriorDist}
 For the BOLD model described in \autoref{sec:BOLD Physiology}, several
 different studies have endeavored to calculate parameters. The results
 of these studies may be found in \autoref{tab:Params}, and the methods 
@@ -12,7 +13,7 @@ used for each may be found in \autoref{sec:Prior Works}. Unfortunately,
 reasonable speed (including \cite{Friston2002b}) used these results as 
 the source for their priors. 
 The one exception is \cite{Johnston2008}, which came to an extremely different
-set of distributions. For a particle filter, the choice of a prior is
+distributions. For a particle filter, the choice of a prior is
 the single most important design choice. Consequently for this work,
 I wanted to be conservative; which meant going with the accepted result,
 \cite{Friston2000}. This constrains the usefulness of the model to
@@ -27,9 +28,51 @@ priors it can be extremely fast. Ultimately this algorithm may become
 more useful as more studies are done on BOLD model that don't require
 priors. 
 
-Therefore, because \cite{Friston2000} represents the current best
-knowledge about the BOLD parameters, it forms the basis
-for the prior distributions in this paper. 
+There is an interesting anomaly with the priors found in virtually all
+the works that characterized the parameters, except \cite{Johnston2008}.
+The BOLD signal is universally recognized to be around $2-3\%$, maybe
+reaching $5\%$ in extreme activation. Yet using the mean priors
+from \cite{Friston2000}, the signal response for a $.1$ second
+impulse only reaches maybe half a percent, as \autoref{fig:MeanResponse}
+shows.
+
+\begin{figure}
+\centering
+\label{fig:MeanResponse}
+\includegraphics[trim=6cm 3cm 6cm 3cm,width=16cm]{images/mean_response}
+\caption{Response to $.1s$ impulses with the mean parameters from \cite{Friston2000}}
+\end{figure}
+
+While this could be the result of a stimulus
+being too short to lead to strong activation, a similar stimulus
+scheme in real data showed a significantly larger response than 
+half a percent as well. In fact, after applying de-trending,
+converting the image to percent-difference, and removing 
+outliers ($ BOLD > 10\% \text{ or } BOLD < -10\%$) the total variance
+across all \emph{active} voxels was still around .02, indicating
+that in active voxels a signal peaking below .005 seems unlikely. 
+Of course, if more restriction were placed on the outliers, its possible
+this standard deviations could be brought down. 
+The parameter estimates by \cite{Johnston2008} are even more 
+confusing, with peaks of well below $.1\%$ (\autoref{fig:MeanResponseJ}).
+
+\begin{figure}
+\centering
+\label{fig:MeanResponse}
+\includegraphics[trim=6cm 3cm 6cm 3cm,width=16cm]{images/mean_response_johnston}
+\caption{Response to $.1s$ impulses with the mean parameters from \cite{Johnston2008}}
+\end{figure}
+
+Its likely that these differences are due to some difference in preprocessing,
+although in \cite{Deneux2006} the signals were found to be peaking around
+$1\%$, unlike \cite{Friston2000} which shows signals peaking at up to
+$3\%$ or $4\%$. In my own tests, it seemed necessary for $\epsilon$ to
+reach well over $1.5$ and $V_0$ to reach more than $.4$ to reach these
+peaks; of course other methods may be equally able. 
+Therefore, to account for these discrepancies, somewhat broader
+distributions are used than the numbers used in \cite{Friston2000}
+(which are widely used, \cite{Hu2009}). The 
+priors used in the particle filter may be found in \autoref{tab:Prior}.
 
 \begin{table}[t]
 \centering
@@ -37,13 +80,13 @@ for the prior distributions in this paper.
 \hline 
 Parameter & Distribution & $\mu$ & $\sigma$ \\
 \hline
-$\tau_0$ & Gamma & .98 & .5  \\
+$\tau_0$ & Gamma & .98 & .25 \\
 $\alpha$ & Gamma & .33 & .045\\
 $E_0$    & Gamma & .34 & .03  \\
-$V_0$    & Gamma & .03 & .006 \\
-$\tau_s$ & Gamma & 1.54  & .5 \\
-$\tau_f$ & Gamma & 2.46  & .5 \\
-$\epsilon$ & Gamma & .64 & .4 \\
+$V_0$    & Gamma & .04 & .03 \\
+$\tau_s$ & Gamma & 1.54  & .25\\
+$\tau_f$ & Gamma & 2.46  & .25\\
+$\epsilon$ & Gamma & .7  & .6 \\
 \hline
 \end{tabular}
 \caption{}
