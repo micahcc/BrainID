@@ -183,7 +183,7 @@ aux::vector BoldModel::measure(const aux::vector& s) const
  * If s[STATE_SIZE-MEAS_SIZE+1] is 0, then y should be from a signal
  * with drift removed by some extra-pf method. The variance in these
  * drift terms will be 0, which will result in no variance from the
- * regularized particle filter. THus they will stay 0 perpetually.
+ * regularized particle filter. Thus they will stay 0 perpetually.
  *
 */
 double BoldModel::weight(const aux::vector& s, const aux::vector& y) const
@@ -191,7 +191,7 @@ double BoldModel::weight(const aux::vector& s, const aux::vector& y) const
     aux::vector meas = measure(s);
     double weight = 1;
     switch (weightf) {
-        /* Cauchyt Distribution */
+        /* Cauchy Distribution */
         case CAUCHY:
     	for(unsigned int i = 0 ; i < MEAS_SIZE ; i++)
             weight *= gsl_ran_cauchy_pdf( y[i]-meas[i]+
