@@ -42,6 +42,47 @@ typedef itk::SubtractImageFilter< Image4DType > SubF4;
 namespace aux = indii::ml::aux;
 typedef indii::ml::filter::ParticleFilter<double> Filter;
 
+template <class SrcType, class DstType >
+void copyInformation(typename SrcType::Pointer src, typename DstType::Pointer dst)
+{
+    typename SrcType::PointType srcOrigin = src->GetOrigin();
+    typename DstType::PointType dstOrigin = dst->GetOrigin();
+    
+    typename SrcType::DirectionType srcDir = src->GetDirection();
+    typename DstType::DirectionType dstDir = dst->GetDirection();
+
+    typename SrcType::SpacingType srcSpace = src->GetSpacing();
+    typename DstType::SpacingType dstSpace = dst->GetSpacing();
+
+    unsigned int mindim = min(src->GetImageDimension(), dst->GetImageDimension());
+    unsigned int maxdim = max(src->GetImageDimension(), dst->GetImageDimension());
+
+    for(unsigned int ii = 0 ; ii < mindim ; ii++) 
+        dstOrigin[ii] = srcOrigin[ii];
+    for(unsigned int ii = mindim ; ii < maxdim ; ii++) 
+        dstOrigin[ii] = 0;
+    
+    for(unsigned int ii = 0 ; ii < mindim ; ii++) 
+        dstSpace[ii] = srcSpace[ii];
+    for(unsigned int ii = mindim ; ii < maxdim ; ii++) 
+        dstSpace[ii] = 1;
+    
+    for(unsigned int ii = 0 ; ii < maxdim ; ii++) {
+        for(unsigned int jj = 0 ; jj < maxdim ; jj++) {
+            if(ii < mindim && jj < mindim) 
+                dstDir(ii,jj) = srcDir(ii,jj);
+            else if(ii == jj)
+                dstDir(ii,jj) = 1;
+            else 
+                dstDir(ii,jj) = 0;
+        }
+    }
+
+    dst->SetSpacing(dstSpace);
+    dst->SetDirection(dstDir);
+    dst->SetOrigin(dstOrigin);
+}
+
 bool checkmask(Label4DType::Pointer maskimg, Image4DType::PointType point)
 {
     if(!maskimg) return true;
@@ -246,7 +287,7 @@ int main(int argc, char* argv[])
 
     Image4DType::Pointer inImage;
     Image4DType::Pointer paramMuImg;
-    Image4DType::Pointer paramVarImg;
+    itk::OrientedImage<float, 5>::Pointer paramVarImg;
 
     std::vector<Activation> input;
 
@@ -315,11 +356,17 @@ int main(int argc, char* argv[])
         paramMuImg->FillBuffer(0);
         paramMuImg->CopyInformation(inImage);
         
-        paramVarImg = Image4DType::New();
-        paramVarImg->SetRegions(outsize);
+        itk::OrientedImage<float, 5>::SizeType size5;
+        for(uint32_t i = 0 ; i < 3; i++)
+            size5[i] = outsize[i];
+        size5[3] = BASICPARAMS;
+        size5[4] = BASICPARAMS;
+
+        paramVarImg = itk::OrientedImage<float,5>::New();
+        paramVarImg->SetRegions(size5);
         paramVarImg->Allocate();
+        copyInformation<Image4DType, itk::OrientedImage<float,5> >(inImage, paramVarImg);
         paramVarImg->FillBuffer(0);
-        paramVarImg->CopyInformation(inImage);
     }
     
     inImage = preprocess_help(inImage, input, a_timestep(), a_erase(), a_delta() || 
@@ -459,10 +506,17 @@ int main(int argc, char* argv[])
                 if(oMask && paramMuImg && result == BoldPF::DONE) {
                     oMask->SetPixel(index3, 2);
                     
-                    for(uint32_t pp = 0 ; pp < BASICPARAMS ; pp++) {
-                        index4[3] = pp;
-                        paramMuImg->SetPixel(index4, mu[pp]);
-                        paramVarImg->SetPixel(index4, cov(pp,pp));
+                    itk::OrientedImage<float,5>::IndexType index5;
+                    for(uint32_t pp1 = 0 ; pp1 < 3 ; pp1++) 
+                        index5[pp1] = index3[pp1];
+
+                    for(uint32_t pp1 = 0 ; pp1 < BASICPARAMS ; pp1++) {
+                        index4[3] = index5[3] = pp1;
+                        paramMuImg->SetPixel(index4, mu[pp1]);
+                        for(uint32_t pp2 = 0 ; pp2 < BASICPARAMS ; pp2++) {
+                            index5[4] = pp2;
+                            paramVarImg->SetPixel(index5, cov(pp1,pp2));
+                        }
                     }
                     
                     aux::vector a12 = BoldModel::getA(mu[BoldModel::E_0]);
@@ -472,6 +526,7 @@ int main(int argc, char* argv[])
                     paramMuImg->SetPixel(index4, a12[0]);
                     index4[3]++;
                     paramMuImg->SetPixel(index4, a12[1]);
+
                 }
 
                 //set the output to a standard -1 if BoldPF failed
@@ -507,7 +562,7 @@ int main(int argc, char* argv[])
         oMask->SetDirection(dir3);
         writeImage<Label3DType>(oMask, a_output(), "statuslabel.nii.gz");
         writeImage<Image4DType>(paramMuImg, a_output(), "parammu_f.nii.gz");
-        writeImage<Image4DType>(paramVarImg, a_output(), "paramvar_f.nii.gz");
+        writeImage<itk::OrientedImage<float,5> >(paramVarImg, a_output(), "paramvar_f.nii.gz");
         
         switch(a_callbacktype()) {
         case 0: {
