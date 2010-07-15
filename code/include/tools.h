@@ -12,6 +12,7 @@
 #include <vector>
 #include <iostream>
 #include <iomanip>
+#include <cmath>
 
 #include "vnl/algo/vnl_fft_1d.h"
 #include <itkCastImageFilter.h>
@@ -42,6 +43,7 @@ Image4DType::Pointer extract_timeseries(Image4DType::Pointer in,
             std::list< Image4DType::IndexType >& points);
 itk::Image<DataType, 1>::Pointer getCanonical(std::vector<Activation> stim, double TR,
             double start, double stop);
+Image3DType::Pointer median_absolute_deviation(const Image4DType::Pointer fmri_img);
 
 
 //dir1 should be the direction of several separate series
@@ -341,6 +343,49 @@ typename itk::OrientedImage<T, SIZE1>::Pointer applymask(
     }
 
     return recast;
+}
+
+template <class SrcType, class DstType >
+void copyInformation(typename SrcType::Pointer src, typename DstType::Pointer dst)
+{
+    typename SrcType::PointType srcOrigin = src->GetOrigin();
+    typename DstType::PointType dstOrigin = dst->GetOrigin();
+    
+    typename SrcType::DirectionType srcDir = src->GetDirection();
+    typename DstType::DirectionType dstDir = dst->GetDirection();
+
+    typename SrcType::SpacingType srcSpace = src->GetSpacing();
+    typename DstType::SpacingType dstSpace = dst->GetSpacing();
+
+    unsigned int mindim = src->GetImageDimension() < dst->GetImageDimension() ?
+                src->GetImageDimension() : dst->GetImageDimension();
+    unsigned int maxdim = src->GetImageDimension() > dst->GetImageDimension() ?
+                src->GetImageDimension() : dst->GetImageDimension();
+
+    for(unsigned int ii = 0 ; ii < mindim ; ii++) 
+        dstOrigin[ii] = srcOrigin[ii];
+    for(unsigned int ii = mindim ; ii < maxdim ; ii++) 
+        dstOrigin[ii] = 0;
+    
+    for(unsigned int ii = 0 ; ii < mindim ; ii++) 
+        dstSpace[ii] = srcSpace[ii];
+    for(unsigned int ii = mindim ; ii < maxdim ; ii++) 
+        dstSpace[ii] = 1;
+    
+    for(unsigned int ii = 0 ; ii < maxdim ; ii++) {
+        for(unsigned int jj = 0 ; jj < maxdim ; jj++) {
+            if(ii < mindim && jj < mindim) 
+                dstDir(ii,jj) = srcDir(ii,jj);
+            else if(ii == jj)
+                dstDir(ii,jj) = 1;
+            else 
+                dstDir(ii,jj) = 0;
+        }
+    }
+
+    dst->SetSpacing(dstSpace);
+    dst->SetDirection(dstDir);
+    dst->SetOrigin(dstOrigin);
 }
 
 #endif// TOOLS_H

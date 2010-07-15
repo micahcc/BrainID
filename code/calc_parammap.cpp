@@ -42,47 +42,6 @@ typedef itk::SubtractImageFilter< Image4DType > SubF4;
 namespace aux = indii::ml::aux;
 typedef indii::ml::filter::ParticleFilter<double> Filter;
 
-template <class SrcType, class DstType >
-void copyInformation(typename SrcType::Pointer src, typename DstType::Pointer dst)
-{
-    typename SrcType::PointType srcOrigin = src->GetOrigin();
-    typename DstType::PointType dstOrigin = dst->GetOrigin();
-    
-    typename SrcType::DirectionType srcDir = src->GetDirection();
-    typename DstType::DirectionType dstDir = dst->GetDirection();
-
-    typename SrcType::SpacingType srcSpace = src->GetSpacing();
-    typename DstType::SpacingType dstSpace = dst->GetSpacing();
-
-    unsigned int mindim = min(src->GetImageDimension(), dst->GetImageDimension());
-    unsigned int maxdim = max(src->GetImageDimension(), dst->GetImageDimension());
-
-    for(unsigned int ii = 0 ; ii < mindim ; ii++) 
-        dstOrigin[ii] = srcOrigin[ii];
-    for(unsigned int ii = mindim ; ii < maxdim ; ii++) 
-        dstOrigin[ii] = 0;
-    
-    for(unsigned int ii = 0 ; ii < mindim ; ii++) 
-        dstSpace[ii] = srcSpace[ii];
-    for(unsigned int ii = mindim ; ii < maxdim ; ii++) 
-        dstSpace[ii] = 1;
-    
-    for(unsigned int ii = 0 ; ii < maxdim ; ii++) {
-        for(unsigned int jj = 0 ; jj < maxdim ; jj++) {
-            if(ii < mindim && jj < mindim) 
-                dstDir(ii,jj) = srcDir(ii,jj);
-            else if(ii == jj)
-                dstDir(ii,jj) = 1;
-            else 
-                dstDir(ii,jj) = 0;
-        }
-    }
-
-    dst->SetSpacing(dstSpace);
-    dst->SetDirection(dstDir);
-    dst->SetOrigin(dstOrigin);
-}
-
 bool checkmask(Label4DType::Pointer maskimg, Image4DType::PointType point)
 {
     if(!maskimg) return true;
@@ -545,80 +504,36 @@ int main(int argc, char* argv[])
     
     //write final output
     if(rank == 0) {
-        itk::OrientedImage<DataType, 4>::SpacingType space4 = inImage->GetSpacing();
-        itk::OrientedImage<DataType, 4>::DirectionType dir4 = inImage->GetDirection();
-        space4[3] = a_timestep();
-        
-        Label3DType::SpacingType space3;
-        Label3DType::DirectionType dir3;
-        for(uint32_t i = 0 ; i < 3 ; i++) {
-            space3[i] = space4[i];
-            for(uint32_t j = 0 ; j < 3 ; j++) {
-                dir3(i,j) = dir4(i,j);
-            }
-        }
-    
-        oMask->SetSpacing(space3);
-        oMask->SetDirection(dir3);
+        copyInformation<Image4DType, Label3DType>(inImage, oMask);
         writeImage<Label3DType>(oMask, a_output(), "statuslabel.nii.gz");
+        copyInformation<Image4DType, Image4DType>(inImage, paramMuImg);
         writeImage<Image4DType>(paramMuImg, a_output(), "parammu_f.nii.gz");
+        copyInformation<Image4DType, itk::OrientedImage<float,5> >(inImage, paramVarImg);
         writeImage<itk::OrientedImage<float,5> >(paramVarImg, a_output(), "paramvar_f.nii.gz");
         
         switch(a_callbacktype()) {
         case 0: {
-            itk::OrientedImage<DataType, 6>::SpacingType space6;
-            itk::OrientedImage<DataType, 6>::DirectionType dir6;
-            dir6.SetIdentity();
-            for(unsigned int i = 0 ; i < 4 ; i++) {
-                space6[i] = space4[i];
-                for(uint32_t j = 0 ; j < 4 ; j++) 
-                    dir6(i,j) = dir4(i,j);
-            }
-            space6[4] = space6[5] = 1;
-
             cb_hist_data* cbd = (cb_hist_data*)cbdata;
-            cbd->histogram->SetSpacing(space6);
-            cbd->histogram->SetDirection(dir6);
             
+            copyInformation<Image4DType, itk::OrientedImage<DataType, 6> >(
+                        inImage, cbd->histogram);
             writeImage<itk::OrientedImage<DataType, 6> >(cbd->histogram, a_output(),
                         "histogram.nii.gz");
         } break;
         case 1: {
-            itk::OrientedImage<DataType, 5>::SpacingType space5;
-            itk::OrientedImage<DataType, 6>::SpacingType space6;
-
-            itk::OrientedImage<DataType, 5>::DirectionType dir5;
-            itk::OrientedImage<DataType, 6>::DirectionType dir6;
-            dir5.SetIdentity();
-            dir6.SetIdentity();
-            for(unsigned int i = 0 ; i < 4 ; i++) {
-                space5[i] = space4[i];
-                space6[i] = space4[i];
-                for(uint32_t j = 0 ; j < 4 ; j++) {
-                    dir5(i,j) = dir4(i,j);
-                    dir6(i,j) = dir4(i,j);
-                }
-            }
-            space5[4] = space6[4] = space6[5] = 1;
-            
             cb_all_data* cbd = (cb_all_data*)cbdata;
-            cbd->measmu->SetSpacing(space4);
-            cbd->measmu->SetDirection(dir4);
+            copyInformation<Image4DType, Image4DType>(inImage,cbd->measmu);
             writeImage<itk::OrientedImage<DataType, 4> >(cbd->measmu, a_output(),
                         "measmu.nii.gz");
-            
-            cbd->measvar->SetSpacing(space4);
-            cbd->measvar->SetDirection(dir4);
+            copyInformation<Image4DType, Image4DType>(inImage,cbd->measvar);
             writeImage<itk::OrientedImage<DataType, 4> >(cbd->measvar, a_output(),
                         "measvar.nii.gz");
-            
-            cbd->parammu->SetSpacing(space5);
-            cbd->parammu->SetDirection(dir5);
+            copyInformation<Image4DType, itk::OrientedImage<DataType, 5> >(inImage,
+                        cbd->parammu);
             writeImage<itk::OrientedImage<DataType, 5> >(cbd->parammu, a_output(),
                         "parammu.nii.gz");
-            
-            cbd->paramvar->SetSpacing(space6);
-            cbd->paramvar->SetDirection(dir6);
+            copyInformation<Image4DType, itk::OrientedImage<DataType, 6> >(inImage,
+                        cbd->paramvar);
             writeImage<itk::OrientedImage<DataType, 6> >(cbd->paramvar, a_output(),
                         "paramvar.nii.gz");
         } break;

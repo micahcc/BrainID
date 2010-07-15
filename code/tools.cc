@@ -599,3 +599,58 @@ Image3DType::Pointer get_rms(Image4DType::Pointer in)
 
     return out;
 }
+
+Image3DType::Pointer median_absolute_deviation(const Image4DType::Pointer fmri_img)
+{
+    Image4DType::SizeType size4 = fmri_img->GetRequestedRegion().GetSize();
+    Image3DType::Pointer output = Image3DType::New();
+    Image3DType::SizeType size3;
+    Image3DType::IndexType index3;
+    for(uint32_t i = 0 ; i < 3 ; i++)
+        size3[i] = size4[i];
+    output->SetRegions(size3);
+    output->Allocate();
+
+    /* Go to index and start at time 0 at that voxel*/
+    itk::ImageLinearConstIteratorWithIndex< Image4DType > 
+                fmri_it(fmri_img, fmri_img->GetRequestedRegion());
+    fmri_it.SetDirection(3);
+    
+    double median;
+    std::vector<double> points(fmri_img->GetRequestedRegion().GetSize()[3]);
+    std::vector<double>::iterator vit;
+    while(!fmri_it.IsAtEnd()) {
+        vit = points.begin();
+        //generate a vector of point lists, get median
+        while(!fmri_it.IsAtEndOfLine()) {
+            *vit = fmri_it.Get();
+            vit++; ++fmri_it;
+        }
+        sort(points.begin(), points.end());
+        if(points.size()%2 == 0)
+            median = (points[points.size()/2] + points[(points.size()+1)/2])/2.;
+        else
+            median = points[points.size()/2];
+
+        //calculate the absolute deviations, median
+        vit = points.begin();
+        while(vit != points.end()) {
+            *vit = fabs(*vit - median);
+            vit++;
+        }
+        sort(points.begin(), points.end());
+        if(points.size()%2 == 0)
+            median = .7413*(points[points.size()/2] + points[(points.size()+1)/2]);
+        else
+            median = 1.4826*points[points.size()/2];
+        
+        for(uint32_t i = 0 ; i < 3; i++) {
+            index3[i] = fmri_it.GetIndex()[i];
+        }
+        output->SetPixel(index3, median);
+        fmri_it.NextLine();
+    }
+    copyInformation<Image4DType, Image3DType>(fmri_img, output);
+    return output;
+}
+

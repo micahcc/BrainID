@@ -68,7 +68,7 @@ void printInfo(itk::ImageIOBase* io, char* filename)
     cout << "Direction:" << endl;
     for(unsigned int ii = 0 ; ii < io->GetNumberOfDimensions() ; ii++) {
         for(unsigned int jj = 0 ; jj < io->GetNumberOfDimensions() ; jj++) {
-            cout << setw(12) << io->GetDirection(jj)[ii];
+            cout << setw(12) << io->GetDirection(ii)[jj];
         }
         cout << "\n";
     }
