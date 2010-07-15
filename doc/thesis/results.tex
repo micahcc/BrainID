@@ -1,65 +1,87 @@
 \chapter{Simulation}
+Two levels are discussed in this section. First the simulation of single time series.
+This is necessary to investigate the power of particle filters in 
+identifying the BOLD model in a noisy environment. If the particle filter is unable
+to get back to the "true" time-series in spite of noise then the particle filter
+will not be useful. Additionally, determination of reasonable parameters from the
+time-series is also desirable. The second simulation technique will be on a 
+large group of voxels. Although the current technique treats each voxel separately,
+the "Possum" FMRI simulation tool models noise more realistically, and provides additional
+incite into the applicability of particle filters in modeling the BOLD signal on a large
+scale.
 
 \section{Single Timeseries}
-I performed two types of simulations. First, I simulated a single BOLD time-series based
-on a randomly selected set of model parameters. Second I used a modified version of the
-FSL tool possum to generate a noisy FMRI image. 
+Given the state-space equations for the BOLD signal, simulating a single time 
+series is relatively straight forward. After a "true" signal is generated,
+I then add identically and independently distributed (I.I.D.) Gaussian noise and a Wiener
+process with Gaussian, I.I.D. steps. Finally a "carrier level" is added, since BOLD is typically
+measured as a \% difference from the baseline. Although technically the particle filter
+algorithm will immediately remove this, and calculate the \% difference, adding a carrier 
+level means that the exact same algorithm which will is used for 
+simulated data may be used for the real data. 
 
-This process was relatively straight forward,
-given the state-space equations for the BOLD signal. After a "true" signal was generated,
-I then added a identically and independently distributed (I.I.D.) Gaussian noise and a Wiener
-process with Gaussian I.I.D. steps. Finally a carrier level was added, since BOLD is typically
-measured as a \% difference from the
-base level. Adding a carrier level meant that the exact same algorithm which was used for 
-real data could be used for the simulated data. 
+Once this noisy simulated time series has been generated, the particle filter algorithm
+ is then run on this single time series "image". Here I will include two sets of tests 
+to determine the power of the particle filter in modeling. The first set are 
+used to demonstrate the ability of the particle filter to find the most likely
+set of parameters/state variables over the course of the run. The second type
+of test will investigate the problem of false-positives. As the first
+round of tests will show, given that there is an underlying BOLD signal, 
+the particle filter is excellent at finding the most probable cause of 
+the observed signal; however, given enough noise it will also determine
+the most likely underlying signal; which may not be flat. Thus, it is 
+important to investigate methods of determining false positives using 
+average residuals.
 
-Once this noisy simulated time series was generated, the particle filter algorithm
- was run on this single timeseries image. In order to find the best setting for the
-particle filter I ran quite a few tests. Here I will include two sets of tests 
-to determine the power of the particle filter in modeling. The first test is
-low noise $\{\sigma_y = .001, \sigma_x = .0005\}$, while the second set of
-tests had noise of $ \{\sigma_y = .01, \sigma_x = .005\} $, where $\sigma_y$ is the
-measurement noise, and $\sigma_x$ is the wiener step size. Both signals used the
-parameters ($\tau_0 = 1.45, \alpha = .3, E_0 = .47, V_0 = .044, \tau_s = 1.94, \tau_f = 1.99, \epsilon = 1.8$).
-The particle filter used the parameters defined in \autoref{tab:Prior} (\autoref{sec:PriorDistrib}),
-thus the particle filter was not centered over the correct values. 
+\subsection{Signal with Low Noise}
+%tests had noise of $ \{\sigma_y = .01, \sigma_x = .005\} $, where $\sigma_y$ is the
+%measurement noise, and $\sigma_x$ is the wiener step size. Both signals used the
+%parameters .
+%The particle filter used the parameters defined in \autoref{tab:Prior} (\autoref{sec:PriorDistrib}),
+%thus the particle filter was not centered over the correct values. 
 
-\subsection{Low Noise}
-For the low noise case, the ten realization are shown in \autoref{fig:LowNoiseRealization}.
+To begin the single voxel simulation; I generated a signal using the following parameters:
+$\{\tau_0 = 1.45, \alpha = .3, E_0 = .47, V_0 = .044, \tau_s = 1.94, \tau_f = 1.99, \epsilon = 1.8\}$.
+These same parameters will used again in the high noise case. The noise realizations were
+then based on a measurement noise, $\sigma_y$, of $.001$ and a drift standard deviation,
+$\sigma_x$ of $.0005$. The measurement noise as well as the steps of the drift
+were taken to be Gaussian
+For this low noise case, the eleven realizations are shown in \autoref{fig:LowNoiseRealization}.
 \begin{figure}
 \label{fig:LowNoiseRealization}
 \includegraphics[trim=6cm 3cm 6cm 3cm,width=16cm]{images/realization_lownoise}
 \caption{Test Signals with low noise compared to the clean signal}
 \end{figure}
-
 The resulting fits compared to the \emph{true} BOLD signal are shown in \autoref{fig:FitComparisonLowNoise}.
-The fits are good, but the noise is relatively low. The preprocessed signal compared
-to the true BOLD signal is shown in \autoref{fig:PreprocessedLowNoise}.
-
+While the error between the true signal and the estimated signal are low, the noise
+is also relatively low. The actual signal that was delivered into the particle filter
+is the result of some preprocessing to remove drift, as described in 
+\autoref{sec:Preprocessing}. The preprocessed signal is compared
+to the true BOLD signal in \autoref{fig:PreprocessedLowNoise}.
 \begin{figure}
 \label{fig:PreprocessedLowNoise}
 \includegraphics[trim=6cm 3cm 6cm 3cm,width=16cm]{images/preprocessed_lownoise}
-\caption{A comparison of the preprocessed signals for the low noise case.}
+\caption{A comparison of the preprocessed signals for the low noise case. This is the
+noisy input to the actual particle filter algorithm.}
 \end{figure}
-
 The preprocessing consists of several steps, which are discussed in detail in \autoref{sec:Preprocessing}.
-Obviously the spline struggles a little bit at the end, as the graph shows, although 
-overall the fit is pretty well. Finally, the set of fits to the preprocessed data, and in 
-essence to the "true" BOLD signal is shown in \autoref{fig:FitComparisonLowNoise}.
-
+Obviously the spline struggles to match the signal near the end, as the graph shows, although 
+overall the preprocessing seems to have been successful at removing trends. Finally, the 
+set of fits to the preprocessed data, and in 
+the true BOLD signal is shown in \autoref{fig:FitComparisonLowNoise}.
 \begin{figure}
 \label{fig:FitComparisonLowNoise}
 \includegraphics[trim=6cm 3cm 6cm 3cm,width=16cm]{images/comparison_lownoise}
 \caption{A comparison of the fitted signals for the low noise case.}
 \end{figure}
-
-It becomes clear now the reason for the term particle filter. In several locations the output
+The filtering property of the particle filter is clear from the results here.  In several locations the output
 of the particle filter looks like a filtered version of the input. For instance toward the
 end, the estimates stay flat in spite of the preprocessed data drifting off a bit. By
-this point, the algorithm had converged sufficiently to know that that wasn't possible.
-A similar circumstance occurs at 100 seconds in. In general the fits are good, although because
+this point, the algorithm had converged sufficiently to know that that such a movement in
+signal isn't possible. A similar circumstance occurs at 100 seconds in. 
+In general the fits are good, although because
 of the slightly higher signal levels in the preprocessed signals, the fits tend to overestimate
-the peak a bit. The final parameter sets are shown in \autoref{tab:LowNoiseParams}
+the peaks. The final parameter sets are shown in \autoref{tab:LowNoiseParams}
 \begin{table}[t]
 \centering
 \begin{tabular}{|c | c | c | c | c | c | c | c | c | c |}
@@ -92,23 +114,23 @@ was available to the particle filter. Square root of MSE is the actual \emph{err
 which of course was not available to the particle filter.}
 \label{tab:LowNoiseResults} 
 \end{table}
-
-There are a few things worth noting here. First the time constants vary greatly across
+There are a few results worth noting here. First the time constants vary greatly across
 runs with different noise realizations, yet the sum of the individual time constants
-, $\tau_f$, $\tau_s$ and $\tau_0$ seem to be more consistent. In general the 
+($\tau_f$, $\tau_s$ and $\tau_0$) seem to be more consistent. In general the 
 time constants are falling short of the true time constant. This could be a limitation
-based on the prior distribution (which notably has mean values below the values used
-in the simulation) or it could be caused by the delayed benefit of having a 
-correct time constant. Even if one particle has a better time constant than another, if
-the difference isn't severe, by the time this makes a difference in the weight, the 
+based on the prior distribution (which notably has an initial mean below the values used
+in the simulation) or it could be caused by the dissassociated benefits of a correct time
+constant with correct output. It often takes several measurement periods before a difference
+in time constants becomes relevent. It is possible that in that time other parameters 
+may be more relevent. As a result, by the time the time constant has made a substantial
+difference in the weight, the 
 particle with the better $\tau$ will have been weighted based on other parameters several
 times. Another interesting result in the huge variation in the levels of $V_0$. In general,
 with this admittedly small amount of noise, it would appear that the relation between a set
-of parameters/stimuli with the output is not injective. In other words, it would appear
-that a timeseries is not unique to a set of parameters. This is good justification that 
+of parameters/stimuli and the output is not injective. In other words, it would appear
+that a timeseries is not unique to a single set of parameters. This is good justification that 
 simultaneous blood volume or tagged flow calculations with the conventional FMRI 
 could definitely benefit the model. 
-
 \begin{table}[t]
 \centering
 \begin{tabular}{|c | c  c  c  c  c  c  c |}
@@ -143,9 +165,12 @@ $\tau_f$ &                       -0.0189559 & -0.0016823 & 0.0001013 & 4.56e-05 
 \end{figure}
 The covariance matrix (\autoref{tab:CovSim}) also confirms the idea that the $\tau$ parameters are interchangeable
 as far as the BOLD signal goes. Notice the covariance of $\tau_f$ and $\tau_0$ is $-0.019$ whereas
-the variance of $\tau_0$ and $\tau_f$ are $0.019$ and $0.04$ respectively. Clearly they are
-related. The convergence properties of the first run in \autoref{tab:LowNoiseResults} may be
+the variance of $\tau_0$ and $\tau_f$ are $0.019$ and $0.04$ respectively. Clearly there is 
+some measure of ill-defined behavior between the differen time-constants, as well as several
+other variables.  The convergence properties of the first run in \autoref{tab:LowNoiseResults} may be
 viewed in \autoref{fig:LowNoiseHist}.
+
+TODO more about convergence
 
 \subsection{High Noise}
 \label{sec:HighNoise}
