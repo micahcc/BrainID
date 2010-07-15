@@ -40,7 +40,7 @@ int main (int argc, char** argv)
     reader->SetFileName( argv[2] );
     reader->Update();
     mask = reader->GetOutput();
-    }
+        }
     
 
     Image4DType::Pointer out = applymask<DataType, 4, int, 3>(input, mask);
