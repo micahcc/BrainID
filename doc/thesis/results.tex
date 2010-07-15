@@ -397,58 +397,37 @@ the convential BOLD signal. ($\sigma_y = .01, \sigma_x = .005$). Same run as fit
 \subsection{Single Voxel Review}
 \begin{table}[t]
 \centering
-\begin{tabular}{|c | c | c | c | c |}
+\begin{tabular}{|c | c | c | c | c | c | c | c | c |}
 \hline 
-& \multicolumn{2}{|c|}{Signal} & \multicolumn{2}{|c|}{No Signal}\\
+& \multicolumn{4}{|c|}{Signal} & \multicolumn{4}{|c|}{No Signal}\\
 \hline
-Run  & Low Noise & High Noise & $\sigma_y=.001, \sigma_x=.0005$ & $\sigma_y=.01, \sigma_x=.005$\\
+& \multicolumn{2}{|c|}{Low Noise} & \multicolumn{2}{|c|}{High Noise} 
+& \multicolumn{2}{|c|}{$\sigma_y = .001, \sigma_x = .0005$} 
+& \multicolumn{2}{|c|}{$\sigma_y = .01, \sigma_x = .005$}\\
 \hline 
+&$\sqrt{MSE}$ & $N\sqrt{MSE}$ &
+ $\sqrt{MSE}$ & $N\sqrt{MSE}$ &
+ $\sqrt{MSE}$ & $N\sqrt{MSE}$ &
+ $\sqrt{MSE}$ & $N\sqrt{MSE}$ \\
 \hline       
-1 &    0.0115482 &       0.015527 &        0.00138579 &      0.00843435   \\
-2 &    0.0116813 &       0.0126847 &       0.00152434 &      0.00495585   \\
-3 &    0.011314 &        0.0123151 &       0.0014101 &       0.00667397  \\
-4 &    0.0107892 &       0.0114702 &       0.00119941 &      0.0038459    \\
-5 &    0.0112809 &       0.0143503 &       0.00145239 &      0.00811513   \\
-6 &    0.0112021 &       0.0113265 &       0.00137792 &      0.00662327   \\
-7 &    0.011943 &        0.0192599 &       0.00141883 &      0.00734546   \\
-8 &    0.0118222 &       0.010144 &        0.00162352 &      0.00817847   \\
-9 &    0.0120212 &       0.0122466 &       0.00146133 &      0.00843033   \\
-10 &   0.0115679 &       0.0156513 &       0.00165983 &      0.00819587   \\
-11 &   0.0110983 &       0.0103732 &       0.001415 &        0.00886845  \\
+\hline       
+1 & 0.003211 & 0.478015  & 0.014065  & 1.038941    &0.001667 & 1.295007 & 0.015114 & 1.33641 \\
+2 & 0.003055 & 0.531771  & 0.013731  & 0.951648  &  0.001586 & 1.301750 & 0.015510 & 1.336667 \\
+3 & 0.003289 & 0.545798  & 0.012754 &  0.995392  &  0.001651 & 1.26287 &  0.013957 & 1.159567 \\
+4 & 0.002847 & 0.498237  & 0.016726  & 1.161286  &  0.001506 & 1.431959 & 0.013814 & 1.099876 \\
+5 & 0.003006 & 0.468048  & 0.013698 &  1.039724   & 0.001515 & 1.256645 & 0.014350 & 1.201072 \\
+6 & 0.002833 & 0.459001  & 0.011495 &  1.002143  &  0.001557 & 1.270797 & 0.013504 & 1.045886 \\
+7 & 0.003028 & 0.460962  & 0.015550 &  1.088472   & 0.001585 & 1.154406 & 0.013006 & 1.205429 \\
+8 & 0.003044 & 0.518376  & 0.012054 &  1.059620  &  0.001643 & 1.274564 & 0.015446 & 1.122502 \\
+9 & 0.003345 & 0.525303  & 0.015104 &  1.015703  &  0.001679 & 1.320244 & 0.014847 & 1.086366 \\
+10 & 0.003175 &0.492111  & 0.012493  & 1.189964  &  0.001826 & 1.344562 & 0.013125 & 1.221350 \\
+11 & 0.002889 &0.490919  & 0.012165 &  0.953676  &  0.001950 & 1.325223 & 0.014457 & 1.117367 \\
 \hline
-Mean& 0.0114789417183 &  0.0132135264575 & 0.00144804221451 &0.00724245910533 \\
+mean & 0.003066 & 0.497140  & 0.013621 &  1.04514   &  0.001651 & 1.294366 & 0.014285 & 1.175681 \\
 \hline
 \end{tabular}
-\caption{Estimated Impulse response on 11 different for each of the cases covered in this chapter.}
-\label{tab:SignleVoxelActivationComparison} 
-\end{table}
-
-\begin{table}[t]
-\centering
-\begin{tabular}{|c | c | c | c | c |}
-\hline 
-& \multicolumn{2}{|c|}{Signal} & \multicolumn{2}{|c|}{No Signal}\\
-\hline
-Run  & Low Noise & High Noise & $\sigma_y=.001, \sigma_x=.0005$ & $\sigma_y=.01, \sigma_x=.005$\\
-\hline 
-\hline       
-1 &   0.00321067 & 0.0140648  &   0.00166666 &  0.01576746 \\
-2 &   0.00305475 & 0.0137314  &   0.00158551 &  0.0155104 \\
-3 &   0.00328932 & 0.01275372  &  0.00165055 &  0.01395712 \\
-4 &   0.00284719 & 0.0167258  &   0.00150604 &  0.01381387 \\
-5 &   0.00300634 & 0.01369793  &  0.00151513 &  0.01435028 \\
-6 &   0.00283287 & 0.01149511  &  0.00155645 &  0.01350408 \\
-7 &   0.00302802 & 0.01555035  &  0.00158526 &  0.01300628 \\
-8 &   0.00304378 & 0.01205351  &  0.00164299 &  0.01544561 \\
-9 &   0.00334488 & 0.01510364  &  0.0016793 &   0.01484681 \\
-10 &  0.00317542 & 0.012493  &    0.00182622 &  0.01312527 \\
-11 &  0.00288855 & 0.01216522  &  0.00195009 &  0.01445691 \\
-\hline
-Mean& 0.00306562 & 0.01362132  &  0.00165129 &  0.01434401 \\
-\hline
-\end{tabular}
-\caption{MSE with response to the preprocessed, noisy signal for 11 runs for each of the cases covered in this chapter.}
-\label{tab:SingleVoxelMSEComparison} 
+\caption{$\sqrt{MSE}$ and the normalized $\sqrt{MSE}$, $\left(\sqrt{MSE}/(\text{Median Absolute Deviation})\right)$  
+for different configurations.} \label{tab:SignleVoxelActivationComparison} 
 \end{table}
 
 Comparing the results of \autoref{sec:HighNoise} and \autoref{sec:PureNoiseHighMag}, it is
