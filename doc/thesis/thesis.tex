@@ -1,5 +1,22 @@
-\documentclass{report}
-\usepackage[left=3cm,top=2cm,right=3cm]{geometry}
+% PROJECT: <ETD> Electronic Thesis and Dissertation Initiative
+%   TITLE: LaTeX report template for ETDs in LaTeX
+%  AUTHOR: Neill Kipp, nkipp@vt.edu
+%     URL: http://etd.vt.edu/latex/
+% SAVE AS: etd.tex
+% REVISED: September 6, 1997
+% 
+%\documentclass[12pt,dvips]{report}
+\documentclass[12pt]{report}
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{8.5in}
+\setlength{\evensidemargin}{0in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\topmargin}{0in}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.1in}
+
+%\usepackage[left=3cm,top=2cm,right=3cm]{geometry}
 
 \usepackage{colortbl}
 \usepackage{times}
@@ -41,12 +58,98 @@
 \end{comment}
 
 \begin{document}
-\title{BOLD Parameter Estimation Using Particle Filters}
-\author{Micah Chambers\\Virginia Polytechnic Institute and State University}
-\date{}
-\maketitle
+\thispagestyle{empty}
+\pagenumbering{roman}
+\begin{center}
+
+% TITLE
+{\Large 
+BOLD Parameter Estimation Using Particle Filters
+}
+
+\vfill
+
+Micah C. Chambers
+
+\vfill
+
+Thesis submitted to the Faculty of the \\
+Virginia Polytechnic Institute and State University \\
+in partial fulfillment of the requirements for the degree of
+
+\vfill
+
+Master of Science \\
+in \\
+Electical Engineering
+
+\vfill
+
+Chris L. Wyatt, Chair \\
+William T. Baumann\\
+Aloysius. A. Beex \\
+Daniel J. Stilwell
+
+\vfill
+
+August 10, 2010\\
+Blacksburg, Virginia
+
+\vfill
+
+Keywords: BOLD Response, FMRI, Nonlinear Systems, Particle Filter, Bayesian Statistics
+\\
+Copyright 2010, Micah C. Chambers
+
+\end{center}
+
+\pagebreak
+
+\thispagestyle{empty}
+\begin{center}
+
+{\large BOLD Parameter Estimation Using Particle 
+Filters }
+
+\vfill
+
+Micah C. Chambers
+
+\vfill
+
+(ABSTRACT)
+
+\vfill
+
+\end{center}
+
+Abstract Abstract Abstract ... 
+
+\vfill
+
+% GRANT INFORMATION
+
+%That this work received support from the Southeastern Universities
+%Research Association (SURA) ``Monticello Library Project'' is purely
+%coincidental.
+
+\pagebreak
+
+% Dedication and Acknowledgments are both optional
+% \chapter*{Dedication}
+% \chapter*{Acknowledgments}
 
 \tableofcontents
+\pagebreak
+
+\listoffigures
+\pagebreak
+
+\listoftables
+\pagebreak
+
+\pagenumbering{arabic}
+\pagestyle{myheadings}
 
 \include{intro}
 \include{background}
@@ -80,4 +183,218 @@
 %actual activity. In this paper we propose a robust model-based approach to 
 %activation detection that makes no assumptions about the underlying noise
 %model.
+%
 
+
+
+%\chapter{Introduction}
+%\markright{Albert J. Kippleby \hfill Chapter 1. Introduction \hfill}
+%
+%William Shakespeare has profoundly affected the field of literature
+%worldwide.  In the United States there was a surge of Shakespearean
+%literature starting in the 1960s, with the opening of the Montgomery
+%Shakespearean festival and continuing into the present ...
+
+%%%%%%%%%%%%%%%%%
+%
+% Include an EPS figure with this command:
+%   \epsffile{filename.eps}
+%
+
+%%%%%%%%%%%%%%%%
+%
+% Do tables like this:
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%
+%% PROJECT: <ETD> Electronic Thesis and Dissertation Initiative
+%%   TITLE: LaTeX report template for ETDs in LaTeX
+%%  AUTHOR: Neill Kipp, nkipp@vt.edu
+%%     URL: http://etd.vt.edu/latex/
+%% SAVE AS: etd.tex
+%% REVISED: September 6, 1997
+%% 
+%
+%% Instructions: Remove the data from this document and replace it with your own,
+%% keeping the style and formatting information intact.  More instructions
+%% appear on the Web site listed above.
+%
+%\documentclass[12pt,dvips]{report}
+%
+%\setlength{\textwidth}{6.5in}
+%\setlength{\textheight}{8.5in}
+%\setlength{\evensidemargin}{0in}
+%\setlength{\oddsidemargin}{0in}
+%\setlength{\topmargin}{0in}
+%
+%\setlength{\parindent}{0pt}
+%\setlength{\parskip}{0.1in}
+%
+%% Uncomment for double-spaced document.
+%% \renewcommand{\baselinestretch}{2}
+%
+%% \usepackage{epsf}
+%
+%\begin{document}
+%
+%\thispagestyle{empty}
+%\pagenumbering{roman}
+%\begin{center}
+%
+%% TITLE
+%{\Large 
+%Use of Metaphor in Shakespeare's Plays and its Potential
+%Application in Twenty-first Century Literature
+%}
+%
+%\vfill
+%
+%Albert J. Kippleby
+%
+%\vfill
+%
+%Dissertation submitted to the Faculty of the \\
+%Virginia Polytechnic Institute and State University \\
+%in partial fulfillment of the requirements for the degree of
+%
+%\vfill
+%
+%Doctor of Philosophy \\
+%in \\
+%Literature and Technology
+%
+%\vfill
+%
+%Neill A. Kipp, Chair \\
+%Emilio J. Arce \\
+%Scott A. Guyer \\
+%Laura Weiss
+%
+%\vfill
+%
+%July 16, 1997 \\
+%Blacksburg, Virginia
+%
+%\vfill
+%
+%Keywords: Metaphysics, Information Retrieval, Spacecraft
+%\\
+%Copyright 1997, Albert J. Kippleby
+%
+%\end{center}
+%
+%\pagebreak
+%
+%\thispagestyle{empty}
+%\begin{center}
+%
+%{\large Use of Metaphor in Shekespeare's Plays and its Potential
+%Application in Twenty-first Century Literature}
+%
+%\vfill
+%
+%Albert J. Kippleby
+%
+%\vfill
+%
+%(ABSTRACT)
+%
+%\vfill
+%
+%\end{center}
+%
+%The need for concrete examples increases when technology becomes
+%difficult to explain.  In documentation for computer systems
+%especially, we see a wide audience of field experts attempting to
+%comprehend documentation for computer software and hardware of which
+%they should only require a cursory understanding.  Additionally, as
+%the pace of the information age quickens we see document authors
+%struggle for \textit{examplia-concretes} with wide applicability, and
+%consistently rely on excerpts from Shakespearean literature as a
+%public-domain source for their various explications.
+%
+%We predict the twenty-first century will be no different.  Actuarial
+%studies show explosion in the information industry such that four out
+%of five persons will be \textit{bona fide} electronic document
+%authors; many of those will have one or more college degrees.  We
+%prove through computer simulation \textsc{Machinum Simitatores} that
+%authors of twenty-first century literature will be affected by these
+%examples and will include metaphor with Shakespearean source into
+%their writing with increasing frequency.
+%
+%\vfill
+%
+%% GRANT INFORMATION
+%
+%That this work received support from the Southeastern Universities
+%Research Association (SURA) ``Monticello Library Project'' is purely
+%coincidental.
+%
+%\pagebreak
+%
+%% Dedication and Acknowledgments are both optional
+%% \chapter*{Dedication}
+%% \chapter*{Acknowledgments}
+%
+%\tableofcontents
+%\pagebreak
+%
+%\listoffigures
+%\pagebreak
+%
+%\listoftables
+%\pagebreak
+%
+%\pagenumbering{arabic}
+%\pagestyle{myheadings}
+%
+%\chapter{Introduction}
+%\markright{Albert J. Kippleby \hfill Chapter 1. Introduction \hfill}
+%
+%William Shakespeare has profoundly affected the field of literature
+%worldwide.  In the United States there was a surge of Shakespearean
+%literature starting in the 1960s, with the opening of the Montgomery
+%Shakespearean festival and continuing into the present ...
+%
+%%%%%%%%%%%%%%%%%%
+%%
+%% Include an EPS figure with this command:
+%%   \epsffile{filename.eps}
+%%
+%
+%%%%%%%%%%%%%%%%%
+%%
+%% Do tables like this:
+%
+% \begin{table}
+% \caption{The Graduate School wants captions above the tables.}
+%\begin{center}
+% \begin{tabular}{ccc}
+% x & 1 & 2 \\ \hline
+% 1 & 1 & 2 \\
+% 2 & 2 & 4 \\ \hline
+% \end{tabular}
+%\end{center}
+% \end{table}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%% If you are using BibTeX, uncomment the following:
+%% \thebibliography
+%%
+%% Otherwise, uncomment the following:
+%% \chapter*{Bibliography}
+%
+%% \appendix
+%
+%% In LaTeX, each appendix is a "chapter"
+%% \chapter{Program Source}
+%
+%
+%% Finally, the VITA
+%\chapter*{Vita}
+%
+%Albert was born on a sunny day...
+%
+%\end{document}

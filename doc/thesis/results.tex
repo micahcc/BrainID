@@ -643,18 +643,33 @@ For Simulated Data, Full Volume:
 
 %note to self, epsilon should probably be uniform between 0 and something
 \section{Simulated Volume}
-\begin{enumerate}
-\item Parameter Map 
-\item Error map of parameters
-\item Histogram of \%errors between parameters
-\item Activation Map based on a single region with high $\epsilon$, compared with linear
-\end{enumerate}
 
-Final parameter distribution among active regions.
-Q-Q plots?
+\chapter{Real Data}
+\begin{figure}
+\label{fig:hm_canon_spm}
+\subfigure[]{\label{fig:hm_spm} \includegraphics[scale=.66]{images/spm_hm}}
+\subfigure[]{\label{fig:hm_canon_spm_x} \includegraphics[scale=.85]{images/spm_hm_x}}
+\subfigure[]{\label{fig:hm_canon_spm_y} \includegraphics[scale=.85]{images/spm_hm_y}}
+\subfigure[]{\label{fig:hm_canon_spm_z} \includegraphics[scale=.85]{images/spm_hm_z}}
+\subfigure{\label{fig:scale_spm} \includegraphics[scale=.3]{images/scale1}}
+\caption{Sagittal, coronal and axial slices of SPM results (\autoref{fig:hm_canon_spm_x} \autoref{fig:hm_canon_spm_y} 
+         \autoref{fig:hm_canon_spm_x}), as well as a series of axial slices, \autoref{fig:hm_spm}. Units
+         of activation are in Student's T-scores. Higher indicates higher assurance that the signal cannot
+         have occurred through noise alone.}
+\end{figure}
 
-\section{FMRI Data}
-....
+\begin{figure}
+\label{fig:hm_canon_pfilter}
+\subfigure[]{\label{fig:hm_pfilter} \includegraphics[scale=.66]{images/pfilter_hm}}
+\subfigure[]{\label{fig:hm_canon_pfilter_x} \includegraphics[scale=.85]{images/pfilter_hm_x}}
+\subfigure[]{\label{fig:hm_canon_pfilter_y} \includegraphics[scale=.85]{images/pfilter_hm_y}}
+\subfigure[]{\label{fig:hm_canon_pfilter_z} \includegraphics[scale=.85]{images/pfilter_hm_z}}
+\subfigure{\label{fig:scale_pfilter} \includegraphics[scale=.3]{images/scale2}}
+\caption{Sagittal, coronal and axial slices of SPM results (\autoref{fig:hm_canon_pfilter_x} \autoref{fig:hm_canon_pfilter_y} 
+         \autoref{fig:hm_canon_pfilter_x}), as well as a series of axial slices, \autoref{fig:hm_pfilter}. 
+         Units of match is normalized $\sqrt{MSE}$. The lowest (best) levels were $.7$,
+         whereas the worst levels could go higher than 100 (not shown).}
+\end{figure}
 
 image comparing epsilon-map with GLM activation map
 
