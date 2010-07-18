@@ -38,6 +38,7 @@ average residuals. This problem could in actuality never come up, for instance
 if the number of measurements is very large or if the noise peaks are not
 particularly large.
 
+%LOW NOISE SECTION, with a signal
 \subsection{Signal with Low Noise}
 %tests had noise of $ \{\sigma_y = .01, \sigma_x = .005\} $, where $\sigma_y$ is the
 %measurement noise, and $\sigma_x$ is the wiener step size. Both signals used the
@@ -114,7 +115,7 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 \hline 
 \end{tabular}
 \caption{Estimated Parameters on 11 different runs with low noise. First row is the true parameters,
-last is mean over the 10 runs. The $\sqrt{MSR}$ is the square root of the mean square of the
+last is mean over the 11 runs. The $\sqrt{MSR}$ is the square root of the mean square of the
 residuals. Although in real data I won't distinguish between residual and error, here I will.
 $\sqrt{MSE}$ is the mean squared difference between the true signal and the estimated signal.
 This is the actual error, due to a combination of noise and preprocessing. }
@@ -186,6 +187,7 @@ using the mode would be a better way to estimate the output. Regardless, the tim
 generated from the estimated mean seems to match the correct signal very well 
 (\autoref{fig:FitComparisonLowNoise}).
 
+%HIGH NOISE SECTION, with a signal
 \subsection{High Noise}
 \label{sec:HighNoise}
 \begin{figure}
@@ -281,30 +283,30 @@ in \autoref{fig:ConvergenceRuns1} and \autoref{fig:ConvergenceRuns2}.
 
 \begin{figure}
 \subfigure[$\tau_0$, $\alpha$, $E_0$, $V_0$, Run 1]
-{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=16cm]{images/highnoise_run5_1}}\\
+{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run5_1}}\\
 \end{figure}
 \begin{figure}
 \subfigure[$\tau_s$, $\tau_f$, $\epsilon$, $V$, Run 1] 
-{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=16cm]{images/highnoise_run5_2}}\\
+{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run5_2}}\\
 \end{figure}
 \begin{figure}
 \subfigure[$Q$, $S$, $F$, $BOLD$, Run 1 ]
-{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=16cm]{images/highnoise_run5_3}}
+{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run5_3}}
 \caption{Converging histogram for parameters during run 1, as in \autoref{fig:NoiseComparisonJustTwo}.}
 \label{fig:ConvergenceRuns1}
 \end{figure}
 
 \begin{figure}
 \subfigure[$\tau_0$, $\alpha$, $E_0$, $V_0$, Run 2]
-{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=16cm]{images/highnoise_run6_1}}\\
+{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run6_1}}\\
 \end{figure}
 \begin{figure}
 \subfigure[$\tau_s$, $\tau_f$, $\epsilon$, $V$, Run 2] 
-{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=16cm]{images/highnoise_run6_2}}\\
+{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run6_2}}\\
 \end{figure}
 \begin{figure}
 \subfigure[$Q$, $S$, $F$, $BOLD$, Run 2 ]
-{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=16cm]{images/highnoise_run6_3}}
+{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run6_3}}
 \caption{Converging histogram for parameters during run 2, as in \autoref{fig:NoiseComparisonJustTwo}.}
 \label{fig:ConvergenceRuns2}
 \end{figure}
@@ -324,23 +326,33 @@ result when the particle filter converges too fast, a result of the weighting fu
 being significantly smaller than the measurement noise ($.005$ vs. $.01$). The square-root
 MSE certainly suffers due to this effect.
 
+%NO SIGNAL, LOW NOISE
 \subsection{Pure-Noise, low magnitude}
+\label{sec:PureNoiseLowMag}
 The two final single-voxel tests force the particle filter to attempt to "learn" a noise-only
 time series. In the first test the noise used will be the same as that from the \autoref{sec:HighNoise},
 $\sigma_x = .01, \sigma_y = .005$. The parameters will be set the same as well, but the
 stimulus/input will be set to 0 the entire time. In effect it is a region of the brain for
 which no visual stimulus induces activity. For the particle filter, on the other hand,
-the stimulus will be left as in the previous two sections. The question is if the particle
-filter is able to appropriately differentiate from a signal with noise. The noise time series'
-are shown in \autoref{fig:NoiseOnly}, the preprocessed versions are shown in \autoref{fig:NoiseOnlyPrep}.
+the stimulus will be left as in the previous two sections. The question then is how the
+particle filter will respond to signal that does not correlate with the input, and how
+the output may be differentiated from a time series that does. The time series'
+are shown in \autoref{fig:NoiseOnly}, the preprocessed versions are shown in \autoref{fig:PreprocessedNoiseOnly}.
+The line fits are shown in \autoref{fig:fits_noiseonly}. 
+
+
 \begin{figure}[H]
-\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,width=16cm]{images/realization_noiseonly}
+\centering
+\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/realization_noiseonly}
 \caption{Time-series lacking any real signal. With, $\sigma_x = .01, \sigma_y=.005$}
 \label{fig:NoiseOnly}
 \end{figure}
+
 \begin{figure}[H]
-\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,width=16cm]{images/preprocessed_noiseonly}
-\caption{A comparison of the preprocessed signals for the signal-free case.}
+\centering
+\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/preprocessed_noiseonly}
+\caption{A comparison of the preprocessed signals for the signal-free case. (
+$\sigma_y = .01, \sigma_x = .005$)}
 \label{fig:PreprocessedNoiseOnly}
 \end{figure}
 
@@ -348,7 +360,7 @@ are shown in \autoref{fig:NoiseOnly}, the preprocessed versions are shown in \au
 \centering
 \begin{tabular}{|c | c | c | c | c | c | c | c | c |}
 \hline 
-$\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  &  $\sqrt{MSE}$   \\
+$\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  &  $\sqrt{MSR}$   \\
 \hline 
 1.0324 & 0.33211 & 0.34058 & 0.03012 & 1.40665 & 2.52079 & 0.5311 & \\
  0.98189 & 0.33047 & 0.3386 & 0.03014 & 1.45707 & 2.47232 & 0.45049 & 0.00158551 \\
@@ -365,90 +377,131 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 1.03009 & 0.33228 & 0.33905 & 0.02902 & 1.44506 & 2.50031 & 0.46076 & 0.00165129 \\
 \hline 
 \end{tabular}
-\caption{Estimated Parameters on 10 different runs with low noise. }
+\caption{Estimated Parameters on 11 different runs with low noise and no signal present.}
 \label{tab:NoiseOnlyResults} 
 \end{table}
 
-The line fits are shown in \autoref{fig:fits_noiseonly}. Now the
-low MSE and reasonableness of the parameters is cause for concern. Additionally, the precision
-with which the convergence occurred is enviable, compared to the actual signals.
-However, the impulse response, which has less importance in nonlinear systems, could
-be usefull for separating out good voxels from bad. Note that in \autoref{fig:PreprocessedNoiseOnly}
-peaks at well below $.005$, the standard deviation of the weighting function. Thus, the reason
-the fits are in such agreement is that no convergence occurred at all, as 
-further shown by \autoref{JustNoiseConvergence}. Thus one more test is necessary on
-a signal with enough noise to actually be considered a signal. But first,
-there is still the matter of identifying this noise-only voxel. Clearly MSE and
-the parameters themselves don't have the information to differentiate in this case.
-Thus the answer falls on either the final estimated variance (which will be high
-because no particles strayed far from the center) or the impulse response.
-I prefer the impulse response because it doesn't depend on something that 
-may be less than dependable, namelay the rate of convergence.
-
 \begin{figure}[H]
-\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,width=16cm]{images/fits_noiseonly}
+\centering
+\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/fits_noiseonly}
 \caption{Fits to the non-active, low noise signal. Note that the line is thick because all
-the fits overlap. This is all 1 fitted lines.}
+the fits overlap. This is all 11 fitted lines.}
 \label{fig:fits_noiseonly}
 \end{figure}
 
 \begin{figure}[H]
-\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,width=16cm]{images/justnoise_fit_0}
+\centering
+\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/justnoise_fit_0}
 \caption{Fit from a single particle filter run, with the noise input. }
 \label{fig:justnoise_fit_0}
 \end{figure} %uses allnoise/ALLNOISE-0-w0
 
 \begin{figure}[H]
+\centering
 \subfigure[$\tau_0$, $\alpha$, $E_0$, $V_0$]
-{\includegraphics[clip=true,trim=7cm 3cm 7cm 4cm, width=15cm]{images/justnoise_hist_1}}\\
+{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, height=9cm]{images/justnoise_hist_1}}\\
 \end{figure}
+
 \begin{figure}[H]
+\centering
 \subfigure[$\tau_s$, $\tau_f$, $\epsilon$, $V$] 
-{\includegraphics[clip=true,trim=7cm 3cm 7cm 1cm, width=15cm]{images/justnoise_hist_2}}\\
+{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, height=9cm]{images/justnoise_hist_2}}\\
 \end{figure}
+
 \begin{figure}[H]
+\centering
 \subfigure[$Q$, $S$, $F$, $BOLD$ ]
-{\includegraphics[clip=true,trim=7cm 3cm 7cm 2cm, width=15cm]{images/justnoise_hist_3}}
+{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, height=9cm]{images/justnoise_hist_3}}
 \caption{Converging histogram for parameters when the signal consists purely of low level noise. 
 Same run as \autoref{fig:justnoise_fit_0}}
 \label{fig:JustNoiseConvergence}
 \end{figure}
 
-To give a frame of reference to the impulse response level, the impulse response of every
-parameter estimated, includeing ones from \autoref{sec:BigNoise}, are shown in \autoref{tab:ImpulseResponses}.
+From the results it is clear that the parameters have not taken any visible turns into
+unrealistic territory. It appears individual parameters will not be a distinguishing factor
+in determining the validity of the model. Additionally the raw square-root mean-squared-residual
+also appears to be lower than the SMSR of the low noise simulation from earlier. 
+The precision with which the convergence occurred is actually the best seen in any
+simulation. 
 
+However, the reason for low error may in fact be simply the fact that the over all
+signal is significantly lower than any other simulation seen in other simulations.
+The peaks never even cross 1\% difference, with most staying even below .5\% 
+(\autoref{fig:PreprocessedNoiseOnly}). Because the signal is generally staying
+well within the range of $.005$, which is the standard deviation of the weighting function
+its unlikely that any particles will have a substantially different wieght. Thus, the reason
+the fits are in such agreement is that no particles gained increased weight, and so
+no convergence occurred at all, as further shown by \autoref{fig:JustNoiseConvergence}. 
+Thus we have now seen how the particle filter responds when the signal is completely
+random and low level, however there is also some possibility that the signal will
+be random, yet active. Thus one more test is necessary on
+a signal with enough noise to actually be considered a signal. 
 
+%NO SIGNAL, VERY HIGH NOISE
 \subsection{Pure Noise, High Magnitude}
 \label{sec:PureNoiseHighMag}
+To determine how the particle filter will respond to active, yet unrelated
+portions of the brain, in this section random data will again be used, but
+with even higher standard deviations. To simulate this case another
+pure noise signal was generated using a $\sigma_x$ of $.1$ and a $\sigma_y$ of $.05$.
+
+As before, the convergence all seems to follow a similar path, leaving almost no
+variance in the estimated time series (\autoref{fig:fits_noiseonly_high}). Now, however
+the peaks are comparable to peaks in a "real" timeseries. Interestingly the algorithm
+suffered from almost constant particle deprevation, meaning that the heuristic
+for rescuing the particle filter from particle deprivation, discuessed in
+\autoref{sec:Resampling} in fact was working against the proper course of action. Of course
+ the proper course of action in this case would be for the particle filter to fail,
+ since no particle can really properly estimate a random sequence. When this mechanism
+ was removed, all 11 runs stopped due to particle deprevation (all weights hit zero). 
+ The problem with allowing particle deprivation to occur is that it can \emph{rarely}
+ occur if the prior happens to not be dense enough in the area of the solution. Thus,
+ there is an issue of false positives vs. false negatives. A middle ground, such as 
+ allowing deprivation to occur if the recovery mechanism has already triggered once
+ may be an acceptable compromise, however it would be difficult to strike the 
+ right balance. Instead for the purposes here we depend on the square root MSR to 
+ evaluate if the results were reasonable or not. 
 
 \begin{figure}[H]
-\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,width=16cm]{images/fits_noiseonly_high}
+\centering
+\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/fits_noiseonly_high}
 \caption{Fits to the non-active, high noise signal. Note that the line is thick because all
 the fits overlap. This is all 11 fitted lines.}
 \label{fig:fits_noiseonly_high}
 \end{figure}
 
 \begin{figure}[H]
-\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,width=16cm]{images/justbignoise_fit_0}
+\centering
+\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/justbignoise_fit_0}
 \caption{Fit from a single particle filter run, with the noise input. }
 \label{fig:justbignoise_fit_0}
 \end{figure} %uses allnoise/ALLNOISE-0-w0
 
 \begin{figure}[H]
+\centering
 \subfigure[$\tau_0$, $\alpha$, $E_0$, $V_0$]
-{\includegraphics[clip=true,trim=7cm 3cm 7cm 4cm, width=15cm]{images/justbignoise_1}}\\
+{\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm, height=9cm]{images/justbignoise_1}}\\
 \end{figure}
 \begin{figure}[H]
 \subfigure[$\tau_s$, $\tau_f$, $\epsilon$, $V$] 
-{\includegraphics[clip=true,trim=7cm 3cm 7cm 1cm, width=15cm]{images/justbignoise_2}}\\
+{\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm, height=9cm]{images/justbignoise_2}}\\
 \end{figure}
 \begin{figure}[H]
 \subfigure[$Q$, $S$, $F$, $BOLD$ ]
-{\includegraphics[clip=true,trim=7cm 3cm 7cm 2cm, width=15cm]{images/justbignoise_3}}
+{\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm, height=9cm]{images/justbignoise_3}}
 \caption{Converging histogram for parameters when the signal consists purely of noise, with peaks comparable  to 
 the convential BOLD signal. ($\sigma_y = .01, \sigma_x = .005$). Same run as fit in \autoref{fig:justbignoise_fit_0}}
 \label{fig:JustNoiseConvergenceLarge}
 \end{figure}
+
+From \autoref{fig:justbignoise_fit_0} it is clear that, despite the fact that the input 
+is competely detached from the signal, a non-zero response by the particle filter does
+lead to decreased MSR. This is primarily due to the preprocessing which forces the signal to
+have a non-zero mean. While this scheme does create a type of artificial activation for
+the particle filter, in reality the MSR will still be less than if the signal was left
+with zero mean, and the particle filter stayed flat. At best the particle filter will 
+over-smooth creating a line that does down the center of the noisy signal. In such a case
+the MSR will be the same as the alternative. 
 
 \subsection{Single Voxel Review}
 \begin{table}[t]
@@ -461,10 +514,10 @@ the convential BOLD signal. ($\sigma_y = .01, \sigma_x = .005$). Same run as fit
 & \multicolumn{2}{|c|}{$\sigma_y = .001, \sigma_x = .0005$} 
 & \multicolumn{2}{|c|}{$\sigma_y = .01, \sigma_x = .005$}\\
 \hline 
-&$\sqrt{MSE}$ & $N\sqrt{MSE}$ &
- $\sqrt{MSE}$ & $N\sqrt{MSE}$ &
- $\sqrt{MSE}$ & $N\sqrt{MSE}$ &
- $\sqrt{MSE}$ & $N\sqrt{MSE}$ \\
+&$\sqrt{MSR}$ & $N\sqrt{MSR}$ &
+ $\sqrt{MSR}$ & $N\sqrt{MSR}$ &
+ $\sqrt{MSR}$ & $N\sqrt{MSR}$ &
+ $\sqrt{MSR}$ & $N\sqrt{MSR}$ \\
 \hline       
 \hline       
 1 & 0.003211 & 0.478015  & 0.014065  & 1.038941    &0.001667 & 1.295007 & 0.015114 & 1.33641 \\
@@ -482,22 +535,38 @@ the convential BOLD signal. ($\sigma_y = .01, \sigma_x = .005$). Same run as fit
 mean & 0.003066 & 0.497140  & 0.013621 &  1.04514   &  0.001651 & 1.294366 & 0.014285 & 1.175681 \\
 \hline
 \end{tabular}
-\caption{$\sqrt{MSE}$ and the normalized $\sqrt{MSE}$, $\left(\sqrt{MSE}/(\text{Median Absolute Deviation})\right)$  
-for different configurations.} \label{tab:SignleVoxelActivationComparison} 
+\caption{$\sqrt{MSE}$ and the normalized $\sqrt{MSE}$, 
+    $\left(\sqrt{MSE}/(\text{Median Absolute Deviation})\right)$ for different configurations.} 
+\label{tab:SignleVoxelActivationComparison} 
 \end{table}
 
-Comparing the results of \autoref{sec:HighNoise} and \autoref{sec:PureNoiseHighMag}, it is
-clear that distinguishing between these cases is a difficult prospect. Although
-the impulse response, which is determined by the peak response to a very short input,
-is is slightly different, there is no reason to believe that a noise distribution
-could not get a higher impulse response. The $\sqrt{MSE}$ is also not going to be
-able to distinguish between the high-noise case and the no signal case. Therefore, there
-is a noise ceiling above which it will be impossible to determine model validity. The fact
-that the particle filter is able to get close to the "true" signal is sadly irrelevant.
-Ultimately, a threshold well below those shown in the high noise case 
-will have to be placed on the error, if any confidence is going to be placed on the results.
+The first step in determining the validity of a model to provide and order of quality
+to rate the results by. Unfortunately, because of the variablity in the signal levels the
+raw $\sqrt{MSR}$ cannot perform this task. As demonstrated by \autoref{sec:PureNoiseLowMag},
+just because the square-root mean-squared-residual is low doesn't mean the fit is
+"good". Therefore, instead we will normalize the signal based on a value proportional to
+the magnitude of the signal. Considering the tendency of FMRI noise to have large unexplainable
+peaks and troughs, rather than using MAX and MIN values, I used a robust estimator of 
+scale, the Median-Absolute-Deviation (MAD). Technically this is an estimator of the standard
+deviation, however in this case it is also a good estimator of the scale of the input
+signal. Thus, each point in the estimate as well as the original signal may be divided by
+this, leading to a normalized signal. Instead, however, I simply divided the 
+$\sqrt{MSR}$ by the MAD, which is functionally equivalent but leaves the  BOLD
+levels intact for further analysis. The normalized square root MSR values are 
+shown in \autoref{tab:SignleVoxelActivationComparison}. 
 
-Each test took approximately 60 seconds on an 8 core Xeon (specifics?).
+Comparing the results of \autoref{sec:HighNoise} and \autoref{sec:PureNoiseHighMag}, it is
+clear that distinguishing between these cases is a difficult prospect. One possibility
+is to just allow the particle filter to fail when particle deprivation occurs; however,
+as discussed in the previous section, that could open the door to more false negatives.
+Naturally there is a noise ceiling above which it will be impossible to determine model 
+validity. The fact
+that the particle filter is able to get close to the "true" signal is sadly irrelevant
+when the noise is this high.
+Ultimately, a threshold well below those shown in the high noise case 
+will have to be placed on the error, if any confidence is going to be placed in
+the results. Luckily the "high noise" case featured in \autoref{sec:HighNoise}
+is actually noisier than typical FMRI.
 
 \section{Multi-voxel Simulation}
 To test the usefullness of the particle filter for Second I used a modified version of the FSL tool 
