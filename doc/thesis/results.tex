@@ -599,12 +599,54 @@ not using Possums' original activation scale, I manually added 750 to the total 
 simulated Possum images. This is because the BOLD \% difference levels were in the range
 of 50 - 100\% from the base, about 5 times as large as they should have been. Ultimately
 this should not have an effect on the parameters (other than perhaps $\epsilon$ and $V_0$). 
+Also worth noting is that the noise level was set to an SNR of 20, due to changes in the 
+program the true signal-to-noise ratio was much lower, as soon in the fit in \autoref{fig:simslicefit1}.
+
+\begin{figure}
+%includegraphics[]{images/simslicefit1}
+\caption{A single time-series fit in the simulated slice.}
+\labe{fig:simslicefit1}
+\end{figure}
+
 For each time-series in the simulated FMRI image, the final \emph{static} parameters were saved
 into a parameter map. This parameter map may then be compared to the map used to generate the 
 simulated data; additionally a new simulation using the calculated parameters may also be 
-generated to test the difference in activation levels between the real parameters and the
+generated to test the difference in BOLD levels between the real parameters and the
 estimated ones. Since it is clear that the parameters are not fully orthogonal 
 (\cite{Deneux2006}), its possible that two sets of parameters are functionally equivalent,
-but have different parameters. This way, an absolute 
-quantitative difference between the two parameter sets may be found.
+yet different. This way, a quantitative difference between the two parameter sets 
+may be found.
 
+\begin{figure}
+\includegraphics[]{images/simslice_hm}
+\caption{Normalized Square Root of the Mean Square Residual. Darker indicates lower error.}
+\label{fig:simslice_hm}
+\end{figure}
+
+\begin{figure}
+\includegraphics[]{images/simslice_hm85}
+\caption{Normalized Square Root of the Mean Square Residual, with upper threshold at .85. 
+Darker indicates lower error.}
+\label{fig:simslice_hm85}
+\end{figure}
+
+\begin{figure}
+\includegraphics[]{images/parameters_sec1}
+\caption{Histogram of estimated parameters in section with true parameters of $\{ \}$
+Limited to areas with residual less than $.85$.}
+\label{fig:parameters_sec1}
+\end{figure}
+
+\begin{figure}
+\includegraphics[]{images/parameters_sec2}
+\caption{Histogram of estimated parameters in section with true parameters of $\{ \}$
+Limited to areas with residual less than $.85$.}
+\label{fig:parameters_sec2}
+\end{figure}
+
+\begin{figure}
+\includegraphics[]{images/parameters_sec3}
+\caption{Histogram of estimated parameters in section with true parameters of $\{ \}$. 
+Limited to areas with residual less than $.85$.}
+\label{fig:parameters_sec3}
+\end{figure}
