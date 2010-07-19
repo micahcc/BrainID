@@ -1,7 +1,52 @@
 \chapter{Conclusion}
+In this paper I have proposed and demonstrated the use of a particle filter
+for the estimation of BOLD model parameters. In doing so, it has been possible
+to estimate the BOLD time-series and judge the quality of the estimated time-
+series with respect to the true BOLD signal. As result, it is possible to use
+the particle filter to localize areas where a known stimuli most directly drives
+neural activation. In the future it will be possible to use the estimated states
+($v,q,s,f$) to drive other models and learn more about how regions of the brain
+interact. 
 
-\section{Future Work}
-*A more extensive investigation of the parameters distribution
-*Using a compliance model
-*restrict parameters more (may not be possible)
+A limitation often reached in previous works was an inconsistency of
+parameter estimates, most likely because of covariance between the model parameters.
+Although individual studies got consistent results, those results often differed
+widely from other similar studies. The reason for this is rather clear from the
+simulation results in \autoref{sec:SimLowNoise}. There is a significant amount of
+trade off between parameters to the point that a signal set of parameters
+is most likely not possible to derive from the BOLD response alone. It
+will therefore be beneficial to combine BOLD studies with cerebral blood
+flow or cerebral blood volume studies to gain multiple more measurements and
+further constrain the model. That said, the benefit of the particle filter
+is that it provides a full posterior distribution at the final time step.
+As such the true solution should be encoded in the particle filter's final 
+distribution given priors that encompass the true parameters. This is beneficial
+in two ways; first, if, after the fact, some parameter becomes known 
+from outside observation, it is then possible to construct a new probability
+conditional on the new observation. Secondly the results from multiple runs
+may be reasonably compiled together, using the final distribution from the previous
+run as the prior distribution of the next run. Rather than simply providing a 
+staring point for parameters to converge from, it in fact continues convergence
+from the previous stopping point. 
 
+Although many versions of the BOLD model exist, and it is tempting to use 
+more detailed models; from the results found here the issue of bias error
+from the BOLD model is not the biggest concern. Clearly reducing variance
+in parameters should be the first concern. 
+One future study that would be extremely beneficial in this way  would
+be an extensive study of what the priors should truly be. Although \cite{Friston2000}
+gives an estimate of what is thought to be "reasonable" values, and later studies
+published their estimate of the distributions, given the interplay between
+parameters it is very unlikely that these priors are true to actual distribution
+that occurs in vivo. As I mentioned previously, the addition of simultaneous
+flow or volume measurements are another potentially powerful way to further confine the model,
+and thus deal with the elasticity of parameters. As I mentioned in 
+\autoref{sec:BackgroundConclusion}, a chief advantage of using physiologically
+plausible models is that such data may in fact be added with relative ease.
+
+In conclusion, using particle filters to estimate the BOLD response are 
+an extremely powerful method of fitting to noisy data. The technique also
+holds great promise as extensible platform to build more advanced models
+and techniques on top of. Integrating further information is necessary to
+move beyond the traditional Statistical Parametric Mapping and moving
+toward biologically and medically relevant FMRI scanning techniques. 

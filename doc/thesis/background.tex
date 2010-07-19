@@ -5,15 +5,16 @@ for analyzing FMRI data.
 
 Currently, FMRI is used to determine the location of responses
 to stimuli. The method of finding activation is discussed in 
-\autoref{sec:Statistical Parameteric Mapping}. The goal of this 
+\autoref{sec:Statistical Parametric Mapping}. The goal of this 
 work is to move away from the question "Is this region active"
 and instead ask "What does the activation look like". Answering
 this question necessitates more complex models and certainly
 will result in longer run times. Already there have been several other
 attempts to model the BOLD response; these works will be discussed
-in [all other sections basically].
+in in the next few sections.
 
 \section{Statistical Parametric Mapping}
+\label{sec:Statistical Parametric Mapping}
 Although not strictly the same as parameter calculation from 
 FMRI, activation detection is similar and worth discussing. Estimation of 
 parameters is a generalization of the idea of activation detection.
@@ -141,6 +142,7 @@ and \cite{Hoffman1997}. As a consequence, point estimators
 are used for each $\theta$, rather than the full distributions.
 
 \subsection{Conclusion}
+\label{sec:BackgroundConclusion}
 In all, the GLM is extremely useful for determining linear 
 dependence of a set of regressors on the output. Unfortunately, as discussed in
 \autoref{sec:BOLD Analysis} there are significant nonlinearities 
@@ -265,7 +267,7 @@ not using it here.
 \end{algorithmic}
 \end{algorithm}
 
-[simulated annealing image?]
+%[simulated annealing image?] todo
 
 Another potential method of interest is the use of Genetic Algorithms
 (GA). Genetic algorithms are similar to Simulated Annealing, in
@@ -285,7 +287,7 @@ of generations. This is problematic, since it doesn't really provide
 any guarantee of even reaching a local minima, although in practice
 it can be quite effective.
 
-[genetic algorithm picture]
+%[genetic algorithm picture] todo
 
 \begin{algorithm}
 \caption{Genetic Algorithm}
