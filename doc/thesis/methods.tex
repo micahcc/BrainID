@@ -390,6 +390,48 @@ direct signal; which mandates the removal of low frequency drift.
 The generally accepted method is to use a high pass filter, although the
 cutoff frequency is application dependent and often applied haphazardly.
 
+\section{Particle Filter Settings}
+The run-time for a single voxel depends on the several factors. First, the
+overall length of the signal being analyzed. For 1000 measurements it takes
+about 6 minutes. On the other hand, in real circumstances the
+length is only around 150 measurements and takes around 1 minute. The size of 
+local linearization steps can certainly also make a large difference; and 
+although it can be tempting to decrease the resolution, going above .001 seconds
+per step is not recommended. In most cases millisecond resolution
+is fine; however, when generating simulated data I found that every once
+in a while this was not enough. This is problematic in the actual particle
+filter since, given the large number of simultaneous integrations taking 
+place, its probable that a few particles will fail and be unfairly thrown away.
+There are two possible outcomes of this. The typical case 
+is at some point where are the particles are in a similar location and 
+so many or all particles fail together.
+The result is then particle deprivation - no particles with non-zero weights remain.
+At best this will cause a convergence to a less than optimal posterior 
+probability, at worse at will result in a false negative. 
+The other possible outcome is that low time constant (or fast moving)
+particles get pruned, leaving an excessively smoothed estimate of the output. 
+
+Although runge-kutta solvers could be applied, this will still not
+guarantee that features aren't missed. Its possible that a
+kind of stop-gap measure could be put into place; wherein particles that are
+about to be set to NaN are integrated again with finer grained steps. However
+many times the non-real results don't occur until several time steps after the 
+numbers become unrealistic. So for instance, the time step was too long, allowing 
+$f$ to go negative, resulting in extremely large values of $q$. There are many
+different ways where this sort of event can occur, and unfortunately sometimes
+there is no way to get back to before the state starting going out of control.
+
+Another crucial factor for run time is how long before the first re-sampling 
+occurs. Because the prior is represented initially with significantly more
+particles, if the model fits very well, or for some reason the effective
+number of particles stays high, resampling could take a long time to occur.
+For this reason, rather than allowing the particle filter to continue on 
+with this large number of particles, after 20 seconds have passed the
+algorithm forces resampling. Of course the choice of 20 seconds is somewhat
+arbitrary, but at the very least this gives some time for the particle to
+be re-weighted before the new distribution is drawn. At the very least the
+distribution will be a thinned out version of the prior. 
+
 %For simulated and real images (tests with multiple time-series), tests were 
 %also run with and without Gaussian filtering with sigma of %not sure todo
 %were run, since it is standard
@@ -397,5 +439,10 @@ cutoff frequency is application dependent and often applied haphazardly.
 %a spatial filter such as Gaussian filtering increased SNR but can also lead to less
 %precision in the output maps.
 
+\section{FMRI Configuration}
+For the FMRI data discussed in \autoref{sec:RealData}, tests were 
+performed on a right handed volunteer using a Gradient EPI sequence
+on a 1.5T GE scanner with a 2.1s TR. Slices were 5mm thick and echo
+time was (todo). 
 
 

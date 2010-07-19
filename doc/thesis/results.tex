@@ -9,7 +9,15 @@ time-series is also desirable. The reason to then simulate an entire slice is th
 the "Possum" FMRI simulation tool models noise more realistically, for instance by
 adding spatial correlation. Additionally 
 it provides insight into the applicability of particle filters in modeling the BOLD 
-signal on a large scale.
+signal on a large scale. Both sorts of tests are usefull in determining the
+consistency of the particle filter. For the single voxel tests, each test will
+actually be performed eleven different times, each with a new noise realization.
+If runs fail to have consistent estimates of the underlying BOLD signal, then
+this would indicate a large variance error in the model. Similarly, in the
+Possum simulation there are actually only four discrete parameter sets driving the time-series.
+Nevertheless each voxel will have a different tissue composition and a different
+noise realization. Therefore the Possum simulation should also provide a good
+test of the consistency of the BOLD model. 
 
 \section{Single Time Series}
 Given the state-space equations for the BOLD signal, simulating a single time 
@@ -567,6 +575,15 @@ Ultimately, a threshold well below those shown in the high noise case
 will have to be placed on the error, if any confidence is going to be placed in
 the results. Luckily the "high noise" case featured in \autoref{sec:HighNoise}
 is actually noisier than typical FMRI.
+
+There were two primary purposes of these tests. First given the nature of monte-carlo
+techniques it is important to ensure consistency of results. Although the parameter
+sets were somewhat inconsistent, the quality of the output was actually quite consistent
+across eleven runs. The second purpose was of course to determine how the particle 
+filter responded to different signal to noise ratios. Although the direct $\sqrt{MSR}$ is not
+a good measure of quality, the normalized $\sqrt{MSR}$ is. Drawing a line at a particular
+threshold may be difficult, however from the tests it seems that normalized $\sqrt{MSR}$
+below $1$ may be a good start. 
 
 \section{Multi-voxel Simulation}
 To test the usefullness of the particle filter for Second I used a modified version of the FSL tool 
