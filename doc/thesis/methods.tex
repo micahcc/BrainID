@@ -33,12 +33,12 @@ the works that characterized the parameters, except \cite{Johnston2008}.
 The BOLD signal is universally recognized to be around $2-3\%$, maybe
 reaching $5\%$ in extreme activation. Yet using the mean priors
 from \cite{Friston2000}, the signal response for a $.1$ second
-impulse only reaches maybe half a percent, as \autoref{fig:MeanResponse}
+impulse only reaches maybe half a percent, as \autoref{fig:MeanResponseF}
 shows.
 
 \begin{figure}
 \centering
-\label{fig:MeanResponse}
+\label{fig:MeanResponseF}
 \includegraphics[trim=6cm 3cm 6cm 3cm,width=16cm]{images/mean_response}
 \caption{Response to $.1s$ impulses with the mean parameters from \cite{Friston2000}}
 \end{figure}
@@ -58,7 +58,7 @@ confusing, with peaks of well below $.1\%$ (\autoref{fig:MeanResponseJ}).
 
 \begin{figure}
 \centering
-\label{fig:MeanResponse}
+\label{fig:MeanResponseJ}
 \includegraphics[trim=6cm 3cm 6cm 3cm,width=16cm]{images/mean_response_johnston}
 \caption{Response to $.1s$ impulses with the mean parameters from \cite{Johnston2008}}
 \end{figure}
@@ -203,6 +203,7 @@ in a row. This seemed to give good results, and avoids
 temporary drops in the $N_{eff}$ caused by outliers. 
 
 \section{Choosing $P(y_k | x_k)$}
+\label{sec:Methods Weighting Function}
 Choosing a representation of an unknown distribution tricky, and while
 the usual choice is a Gaussian distribution, there are reasons why it
 may not be the best.  Studies of the noise in FMRI typically characterise
@@ -236,8 +237,7 @@ benefit of the wider tailed distributions is that they don't down-weight
 particles quite as fast. Additionally, the Laplace distribution has the
 benefit of having a non-zero slope at the origin. This means that even
 if the distribution is made overly broad, it will still distinguish between
-particles that are near the origin. Results with real data compare 
-the three distribution in \autoref{sec:Results Weights}.
+particles that are near the origin.
 
 After trial and error, I chose the weight standard deviation to be $.005$. Obviously
 the case of the Cauchy, this is simply the scale parameter. While I 
@@ -352,7 +352,7 @@ a simple Gaussian random variable.
 
 Even if $\nu_d$ is some other additive process, the difference will still be closer
 to I.I.D. than a Wiener process, as the autocorrelation of the $\delta y$ shows
-in \autoref{fig:QQDDelta} in \autoref{sec:Introduction Noise}. 
+in \autoref{fig:QQDelta} in \autoref{sec:Introduction Noise}. 
  All the assumptions made originally
 for the particle filter still hold, and all of the parameters may be distinguished based on
 the step sizes, thus it is not unreasonable to consider matching the string of step sizes
