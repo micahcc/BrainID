@@ -600,12 +600,13 @@ simulated Possum images. This is because the BOLD \% difference levels were in t
 of 50 - 100\% from the base, about 5 times as large as they should have been. Ultimately
 this should not have an effect on the parameters (other than perhaps $\epsilon$ and $V_0$). 
 Also worth noting is that the noise level was set to an SNR of 20, due to changes in the 
-program the true signal-to-noise ratio was much lower, as soon in the fit in \autoref{fig:simslicefit1}.
+program the true signal-to-noise ratio was much lower, as seen in the fit in \autoref{fig:simslicefit1}.
 
-\begin{figure}
-%includegraphics[]{images/simslicefit1}
+\begin{figure}[H]
+\centering
+\includegraphics[width=15cm]{images/simslice_noise}
 \caption{A single time-series fit in the simulated slice.}
-\labe{fig:simslicefit1}
+\label{fig:simslicefit1}
 \end{figure}
 
 For each time-series in the simulated FMRI image, the final \emph{static} parameters were saved
@@ -617,36 +618,86 @@ estimated ones. Since it is clear that the parameters are not fully orthogonal
 yet different. This way, a quantitative difference between the two parameter sets 
 may be found.
 
-\begin{figure}
-\includegraphics[]{images/simslice_hm}
+\begin{figure}[H]
+\centering
+\includegraphics[width=10cm]{images/simslice_mask}
+\caption{Normalized Square Root of the Mean Square Residual. Darker indicates lower error.}
+\label{fig:simslice_mask}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=10cm]{images/simslice_hm}
 \caption{Normalized Square Root of the Mean Square Residual. Darker indicates lower error.}
 \label{fig:simslice_hm}
 \end{figure}
 
-\begin{figure}
-\includegraphics[]{images/simslice_hm85}
+\begin{figure}[H]
+\centering
+\includegraphics[width=10cm]{images/simslice_hm85}
 \caption{Normalized Square Root of the Mean Square Residual, with upper threshold at .85. 
 Darker indicates lower error.}
 \label{fig:simslice_hm85}
 \end{figure}
 
-\begin{figure}
-\includegraphics[]{images/parameters_sec1}
-\caption{Histogram of estimated parameters in section with true parameters of $\{ \}$
-Limited to areas with residual less than $.85$.}
-\label{fig:parameters_sec1}
+The regions are numbered according to \autoref{fig:simslice_mask}; the parameters
+for each region may be found in \autoref{tab:simsliceparams}. 
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c |c | c | c | c | c | c | c |}
+\hline 
+Region & $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  \\
+\hline 
+1 & 1.454& .321& .369& .036& .994& 2.774& 1.348\\
+2 &1.151& .353& .380& .026& 1.98& 2.333& 1.645 \\
+3 &1.951& .317& .348& .027& 1.657& 3.719& .757 \\
+4 &1.203 & .310& .326& .036& 2.168& 2.272& .086\\
+\hline
+\end{tabular}
+\caption{Actual parameters for each regions in the simulated slice.}
+\label{tab:simsliceparams} 
+\end{table}
+%last (bottom right), 1.203, .310, .326, .036, 2.168, 2.272, .086, 3.4, 1
+
+Note that region 4 has a very low $\epsilon$. For this reason, the only areas
+with significantly decent estimates of the BOLD time series are 1,2 and 3. With
+such a low $\epsilon$ region 4 was below the noise threshold. Notice that the
+regions 1 2 an 3 clearly stick out in the $\sqrt{MSR}$ map, indicating that the
+particle filter was succesfull in matching those regions. 
+
+\begin{figure} %bottom left
+\centering
+\includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=15cm]{images/slicesim_hist1}
+\caption{Histogram of estimated parameters in section 1 with $\sqrt{MSR}$ less than $.85$.}
+\label{fig:slicesim_hist1}
 \end{figure}
 
-\begin{figure}
-\includegraphics[]{images/parameters_sec2}
-\caption{Histogram of estimated parameters in section with true parameters of $\{ \}$
-Limited to areas with residual less than $.85$.}
-\label{fig:parameters_sec2}
+\begin{figure} %top left
+\centering
+\includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=15cm]{images/slicesim_hist2}
+\caption{Histogram of estimated parameters in section 2 with $\sqrt{MSR}$ less than $.85$.}
+\label{fig:slicesim_hist2}
 \end{figure}
 
-\begin{figure}
-\includegraphics[]{images/parameters_sec3}
-\caption{Histogram of estimated parameters in section with true parameters of $\{ \}$. 
-Limited to areas with residual less than $.85$.}
-\label{fig:parameters_sec3}
+\begin{figure} %top right
+\centering
+\includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=15cm]{images/slicesim_hist3}
+\caption{Histogram of estimated parameters in section 3 with  $\sqrt{MSR}$ less than $.85$.}
+\label{fig:slicesim_hist3}
 \end{figure}
+
+It is again clear that a single point estimate of the parameters is not feasible,
+but rather a distribution of parameters is the best any modeling algorithm
+is going to be capable of for this version of the BOLD signal. In spite of
+this, and relatively heavy noise, the fact that is that the fits were
+good. Clearly, from the normalized $\sqrt{MSR}$ it is possible to identify
+ \"active" regions; or regions that respond the way the BOLD model expects.
+Although some of the fits in the  \"active" regions did not have good regression,
+this is not necessarily the work of false negatives. Instead, because possum
+simulates different tissues, it is more likeley that those regions non
+grey-matter areas. Essentially these areas should not have reacted very strongly
+because in the real world such regions wouldn't. By the fact that it 
+was relatively easy to identify the regions of activation from the simulated 
+results, something similar should happen with real FMRI data, which is discussed
+in the next session. which  
