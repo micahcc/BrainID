@@ -1,42 +1,54 @@
 \chapter{Introduction}
+Traditional methods of analyzing images produced by Function Magnetic Resonance 
+Imaging (FMRI) use regression techniques with very few degrees of freedom. 
+Though adding more degrees of freedom naturally mandates more computation,
+in this thesis I will discuss a Sequential Monte Carlo method of fitting a nonlinear
+model with seven degrees of freedom at 
+a computation cost that would allow real time calculations for a multiple voxels
+(4 dimensional pixels). More practically, the method described here forms a completely
+separate method of detecting neural activity in comparison to the traditionally
+used Statistical Parametric Mapping (SPM). Though more computationally intense,
+this method is capable of modeling nonlinear effects, is conceptually simpler
+and provides more detailed output. Additionally,
+by using a separate particle filter for each voxel's time
+series it should be feasible to calculate parameters and make real-time predictions
+for small neural regions, a feature which could be useful towards real time FMRI 
+(\cite{DeCharms2005}). 
+
 For the past twenty years Functional Magnetic Resonance Imaging (FMRI) 
 has been at the forefront of cognitive research. Despite it's
 limited temporal resolution, FMRI is the standard tool for localizing 
 neural activation.  Whereas other methods
 of analyzing neural signals can be invasive or difficult to acquire, 
-FMRI is relatively quick and cheap, and its analysis relatively straight forward.
-
+FMRI is quick and cheap, and its analysis straight forward.
 By modeling the governing equations behind the neural response that
-drives FMRI, it is possible to make the analyses of FMRI even more
-powerful. The underlying state equations hold important information
+drives FMRI, it is possible to increase the power of FMRI.
+The underlying state equations hold important information
 about how individual brain regions react to stimuli. The model parameters
 on the other hand, hold important information about the patients individual
 physiology including existing and future pathologies. In short,
-the long chain of events driving observable FMRI signal contains more
-information than which regions respond to which stimuli.
+the long chain of events driving FMRI signals contain information 
+beyond correlation with stimuli.
 
 In the past fifteen years, a steady stream of studies have built
 on the original Blood Oxygen Level Dependent (BOLD) signal 
 derivation first described by \cite{Ogawa}.
 The seminal work by \cite{Buxton1998} attempted to explain the
 time evolution of the BOLD signal using a windkessel model to
-describe the time local changes in Deoxygenated Hemoglobin content.
+describe the local changes in Deoxygenated Hemoglobin content.
 Various papers made substantial improvements to this model until
 \cite{Buxton2004} brought all the changes together into a single complete 
 set of equations. And while there have been numerous adaptations in the model, 
-many of them summarized in \cite{Deneux2006}, even the most basic version
-has been shown to have less bias error than the convolution based 
-"Canonical Hemodynamic Model" \cite{Deneux2006}, \cite{Handwerker2004}.
-On the other hand many of the BOLD signal models have far more parameters
-than a simple scaling parameter. In fact, the number of parameters
-range from seven \cite{Riera2004} to 50 \cite{Behzadi2005} per
-signal time course; a signal which may be as short as 100 samples long.
-Thus, even in a small FMRI image of the brain (20x20x20), the number of parameters 
-could easily exceed 10,000. Clearly this number of parameters presents
-a significant risk of being under-determined and could suffer catastrophic
-variance error; to make no mention of the computation cost. 
-In this work a method of countering these problem is presented
-with the use of a particle filter.
+many of them summarized in \cite{Deneux2006}, even the basic versions
+have less bias error than the empirically driven \emph{Canonical Hemodynamic Model}
+\cite{Deneux2006}, \cite{Handwerker2004}.
+On the other hand many of the BOLD signal models have numbers
+of parameters ranging from seven \cite{Riera2004} to 50 \cite{Behzadi2005} 
+for a signal as short as 100 samples long. Clearly this number of parameters presents
+a significant risk of being under-determined and having high computation cost. 
+In this work, only the simplest physiologically inspired model will be
+used (with 7 parameters), and steps will be taken to make the most of computation
+time.
 
 \section{Overview}
 \label{sec:Introduction Overview}
