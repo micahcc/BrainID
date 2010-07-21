@@ -1,21 +1,47 @@
 \chapter{Introduction}
-Traditional methods of analyzing images produced by Function Magnetic Resonance 
+Traditional methods of analyzing timeseries images produced by 
+Function Magnetic Resonance 
 Imaging (FMRI) use regression techniques with very few degrees of freedom. 
 Though adding more degrees of freedom naturally mandates more computation,
 in this thesis I will discuss a Sequential Monte Carlo method of fitting a nonlinear
 model with seven degrees of freedom at 
-a computation cost that would allow real time calculations for a multiple voxels
-(4 dimensional pixels). More practically, the method described here forms a completely
+a computation cost that would still allow real time calculations for multiple voxels.
+More practically, the method described here forms a completely
 separate method of detecting neural activity in comparison to the traditionally
 used Statistical Parametric Mapping (SPM). Though more computationally intense,
 this method is capable of modeling nonlinear effects, is conceptually simpler
 and provides more detailed output. Additionally,
 by using a separate particle filter for each voxel's time
-series it should be feasible to calculate parameters and make real-time predictions
+series it is possible to estimate parameters and make real-time predictions
 for small neural regions, a feature which could be useful towards real time FMRI 
-(\cite{DeCharms2005}). 
+(\cite{DeCharms2005}). Future works will also benefit from the ability to 
+apply conditions to the posterior distribution in post-processing without
+having to re-run the algorithm; for instance in light of additional physiological
+constraints. Modeling the BOLD response as a nonlinear system is the
+best way to determine the correlation of stimulus sequence with the BOLD
+response; yet in the past doing this on a large scale has been far too
+computationally taxing. The solution used here takes approximately 40 seconds
+for a single voxel's time series (5 minutes in length, with a quad core machine). 
 
-For the past twenty years Functional Magnetic Resonance Imaging (FMRI) 
+This thesis is organized as follows. In the introduction I will introduce
+FMRI, the method by which neural time changing data is detected. This section
+will also describe the basic form of the BOLD model - which drives the 
+detectable changes in MR signal. \autoref{sec:Prior Works} will discuss other
+methods of analyzing FMRI images as well as other techniques that have
+been, or could be applied to the nonlinear regression model described here. 
+\autoref{sec:Particle Filter} derives the particle filter using Bayesian 
+statistics and discusses some practical elements of implementing the 
+particle filter algorithm. \autoref{sec:Methods} then goes into further
+detail about the specific particle filter configuration used in this work.
+This section also describes the pre-processing used before the particle
+filter is applied. The results are described separately for simulated data
+and real FMRI data in \autoref{sec:SimulationResults} and \autoref{sec:RealData},
+respectively. Finally in \autoref{sec:Conclusion} there is a discussion of
+the usefulness and implications of this technique as well as recommendations
+for direction of future works. 
+
+\section{Historic Context}
+For the past twenty years, Functional Magnetic Resonance Imaging (FMRI) 
 has been at the forefront of cognitive research. Despite it's
 limited temporal resolution, FMRI is the standard tool for localizing 
 neural activation.  Whereas other methods
@@ -213,8 +239,8 @@ While this model is very accurate, it is not perfect.
 Although the most widely used, the BOLD model described in \autoref{eq:bold}
 and \autoref{eq:boldout} have been extensively added on to. The most
 significant feature missing from the original model is the 
-"post-stimulus undershoot".
-The "post-stimulus" undershoot is the name for a prolonged subnormal
+post-stimulus undershoot.
+The post-stimulus undershoot is the term used for a prolonged subnormal
 BOLD response for a period of 10 to 60 seconds after stimulus has
 ceased (\cite{Chen2009}, \cite{Mandeville1999a}).
 
@@ -275,138 +301,6 @@ important. Given that the basic BOLD model has 7 parameters, for this
 work, where computation time is very important, that model is
 the best fit.
 
-\section{Noise}
-\label{sec:Introduction Noise}
-As demonstrated in \autoref{sec:BOLD Physiology} the BOLD response has been
-extensively studied and despite minor discrepancies, the cause of the BOLD 
-signal is well known. However, as FMRI detects an  
-aggregate signal over the space of cubic centimeters, there are
-plenty of sources of noise. Though local neurons act
-"together" (i.e. around the same time), the density of neurons, the
-density of capillaries, and slight differences in activation across 
-a particular voxel can all lead to signal attenuation and noise. 
-
-A particularly difficult form of noise present in FMRI is a low frequency
-drift, often characterized as a Wiener process (\cite{Riera2004}). 
-Though not present in all regions, as much as ten to fifteen percent
-of voxels can be affected (\cite{Tanabe2002}), thus it is prevalent enough to cause significant
-inference problems \cite{Smith2007}. It is still not
-clear what exactly causes this noise noise comes from, although it is possible it is 
-the result of magnets heating up, or some distortion in magnetic
-fields \cite{Smith2007}. It is clear that this drift signal is not solely
-due to a physiological effects, given its presence in cadavers and phantoms 
-\cite{Smith1999}. Interestingly, it is usually spatially correlated, and
-more prevalent at interfaces between regions, though 
-by no means limited to such areas. Though one potential source
-could be slight movement, given that co-registration of volumes to a single time
-point is standard, this seems unlikely. Regardless, the problem mandates
-the use of a high pass filter to make inference reasonably powered
-\cite{Smith2007}.
-
-In order to characterize the noise, I analyzed resting state data.
-During resting state, the patient is shown no images, and he is asked
-to avoid movement and complex thought, to the best of his abilities.
-Some limitations exist, for instance EPI sequences are extremely loud
-which could cause some stimulus in the auditory cortex, and of course
-very long sequences could give the patient time for his mind to wander.
-Overall though there should be no activation, and thus the signal will
-consist entirely of noise. Therefore resting state data is perfect
-for analyzing the noise distribution. The locations were chosen from
-various points around the brain, all in grey matter voxels. The time
-series were also chosen because they were representative of different types
-of noise I found in the resting state data.
-
-Because most methods (including the one used in this paper)
-assume the noise realizations are independent of each other, the auto-
-correlation is of particular interest (which is a necessary but not
-sufficient condition for independence). Gaussianity is also a common
-assumption made in studies of FMRI data, though that assumption is not
-made in this work. Regardless, comparing the distribution to a Gaussian
-is informative, so I used Q-Q plots to compare example data with the
-Normal distribution. Additionally, in FMRI data the noise is often considered 
-to be Wiener \cite{Riera2003}. Recall that a Wiener random process is
-characterized by steps that are Gaussian; in other words the difference between
-any two samples is Normally distributed. The simulations discussed in 
-\autoref{sec:Single Voxel Simulation} make use of this, 
-by adding a Wiener random process to the overall signal. To determine
-whether the noise is in fact Wiener, the distribution of 
-the difference between adjacent measurements was plotted against
-a Gaussian. Wiener processes further assume that the steps are independent;
-so the steps should have near flat autocorrelation functions.
-
-Finally, removal of the so called "drift" is often
-performed with some variation of a high pass filter, 
-so I checked the noise distribution after applying such a filter (in
-this case the subtraction of a spline, see \autoref{sec:Methods Preprocessing}).
-Here I wanted to know how effective my high pass filter at the removal of
-Wiener noise.
-
-\autoref{fig:QQDC} shows the 
-results with a regression line fit to the points on the Q-Q plot.
-Recall that in a Quartile-Quartile (Q-Q) plot, if the points plotted on the 
-x-axis and the points
-on the y-axis come from the same \emph{type} of distribution then all the points will
-fall on a line. Differences in the variance will cause the line to have a slope
-other than 1, while differences in the expected value will cause the fitted line
-to be shifted. In these Q-Q plots, the points are being compared to the standard
-Gaussian distribution, so the quality of the line fit determines how closely the points
-fit the Gaussian distribution. Note that in \autoref{fig:QQDC} the points have all been 
-normalized (changed to percent difference).
-\begin{figure}
-\centering
-\subfigure[]{\label{fig:QQDC:A}\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009_29_49_9}}
-\subfigure[]{\label{fig:QQDC:B}\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009_34_43_24}}
-\subfigure[]{\label{fig:QQDC:C}\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009_22_38_23}}
-\subfigure[]{\label{fig:QQDC:D}\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009_37_29_24}}
-
-%\subfigure{\includegraphics[trim=6cm 1cm 0 0cm,width=17cm]{images/noise_0009_19-24-10.pdf}}
-%\subfigure{\includegraphics[trim=6cm 1cm 0 0cm,width=17cm]{images/noise_0009_20-45-18.pdf}}
-%\subfigure{\includegraphics[trim=6cm 1cm 0 0cm,width=17cm]{images/noise_0009_23-47-18.pdf}}
-%\subfigure{\includegraphics[trim=6cm 1cm 0 0cm,width=17cm]{images/noise_0009_35-49-9.pdf}}
-
-\caption{Q-Q Plots of normalized resting state data}
-\label{fig:QQDC}
-\end{figure}
-
-\begin{figure}
-\centering
-\subfigure[]{\label{fig:QQDDelta:A}\includegraphics[trim=6cm 1cm 6cm 0,width=14cm]{images/noise2_0009d_29_49_9}}
-\subfigure[]{\label{fig:QQDDelta:B}\includegraphics[trim=6cm 1cm 6cm 0,width=14cm]{images/noise2_0009d_34_43_24}}
-\subfigure[]{\label{fig:QQDDelta:C}\includegraphics[trim=6cm 1cm 6cm 0,width=14cm]{images/noise2_0009d_22_38_23}}
-\subfigure[]{\label{fig:QQDDelta:D}\includegraphics[trim=6cm 1cm 6cm 0,width=14cm]{images/noise2_0009d_37_29_24}}
-\caption{Q-Q Plots of resting state data, using the BOLD signal changes}
-\label{fig:QQDelta}
-\end{figure}
-
-A Wiener process should still conform to the normal distribution, with a 
-variance proportional to the run-time. Note that \autoref{fig:QQDC:A} and \autoref{fig:QQDC:B}
-are relatively well described by a Gaussian process with a small autocorrelation, 
-\autoref{fig:QQDC:C} and \autoref{fig:QQDC:D} are not. In particular the tails of \autoref{fig:QQDC:C}
-do not seem to fit the Gaussian well. Also note the significant autocorrelation in
-\autoref{fig:QQDC:C} and \autoref{fig:QQDC:D}. As expected, the noise is not strictly
-Gaussian white noise.  On the other hand, the steps do conform rather
-closely to the normal distribution.
-As expected, most of the autocorrelation disappears for the step data. Given
-that the steps seem to fit the Normal distribution, the low autocorrelation
-indicates that the steps could be Independently Distributed. 
-Therefore, the assumption that the noise follows a Wiener process seems to
-be correct. 
-
-\begin{figure}
-\centering
-\subfigure[]{\label{fig:QQs:A}\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009s_29_49_9}}
-\subfigure[]{\label{fig:QQs:B}\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009s_34_43_24}}
-\subfigure[]{\label{fig:QQs:C}\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009s_22_38_23}}
-\subfigure[]{\label{fig:QQs:D}\includegraphics[trim=6cm 1cm 6cm 0cm,width=14cm]{images/noise2_0009s_37_29_24}}
-\caption{Q-Q Plots of resting state data, after the de-trending}
-\label{fig:QQSpline}
-\end{figure}
-
-De-trending the time-series by subtracting a spline fit to the distribution
-removed much of the autocorrelation present in \autoref{fig:QQDC:C} and \autoref{fig:QQDC:D},
-though clearly not perfectly. Though the distributions still do not exactly fit
-the Normal, \autoref{fig:QQs:D} clearly is much improved compared to \autoref{fig:QQDC:D}.
-In all, the de-trending is effectively removing Wiener noise. 
 
 \section{Properties of the BOLD Model}
 \label{sec:BOLD Analysis}

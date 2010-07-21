@@ -64,7 +64,7 @@
 
 % TITLE
 {\Large 
-BOLD Parameter Estimation Using Particle Filters
+Full Volume Blood-Oxygen-Level-Dependent-Signal Parameter Estimation Using Particle Filters
 }
 
 \vfill
@@ -123,7 +123,27 @@ Micah C. Chambers
 
 \end{center}
 
-Abstract Abstract Abstract ... 
+Traditional methods of analyzing FMRI images use a linear combination of
+just a few static regressors. This works demonstrates an alternative
+approach using a physiologically inspired nonlinear model. By using a 
+particle filter to optimize the model parameters, the computation time
+is kept low without requiring a linearization of the noise in the state
+variables. The activation results show regions similar those found in 
+SPM; however, there are some notable regions not detected by 
+SPM. Though the parameters selected by the particle filter based approach
+presented here are more than sufficient to predict the BOLD response,
+more model constraints are needed to uniquely identify a single set
+of parameters. This ill-posed nature explains the large discrepancies
+found in other research that attempt to characterize the model parameters.
+Despite this, the reliance on a single point estimator of parameters is
+unnecessary, given the output of the particle filter is a full posterior
+probability at the final time step. For this reason the final distribution 
+of parameters may still be medically relevant. For this same reason,
+additional model constrains may be performed in post-processing by a simple 
+application of conditional probability. Concluding, this work presents
+not just a viable alternative to the traditional method of detecting
+activation, but an extensible technique of estimating the joint BOLD
+parameter distribution.
 
 \vfill
 

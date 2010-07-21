@@ -1,13 +1,14 @@
 \chapter{Simulation}
+\label{sec:SimulationResults}
 Two levels of simulation are discussed in this section. First the simulation of single time series
 and second, a slice of simulated FMRI time series. The single time series tests
 are necessary to investigate the power of particle filters in 
 identifying the BOLD model in a noisy environment. If the particle filter is unable
-to get back to the "true" time-series in spite of noise then the particle filter
+to get back to the \emph{true} time-series in spite of noise then the particle filter
 will not be useful. Additionally, determination of reasonable parameters from the
 time-series is also desirable. The reason to then simulate an entire slice is that
-the "Possum" FMRI simulation tool models noise more realistically, for instance by
-adding spatial correlation. Additionally 
+Physics-Oriented Simulated Scanner for Understanding MRI (POSSUM)
+models noise more realistically, for instance by noise in the frequency domain. Additionally 
 it provides insight into the applicability of particle filters in modeling the BOLD 
 signal on a large scale. Both sorts of tests are usefull in determining the
 consistency of the particle filter. For the single voxel tests, each test will
@@ -22,17 +23,17 @@ test of the consistency of the BOLD model.
 \section{Single Time Series}
 \label{sec:Single Voxel Simulation}
 Given the state-space equations for the BOLD signal, simulating a single time 
-series is relatively straight forward. After a "true" signal is generated,
+series is relatively straight forward. After a true signal is generated,
 identically and independently distributed (I.I.D.) Gaussian noise and a Wiener
 process with Gaussian I.I.D. steps are added to the true signal. Finally a 
-"carrier level" is added, since BOLD is typically
+carrier level is added, since BOLD is typically
 measured as a \% difference from the baseline. The particle filter
 algorithm will immediately remove this by calculating the \% difference, 
 but adding a carrier level means that the exact same algorithm which 
 will is used for simulated data may be used for the real data. 
 
 Once this noisy simulated time series has been generated, the particle filter algorithm
- is then run on this single time series "image". Here I will include two sets of tests 
+ is then run on this single time series image. Here I will include two sets of tests 
 to determine the power of the particle filter in modeling. The first set are 
 used to demonstrate the ability of the particle filter to find the most likely
 set of parameters/state variables over the course of the run. The second type
@@ -97,7 +98,20 @@ this point, the algorithm has converged sufficiently to know that that such a mo
 signal isn't possible. A similar circumstance occurs at 100 seconds in. 
 In general the fits are good, although the bias introduced by pre-processing clearly
 results in a slightly larger peak signal. The final parameter sets are shown in 
-\autoref{tab:LowNoiseResults}.
+\autoref{tab:LowNoiseResults}. Note that throughout the results, unless otherwise specified,
+I will define the residual as the square root of the mean squared residual, 
+\begin{equation}
+\text{Residual} = \sqrt{\sum (\hat{y}_k - y_k)^2}
+\end{equation}
+where $\hat{y}_k$ is the estimated output at time $k$ and $y_k$ is the output
+sample at time $k$. Note the subtle distinction between this and the error
+which I will define as 
+\begin{equation}
+\text{Error} = \sqrt{\sum (\hat{y}_k - Y_k)^2}
+\end{equation}
+where $\hat{y}_k$ is the estimated output, and $Y_k$ is the underlying (free of noise)
+output. Throughout this section and the next, error and residual of a time series 
+will be referencing these values.
 
 \begin{table}[t]
 \centering
@@ -125,10 +139,7 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 \hline 
 \end{tabular}
 \caption{Estimated Parameters on 11 different runs with low noise. First row is the true parameters,
-last is mean over the 11 runs. The $\sqrt{MSR}$ is the square root of the mean square of the
-residuals. Although in real data I won't distinguish between residual and error, here I will.
-$\sqrt{MSE}$ is the mean squared difference between the true signal and the estimated signal.
-This is the actual error, due to a combination of noise and preprocessing. }
+last is mean over the 11 runs. The $\sqrt{MSR}$ is residual and $\sqrt{MSE}$ is the error.}
 \label{tab:LowNoiseResults} 
 \end{table}
 
@@ -333,13 +344,13 @@ that the weighting function is not sufficiently wide to account for the measurem
 The parameters arrived at for all ten filter runs are shown in \autoref{tab:HighNoiseResults}.
 Clearly the additional noise have resulted in much more sporadic results. This is often the 
 result when the particle filter converges too fast, a result of the weighting functions' variance
-being significantly smaller than the measurement noise ($.005$ vs. $.01$). The square-root
-MSE certainly suffers due to this effect.
+being significantly smaller than the measurement noise ($.005$ vs. $.01$). The error
+certainly suffers due to this effect.
 
 %NO SIGNAL, LOW NOISE
 \subsection{Pure-Noise, low magnitude}
 \label{sec:PureNoiseLowMag}
-The two final single-voxel tests force the particle filter to attempt to "learn" a noise-only
+The two final single-voxel tests force the particle filter to attempt to learn a noise-only
 time series. In the first test the noise used will be the same as that from the \autoref{sec:HighNoise},
 $\sigma_x = .01, \sigma_y = .005$. The parameters will be set the same as well, but the
 stimulus/input will be set to 0 the entire time. In effect it is a region of the brain for
@@ -457,7 +468,7 @@ pure noise signal was generated using a $\sigma_x$ of $.1$ and a $\sigma_y$ of $
 
 As before, the convergence all seems to follow a similar path, leaving almost no
 variance in the estimated time series (\autoref{fig:fits_noiseonly_high}). Now, however
-the peaks are comparable to peaks in a "real" timeseries. Interestingly the algorithm
+the peaks are comparable to peaks in a real timeseries. Interestingly the algorithm
 suffered from almost constant particle deprevation, meaning that the heuristic
 for rescuing the particle filter from particle deprivation, discuessed in
 \autoref{sec:Resampling} in fact was working against the proper course of action. Of course
@@ -554,7 +565,7 @@ The first step in determining the validity of a model to provide and order of qu
 to rate the results by. Unfortunately, because of the variablity in the signal levels the
 raw $\sqrt{MSR}$ cannot perform this task. As demonstrated by \autoref{sec:PureNoiseLowMag},
 just because the square-root mean-squared-residual is low doesn't mean the fit is
-"good". Therefore, instead we will normalize the signal based on a value proportional to
+good. Therefore, instead we will normalize the signal based on a value proportional to
 the magnitude of the signal. Considering the tendency of FMRI noise to have large unexplainable
 peaks and troughs, rather than using MAX and MIN values, I used a robust estimator of 
 scale, the Median-Absolute-Deviation (MAD). Technically this is an estimator of the standard
@@ -571,11 +582,11 @@ is to just allow the particle filter to fail when particle deprivation occurs; h
 as discussed in the previous section, that could open the door to more false negatives.
 Naturally there is a noise ceiling above which it will be impossible to determine model 
 validity. The fact
-that the particle filter is able to get close to the "true" signal is sadly irrelevant
+that the particle filter is able to get close to the true signal is sadly irrelevant
 when the noise is this high.
 Ultimately, a threshold well below those shown in the high noise case 
 will have to be placed on the error, if any confidence is going to be placed in
-the results. Luckily the "high noise" case featured in \autoref{sec:HighNoise}
+the results. Luckily the high noise case featured in \autoref{sec:HighNoise}
 is actually noisier than typical FMRI.
 
 There were two primary purposes of these tests. First given the nature of monte-carlo
@@ -692,8 +703,8 @@ but rather a distribution of parameters is the best any modeling algorithm
 is going to be capable of for this version of the BOLD signal. In spite of
 this, and relatively heavy noise, the fact that is that the fits were
 good. Clearly, from the normalized $\sqrt{MSR}$ it is possible to identify
- \"active" regions; or regions that respond the way the BOLD model expects.
-Although some of the fits in the  \"active" regions did not have good regression,
+ active regions; or regions that respond the way the BOLD model expects.
+Although some of the fits in the  active regions did not have good regression,
 this is not necessarily the work of false negatives. Instead, because possum
 simulates different tissues, it is more likeley that those regions non
 grey-matter areas. Essentially these areas should not have reacted very strongly

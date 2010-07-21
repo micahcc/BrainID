@@ -1,4 +1,5 @@
 \chapter{Conclusion}
+\label{sec:Conclusion}
 In this paper I have proposed and demonstrated the use of a particle filter
 for the estimation of BOLD model parameters. In doing so, it has been possible
 to estimate the BOLD time-series and judge the quality of the estimated time-
@@ -24,18 +25,18 @@ distribution given priors that encompass the true parameters. This is beneficial
 in two ways; first, if, after the fact, some parameter becomes known 
 from outside observation, it is then possible to construct a new probability
 conditional on the new observation. Secondly the results from multiple runs
-may be reasonably compiled together, using the final distribution from the previous
+may be reasonably concatenated, using the final distribution from the previous
 run as the prior distribution of the next run. Rather than simply providing a 
 staring point for parameters to converge from, it in fact continues convergence
 from the previous stopping point. 
 
 Although many versions of the BOLD model exist, and it is tempting to use 
 more detailed models; from the results found here the issue of bias error
-from the BOLD model is not the biggest concern. Clearly reducing variance
-in parameters should be the first concern. 
+from the BOLD model is not the biggest concern. Clearly clarifying the distributions
+of parameters for the prior should be the first concern. 
 One future study that would be extremely beneficial in this way  would
 be an extensive study of what the priors should truly be. Although \cite{Friston2000}
-gives an estimate of what is thought to be "reasonable" values, and later studies
+gives an estimate of what is thought to be reasonable values, and later studies
 published their estimate of the distributions, given the interplay between
 parameters it is very unlikely that these priors are true to actual distribution
 that occurs in vivo. As I mentioned previously, the addition of simultaneous

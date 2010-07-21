@@ -293,9 +293,9 @@ Instead, it would be preferable if most of the computation is spent on the most 
 Ideally the computation time spent on tails would be proportional to the actual size of the
 tails. In this case particle locations would match the true posterior and all weights would
 be equal.  The case where a large number of the weights have become irrelevantly small
-is called "particle degeneracy". In  \cite{Liu1998b}
-an ideal calculation of the "effective" number of particles is found based on the 
-particles' "true weight". However, given that only an approximation for the true weight 
+is called \emph{particle degeneracy}. In  \cite{Liu1998b}
+an ideal calculation of the effective number of particles is found based on the 
+particles' true weight. However, given that only an approximation for the true weight 
 exists, they also provide a simple heuristic calculation of $N_{eff}$.
 \begin{equation}
 N_{eff} \approx \frac{\sum_{i=0}^{N_p} w_i}{\sum_{i=0}^{N_p} w_i^2}
@@ -330,7 +330,7 @@ distribution as follows:
 For infinite particles this new distribution will match the old.
 Unfortunately, this isn't the truth in practice: since the support is
 still limited to the original particles, the number of \emph{unique} particles can only go down.
-This effect, dubbed "particle impoverishment" can result in excessive quantization
+This effect, dubbed \emph{particle impoverishment} can result in excessive quantization
 errors in the final distribution. However, there is a solution. Instead of sampling from the
 discrete distribution, a smoothing kernel is applied, and particles are drawn from
 that distribution. Because it is continuous, particle impoverishment
@@ -428,7 +428,7 @@ resampling. If for some reason the solution is not covered by the
 new support the algorithm will fail to converge properly.
 
 The ultimate effect of this regularized resampling is a convergence similar to simulated annealing
-or a genetic algorithm. Versions of $x$ that are "fit" (give good measurements) spawn more children 
+or a genetic algorithm. Versions of $x$ that are fit (give good measurements) spawn more children 
 nearby which allow for more accurate estimation near points of high likelihood. 
 As the variance of the estimated
 $x$'s decrease, the radius in which children are spawned also decreases. Eventually the radius
