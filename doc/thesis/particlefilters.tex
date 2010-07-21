@@ -6,7 +6,7 @@ are a powerful way of estimating the posterior probability distribution
 a set of parameters given a timeseries of measurements. Unlike Markov 
 Chain Monte Carlo (MCMC) estimation, particle filters are designed for 
 time-varying random variables. The idea behind particle filters is
-extremely similar to Kalman Filters; however, unlike Kalman Filters,
+similar to Kalman Filters; however, unlike Kalman Filters,
 distributions are stored as an empircal distribution rather than the
 as the first two moments of a Gaussian. Thus particle filters are 
 preferred when the model is nonlinear, and thus non-gaussian.
@@ -23,8 +23,8 @@ particles based on the quality of their output estimates. Thus parameter sets
 that tend to give good estimations of the measurements get weighted higher
 than parameter sets that give poor estimates. Although the reliance on
 a prior distribution can be troublesome, when the system being modeled
-has physical meaning, establishing reasonable ranges for parameters can 
-actually be quite easy. Optimizing the prior can be more difficult though,
+has physical meaning, establishing reasonable ranges for parameters may be 
+quite easy. Optimizing the prior can be more difficult though,
 unless the system has been extensively studied.
 
 Suppose set or stream of measurements at discrete times are given, 
@@ -62,7 +62,7 @@ Although not necessary for particle filters in general, a few  simplifying
 assumptions are made for this work. First, the systems are assumed to be 
 time invariant. This 
 assumption is based on the idea that if you paused the system for $\Delta t$
-seconds, when unfrozen the system would continue as if nothing happend. 
+seconds, when unfrozen the system would continue as if nothing happened. 
 Few biological systems are predictable enough for them to be summarized
 by a time varying function, least of all the brain. While heart beats are certainly
 periodic and have an effect on the BOLD signal, the period varies too much
@@ -201,7 +201,7 @@ q(x_k | x_{k-1}, y_{0:k}) =  P(x_k | x_{k-1})
 The benefit of this choice for importance density is that an approximation for
 $P(x_k | x_{k-1})$ is freely available: its simply the set of particles propagated
 forward in time using the state equations. Additionally it makes
-updating weights extremely simple, as seen in \autoref{eq:weightevolve}.
+updating weights simple, as seen in \autoref{eq:weightevolve}.
 
 The $q(x^i_{0:k} | y_{0:k})$ may then be simplified:
 \begin{equation}
@@ -216,7 +216,7 @@ q(x_{0:k} | y_{0:k}) & = & q(x_k | x_{0:k-1}, y_{0:k})q(x_{0:k-1} | y_{0:k}) &  
 Calculating $P(x_{0:k} | y_{0:k})$ is a bit more involved. 
 First, using the assumption that the distribution of $y_k$ is 
 fully constrained by $x_k$, and that $x_k$ is similarly fully 
-constrained by $x_{k-1}$, we are able to make the very good assumptions that:
+constrained by $x_{k-1}$, we are able to make the good assumptions that:
 \begin{eqnarray}
 P(y_k | x_{0:k}, y_{0:k-1}) &=& P(y_k | x_k) \nonumber \\
 P(x_k | x_{0:k}, y_{0:k-1}) &=& P(x_k | x_{k-1})
@@ -229,7 +229,7 @@ Additionally, for the particle filter $y_k$ and $y_{0:k-1}$ are
 constant across all particles, thus $P(y_k| y_{0:k-1})$ can
 be dropped when the equality is changed to a proportion. 
 Using these properties, $P(x^i_{0:k} | y_{0:k})$ may be broken up as follows 
-(mostly using Bayes' Theorem):
+(primarily using Bayes' Theorem):
 \begin{equation}
 \begin{array}{lclr}
 P(x_{0:k} | y_{0:k}) & = & \frac{P(y_{0:k}, x_{0:k})}{P(y_{0:k})} & \\
@@ -250,7 +250,7 @@ w^i_k & \propto & \frac{P(y_k| x^i_k) \cancel{P(x^i_k | x^i_{k-1})} P(x^i_{0:k-1
 \label{eq:weightevolve}
 \end{eqnarray}
 
-Thus, by making the following relatively easy assumptions, evolving a posterior
+Thus, by making the following simple assumptions, evolving a posterior
 density  requires no knowledge of noise distribution.
 \begin{enumerate}
 \item $f(t, x(t), u(t)) = f(x(t), u(t))$ and $g(t, x(t), u(t)) = g(x(t))$ 
@@ -262,7 +262,7 @@ density  requires no knowledge of noise distribution.
 \subsection{Basic Particle Filter Algorithm}
 From the definition of $w_i$, the algorithm to calculate
 an approximation of $P(X(t_k) | Y_{0:k})$ or $P(X(t_k + \delta t) | Y_{0:k})$
-is relatively simple.
+is simple.
 
 \begin{algorithm}
 \caption{Sequential Importance Sampling}
@@ -287,7 +287,8 @@ is relatively simple.
 \label{sec:Particle Filter Resampling}
 As a consequence 
 of the wide prior distribution (required for a proper discretization of a continuous
-distribution), there will be many particles with insignificant weights. While this does help
+distribution), there will be a significant proportion of particles with insignificant weights. 
+While this does help
 describe the tails of the distribution, it means a lot of computation will be based.
 Instead, it would be preferable if most of the computation is spent on the most probable regions.
 Ideally the computation time spent on tails would be proportional to the actual size of the
@@ -437,13 +438,13 @@ will approach the width of the underlying uncertainty, $\nu_x$ and $\nu_y$.
 \section{Weighting Function}
 Because the distribution of $\nu_y$ in \autoref{eq:measass} is unknown,
 it is necessary to choose a distribution for this. This distribution
-is extremely important because $\nu_y \sim P(y_k | x(T))$, which is used
+is important because $\nu_y \sim P(y_k | x(T))$, which is used
 for updating weights. Ideally this weighting function would exactly 
 match the measurement error in
 the output. It is logical to assume this error is centered at zero and 
 has a scale comparable to the signal levels.
-While a Gaussian function is the traditional choice, I wanted to try other
-distributions as well, given the unpredictable nature of the noise present in FMRI.
+While a Gaussian function is the traditional choice, there are other reasonable
+distributions, given the unpredictable nature of the noise present in FMRI.
 The choice of this function will be discussed further in \autoref{sec:Methods Weighting Function}.
 
 \begin{figure}
@@ -467,7 +468,7 @@ The half wave rectifier circuit smoothes the gaps between high voltage
 with a capacitor. Thus, when $u(t)G$ is less than $v_t$, the circuit will 
 discharge the capacitor and maintain a non-zero voltage,
 but when $u(t)G$ is greater than $v_t$, the output voltage will be set
-by $u(t)G$ and the capacitor will charge up. We will assume a very simple
+by $u(t)G$ and the capacitor will charge up. We will assume a simple
 model for all the components, ignoring the complex nonlinear behavior
 that can occur in a diode. 
 
@@ -508,7 +509,7 @@ v_y(t)  = f(v_y(t-1, u(t)) =  \begin{cases}
     \end{cases} 
 \end{equation}
 
-To run the particle filter is relatively easy then, since there exists 
+To run the particle filter is easy, since there exists 
 a recursive definition of the dynamic state variable, $v_y$. To start
 with, an initial distribution must be assumed and while at first a 
 Gaussian seems like a good idea, all the static state variables are strictly

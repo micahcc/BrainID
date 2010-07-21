@@ -32,13 +32,14 @@ from the previous stopping point.
 
 Although many versions of the BOLD model exist, and it is tempting to use 
 more detailed models; from the results found here the issue of bias error
-from the BOLD model is not the biggest concern. Clearly clarifying the distributions
-of parameters for the prior should be the first concern. 
-One future study that would be extremely beneficial in this way  would
+from the BOLD model is not the biggest concern. Clarifying the distributions
+of parameters for the prior should be the first concern; currently no multi-patient
+full-volume studies have been done to estimate parameters.
+One future study that would be beneficial in this way  would
 be an extensive study of what the priors should truly be. Although \cite{Friston2000}
 gives an estimate of what is thought to be reasonable values, and later studies
 published their estimate of the distributions, given the interplay between
-parameters it is very unlikely that these priors are true to actual distribution
+parameters it is unlikely that these priors are true to actual distribution
 that occurs in vivo. As I mentioned previously, the addition of simultaneous
 flow or volume measurements are another potentially powerful way to further confine the model,
 and thus deal with the elasticity of parameters. As I mentioned in 
@@ -46,7 +47,7 @@ and thus deal with the elasticity of parameters. As I mentioned in
 plausible models is that such data may in fact be added with relative ease.
 
 In conclusion, using particle filters to estimate the BOLD response are 
-an extremely powerful method of fitting to noisy data. The technique also
+a powerful method of fitting to noisy data. The technique also
 holds great promise as extensible platform to build more advanced models
 and techniques on top of. Integrating further information is necessary to
 move beyond the traditional Statistical Parametric Mapping and moving

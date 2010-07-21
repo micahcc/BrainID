@@ -96,7 +96,7 @@ of the particle filter looks like a filtered version of the input. For instance 
 end, the estimates stay flat in spite of the preprocessed data drifting off. By
 this point, the algorithm has converged sufficiently to know that that such a movement in
 signal isn't possible. A similar circumstance occurs at 100 seconds in. 
-In general the fits are good, although the bias introduced by pre-processing clearly
+In general the fits are good, although the bias introduced by pre-processing 
 results in a slightly larger peak signal. The final parameter sets are shown in 
 \autoref{tab:LowNoiseResults}. Note that throughout the results, unless otherwise specified,
 I will define the residual as the square root of the mean squared residual, 
@@ -288,7 +288,7 @@ and \autoref{fig:FitComparisonHighNoiseJust2}}
 It is interesting to consider how the preprocessing and noise may effect the
 parameters of the fitting model. Consider two runs, shown in 
 \autoref{fig:NoiseComparisonJustTwo}, out of the previous eleven. 
-Run 1 clearly has higher peaks, in spite of the fact that both signals are based
+Run 1 has higher peaks, in spite of the fact that both signals are based
 on the same underlying signal. There also appears
 to be more drift than the 20 measurements per knot could fit, which explains run 1's
 prolonged increase at 170 seconds in. Interestingly, run 1 and run 2 have different
@@ -674,7 +674,7 @@ Region & $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\eps
 Note that region 4 has a very low $\epsilon$. For this reason, the only areas
 with significantly decent estimates of the BOLD time series are 1,2 and 3. With
 such a low $\epsilon$ region 4 was below the noise threshold. Notice that the
-regions 1 2 an 3 clearly stick out in the $\sqrt{MSR}$ map, indicating that the
+regions 1 2 an 3 stick out in the $\sqrt{MSR}$ map, indicating that the
 particle filter was succesfull in matching those regions. 
 
 \begin{figure} %bottom left

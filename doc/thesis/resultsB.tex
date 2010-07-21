@@ -54,7 +54,7 @@
 Modeling the BOLD response is of course not of much use if it is only done in a 
 single voxel. Although this algorithm will hopefully lead to more novel methods 
 of analysis, the standard use for modeling the BOLD signal is to locate activation.
-Activation is essentially defined as areas where the input seems to directly drive
+Activation is defined as areas where the input seems to directly drive
 the BOLD response, as opposed to there being intermediate factors controlling it. 
 Once areas where the BOLD 
 model may be accurately estimated are found, integrating the model will allow for accurate
@@ -88,7 +88,7 @@ the result of the particle filter is simply a normalized square-root of the mean
 residual. Thus, lower is better, and zero is a perfect fit in the particle filter whereas
 infinity is a perfect fit in \autoref{fig:hm_canon_spm}. Note that it would seem that there
 are quite a few dispersed areas with decent fits in \autoref{fig:hm_canon_pfilter}. Also,
-interestingly the lowest error was just above $.7$. 
+the lowest error was just above $.7$. 
 For the sake of completeness \autoref{fig:hm_canon_pfilter85} shows the same image but
 thresheld at $.85$ rather than $1$. Obviously this image seems like a closer match to
 the results of SPM, however, the results of \autoref{fig:hm_canon_pfilter} are interesting.
@@ -158,7 +158,7 @@ I chose the second voxel (\autoref{fig:comp2}) because it was active in SPM and 
 location to be active in the SPM image (given the results in the surrounding voxels). The fit,
 however shows just why the voxel did not have a particularly good error. Although certain peaks 
 seem to fit rather well the input doesn't seem to correlate that well with the BOLD response. For
-instance 75 seconds in, the stimulus is clearly not present, and so the signal should drop off; yet
+instance 75 seconds in, the stimulus is not present, and so the signal should drop off; yet
 it doesn't. This is a good example of a voxel that seems to be reacting to something in addition to
 the direct stimulus. Even in what should be a rather smooth time-series in SPM, the BOLD signal
 looks very noisy. 

@@ -11,7 +11,7 @@ and instead ask "What does the activation look like". Answering
 this question necessitates more complex models and certainly
 will result in longer run times. Already there have been several other
 attempts to model the BOLD response; these works will be discussed
-in in the next few sections.
+in this chapter.
 
 \section{Statistical Parametric Mapping}
 \label{sec:Statistical Parametric Mapping}
@@ -86,7 +86,7 @@ to minimize the error.
 
 As mentioned previously, a square wave stimulus 
 does not result in a square wave in the activation of brain regions. 
-The BOLD signal is in fact a significantly smoothed version of the 
+The BOLD signal is in fact a smoothed version of the 
 stimuli. As such, when fitting an FMRI time course to the input,
 the input ($X$'s columns) is usually smoothed to reduce bias error. 
 The best method, that maintains a linear fit, is convolving the input 
@@ -145,13 +145,13 @@ are used for each $\theta$, rather than the full distributions.
 
 \subsection{Discussion}
 \label{sec:BackgroundConclusion}
-In all, the GLM is extremely useful for determining linear 
+In all, the GLM is useful for determining linear 
 dependence of a set of regressors on the output. Unfortunately, as discussed in
 \autoref{sec:BOLD Analysis} there are significant nonlinearities 
 that almost certainly cause false negatives in the Statistical Parametric
 Maps. Unfortunately nonlinear analyses have only recently become feasible,
 so the scale of the problem is still unknown. The problem is 
-highlighted by the relatively common scenario where no significant
+highlighted by the common scenario where no significant
 activation can be found in a single run \cite{Riera2004}
 \cite{Johnston2008}.  
 
@@ -172,8 +172,7 @@ of physiologically meaningful models are manifold.
 \section{Solving the BOLD Model}
 Unlike Statistical Parametric Mapping, the techniques described in this
 section are all attempts to learn some version of the BOLD model. 
-There have been quite a few efforts to quantify the parameters of the
-various BOLD models.  Although \cite{Buxton1998} and \cite{Friston2000}
+Although \cite{Buxton1998} and \cite{Friston2000}
 both proposed physiologically reasonable values for the model parameters, 
 \cite{Friston2002b} was the first paper to calculate the parameters based 
 on actual FMRI data. However, in that case, the voxels were chosen from
@@ -189,7 +188,7 @@ the output with respect to parameters, $\frac{\partial \theta}{\theta}$,
 Maximization algorithm, the differential equation is integrated, calculating
 the residuals. Then, for each $\theta_i$ surrounding the current estimate of 
 $\theta$, a Volterra-Kernel expansion of the output $y$ is generated. Generation
-of the Volterra Kernel is relatively quick, and, since it is linear there
+of the Volterra Kernel is quick, and, since it is linear there
 is an analytical solution. Thus, once the Volterra Kernel exists, the value
 of $y$ at that measurement point, for that $\theta_i$ can easily be found. 
 Thus, one part of the partial is calculated at one point using
@@ -230,7 +229,7 @@ first problem is that all the powerful classical techniques of gradient
 descent are off limits; since the model is a true nonlinear dynamical
 system with no closed form solution. The implication of this is that
 the calculation of a Jacobian for residuals won't work; and thus powerful
-techniques such as the Gauss-Newton method, which are helpful in many nonlinear
+techniques such as the Gauss-Newton method, which are helpful in most nonlinear
 problems, are off limits. Additionally, a gradient descent is difficult to
 perform without the ability to form partials of the output with respect
 to all the parameters. 
@@ -285,10 +284,9 @@ random mutations may be introduced that come from no existing parent.
 The new generation is then rated with the fitness function again, and
 the entire process starts over. The stop condition for a genetic algorithm
 is typically based on some threshold for fitness or a maximum number 
-of generations. This is problematic, since it doesn't really provide 
-any guarantee of even reaching a local minima, although in practice
-it can be quite effective.
-
+of generations. As with all nonlinear searches, unless the function is
+known to be convex, there is no guarantee that a global minimum has been
+reached.
 %[genetic algorithm picture] todo
 
 \begin{algorithm}
@@ -331,7 +329,7 @@ In order to estimate the posterior at $t$, a deterministic set of sigma points
 weighted according to a Gaussian estimate of $X(t-1)$ are passed through
 the update equation. This set of points are then used to estimate the 
 mean and covariance of $X(t)$. The benefit of this, is that it requires
-no Jacobian and only a few extra calculations to get a decent esimate of
+no Jacobian and only a few extra calculations to get a decent estimate of
 a posterior Gaussian. In the BOLD case, the set of equations we are modeling have no 
 closed form solution, and finding the Jacobian is impossible without approximations. Although 
 \cite{Riera2004}, \cite{Hu2009} mention a Jacobian of the BOLD response, this is
@@ -352,15 +350,15 @@ the one performed in this work.
 
 The difficulty
 of using a Kalman Filter, however, is that it assumes a multivariate 
-Gaussian for the state variables, $X(t-1)$. The problem with this is that 
-when a system is significantly nonlinear, the state at 
-$X(t)$ will almost certainly be non-Gaussian, and thus estimating
-$X(t+1)$ with $X(t)$ as a multivariate Gaussian will perpetually introduce
-error in the distribution. Furthermore, it is not really known what 
+Gaussian for the state variables, $X(t-1)$. The more nonlinear the system
+gets the more likely that the Gaussian will be insufficient to describe
+the distribution, $X(t)$. When this occurs, every step from  $X(t+1)$ 
+to $X(t)$ will introduce additional
+error in the posterior distribution. Furthermore, it is not really known what 
 sort of underlying distributions may exist in such a mixed biological,
 mechanical, chemical system such as the brain. Assuming the parameters
 all to be Gaussian may in fact be a gross error. On the other hand, for
-small variances and short time steps the gaussiann distribution is a good 
+small variances and short time steps the Gaussian distribution is a good 
 fit, and so in some limited cases the Unscented Kalman Filter could work
 well. These are 
 non-trivial issues given that the assumption of Gaussianity is what allows
@@ -405,13 +403,13 @@ Notably $s_t$ has intentionally been set to a non-equilibrium, but physiological
 plausible value. The value of $u$ is left at zero the entire time, so the 
 system will decay naturally (see \autoref{sec:BOLD Physiology}), though initializing 
 $s$ at a non-zero level will drive the system for several seconds. 
-\autoref{fig:transp1s} shows the results when the system is essentially
+\autoref{fig:transp1s} shows the results when the system is 
 left on for 100 milliseconds after setting the variables according to \autoref{tab:steptable}.
-The Q-Q plots fit very will with a Gaussian, demonstrating that at this short
+The Q-Q plots fit will with a Gaussian, demonstrating that at this short
 time interval nonlinearities have not yet begun to effect the distribution.
 However, \autoref{fig:trans1s} us the result after 1 second, which is faster
 than most FMRI scanners are capable of sampling at. At that range the tails 
-of the distributions for $v$ and $q$ are clearly starting to deviate from the
+of the distributions for $v$ and $q$ are starting to deviate from the
 Gaussian distribution. As a result the uncertainty in $y$ is deviating from
 the Gaussian distribution as well. This is important, because although 
 approximating the distribution with a Gaussian based on the first two
@@ -429,7 +427,7 @@ located on the main axes. As a result, the covariances are not allowed to
 be effected by the state transition the same way the variances are. While
 this may be reasonable in low-dimensional systems, high dimensional systems
 have a much greater potential for interplay between the variables. While
-this problem is relatively easy to fix (by using more sigma points off
+this problem is simple to fix (by using more sigma points off
 the main axes), there is a definite cost in complexity.
 
 Ultimately, there is a distinct possibility that the nonlinearities of 
@@ -470,14 +468,14 @@ those methods contained random elements designed to overcome this issue.
 In \cite{Johnston2008}, a hybrid particle filter/gradient
 descent algorithm was used to simultaneously derive the static and dynamic 
 parameters, (classically known as parameters and state variables, respectively).
-Essentially a particle filter is used to calculate the state variables at each
+A particle filter is used to calculate the state variables at each
 time; then the estimated distribution of the particles is used to find
 the most likely set of parameters that would give that distribution of state variables.
 This process is repeated until the parameters converge. Interestingly
 \cite{Johnston2008} comes to a very different set of parameter estimates as compared
 to the original \cite{Friston2000} estimates (\autoref{tab:Params}). In fact the results 
 are significantly different from virtually every other study. The most obvious discrepancy
-is the significantly longer time constants, $\tau_f$, $\tau_s$ and $\tau_0$. 
+is the larger time constants, $\tau_f$, $\tau_s$ and $\tau_0$. 
 While of course this could be poor convergence of the algorithm, there is another other possibility.
 Unlike all the other methods mentioned, excepting the methods in \autoref{sec:Nonlinear Least Squares},
 the algorithm described in \cite{Johnston2008} does not depend on prior distributions.
@@ -489,16 +487,16 @@ comparison between the distributions found in \cite{Johnston2008} and
 graphs: \autoref{fig:MeanResponseF}, \autoref{fig:MeanResponseJ}.
 
 \section{Conclusion}
-Clearly there is no ideal solution to solving this system of nonlinear
+There is no ideal solution to solving this system of nonlinear
 equations. Exhaustive search type methods such as those employed by
-\cite{Johnston2008} and \cite{Vakorin2007} can have extremely long
+\cite{Johnston2008} and \cite{Vakorin2007} have long
 run times even for a single voxel. While Volterra models are an interesting
 solution,there have not yet been exhaustive tests to determine whether
 such approximations work well throughout state space. The most promising
 method of those reviewed here is the Kalman filter based method. It is
-able to maintain a very fast runtime while still approaching the solution.
+able to maintain a fast runtime while still approaching the solution.
 While the reliance on a Gaussian estimate to the true posterior distribution could
-cause problems, some modifications could make it extremely powerful. 
+cause problems, some modifications could make it powerful. 
 The particle filter method proposed in the next section bears a strong 
 resemblance to the unscented Kalman filter; albeit with more point estimating
 the posterior. 

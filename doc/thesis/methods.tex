@@ -24,8 +24,7 @@ estimates of the physiological parameters; and, while physical experiments
 may not be possible, it would not be unreasonable to do a study with
 exhaustive simulated annealing or hill climbing tests for multiple
 regions and multiple patients. The purpose for this work is to determine
-the fitness of particle filters for this task; because with good 
-priors it can be extremely fast. Ultimately this algorithm may become
+the fitness of particle filters for this task. Ultimately this algorithm may become
 more useful as more studies are done on BOLD model that don't require
 priors. 
 
@@ -46,7 +45,7 @@ shows.
 
 While this could be the result of a stimulus
 being too short to lead to strong activation, a similar stimulus
-scheme in real data showed a significantly larger response than 
+scheme in real data showed a much larger response than 
 half a percent as well. In fact, after applying de-trending,
 converting the image to percent-difference, and removing 
 outliers ($ BOLD > 10\% \text{ or } BOLD < -10\%$) the total variance
@@ -105,7 +104,7 @@ territory of negative activation, or negative time constants.
 
 Another aspect of the prior is using enough particles to get a 
 sufficiently dense approximation of the prior. For 7 dimensions,
-getting a dense prior is extremely difficult. Insufficiently
+getting a dense prior is difficult. Insufficiently
 dense particles will result in inconsistent results, of course the
 processing time will scale up directly with the number of particles.
 A dense initial estimate is important so that some particles land
@@ -141,12 +140,9 @@ in the dynamic parameters ($\{s,f,v,q\}$) this noise is left out. Because the
 BOLD model is dissipative, when no stimuli are applied, all the particles 
 will decay to ($\{0,1,1,1\}$) which they should. If evolution noise were added, the 
 particles would then weight particles based on the results of that noise, rather
-than on the quality of the static parameters. Typical particle filter uses
-also use this state noise as an exploratory measure; however given the 
-high dimensionality of the system, a vast number of particles would be 
-necessary for this to come to fruition. The noise in the BOLD signal is such
-that several particles all tend to be equally correct; the particle filter will
-still leave variance in the solution; which turned out to be the case.
+than on the quality of the static parameters. Typical particle filters 
+also use this state noise as an exploratory measure; however this method is
+less well suited when the system is dissipative. 
 
 Thus, at each time step, the states were linearized, and each state variable,
 $s$, $f$, $v$, $q$, were changed according their previous rate of change.
@@ -163,8 +159,8 @@ at times lead to the state equations careening out of control.
 \label{sec:Resampling}
 The algorithm for resampling is described in \autoref{sec:Particle Filter Resampling}.
 The primary design decision for resampling is the regularizing
-kernel. As mentioned previously, the Gaussian kernel is extremely convenient,
-because it is very simple to sample from. As discussed in \autoref{sec:Particle Filter Resampling},
+kernel. As mentioned previously, the Gaussian kernel is convenient,
+because it is simple to sample from. As discussed in \autoref{sec:Particle Filter Resampling},
 as long as resampling is kept as a last resort, some amount of over-smoothing
 won't impair convergence. Therefore, for this work I chose a Gaussian kernel of
 bandwidth equal to the original distribution's covariance. Obviously this will
@@ -172,7 +168,7 @@ apply a rather large amount of smoothing to the distribution; however, on averag
 resampling is only applied every 20 to 30 measurements, and because randomization
 is being applied to model updates this gives the filter some mobility. 
 
-Because the regularized resample will almost certainly over-smooth,
+Because the regularized resampler will almost certainly over-smooth,
 it is necessary to wait until the $N_{eff}$ drops relatively low
 (say below 25) before resampling is performed. As an additional 
 measure against sharp drops in the $N_{eff}$ that may quickly raise
@@ -184,9 +180,9 @@ can occur.  When this happens, the resampling
 stage will have an inappropriately small variance which will lead to an 
 inappropriately small support for the distribution. After this, the 
 distribution will be unrecoverable. Thus, when the $N_{eff}$ gets down
-to extremely low values, usually this is an indication of particle
-deprivation; something that is also usually accompanied by extremely
-fast drops in variance. When this happens, it is preferable 
+to extremely low values (below 5), usually this is an indication of particle
+deprivation; something that is also usually accompanied by 
+fast drops in variance. When this happens, it is often preferable 
 to return to a previous, wider estimate of scale for the regularization
 and continue from there. Thus to keep particle deprivation from 
 affecting the results; a previous covariance matrix is 
@@ -228,7 +224,7 @@ being zero-weighted). If the \emph{true} distribution were found, particle
 deprivation would indicate that that time series is not being affected
 in any way describable by the prior distribution/model. Particle deprivation
 due to an under-variant weighting function gives no information. Thus,
-the cost of under variance is significantly higher; a fact that definitely needs
+the cost of a under estimating variance is higher; a fact that definitely needs
 to be taken into account. 
 
 Because of the need to err on the side of caution I tested several weighting
@@ -283,13 +279,13 @@ the use of a high pass filter to make inference reasonably powered
 In order to characterize the noise, I analyzed resting state data.
 During resting state, the patient is shown no images, and he is asked
 to avoid movement and complex thought, to the best of his abilities.
-Some limitations exist, for instance EPI sequences are extremely loud
+Some limitations exist, for instance EPI sequences are noisy
 which could cause some stimulus in the auditory cortex, and of course
-very long sequences could give the patient time for his mind to wander.
+long sequences could give the patient time for his mind to wander.
 Overall though there should be no activation, and thus the signal will
 consist entirely of noise. Therefore resting state data is perfect
 for analyzing the noise distribution. The locations were chosen from
-various points around the brain, all in grey matter voxels. The time
+points all around the brain, all in grey matter voxels. The time
 series were also chosen because they were representative of different types
 of noise I found in the resting state data.
 
@@ -357,7 +353,7 @@ normalized (changed to percent difference).
 
 A Wiener process should still conform to the normal distribution, with a 
 variance proportional to the run-time. Note that \autoref{fig:QQDC:A} and \autoref{fig:QQDC:B}
-are relatively well described by a Gaussian process with a small autocorrelation, 
+are well described by a Gaussian process with a small autocorrelation, 
 \autoref{fig:QQDC:C} and \autoref{fig:QQDC:D} are not. In particular the tails of \autoref{fig:QQDC:C}
 do not seem to fit the Gaussian well. Also note the significant autocorrelation in
 \autoref{fig:QQDC:C} and \autoref{fig:QQDC:D}. As expected, the noise is not strictly
@@ -381,15 +377,15 @@ be correct.
 
 De-trending the time-series by subtracting a spline fit to the distribution
 removed much of the autocorrelation present in \autoref{fig:QQDC:C} and \autoref{fig:QQDC:D},
-though clearly not perfectly. Though the distributions still do not exactly fit
-the Normal, \autoref{fig:QQs:D} clearly is much improved compared to \autoref{fig:QQDC:D}.
+though not perfectly. Though the distributions still do not exactly fit
+the Normal, \autoref{fig:QQs:D} is much improved compared to \autoref{fig:QQDC:D}.
 In all, the de-trending is effectively removing Wiener noise. 
 
 \subsection{Detrending}
 \label{sec:Detrend}
 The non-stationary
 aspect of a Weiner process, presumably the result of integrating some
-$\nu_x$ is difficult to compensate for, and so various methods
+$\nu_x$ is difficult to compensate for, and so methods
 have been developed to compensate for it. \cite{Tanabe2002} and \cite{Smith1999} have
 demonstrated that this component is prevalent, and may in fact be an inherent  characteristic
 of FMRI. In some studies, as many as half the voxels benefit from detrending, presenting
@@ -428,13 +424,13 @@ Of course this won't scale to whole-brain analysis, so a more effective techniqu
 is adding a DC gain parameter to the BOLD model. 
 Like all the other model parameters, given enough measurements, correct
 value may be found. On the downside, adding another dimension increases the
-complexity of the model, for a variable that is relatively obvious by direct
+complexity of the model, for a variable that is obvious by direct
 observation.
 
 Thus, I used a more conventional approach to deal with this. To determine
 the DC gain to be added to the signal I used a robust estimator 
 of scale. The Median Absolute Deviation (MAD)
-proved to be extremely accurate in determining how much to shift the signal up
+proved to be accurate in determining how much to shift the signal up
 by. I tested both methods during the course of analysis, and found that the increase 
 in model complexity far outweighed the slight increase in flexibility. Its 
 possible that a more accurate method may exist; however, for this case the 
@@ -452,50 +448,50 @@ y_{\text{gain}, 0:K} = 2\text{median}_{i=0:K}(y_i - \text{median}(y_{0:K}))
 A serious concern with adding and subtracting arbitrary values to 
 real data is whether this will create false positives. This is a legitimate
 concern; however, all the additions and subtractions done in this section
-have been very low frequency changes and should not substantially change
-the BOLD response, being a relatively high frequency signal. The typical
+have been low frequency changes and should not substantially change
+the BOLD response, being a higher frequency signal. The typical
 method of preprocessing is a high-pass filter with a cutoff of around 30
 seconds; which should about match the spline with knots every fifteen 
 measurements. \cite{Tanabe2002} found that splines tended to far outperform the
 high-pass filter method. 
 
-\subsection{Delta Based Inference}
-\label{sec:Methods Delta Based Inference}
-The alternative to these sorts of low frequency manipulation is to
-go around the problem in another way. Here, I propose and test a 
-different method of dealing with the drift. 
-Instead of comparing the direct output of the particle filter with the direct
-measurement, the algorithm would compare the change in signal over a single TR,
-with the result of integrating the model for the same period. 
-In most signal processing cases this would be foolish, but that is because the 
-general assumption is that all noise is high frequency. Considering 
-the fact that every BOLD analysis pipeline uses a high pass filter,
-whereas low poss temporal filter are rarely applied, it makes sense
-that a derivative type method could work. The benefit of particle filters
-is that they are extremely robust method of inference, and I would assert 
-that the particle filter ought to be given as \emph{raw} data as possible. 
-While taking direct measurements
-without de-trending would give awful results, using the difference removes the 
-DC component and turns what is usually assumed to be a Weiner process into 
-a simple Gaussian random variable. 
-
-\begin{equation}
-\Delta y = y(t) - y(t-1) = g(x(t)) - g(x(t-1)) + \nu_y(t) - \nu_y(t-1) + \nu_d(t) - \nu(t-1)
-\label{eq:measass_delta}
-\end{equation}
-
-Even if $\nu_d$ is some other additive process, the difference will still be closer
-to I.I.D. than a Wiener process, as the autocorrelation of the $\delta y$ shows
-in \autoref{fig:QQDelta} in \autoref{sec:Introduction Noise}. 
- All the assumptions made originally
-for the particle filter still hold, and all of the parameters may be distinguished based on
-the step sizes, thus it is not unreasonable to consider matching the string of step sizes
-rather than string of direct readings. 
-
-\begin{figure}
-\label{fig:FrequencyGraphs}
-\caption{frequency response graphs, highlighting noise frequency range and signal frequency range}
-\end{figure}
+%\subsection{Linearizing Noise}
+%\label{sec:Methods Delta Based Inference}
+%The alternative to these sorts of low frequency manipulation is to
+%go around the problem in another way. Here, I propose a 
+%different method of dealing with the drift. 
+%Instead of comparing the direct output of the particle filter with the direct
+%measurement, the algorithm would compare the change in signal over a single TR,
+%with the result of integrating the model for the same period. 
+%In most signal processing cases this would be foolish, but that is because the 
+%general assumption is that all noise is high frequency. Considering 
+%the fact that every BOLD analysis pipeline uses a high pass filter,
+%whereas low poss temporal filter are rarely applied, it makes sense
+%that a derivative type method could work. The benefit of particle filters
+%is that they are a robust method of inference, and I would assert 
+%that the particle filter ought to be given as \emph{raw} data as possible. 
+%While taking direct measurements
+%without de-trending would give awful results, using the difference removes the 
+%DC component and turns what is usually assumed to be a Weiner process into 
+%a simple Gaussian random variable. 
+%
+%\begin{equation}
+%\Delta y = y(t) - y(t-1) = g(x(t)) - g(x(t-1)) + \nu_y(t) - \nu_y(t-1) + \nu_d(t) - \nu(t-1)
+%\label{eq:measass_delta}
+%\end{equation}
+%
+%Even if $\nu_d$ is some other additive process, the difference will still be closer
+%to I.I.D. than a Wiener process, as the autocorrelation of the $\delta y$ shows
+%in \autoref{fig:QQDelta} in \autoref{sec:Introduction Noise}. 
+% All the assumptions made originally
+%for the particle filter still hold, and all of the parameters may be distinguished based on
+%the step sizes, thus it is not unreasonable to consider matching the string of step sizes
+%rather than string of direct readings. 
+%
+%\begin{figure}
+%\label{fig:FrequencyGraphs}
+%\caption{frequency response graphs, highlighting noise frequency range and signal frequency range}
+%\end{figure}
 
 \section{Preprocessing}
 \label{sec:Methods Preprocessing}
@@ -531,8 +527,8 @@ in a while this was not enough. This is problematic in the actual particle
 filter since, given the large number of simultaneous integrations taking 
 place, its probable that a few particles will fail and be unfairly thrown away.
 There are two possible outcomes of this. The typical case 
-is at some point where are the particles are in a similar location and 
-so many or all particles fail together.
+is at some point where all the particles are in a similar location and 
+so all the particles fail together.
 The result is then particle deprivation - no particles with non-zero weights remain.
 At best this will cause a convergence to a less than optimal posterior 
 probability, at worse at will result in a false negative. 
@@ -543,7 +539,7 @@ Although runge-kutta solvers could be applied, this will still not
 guarantee that features aren't missed. Its possible that a
 kind of stop-gap measure could be put into place; wherein particles that are
 about to be set to NaN are integrated again with finer grained steps. However
-many times the non-real results don't occur until several time steps after the 
+oftentimes the non-real results don't occur until several time steps after the 
 numbers become unrealistic. So for instance, the time step was too long, allowing 
 $f$ to go negative, resulting in extremely large values of $q$. There are many
 different ways where this sort of event can occur, and unfortunately sometimes
@@ -551,14 +547,14 @@ there is no way to get back to before the state starting going out of control.
 
 Another crucial factor for run time is how long before the first re-sampling 
 occurs. Because the prior is represented initially with significantly more
-particles, if the model fits very well, or for some reason the effective
+particles, if for some reason the effective
 number of particles stays high, resampling could take a long time to occur.
 For this reason, rather than allowing the particle filter to continue on 
 with this large number of particles, after 20 seconds have passed the
 algorithm forces resampling. Of course the choice of 20 seconds is somewhat
 arbitrary, but at the very least this gives some time for the particle to
-be re-weighted before the new distribution is drawn. At the very least the
-distribution will be a thinned out version of the prior. 
+be re-weighted before the new distribution is drawn. Still the
+distribution will then be a thinned out version of the prior. 
 
 %For simulated and real images (tests with multiple time-series), tests were 
 %also run with and without Gaussian filtering with sigma of %not sure todo
