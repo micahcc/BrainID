@@ -81,18 +81,20 @@ mapping with SPM's T-score map.
 
 \section{Results}
 
-The results from SPM8 are shown in \autoref{fig:hm_canon_spm}, and the results from 
-the particle filter are shown in \autoref{fig:hm_canon_pfilter}. Note again that the
-output is actually a different scale. Whereas the levels in the SPM map are T-Scores
-indicating the probability that the result cannot be explained from a random signal,
-the result of the particle filter is simply a normalized square-root of the mean-squared-
-residual. Thus, lower is better, and zero is a perfect fit in the particle filter whereas
-infinity is a perfect fit in \autoref{fig:hm_canon_spm}. Note that it would seem that there
-are quite a few dispersed areas with decent fits in \autoref{fig:hm_canon_pfilter}. Also,
-the lowest error was just above $.7$. 
-For the sake of completeness \autoref{fig:hm_canon_pfilter85} shows the same image but
-thresheld at $.85$ rather than $1$. Obviously this image seems like a closer match to
-the results of SPM, however, the results of \autoref{fig:hm_canon_pfilter} are interesting.
+The results from T-values from SPM8 are shown in \autoref{fig:hm_canon_spm} (threshold of
+4), and the results from 
+the particle filter are shown in \autoref{fig:hm_canon_pfilter} and \autoref{fig:hm_canon_pfilter_mi}.
+Note that the scales for all three images are different, because the metrics are different.
+SPM measures using T-Tests to determine the likelihood of a false positive. \autoref{fig:hm_canon_pfilter}
+uses simple normalized residuals, meaning that lower indicates less error.  
+\autoref{fig:hm_canon_pfilter_mi} measures in terms of the dependence between the 
+measured signal and the estimated signal; thus higher indicates a better fit. The particle
+filter data shows a large number of false positives, however application of a threshold
+of $.85$ on the residual map removes these false positives. Similarly, in the mutual information
+map, the false positives may be elminated by upping the threshold to $.15$. However, just
+because the results disagree with SPM does not necessarily mean they are false positives.
+SPM operates on smoothed data (8mm x 8mm x 8mm), so there are certainly active 
+areas that have been missed because of the smoothing. 
 
 \begin{figure}[H]
 \subfigure[]{\label{fig:hm_spm} \includegraphics[scale=.85]{images/spm_hm}}
@@ -143,7 +145,7 @@ the results of SPM, however, the results of \autoref{fig:hm_canon_pfilter} are i
          \autoref{fig:hm_canon_pfilter_x}), as well as a series of axial slices, \autoref{fig:hm_pfilter}. 
          Units of match is bits (standard for base-2 Mutual Information). The highest (best) levels are 
          $.42$. The worst shown is $.1$.}
-\label{fig:hm_canon_pfilter85}
+\label{fig:hm_canon_pfilter_mi}
 \end{figure}
 
 \begin{figure}
