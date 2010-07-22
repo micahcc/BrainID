@@ -94,7 +94,7 @@ thresheld at $.85$ rather than $1$. Obviously this image seems like a closer mat
 the results of SPM, however, the results of \autoref{fig:hm_canon_pfilter} are interesting.
 
 \begin{figure}[H]
-\subfigure[]{\label{fig:hm_spm} \includegraphics[scale=3]{images/spm_hm}}
+\subfigure[]{\label{fig:hm_spm} \includegraphics[scale=.85]{images/spm_hm}}
 \subfigure[]{\label{fig:hm_canon_spm_x} \includegraphics[scale=3]{images/spm_hm_x}}
 \subfigure[]{\label{fig:hm_canon_spm_y} \includegraphics[scale=3]{images/spm_hm_y}}
 \subfigure[]{\label{fig:hm_canon_spm_z} \includegraphics[scale=3]{images/spm_hm_z}}
@@ -107,28 +107,41 @@ the results of SPM, however, the results of \autoref{fig:hm_canon_pfilter} are i
 \end{figure}
 
 \begin{figure}[H]
-\subfigure[]{\label{fig:hm_pfilter} \includegraphics[scale=3]{images/pfilter_hm}}
+\subfigure[]{\label{fig:hm_pfilter} \includegraphics[scale=.85]{images/pfilter_hm}}
 \subfigure[]{\label{fig:hm_canon_pfilter_x} \includegraphics[scale=3]{images/pfilter_hm_x}}
 \subfigure[]{\label{fig:hm_canon_pfilter_y} \includegraphics[scale=3]{images/pfilter_hm_y}}
 \subfigure[]{\label{fig:hm_canon_pfilter_z} \includegraphics[scale=3]{images/pfilter_hm_z}}
 \subfigure{\label{fig:scale_pfilter} \includegraphics[scale=.5]{images/scale2}}
-\caption{Sagittal, coronal and axial slices of SPM results (\autoref{fig:hm_canon_pfilter_x} \autoref{fig:hm_canon_pfilter_y} 
+\caption{Sagittal, coronal and axial (\autoref{fig:hm_canon_pfilter_x} \autoref{fig:hm_canon_pfilter_y} 
          \autoref{fig:hm_canon_pfilter_x}), as well as a series of axial slices, \autoref{fig:hm_pfilter}. 
-         Units of match is normalized error. The lowest (best) levels were $.7$,
-         whereas the worst levels could go higher than 100 (not shown).}
+         Units of match is normalized residual. The lowest (best) levels were $.7$.
+         The highest error shown is $1$.}
 \label{fig:hm_canon_pfilter}
 \end{figure}
 
+%\begin{figure}[H]
+%\subfigure[]{\label{fig:hm_pfilter85} \includegraphics[scale=.75]{images/pfilter85_hm}}
+%\subfigure[]{\label{fig:hm_canon_pfilter85_x} \includegraphics[scale=3]{images/pfilter_hm85_x}}
+%\subfigure[]{\label{fig:hm_canon_pfilter85_y} \includegraphics[scale=3]{images/pfilter_hm85_y}}
+%\subfigure[]{\label{fig:hm_canon_pfilter85_z} \includegraphics[scale=3]{images/pfilter_hm85_z}}
+%\subfigure{\label{fig:scale_pfilter85} \includegraphics[scale=.5]{images/scale3}}
+%\caption{Sagittal, coronal and axial (\autoref{fig:hm_canon_pfilter_x} \autoref{fig:hm_canon_pfilter_y} 
+%         \autoref{fig:hm_canon_pfilter_x}), as well as a series of axial slices, \autoref{fig:hm_pfilter}. 
+%         Units of match is normalized residual. The lowest (best) levels were $.7$.
+%         The highest error shown is $.85$.}
+%\label{fig:hm_canon_pfilter85}
+%\end{figure}
+
 \begin{figure}[H]
-\subfigure[]{\label{fig:hm_pfilter85} \includegraphics[scale=3]{images/pfilter85_hm}}
-\subfigure[]{\label{fig:hm_canon_pfilter85_x} \includegraphics[scale=3]{images/pfilter_hm85_x}}
-\subfigure[]{\label{fig:hm_canon_pfilter85_y} \includegraphics[scale=3]{images/pfilter_hm85_y}}
-\subfigure[]{\label{fig:hm_canon_pfilter85_z} \includegraphics[scale=3]{images/pfilter_hm85_z}}
-\subfigure{\label{fig:scale_pfilter85} \includegraphics[scale=.5]{images/scale3}}
-\caption{Sagittal, coronal and axial slices of SPM results (\autoref{fig:hm_canon_pfilter_x} \autoref{fig:hm_canon_pfilter_y} 
+\subfigure[]{\label{fig:hm_mi} \includegraphics[scale=.85]{images/mi_hm}}
+\subfigure[]{\label{fig:hm_canon_mi_x} \includegraphics[scale=3]{images/mi_hm_x}}
+\subfigure[]{\label{fig:hm_canon_mi_y} \includegraphics[scale=3]{images/mi_hm_y}}
+\subfigure[]{\label{fig:hm_canon_mi_z} \includegraphics[scale=3]{images/mi_hm_z}}
+\subfigure{\label{fig:scale_mi} \includegraphics[scale=.5]{images/scale4}}
+\caption{Sagittal, coronal and axial (\autoref{fig:hm_canon_pfilter_x} \autoref{fig:hm_canon_pfilter_y} 
          \autoref{fig:hm_canon_pfilter_x}), as well as a series of axial slices, \autoref{fig:hm_pfilter}. 
-         Units of match is normalized $\sqrt{MSE}$. The lowest (best) levels were $.7$,
-         whereas the worst levels could go higher than 100 (not shown).}
+         Units of match is bits (standard for base-2 Mutual Information). The highest (best) levels are 
+         $.42$. The worst shown is $.1$.}
 \label{fig:hm_canon_pfilter85}
 \end{figure}
 
@@ -197,10 +210,28 @@ and thus the need for spatial smoothing is somewhat reduced.
 \label{fig:comp4}
 \end{figure}
 
+% or in original coordinates 29-9-13
 \begin{figure}
-\subfigure[Particle Filter]{\label{fig:comp5pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/5_pfilter_25_34_25}}\\
-\subfigure[SPM]{\label{fig:comp5spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/5_spm_25_34_25}}
-\caption{Section 5, Estimated vs. Actual BOLD response}
+\subfigure[Particle Filter]{\label{fig:comp5pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/5_pfilter_29_9_13}}\\
+\subfigure[SPM]{\label{fig:comp5spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/5_spm_29_9_13}}
+\caption{Section 5, Below threshold in both particle filter checks, but above threshold in SPM. Mutual Information of $0.0212822$, T-Value
+of $4.17399$ and $MSE$ of $1.14171$.}
+\label{fig:comp5}
+\end{figure}
+
+%23-10-18 or in original coordinates 36-17-19
+\begin{figure}
+\subfigure[Particle Filter]{\label{fig:comp5pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/6_pfilter_36_17_19}}\\
+\subfigure[SPM]{\label{fig:comp5spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/6_spm_36_17_19}}
+\caption{Section 6, MI of $0.335504$, T Value: $2.49154$, normalized error: $0.783348$ Not visible in SPM}
+\label{fig:comp5}
+\end{figure}
+
+%16-19-0 or in original coordinates 29-26-1
+\begin{figure}
+\subfigure[Particle Filter]{\label{fig:comp5pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/7_pfilter_29_26_1}}\\
+%\subfigure[SPM]{\label{fig:comp5spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/5_spm_25_34_25}}
+\caption{Section 7, $.1052$ in MI, $1.31534$ in SPM (which left this flat) and $1.09992$ normalized $\sqrt{MSE}$. Only visible in MI map. }
 \label{fig:comp5}
 \end{figure}
 

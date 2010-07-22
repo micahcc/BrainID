@@ -535,29 +535,33 @@ the MSR will be the same as the alternative.
 & \multicolumn{2}{|c|}{$\sigma_y = .001, \sigma_x = .0005$} 
 & \multicolumn{2}{|c|}{$\sigma_y = .01, \sigma_x = .005$}\\
 \hline 
-&$\sqrt{MSR}$ & $N\sqrt{MSR}$ &
- $\sqrt{MSR}$ & $N\sqrt{MSR}$ &
- $\sqrt{MSR}$ & $N\sqrt{MSR}$ &
- $\sqrt{MSR}$ & $N\sqrt{MSR}$ \\
+& $M.I.$ & N. Res. &
+  $M.I.$ & N. Res. &
+  $M.I.$ & N. Res. &
+  $M.I.$ & N. Res. \\
 \hline       
 \hline       
-1 & 0.003211 & 0.478015  & 0.014065  & 1.038941    &0.001667 & 1.295007 & 0.015114 & 1.33641 \\
-2 & 0.003055 & 0.531771  & 0.013731  & 0.951648  &  0.001586 & 1.301750 & 0.015510 & 1.336667 \\
-3 & 0.003289 & 0.545798  & 0.012754 &  0.995392  &  0.001651 & 1.26287 &  0.013957 & 1.159567 \\
-4 & 0.002847 & 0.498237  & 0.016726  & 1.161286  &  0.001506 & 1.431959 & 0.013814 & 1.099876 \\
-5 & 0.003006 & 0.468048  & 0.013698 &  1.039724   & 0.001515 & 1.256645 & 0.014350 & 1.201072 \\
-6 & 0.002833 & 0.459001  & 0.011495 &  1.002143  &  0.001557 & 1.270797 & 0.013504 & 1.045886 \\
-7 & 0.003028 & 0.460962  & 0.015550 &  1.088472   & 0.001585 & 1.154406 & 0.013006 & 1.205429 \\
-8 & 0.003044 & 0.518376  & 0.012054 &  1.059620  &  0.001643 & 1.274564 & 0.015446 & 1.122502 \\
-9 & 0.003345 & 0.525303  & 0.015104 &  1.015703  &  0.001679 & 1.320244 & 0.014847 & 1.086366 \\
-10 & 0.003175 &0.492111  & 0.012493  & 1.189964  &  0.001826 & 1.344562 & 0.013125 & 1.221350 \\
-11 & 0.002889 &0.490919  & 0.012165 &  0.953676  &  0.001950 & 1.325223 & 0.014457 & 1.117367 \\
-\hline
-mean & 0.003066 & 0.497140  & 0.013621 &  1.04514   &  0.001651 & 1.294366 & 0.014285 & 1.175681 \\
+1 & 0.86687 &0.47801 &0.09077 &1.03894 &0.06326  &  1.29501 &0.03024   &1.33641 \\
+2 & 0.93975 &0.53177 &0.13767 &0.95165 &-0.01075  & 1.30175 &-0.02677  &1.33667 \\
+3 & 0.82382 &0.5458  &0.13505 &0.99539 &0.02345  &  1.26287 &-0.0111   &1.15957 \\
+4 & 0.94661 &0.49824 &0.04341 &1.16129 &-0.00906  & 1.43196 &0.00147   &1.09988 \\
+5 & 0.94281 &0.46805 &0.13718 &1.03972 &0.00663  &  1.25664 &-0.00204  &1.20107 \\
+6 & 0.92539 &0.459   &0.12337 &1.00214 &-0.00816  & 1.2708 & 0.01775   &1.04589 \\
+7 & 0.98892 &0.46096 &0.15381 &1.08847 &0.02664  &  1.15441 &0.03163   &1.20543 \\
+8 & 0.98796 &0.51838 &0.11325 &1.05962 &0.03285  &  1.27456 &0.01951   &1.1225 \\
+9 & 0.8804  &0.5253  &0.09669 &1.0157  &0.01628  &  1.32024 &0.01039   &1.08637 \\
+10 & 0.88721 &0.49211 &0.18339 &1.18996 &0.00407  &  1.34456 &0.00508   &1.22135 \\
+11 & 0.96644 &0.49092 &0.10949 &0.95368 &0.03323  &  1.32522 &-0.01284  &1.11737 \\
+\hline                                                                           
+min  & 0.92329 &0.49714 &0.12037 &1.04514 &0.01622  &  1.29437 &0.00576   &1.17568 \\
+\hline                                                                           
+max & 0.96644 &0.459   &0.10949 &0.95165 &-0.01075  & 1.15441 &-0.01284  &1.04589 \\
+\hline                                                                           
+mean  & 0.86687 &0.5458  &0.09077 &1.18996 &0.06326  &  1.43196 &0.03024   &1.33667 \\
 \hline
 \end{tabular}
-\caption{$\sqrt{MSE}$ and the normalized $\sqrt{MSE}$, 
-    $\left(\sqrt{MSE}/(\text{Median Absolute Deviation})\right)$ for different configurations.} 
+\caption{Mutual Information and the normalized $\sqrt{MSE}$, 
+    for signal/noise configurations.}
 \label{tab:SignleVoxelActivationComparison} 
 \end{table}
 
@@ -630,9 +634,12 @@ may be found.
 \begin{figure}[H]
 \centering
 \subfigure[Region labels for simulated slice.]{
-\includegraphics[height=9cm]{images/simregions.png} \label{fig:simslice_mask} }
-\subfigure[Residual Heat Map.]{\includegraphics[height=9cm]{images/sim_hm}}
-\subfigure[Grey matter map for simulate region.]{\includegraphics[height=9cm]{images/sim_gm}}
+\includegraphics[height=9.5cm]{images/simregions.png} \label{fig:simslice_mask} }
+\subfigure[Grey matter map for simulate region.]{\includegraphics[height=9.5cm]{images/sim_gm}}
+\subfigure[Residual Map. Scale is Normalized $\sqrt{MSE}$.]
+{\includegraphics[height=9cm]{images/sim_hm}}
+\subfigure[Mutual Information Map. Scale is bits.]
+{\includegraphics[height=9cm]{images/sim_hm_mi}}
 \caption{Comparison of activation with greymatter, parameter regions.}
 \label{fig:simslice_hm}
 \end{figure}
