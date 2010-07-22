@@ -43,7 +43,9 @@ int main(int argc, char* argv[])
                     << std::endl; 
         return -1;
     } catch (...) { }
-        
+    
+    std::cerr << "Calculating Mutual Information" << std::endl;
     Image3DType::Pointer out = mutual_info(6, 6, img1, img2);
+    std::cerr << "Done" << std::endl;
     writeImage<Image3DType>(argv[3], out);
 }

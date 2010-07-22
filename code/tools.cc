@@ -1,5 +1,6 @@
 #include "tools.h"
 
+#include <climits>
 #include <vector>
 #include <cmath>
 #include <itkComplexToModulusImageFilter.h>
@@ -144,6 +145,7 @@ Image3DType::Pointer mutual_info(uint32_t bins1, uint32_t bins2,
         Image3DType::SizeType size3 = {{size4[0], size4[1], size4[2]}};
         out->SetRegions(size3);
         out->Allocate();
+        out->FillBuffer(0);
         copyInformation<Image4DType, Image3DType>(input1, out);
     }
 
@@ -190,8 +192,15 @@ Image3DType::Pointer mutual_info(uint32_t bins1, uint32_t bins2,
                 max2 = it2.Get();
             ++it1; ++it2;
         }
-        max1 += 1e-9; //make sure the max element ends up in the top bin
-        max2 += 1e-9; //also ensures that if max=min that it still works
+
+        if(max1 - min1 > INT_MAX || max2 - min2 > INT_MAX || 
+            max1 == min1 || max2 == min2) {
+            it1.NextLine();
+            it2.NextLine();
+            continue;
+        }
+        max1 += (max1-min1)*1e-9;
+        max2 += (max2-min2)*1e-9;
         
         it1.GoToBeginOfLine();
         it2.GoToBeginOfLine();
