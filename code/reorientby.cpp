@@ -47,6 +47,7 @@ int main (int argc, char** argv)
     out->SetRegions(dest->GetRequestedRegion().GetSize());
     out->Allocate();
     out->FillBuffer(0);
+    out->CopyInformation(dest);
     
     Image4DType::IndexType index;
     Image4DType::PointType point;
