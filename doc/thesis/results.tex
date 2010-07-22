@@ -547,6 +547,7 @@ the residual will be the same as the alternative, although the mutual informatio
 be different.
 
 \subsection{Single Voxel Review}
+\label{sec:SingleVoxelReview}
 \begin{table}[t]
 \centering
 \begin{tabular}{|c | c | c | c | c | c | c | c | c |}
@@ -626,16 +627,21 @@ information, which should not technically be possible; so any negative mutual in
 was taken as 0.
 
 Comparing the results of \autoref{sec:HighNoise} and \autoref{sec:PureNoiseHighMag}, 
-distinguishing between these cases with normalized residual alone is difficult.
-On the other hand the minimum mutual information in the high noise case was $.09077$,
-and the maximum mutual information in the no signal, high noise case is $.03163$. This
-is a decent break, and should provide a means to  detect what would otherwise be a 
-false positive by the normalized residual. That said, mutual information is in some 
-ways more permissive than residual based metrics. For instance, the addition of an arbitrary
-constant to a random variable does not effect mutual information. For this reason, 
-throughout the rest of the results, both values are reports. 
+distinguishing between these cases with ether normalized residual or mutual information
+is not clear cut. While the average mutual information is in fact more than 10 times
+greater than the average mutual information in the two non-signal cases, the maximum
+mutual information of the low noise/no signal case exceeds the minimum M.I. of the high noise/signal
+case. The Low Noise/ signal determination is easier to make; given
+the minimum mutual information is above $.8$ and the maximum normalized residual is below $.6$.
+However, it is worth noting that the worst case scenario  for mutual information (maximum) in the
+low noise/no signal case does not concur with the worse case (minimum) normalized residual. 
+There is no reason why this has to be the case, it is beneficial. In
+other words, if it were necessary to make a statement that
+a particular voxel active or inactive; the accuracy would improve if both techniques
+were used with loose restrictions, but a voxel would only be considered active if the
+voxel passed both tests. 
 
-There were two primary purposes of these tests. First given the nature of monte-carlo
+There were two primary purposes of these tests. First, given the nature of monte-carlo
 techniques it is important to ensure consistency of results. Although the parameter
 sets were somewhat inconsistent, the quality of the fit was actually quite consistent
 across eleven runs. The second purpose was of course to determine how the particle 
@@ -736,18 +742,20 @@ than $.14$}
 than $.14$}
 \label{fig:slicesim_hist3}
 \end{figure}
-todo regenerate histograms
 
 The histograms again demonstrate that a single point estimate of the parameters 
 is elusive for the current model. However the data clearly show the power
-of the particle filter at identifying regions of activation; which usually
+of the particle filter at identifying regions of activation; which is usually
 performed with statistical parametric maps. The thresholds applied to this
 slice, both for mutual information and residuals is arbitrary, and needs further
-research. Tighter thresholds would certainly remove the false positives present
-in the images. Interestingly the false positives present in the Mutual Information
-map are different from those in the residual map. For this reason, it is 
-possible that the best solution would make use of both metrics. Although
-at first glance it would appear that there are false negatives; this is
+research. Tighter thresholds removes the false positives present
+in the images at the cost of false negatives. Interestingly the false 
+positives present in the Mutual Information
+map are different from those in the residual map. This furthers the argument from
+\autoref{sec:SingleVoxelReview} for combining the two metrics to 
+increase power. Although
+at first glance it would appear that there are false negatives in the 
+\autoref{fig:simslice_hm}; this is
 not actually the case. POSSUM simulates different tissues, and white matter
 does not typically  have a BOLD response. This is why there are holes in regions
 2 and 3. These results certainly indicate that the particle filter is effective

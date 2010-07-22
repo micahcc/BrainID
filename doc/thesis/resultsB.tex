@@ -51,11 +51,11 @@
 %
 \chapter{Real Data}
 \label{sec:RealData}
-Modeling the BOLD response is of course not of much use if it is only done in a 
-single voxel. Although this algorithm will hopefully lead to more novel methods 
+Modeling the BOLD response is of course not of much use if does not work for
+real FMRI.  Although this algorithm will hopefully lead to more novel methods 
 of analysis, the standard use for modeling the BOLD signal is to locate activation.
-Activation is defined as areas where the input seems to directly drive
-the BOLD response, as opposed to there being intermediate factors controlling it. 
+Activation is defined as areas where the input is the primary drive
+for the BOLD response, as opposed to intermediate factors controlling it. 
 Once areas where the BOLD 
 model may be accurately estimated are found, integrating the model will allow for accurate
 estimation of the state between measurements, which could then be used for more 
@@ -64,10 +64,8 @@ It all begins with localizing the first activation regions in the
 chain. Therefore this section compares the output of the particle filter 
 with conventional SPM. 
 
-In reality, the purpose of statistical parametric mapping method is 
-very different from the 
-particle filter algorithm described in this work.
-SPM preprocesses the image by spatially smoothing the FMRI image (in this section 
+The data described in this section are fundamentally different in several 
+ways. SPM preprocesses the image by spatially smoothing the FMRI image (in this section 
 SPM8 was used with an $8mm x 8mm x 8mm$ Gaussian kernel), whereas
 this is not done in the particle filter algorithm. Additionally, a spline
 was used to de-trend, rather than SPM8's high pass filter (with a cut
@@ -75,12 +73,11 @@ off based on a globally estimated autocorrelation). Thus the preprocessing pipel
 are different; but the output of SPM8 is also different. Whereas SPM outputs
 a t-statistic for each voxel, the output 
 of the particle filter is a posterior probability distribution of the parameters
-at every voxel. To validate the quality of the particle filter results though
-it is necessary to compare the location and fit of the particle filter parameter
-mapping with SPM's T-score map. 
+at every voxel. To validate the quality of the particle filter results 
+it is necessary to compare the both the location and the fit calculated by the particle filter
+with SPM's location and fit.
 
 \section{Results}
-
 The results from T-values from SPM8 are shown in \autoref{fig:hm_canon_spm} (threshold of
 4), and the results from 
 the particle filter are shown in \autoref{fig:hm_canon_pfilter} and \autoref{fig:hm_canon_pfilter_mi}.
@@ -164,40 +161,44 @@ areas that have been missed because of the smoothing.
 \end{figure}
 
 I chose several voxels to discuss further from \autoref{fig:hm_canon_pfilter} and \autoref{fig:hm_canon_spm}.
-The first voxel, labeled 1, had a very high T-score as well as a low error (around $.7$). Thus, the
+The first voxel, labeled 1, had a very high T-score, high mutual information,  as well as 
+a low error (around $.7$). Thus, the
 fit should be very good in both the SPM and particle filter output; this comparison is shown in 
 \autoref{fig:comp1}. Recall that SPM worked on a slightly less noisy time series because of the
 spatial smoothing; this explains the lack of the sharp peak in the particle filter's preprocessed
-data. Regardless, as expected, both fits are very good.
+data. Regardless, as expected, both work. 
 
 I chose the second voxel (\autoref{fig:comp2}) because it was active in SPM and it would appear to be in a prime
 location to be active in the SPM image (given the results in the surrounding voxels). The fit,
-however shows just why the voxel did not have a particularly good error. Although certain peaks 
-seem to fit rather well the input doesn't seem to correlate that well with the BOLD response. For
-instance 75 seconds in, the stimulus is not present, and so the signal should drop off; yet
-it doesn't. This is a good example of a voxel that seems to be reacting to something in addition to
-the direct stimulus. Even in what should be a rather smooth time-series in SPM, the BOLD signal
-looks very noisy. 
+however shows just why the residual was high and the mutual information was low. This is a
+prime example of a false positive due to the large smoothing kernel applied by SPM. 
+For instance at 75 seconds, the stimulus is not present, and so the signal should drop off; yet
+it doesn't. While a few peaks seem to match, most of the signal does not correlate with the
+expected state progression. This voxel is not being driven direcly by the input, although it
+may be gated or driven through intermediate region. 
 
 The third voxel, compared in \autoref{fig:comp3}, was far away from any other active voxels 
-and yet had a very low (around $.7$) residual.
+and yet had a very low (around $.7$) residual. At the same time, the mutual information was
+high enough to make the point suspect. Although the estimated signal seems to run down the
+middle of the measurement signal; it is clear that there is a significant amount of noise
+present in the signal that is not being explained by the particle filter, 
 In both preprocessed time-series the input is extremely noisy, yet by the normalized residual 
-the response is good. This could be an example of a false positive, although the general trend
-of the response seems to follow the estimated response. 
+the response is good. This is an example of a false positive from the residual metric. 
 
-Whereas the third voxel was a region that was considered active by the particle filter
-algorithm but not SPM; the fourth voxel is the reverse. The particle filter did not
-find a good fit, but in SPM8 the voxel had a decently high T-score. \autoref{fig:comp4} shows
-the line fit for each algorithm, and neither are particularly good; though in a few areas
-the upward or downward movements seem to be correlated. Regardless, this would seem to be
-a false positive from SPM8. 
+The fourth voxel (\autoref{fig:comp4}selected for anyalysis had a relatively high residual, and was not picked
+for activation by SPM. On the other hand, the mutual information was above the threshold
+for the image (todo). It is simple to see why the residual was not acceptable in this case.
+At the same time, the peaks do seem to correlate with the measurement peaks. Regardless,
+this is an example of a  false positive from the mutual information metric. 
 
-The fifth, and last single voxel to be analyzed is one more area that had a low residual according
-to the particle filter, and yet did not show up in SPM. The line fit is shown in \autoref{fig:comp5},
-and unlike voxel 3 is certainly \emph{not} a false positive. Regions such as this are a very 
-good example of why spatial smoothing can be problematic. By having a more adaptive model, and
-thus reducing bias error, it is possible to get a very good fit to single voxels such as this,
-and thus the need for spatial smoothing is somewhat reduced. 
+The fifth voxel (\autoref{fig:comp5}) is an example of a region with increased activation
+due to smoothing. The fit provided by the BOLD particle filter is not very good, and the time
+series input to SPM is far less noisy. Regardless this is another case where the peaks
+seem to match, yet nothing else does. Take for instance the measurements from $30$ seconds
+to $40$ seconds. At that point there is a significant spike in the BOLD signal, yet the
+actual measured signal declines. This is an indication that the BOLD signal is not directly
+being driven by the input. It is likeley that the cause of the activation in this reason is
+not true activation, but recieved from surrounding active regions through spatial smoothing. 
 
 \begin{figure}
 \subfigure[Particle Filter]{\label{fig:comp3pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/3_pfilter_23_21_7}}\\
@@ -227,7 +228,7 @@ of $4.17399$ and $MSE$ of $1.14171$.}
 \subfigure[Particle Filter]{\label{fig:comp5pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/6_pfilter_36_17_19}}\\
 \subfigure[SPM]{\label{fig:comp5spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/6_spm_36_17_19}}
 \caption{Section 6, MI of $0.335504$, T Value: $2.49154$, normalized error: $0.783348$ Not visible in SPM}
-\label{fig:comp5}
+\label{fig:comp6}
 \end{figure}
 
 %16-19-0 or in original coordinates 29-26-1
@@ -235,26 +236,35 @@ of $4.17399$ and $MSE$ of $1.14171$.}
 \subfigure[Particle Filter]{\label{fig:comp5pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/7_pfilter_29_26_1}}\\
 %\subfigure[SPM]{\label{fig:comp5spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/5_spm_25_34_25}}
 \caption{Section 7, $.1052$ in MI, $1.31534$ in SPM (which left this flat) and $1.09992$ normalized $\sqrt{MSE}$. Only visible in MI map. }
-\label{fig:comp5}
+\label{fig:comp7}
 \end{figure}
+
+Voxel 6 (\autoref{comp6}) is another region that is active according to both metrics used
+in this work, yet was missed by SPM. The time series in \autoref{comp6} shows an extremely
+good fit, perhaps the best in this batch, for the particle filter. In contrast, the
+fit for SPM is abysmal. In spite of the fact that several other areas around are active
+as well, the smoothing seems to have completely wiped out activation in this voxel. 
+
+Finally voxel 7 is a completely ambiguous time series. While the thresholds applied here
+are empirical, this voxel is on the borderline of the thresholds for both mutual information
+and the residual. The signal itself is extremely noisy, it should the voxel should be rejected.
+However this case is reminiscent of the pure-noise tests performed in the previous chapter. 
+This time series an extremely good example of the danger of false positives. In spite of the
+fact that the signal oscillates far faster than the BOLD estimate, because of that, it is somehow
+able to maintaint a mutual information value of $.1052$ and a residual of just $1.09992$.
+As such, a clear method of detecting these sorts of regions is necessary if the results
+of the particle filter algorithm are toe be trusted. 
 
 \section{Discussion}
 From the maps generated, the similarities to SPM8's results are encouraging. At the 
 very least the output of the particle filter seems to meet the quality of SPM. The normalization
 of the residual is certainly necessary. Although there is no hard threshold on the 
 normalized residual, it would appear that the normalization is providing a reasonable
-ordering of regression quality. The question of what threshold to use is a difficult one.
-The actual division of the residual by an estimate for the standard deviation
-of the signal would seem to mandate a threshold less than one. However, recall that the 
-same media-absolute-deviation was added to the de-trended signal as a DC-gain. This means
-that a flat, no-response bold signal will actually have a residual greater than the standard 
-deviation of the signal. Then again, the residual may be reduced for any point where the 
-model spikes up due to stimuli. Ultimately if the model were to run right down the 
-center of the distribution the residual would be equal to the MAD, and would have a 
-normalized residual of 1. Thus, again, a normalized residual of 1 is at least as 
-good as a flat line at the median. 
-Other measures of fitness could also be used such as mean of the absolute error or 
-mutual information. Although least squares is the best linear unbiased estimator,
-this signal is heavily nonlinear, so other estimators may exceed the OLS in terms
-of likelihood. Regardless, the normalized residual provides a good solution at this
-point, comparable to SPM.
+ordering of regression quality. Mutual information also shows promising results.
+Many of the differences between SPM and the particle filter seem to be driven
+more by the pre-processing methods than the regression methd. The reason for 
+SPM applying such extrensive smoothing is to combat false positives. While this is
+extremely important, regions such as \autoref{comp6} show the problem with doing 
+so. In all, the particle filter method does very good job of estimating parameters that
+fit the measurements; and at the very least this method is a workable, albiet
+computationally intensive, alternative to SPM. 
