@@ -480,7 +480,7 @@ for rescuing the particle filter from particle deprivation, discuessed in
  there is an issue of false positives vs. false negatives. A middle ground, such as 
  allowing deprivation to occur if the recovery mechanism has already triggered once
  may be an acceptable compromise, however it would be difficult to strike the 
- right balance. Instead for the purposes here we depend on the square root MSR to 
+ right balance. Instead for the purposes here we depend on the residual to 
  evaluate if the results were reasonable or not. 
 
 \begin{figure}[H]
@@ -564,16 +564,14 @@ mean & 0.003066 & 0.497140  & 0.013621 &  1.04514   &  0.001651 & 1.294366 & 0.0
 The first step in determining the validity of a model to provide and order of quality
 to rate the results by. Unfortunately, because of the variablity in the signal levels the
 raw $\sqrt{MSR}$ cannot perform this task. As demonstrated by \autoref{sec:PureNoiseLowMag},
-just because the square-root mean-squared-residual is low doesn't mean the fit is
-good. Therefore, instead we will normalize the signal based on a value proportional to
+a low residual does not necessarily indicate a good fit. 
+Therefore, instead we will normalize the signal based on a value proportional to
 the magnitude of the signal. Considering the tendency of FMRI noise to have large unexplainable
 peaks and troughs, rather than using MAX and MIN values, I used a robust estimator of 
-scale, the Median-Absolute-Deviation (MAD). Technically this is an estimator of the standard
-deviation, however in this case it is also a good estimator of the scale of the input
-signal. Thus, each point in the estimate as well as the original signal may be divided by
-this, leading to a normalized signal. Instead, however, I simply divided the 
-$\sqrt{MSR}$ by the MAD, which is functionally equivalent but leaves the  BOLD
-levels intact for further analysis. The normalized square root MSR values are 
+scale, the Median-Absolute-Deviation (MAD). This is an estimator of the standard
+deviation, and good estimator of the scale of the input signal. 
+Thus, each point in the estimate as well as the original signal may be divided by
+this, leading to a normalized signal. The normalized residual values are 
 shown in \autoref{tab:SignleVoxelActivationComparison}. 
 
 Comparing the results of \autoref{sec:HighNoise} and \autoref{sec:PureNoiseHighMag}, it is
@@ -631,24 +629,12 @@ may be found.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=10cm]{images/simslice_mask}
-\caption{Normalized Square Root of the Mean Square Residual. Darker indicates lower error.}
-\label{fig:simslice_mask}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=10cm]{images/simslice_hm}
-\caption{Normalized Square Root of the Mean Square Residual. Darker indicates lower error.}
+\subfigure[Region labels for simulated slice.]{
+\includegraphics[height=9cm]{images/simregions.png} \label{fig:simslice_mask} }
+\subfigure[Residual Heat Map.]{\includegraphics[height=9cm]{images/sim_hm}}
+\subfigure[Grey matter map for simulate region.]{\includegraphics[height=9cm]{images/sim_gm}}
+\caption{Comparison of activation with greymatter, parameter regions.}
 \label{fig:simslice_hm}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=10cm]{images/simslice_hm85}
-\caption{Normalized Square Root of the Mean Square Residual, with upper threshold at .85. 
-Darker indicates lower error.}
-\label{fig:simslice_hm85}
 \end{figure}
 
 The regions are numbered according to \autoref{fig:simslice_mask}; the parameters
