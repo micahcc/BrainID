@@ -251,9 +251,62 @@ and the residual. The signal itself is extremely noisy, it should the voxel shou
 However this case is reminiscent of the pure-noise tests performed in the previous chapter. 
 This time series an extremely good example of the danger of false positives. In spite of the
 fact that the signal oscillates far faster than the BOLD estimate, because of that, it is somehow
-able to maintaint a mutual information value of $.1052$ and a residual of just $1.09992$.
+able to maintain a mutual information value of $.1052$ and a residual of just $1.09992$.
 As such, a clear method of detecting these sorts of regions is necessary if the results
 of the particle filter algorithm are toe be trusted. 
+
+\section{Parameter Estimates}
+Although the parameters are not uniquely identifiable by a single time-series, that
+does not mean estimating them is not without benefit. The parameters still contain useful
+information about the system. Additionally, as an aggregate they form a distribution of
+the feasible parameters parameters for a particular patient. Therefore \autoref{fig:parammaps}
+contains the parameter maps for the system and \autoref{} is a histogram across all voxels
+for which the mutual information was greater than $.15$. As before, the threshold is not
+scientifically derived, yet in tests this threshold provided a decent balance to remove most
+of the questionably active voxels in the system. 
+
+\begin{figure}
+\centering
+\subfigure[$\tau_0$, Slice 6]{\includegraphics[width=7cm]{images/param_0000_6}}
+\subfigure[$\tau_0$, Slice 7]{\includegraphics[width=7cm]{images/param_0000_7}}
+\subfigure[$\alpha$, Slice 6]{\includegraphics[width=7cm]{images/param_0001_6}}
+\subfigure[$\alpha$, Slice 7]{\includegraphics[width=7cm]{images/param_0001_7}}
+\subfigure[$E_0$, Slice 6]{\includegraphics[width=7cm]{images/param_0002_6}}
+\subfigure[$E_0$, Slice 7]{\includegraphics[width=7cm]{images/param_0002_7}}
+\subfigure[$V_0$, Slice 6]{\includegraphics[width=7cm]{images/param_0003_6}}
+\subfigure[$V_0$, Slice 7]{\includegraphics[width=7cm]{images/param_0003_7}}
+\end{figure}
+
+\begin{figure}
+\centering
+\subfigure[$\tau_f$, Slice 6]{\includegraphics[width=7cm]{images/param_0004_6}}
+\subfigure[$\tau_f$, Slice 7]{\includegraphics[width=7cm]{images/param_0004_7}}
+\subfigure[$\tau_s$, Slice 6]{\includegraphics[width=7cm]{images/param_0005_6}}
+\subfigure[$\tau_s$, Slice 7]{\includegraphics[width=7cm]{images/param_0005_7}}
+\subfigure[$\epsilon$, Slice 6]{\includegraphics[width=7cm]{images/param_0006_6}}
+\subfigure[$\epsilon$, Slice 7]{\includegraphics[width=7cm]{images/param_0006_7}}
+\caption{Parameter Map of two regions of interest ($M.I. > .15$).}
+\label{fig:ParameterMap}
+\end{figure}
+
+Regions with poor fit cannot have reliable parameter estimates because the input did not meaningfully
+correlate input with output. Therefore before creating the maps,
+each parameters map was masked to regions with mutual information greater than $.15$. I chose mutual
+information over the residual because in the maps comparing regression fitness, the mutual information
+maps had more coherency and less randomness. Additionally, in the single voxel tests (\autoref{sec:SingleVoxelReview}) 
+there was more separation between the no signal case and the signal case than there was in the 
+residual metric. 
+
+\begin{figure}
+\centering
+\includegraphics[clip=truew,trim=8cm 4cm 8cm 4cm,width=16cm]{images/realhist}
+\caption{Histogram of parameters in active regions ($M.I. > .15$).}
+\label{fig:FinalHist}
+\end{figure}
+
+The parameter maps show consistency parameter across active regions, however, 
+the histogram of parameter estimates across all regions with $M.I. > .15$ is the
+more interesting result (\autoref{fig:FinalHist}). 
 
 \section{Discussion}
 From the maps generated, the similarities to SPM8's results are encouraging. At the 
@@ -264,7 +317,7 @@ ordering of regression quality. Mutual information also shows promising results.
 Many of the differences between SPM and the particle filter seem to be driven
 more by the pre-processing methods than the regression methd. The reason for 
 SPM applying such extrensive smoothing is to combat false positives. While this is
-extremely important, regions such as \autoref{comp6} show the problem with doing 
+extremely important, regions such as \autoref{fig:comp6} show the problem with doing 
 so. In all, the particle filter method does very good job of estimating parameters that
 fit the measurements; and at the very least this method is a workable, albiet
 computationally intensive, alternative to SPM. 
