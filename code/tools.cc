@@ -119,6 +119,115 @@ Image4DType::Pointer pctDiffOrient(const Image4DType::Pointer input1,
     return out;
 }
 
+Image3DType::Pointer mutual_info(uint32_t bins1, uint32_t bins2,
+            const Image4DType::Pointer input1, const Image4DType::Pointer input2)
+{
+    /* Create Iterators and Output */
+    if(input1->GetRequestedRegion().GetSize()[3] != 
+                input2->GetRequestedRegion().GetSize()[3]) 
+        throw -1;
+    
+    itk::ImageLinearConstIteratorWithIndex<Image4DType> it1(
+                input1, input1->GetRequestedRegion());
+    it1.SetDirection(3);
+    it1.GoToBegin();
+    
+    itk::ImageLinearConstIteratorWithIndex<Image4DType> it2(
+                input2, input2->GetRequestedRegion());
+    it2.SetDirection(3);
+    it2.GoToBegin();
+
+    Image4DType::IndexType index4;
+    Image3DType::Pointer out = Image3DType::New();
+    Image4DType::SizeType size4 = input1->GetRequestedRegion().GetSize();
+    {
+        Image3DType::SizeType size3 = {{size4[0], size4[1], size4[2]}};
+        out->SetRegions(size3);
+        out->Allocate();
+        copyInformation<Image4DType, Image3DType>(input1, out);
+    }
+
+    uint32_t tlen = input1->GetRequestedRegion().GetSize()[3];
+
+    /* Create the Imperical Distribution Matrix/Arrays */
+    //allocate
+    double** data = new double*[bins1];
+    double* tmp = new double[bins1*bins2];
+    for(uint32_t i = 0 ; i < bins1; i++) {
+        data[i] = &tmp[i*bins2];
+    }
+
+    double* marginal1 = new double[bins1];
+    double* marginal2 = new double[bins2];
+
+    while(!it1.IsAtEnd()) {
+        //zero them out
+        for(uint32_t i = 0 ; i < bins1; i++) {
+            for(uint32_t j = 0 ; j < bins2; j++) {
+                data[i][j] = 0;
+            }
+        }
+
+        for(uint32_t i = 0 ; i < bins1; i++) 
+            marginal1[i] = 0;
+        for(uint32_t i = 0 ; i < bins2; i++) 
+            marginal2[i] = 0;
+
+        /* Find the min and max for each dataset */
+        double min1 = it1.Get();
+        double max1 = it1.Get();
+        double min2 = it2.Get();
+        double max2 = it2.Get();
+        
+        while(!it1.IsAtEndOfLine()) {
+            if(!(min1 <= it1.Get()))
+                min1 = it1.Get();
+            if(!(max1 >= it1.Get()))
+                max1 = it1.Get();
+            if(!(min2 <= it2.Get()))
+                min2 = it2.Get();
+            if(!(max2 >= it2.Get()))
+                max2 = it2.Get();
+            ++it1; ++it2;
+        }
+        max1 += 1e-9; //make sure the max element ends up in the top bin
+        max2 += 1e-9; //also ensures that if max=min that it still works
+        
+        it1.GoToBeginOfLine();
+        it2.GoToBeginOfLine();
+        /* Put Each Element in a bin */
+        int bin1, bin2;
+        while(!it1.IsAtEndOfLine()) {
+            bin1 = (it1.Get()-min1)*bins1/(max1-min1);
+            bin2 = (it2.Get()-min2)*bins2/(max2-min2);
+            data[(int)bin1][(int)bin2] += 1./tlen;
+            marginal1[bin1] += 1./tlen;
+            marginal2[bin2] += 1./tlen;
+            ++it1; ++it2;
+        }
+
+        /* Calculate Mutual Information */
+        double mi = 0;
+        for(uint32_t y = 0 ; y < bins1; y++) { 
+            for(uint32_t x = 0 ; x < bins2; x++) {
+                if(data[y][x])
+                    mi += data[y][x]*log2(data[y][x]/(marginal1[y]*marginal2[x]));
+            }
+        }
+        mi -= (bins1*bins2)/(2.*tlen);
+
+        index4 = it1.GetIndex();
+        Image3DType::IndexType index3 = {{index4[0], index4[1], index4[2]}};
+        out->SetPixel(index3, mi);
+
+        it1.NextLine();
+        it2.NextLine();
+    }
+    return out;
+}
+    
+
+
 Image3DType::Pointer mse(const Image4DType::Pointer input1,
             const Image4DType::Pointer input2)
 {

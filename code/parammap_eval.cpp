@@ -501,6 +501,10 @@ int main(int argc, char* argv[])
     Image3DType::Pointer estMse = mse(estSim, realTSImg);
     copyInformation<Image4DType, Image3DType>(realTSImg, estMse);
     writeImage<Image3DType>(a_dir(), "mse.nii.gz", estMse);
+        
+    Image3DType::Pointer estMI = mutual_info(6,6, realTSImg, estSim);
+    copyInformation<Image4DType, Image3DType>(realTSImg, estMI);
+    writeImage<Image3DType>(a_dir(), "mi.nii.gz", estMI);
 
 //    Image3DType::Pointer estAct = activation(estParamImg, statusImg, 1/2048.);
 //    copyInformation<Image4DType, Image3DType>(realTSImg, estAct);
@@ -525,12 +529,20 @@ int main(int argc, char* argv[])
         resampler->Update();
         writeImage<Image4DType>(a_dir(), "parammap_resamp.nii.gz", resampler->GetOutput());
         Image4DType::Pointer trueParamImg2 = resampler->GetOutput();
+        
         Image4DType::Pointer trueSim = simulate(trueParamImg2, statusImg, input,
                     a_shortstep(), a_timestep(), tlen);
+        copyInformation<Image4DType, Image4DType>(realTSImg, trueSim);
+        writeImage<Image4DType>(a_dir(), "true_bold.nii.gz", trueSim);
+        
         Image3DType::Pointer trueMse = mse(trueSim, estSim);
         copyInformation<Image4DType, Image3DType>(realTSImg, trueMse);
         writeImage<Image3DType>(a_dir(), "mse_true.nii.gz", trueMse);
 
+        Image3DType::Pointer trueMI = mutual_info(6,6, trueSim, estSim);
+        copyInformation<Image4DType, Image3DType>(realTSImg, trueMI);
+        writeImage<Image3DType>(a_dir(), "mi_true.nii.gz", trueMI);
+        
 //        Image3DType::Pointer trueAct = activation(trueParamImg2, statusImg, 1/2048.);
 //        copyInformation<Image4DType, Image3DType>(realTSImg, trueMse);
 //        writeImage<Image3DType>(a_dir(), "act_true.nii.gz", trueAct);

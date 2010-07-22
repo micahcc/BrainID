@@ -44,6 +44,8 @@ Image4DType::Pointer extract_timeseries(Image4DType::Pointer in,
 itk::Image<DataType, 1>::Pointer getCanonical(std::vector<Activation> stim, double TR,
             double start, double stop);
 Image3DType::Pointer median_absolute_deviation(const Image4DType::Pointer fmri_img);
+Image3DType::Pointer mutual_info(uint32_t bins1, uint32_t bins2,
+            const Image4DType::Pointer input1, const Image4DType::Pointer input2);
 
 
 //dir1 should be the direction of several separate series

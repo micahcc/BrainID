@@ -27,6 +27,7 @@ ADD_EXECUTABLE(segment_alltogether segment_alltogether.cpp)
 ADD_EXECUTABLE(segment_sections segment_sections.cpp)
 ADD_EXECUTABLE(segment_times segment_times.cpp)
 ADD_EXECUTABLE(resample_test resample_test.cpp)
+ADD_EXECUTABLE(mutual_information mutual_information.cpp)
 
 TARGET_LINK_LIBRARIES(dictionary 
     ITKAlgorithms ITKBasicFilters
@@ -37,6 +38,8 @@ TARGET_LINK_LIBRARIES(serialize boost_serialization mpi
 TARGET_LINK_LIBRARIES(particle_test mpi boost_serialization boost_mpi BoldModel ITKAlgorithms ITKBasicFilters
     ITKCommon ITKIO mpi gslcblas gsl gfortran blas lapack dysii)
 
+TARGET_LINK_LIBRARIES(mutual_information ITKCommon segment ITKIO
+    ITKAlgorithms)
 TARGET_LINK_LIBRARIES(segment_alltogether ITKCommon segment ITKIO
     ITKAlgorithms)
 TARGET_LINK_LIBRARIES(segment_sections ITKCommon segment ITKIO ITKAlgorithms)
