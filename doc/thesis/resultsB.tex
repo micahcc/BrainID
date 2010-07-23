@@ -225,22 +225,22 @@ of $4.17399$ and $MSE$ of $1.14171$.}
 
 %23-10-18 or in original coordinates 36-17-19
 \begin{figure}
-\subfigure[Particle Filter]{\label{fig:comp5pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/6_pfilter_36_17_19}}\\
-\subfigure[SPM]{\label{fig:comp5spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/6_spm_36_17_19}}
+\subfigure[Particle Filter]{\label{fig:comp6pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/6_pfilter_36_17_19}}\\
+\subfigure[SPM]{\label{fig:comp6spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/6_spm_36_17_19}}
 \caption{Section 6, MI of $0.335504$, T Value: $2.49154$, normalized error: $0.783348$ Not visible in SPM}
 \label{fig:comp6}
 \end{figure}
 
 %16-19-0 or in original coordinates 29-26-1
 \begin{figure}
-\subfigure[Particle Filter]{\label{fig:comp5pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/7_pfilter_29_26_1}}\\
-%\subfigure[SPM]{\label{fig:comp5spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/5_spm_25_34_25}}
+\subfigure[Particle Filter]{\label{fig:comp7pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/7_pfilter_29_26_1}}\\
+%\subfigure[SPM]{\label{fig:comp7spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/5_spm_25_34_25}}
 \caption{Section 7, $.1052$ in MI, $1.31534$ in SPM (which left this flat) and $1.09992$ normalized $\sqrt{MSE}$. Only visible in MI map. }
 \label{fig:comp7}
 \end{figure}
 
-Voxel 6 (\autoref{comp6}) is another region that is active according to both metrics used
-in this work, yet was missed by SPM. The time series in \autoref{comp6} shows an extremely
+Voxel 6 (\autoref{fig:comp6}) is another region that is active according to both metrics used
+in this work, yet was missed by SPM. The time series in \autoref{fig:comp6} shows an extremely
 good fit, perhaps the best in this batch, for the particle filter. In contrast, the
 fit for SPM is abysmal. In spite of the fact that several other areas around are active
 as well, the smoothing seems to have completely wiped out activation in this voxel. 
@@ -259,8 +259,9 @@ of the particle filter algorithm are toe be trusted.
 Although the parameters are not uniquely identifiable by a single time-series, that
 does not mean estimating them is not without benefit. The parameters still contain useful
 information about the system. Additionally, as an aggregate they form a distribution of
-the feasible parameters parameters for a particular patient. Therefore \autoref{fig:parammaps}
-contains the parameter maps for the system and \autoref{} is a histogram across all voxels
+the feasible parameters parameters for a particular patient. Therefore 
+\autoref{fig:pmap0} through \autoref{fig:pmap6}
+contain the parameter maps for the system and \autoref{fig:realhist} is a histogram across all voxels
 for which the mutual information was greater than $.15$. As before, the threshold is not
 scientifically derived, yet in tests this threshold provided a decent balance to remove most
 of the questionably active voxels in the system. 
@@ -270,6 +271,7 @@ of the questionably active voxels in the system.
 \subfigure{\includegraphics[width=13cm]{images/pmap0}}
 \subfigure{\includegraphics[scale=.5]{images/pscale_00}}
 \caption{$\tau_0$ Estimates}
+\label{fig:pmap0}
 \end{figure}
 
 \begin{figure}[H]
@@ -277,6 +279,7 @@ of the questionably active voxels in the system.
 \subfigure{\includegraphics[width=13cm]{images/pmap1}}
 \subfigure{\includegraphics[scale=.5]{images/pscale_01}}
 \caption{$\alpha$ Estimates}
+\label{fig:pmap1}
 \end{figure}
 
 \begin{figure}[H]
@@ -284,6 +287,7 @@ of the questionably active voxels in the system.
 \subfigure{\includegraphics[width=13cm]{images/pmap2}}
 \subfigure{\includegraphics[scale=.5]{images/pscale_02}}
 \caption{$E_0$ Estimates}
+\label{fig:pmap2}
 \end{figure}
 
 \begin{figure}[H]
@@ -291,6 +295,7 @@ of the questionably active voxels in the system.
 \subfigure{\includegraphics[width=13cm]{images/pmap3}}
 \subfigure{\includegraphics[scale=.5]{images/pscale_03}}
 \caption{$V_0$ Estimates}
+\label{fig:pmap3}
 \end{figure}
 
 \begin{figure}[H]
@@ -298,6 +303,7 @@ of the questionably active voxels in the system.
 \subfigure{\includegraphics[width=13cm]{images/pmap4}}
 \subfigure{\includegraphics[scale=.5]{images/pscale_04}}
 \caption{$\tau_f$ Estimates}
+\label{fig:pmap4}
 \end{figure}
 
 \begin{figure}[H]
@@ -305,6 +311,7 @@ of the questionably active voxels in the system.
 \subfigure{\includegraphics[width=13cm]{images/pmap5}}
 \subfigure{\includegraphics[scale=.5]{images/pscale_05}}
 \caption{$\tau_s$ Estimates}
+\label{fig:pmap5}
 \end{figure}
 
 \begin{figure}[H]
@@ -312,6 +319,7 @@ of the questionably active voxels in the system.
 \subfigure{\includegraphics[width=13cm]{images/pmap6}}
 \subfigure{\includegraphics[scale=.5]{images/pscale_06}}
 \caption{$\epsilon$ Estimates}
+\label{fig:pmap6}
 \end{figure}
 
 Regions with poor fit cannot have reliable parameter estimates because the input did not meaningfully
@@ -326,12 +334,12 @@ residual metric.
 \centering
 \includegraphics[clip=truew,trim=8cm 4cm 8cm 4cm,width=16cm]{images/realhist}
 \caption{Histogram of parameters in active regions ($M.I. > .15$).}
-\label{fig:FinalHist}
+\label{fig:realhist}
 \end{figure}
 
 The parameter maps show consistency parameter across active regions, however, 
 the histogram of parameter estimates across all regions with $M.I. > .15$ is the
-more interesting result (\autoref{fig:FinalHist}). 
+more interesting result (\autoref{fig:realhist}). 
 
 \section{Discussion}
 From the maps generated, the similarities to SPM8's results are encouraging. At the 
