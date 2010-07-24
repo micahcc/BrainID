@@ -535,9 +535,9 @@ Initially the particles will have the same output, $0$, however, as $u(t)$
 changes, the response of each particle to that input will result in different
 outputs. Particles that have a $v_{yi}$ near $V_y$ will be weighted higher,
 and others farther away will be weighted lower. As the particle filter
-runs, weights will compound resulting in a distribution that asymptotically
-approaches the true joint distribution of the $X(t)$.  Of course, as I
-mentioned in \autoref{sec:Particle Filter Resampling}, particles weighted 
-zero do not significantly
-contribute to the empirical distribution, so re-sampling may be necessary.
+runs, weights will compound converging to a distribution that asymptotically
+approaches the true joint distribution of the $X(t)$.  As I
+mentioned in \autoref{sec:Particle Filter Resampling}, particles with 
+weights approaching zero do not significantly
+contribute to the empirical distribution, so re-sampling will be necessary.
 
