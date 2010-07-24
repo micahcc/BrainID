@@ -2,20 +2,20 @@
 \label{sec:Particle Filter}
 \section{Introduction}
 Particle filters, a type of Sequential Monte Carlo (SMC) methods,
-are a powerful way of estimating the posterior probability distribution
-a set of parameters given a timeseries of measurements. Unlike Markov 
+are a powerful method for estimating the posterior probability distribution
+ of parameters given a timeseries of measurements. Unlike Markov 
 Chain Monte Carlo (MCMC) estimation, particle filters are designed for 
 time-varying random variables. The idea behind particle filters is
 similar to Kalman Filters; however, unlike Kalman Filters,
 distributions are stored as an empircal distribution rather than the
-as the first two moments of a Gaussian. Thus particle filters are 
-preferred when the model is nonlinear, and thus non-gaussian. This section
+as the first two moments of a Gaussian. Thus, particle filters are 
+preferred when the model is nonlinear, and non-gaussian. This section
 is largely based on \cite{Arulampalam2002a} and \cite{Thrun2005}.
 
 \section{Model}
 \label{sec:Particle Filter Model}
 The idea of the particle filter is to build an empirical distribution
-out of a large number of parameter \emph{sets}, called particles. Each
+out of a large number of parameter sets, called particles. Each
 particle contains all the parameters and states needed to propagate
 the model forward.  The particle filter begins with a wide distribution 
 (called the Prior Distribution)
@@ -23,20 +23,19 @@ of possible particles and then, as measurements come in, weights
 particles based on the quality of their output estimates. Thus parameter sets 
 that tend to give good estimations of the measurements get weighted higher
 than parameter sets that give poor estimates. Although the reliance on
-a prior distribution can be troublesome, when the system being modeled
+a prior distribution are often troublesome, when the system being modeled
 has physical meaning, establishing reasonable ranges for parameters may be 
 quite easy. Optimizing the prior can be more difficult though,
 unless the system has been extensively studied.
 
-Suppose set or stream of measurements at discrete times are given, 
-$\{Y_k, k = 1, 2, 3, ... K\}$, where $K$ is infinite for a stream. 
+Suppose a set or stream of measurements at discrete times are given, 
+$\{Y_k, k = 1, 2, 3, ... K\}$, where $K$ may be infinite. 
 Because $k$ is a discrete time, let $t_k$ define the continuous
-time of $k$
+time of $k$.
 Suppose also that there is a hidden set of state variables,
-$X(t)$ that dictates the movement
-of $Y(t)$, although for most of the time dealings will be
+$X(t)$ that drives the value of $Y(t)$. Throughout this section
 with $X_k = X(t_k)$. The goal of the particle filter is to estimate the 
-\emph{distribution} of the
+distribution of the
 true parameters $\Theta$ that dictates the movement of $X(t)$.
 The model also permits random motion in $X(t)$, so the 
 particle filter also estimates the distribution of $X(t)$.
@@ -59,8 +58,8 @@ $\nu_x$ and $\nu_y$ are random variates. Although any of these
 variables could be a vector, for the sake of simplicity only
 $\Theta$ and $X(t)$ will be considered as such. 
 
-Although not necessary for particle filters in general, a few  simplifying
-assumptions are made for this work. First, the systems are assumed to be 
+I will also make a few  simplifying assumptions for this work. 
+First, the systems are assumed to be 
 time invariant. This 
 assumption is based on the idea that if you paused the system for $\Delta t$
 seconds, when unfrozen the system would continue as if nothing happened. 
@@ -70,16 +69,15 @@ periodic and have an effect on the BOLD signal, the period varies too much
 for the system to be considered varying with time. 
 Next, its assumes that input cannot directly
 influence the output, which in the case of the BOLD signal is a good assumption.
-Also, noise is considered to be additive.
 Finally, because the only difference between the members of $X(t)$ and 
-$\Theta$ is an update function, from now on $x$ will contain 
+$\Theta$ is an update function, from now on $X$ will contain 
 $\Theta$. The assumptions now allow for a simplified version of the
 state space equations:
 
 \begin{eqnarray}
-\dot{X}_k = f(X_{k-1}, u_k) + \nu_x 
+\dot{X}_k = f(X_{k-1}, u_k, \nu_x)
 \label{eq:stateass}\\
-Y_k = g(X_k) + \nu_y 
+Y_k = g(X_k, \nu_y)
 \label{eq:measass}
 \end{eqnarray}
 
@@ -96,7 +94,7 @@ Considering the noise present in $X$,
 
 To begin with, the particle filter must be given a prior distribution, from
 which the initial $N_p$ particles are drawn. A particle contains a weight
-as well as an estimate of $X_k$, which as already stated, contains every
+as well as an estimate of $X_k$, which as previously mentioned, contains every
 variable needed to run the model. Then the prior is generated from a 
 given distribution, $\alpha(X)$, by:
 
@@ -131,20 +129,6 @@ wide enough to incorporate any posterior that arises. If the prior is
 not sufficiently dense, the particle filter can compensate, if it is
 not sufficiently wide the particle filter won't converge. 
 
-%todo, put back?
-%Once the probability, $P(x_k | x_{0:k-1}, y_{0:k-1})$ has been found
-%(initially this is just Mixture approximating the prior since no measurements are 
-%available and no previous probabilities are available), its possible to approximate
-%the probability between times when measurement is available, by shifting
-%the probability according the progression of the state equations. This is only 
-%an approximate, since integrating $\nu_d$ should increase uncertainty as
-%time without a measurement passes. 
-%
-%\begin{equation}
-%P(x(T+\Delta t)) \approx 
-%\sum_{i=1}^{N_p} w_i\delta\left(x - (x_i(T) + \int_T^{T+\Delta} \dot{x}_i(t) dt) \right)
-%\end{equation}
-
 \subsection{Weighting}
 For all the following areas, the probabilities implicitly depend on $u_{0:k}$, 
 so those terms are left off for simplicity.
@@ -162,9 +146,9 @@ is the density of the points, thus by dividing by this value, the weight
 should not depend on the location of the estimation points, but rather
 only on $P(x^i_{0:k} | y_{0:k})$, the probability of that particle
 being correct given all the measurements up to time $k$. 
-Of course if there is a far off peak in
+Note that if there is a far off peak in
 the posterior that $q$ does not have support points in, there will 
-be quantization errors, and that part of the density can't be modeled. This is why
+be quantization errors, and that part of the density cannot be modeled. This is why
 it is absolutely necessary that $q$ fully covers $P(x^i_{0:k} | y_{0:k})$.
 
 It is helpful
@@ -185,7 +169,7 @@ calculate both $q(x^i_{0:k} | y_{0:k})$ and $P(x^i_{0:k} | y_{0:k})$.
 Note that $q(x^i_{0:k} | y_{0:k})$ may be simplified by assuming that 
 $y_k$ doesn't contain any information about $x_{k-1}$. Technically this 
 could be false; since later measurements may shed light on currently hidden
-changes in $x$. For practical applications though it is helpful assumption.
+changes in $x$. For practical applications though it is a helpful assumption.
 \begin{equation}
 q(x^i_{0:k} | y_{0:k}) = q(x^i_{0:k} | y_{0:k-1})
 \label{eq:QAssump}
@@ -193,7 +177,7 @@ q(x^i_{0:k} | y_{0:k}) = q(x^i_{0:k} | y_{0:k-1})
 The choice of the importance density is another design decision; however
 it is common to use the integrated state equations. 
 Although other importance density functions exist; for the particle filter
-used here, the standard importance density will be used: the modeled
+used here, the standard importance density will be used: the model
 prior.
 \begin{equation}
 q(x_k | x_{k-1}, y_{0:k}) =  P(x_k | x_{k-1})
@@ -217,7 +201,7 @@ q(x_{0:k} | y_{0:k}) & = & q(x_k | x_{0:k-1}, y_{0:k})q(x_{0:k-1} | y_{0:k}) &  
 Calculating $P(x_{0:k} | y_{0:k})$ is a bit more involved. 
 First, using the assumption that the distribution of $y_k$ is 
 fully constrained by $x_k$, and that $x_k$ is similarly fully 
-constrained by $x_{k-1}$, we are able to make the good assumptions that:
+constrained by $x_{k-1}$, I make the good assumptions that:
 \begin{eqnarray}
 P(y_k | x_{0:k}, y_{0:k-1}) &=& P(y_k | x_k) \nonumber \\
 P(x_k | x_{0:k}, y_{0:k-1}) &=& P(x_k | x_{k-1})
@@ -288,14 +272,15 @@ is simple.
 \label{sec:Particle Filter Resampling}
 As a consequence 
 of the wide prior distribution (required for a proper discretization of a continuous
-distribution), there will be a significant proportion of particles with insignificant weights. 
+distribution), in short order there will be a significant proportion of particles 
+with insignificant weights. 
 While this does help
-describe the tails of the distribution, it means a lot of computation will be based.
+describe the tails of the distribution, it means a great deal of computation will be wasted.
 Instead, it would be preferable if most of the computation is spent on the most probable regions.
 Ideally the computation time spent on tails would be proportional to the actual size of the
 tails. In this case particle locations would match the true posterior and all weights would
 be equal.  The case where a large number of the weights have become irrelevantly small
-is called \emph{particle degeneracy}. In  \cite{Liu1998b}
+is called particle degeneracy. In  \cite{Liu1998b}
 an ideal calculation of the effective number of particles is found based on the 
 particles' true weight. However, given that only an approximation for the true weight 
 exists, they also provide a simple heuristic calculation of $N_{eff}$.
@@ -332,7 +317,7 @@ distribution as follows:
 For infinite particles this new distribution will match the old.
 Unfortunately, this isn't the truth in practice: since the support is
 still limited to the original particles, the number of \emph{unique} particles can only go down.
-This effect, dubbed \emph{particle impoverishment} can result in excessive quantization
+This effect, dubbed particle impoverishment can result in excessive quantization
 errors in the final distribution. However, there is a solution. Instead of sampling from the
 discrete distribution, a smoothing kernel is applied, and particles are drawn from
 that distribution. Because it is continuous, particle impoverishment
@@ -342,7 +327,7 @@ distribution, algorithm \autoref{alg:Resampling} is performed. Next, a distribut
 based on the variance of the original distributions.
 Finally, for each particle in the discretely re-sampled distribution, a sample is drawn from 
 the smoothing 
-distribution and added to the particle.  The process regularization is defined as:
+distribution and added to the particle.  The regularization process is defined as:
 
 \begin{equation}
 x_i = x_i + h\sigma \epsilon
@@ -374,17 +359,14 @@ drawing samples from it, which for this work was more important.
 It has been proposed by \cite{Hurzeler1998} that if the underlying 
 distribution is non-Gaussian, then using the original bandwidth will over-smooth. 
 In reality, over smoothing
-will only become an issue if re-sampling is performed over and over. Thus
-if
-resampling is performed at every step then this could certainly caused problems.
+will only become an issue if re-sampling is performed very often. Thus
+if resampling is performed at every step then this could certainly cause problems.
 If the distribution is over-smoothed then the algorithm may not converge as rapidly;
 however, because the bandwidth is still based on particle variance, which decays as 
 particles are ruled out, it is still able to converge. In fact, over-smoothing is preferable
 to under smoothing, since over-smoothing simply slows convergence while 
-under-smoothing could result in false negatives.
-At the same time, as the number of dimensions in the state vector 
-increases, the standard deviation based approximation becomes less effective
- (\cite{Arulampalam2002a}). Because of the high dimensionality of the BOLD model,
+under-smoothing could leave gaps in the distribution.
+Moreover, because of the high dimensionality of the BOLD model,
 and limited measurements, it is helpful to have a broader bandwidth to explore the distribution. 
 
 \begin{algorithm}
@@ -414,35 +396,34 @@ and limited measurements, it is helpful to have a broader bandwidth to explore t
 
 Nevertheless, because 
 of the potentially wide smoothing factor applied by regularized resampling, performing this
-step at every measurement would allow particles a great deal of mobility. This mobility is
-the opposite of convergence, which is why regularized resampling should only be done when
-$N_{eff}$ drops (say less than 50). Other than the periodic regularized
-resampling then, the regularized particle filter is nearly identical to the basic sampling
+step at every measurement would allow particles a great deal of mobility. This mobility could
+hinder convergence, which is why regularized resampling should only be done when
+$N_{eff}$ drops off (less than 50). Other than the periodic regularized
+resampling, the regularized particle filter is identical to the basic sampling
 importance sampling filter (SIS). 
 
-Thus, with regularized resampling, it is possible to prevent both
+With regularized resampling, it is possible to prevent both
 particle degeneracy as well as particle impoverishment. An additional
 bonus is that as the particle filter converges, the density of particles
 in the area of the solution goes up. This has a similar effect to 
 simulated annealing where, as the algorithm approaches the end, the
-random steps get smaller and smaller. There is a potential risk when
+random steps get smaller and smaller. However, there is risk in 
 resampling. If for some reason the solution is not covered by the 
-new support the algorithm will fail to converge properly.
-
+new support the algorithm may not be able to reach the true value. 
 The ultimate effect of this regularized resampling is a convergence similar to simulated annealing
 or a genetic algorithm. Versions of $x$ that are fit (give good measurements) spawn more children 
 nearby which allow for more accurate estimation near points of high likelihood. 
 As the variance of the estimated
 $x$'s decrease, the radius in which children are spawned also decreases. Eventually the radius
-will approach the width of the underlying uncertainty, $\nu_x$ and $\nu_y$.
+will approach the width of the underlying uncertainty.
 
 \section{Weighting Function}
 Because the distribution of $\nu_y$ in \autoref{eq:measass} is unknown,
 it is necessary to choose a distribution for this. This distribution
 is important because $\nu_y \sim P(y_k | x(T))$, which is used
 for updating weights. Ideally this weighting function would exactly 
-match the measurement error in
-the output. It is logical to assume this error is centered at zero and 
+match the measurement error in the output. 
+Typically it is assumed that this error is additive, centered at zero and 
 has a scale comparable to the signal levels.
 While a Gaussian function is the traditional choice, there are other reasonable
 distributions, given the unpredictable nature of the noise present in FMRI.
@@ -461,7 +442,7 @@ is still not DC, however it is then possible to use a capacitor to
 smooth the signal into something similar to DC, as shown in \autoref{fig:HalfWaveIO}.
 There are other, more
 complex circuits that convert the negative portion into positive and
-waste less energy but but here we will keep the system simple.
+waste less energy but here I will keep the system simple.
 Thus, let us consider a simple half wave rectifier circuit, shown in 
 \autoref{fig:HalfWaveRectifier}.
 
@@ -469,7 +450,7 @@ The half wave rectifier circuit smoothes the gaps between high voltage
 with a capacitor. Thus, when $u(t)G$ is less than $v_t$, the circuit will 
 discharge the capacitor and maintain a non-zero voltage,
 but when $u(t)G$ is greater than $v_t$, the output voltage will be set
-by $u(t)G$ and the capacitor will charge up. We will assume a simple
+by $u(t)G$ and the capacitor will charge up. I will assume a simple
 model for all the components, ignoring the complex nonlinear behavior
 that can occur in a diode. 
 
@@ -497,7 +478,7 @@ $C$ is the capacitance, $R$ is the load resistance and $v_y$ is the output volta
 \label{fig:HalfWaveIO}
 \end{figure}
 
-For this example it will be assumed that the transformer simply scales
+For this example I will assume that the transformer simply scales
 the input by a constant factor, $G$. As discussed in the \autoref{sec:Particle Filter Model}
 any variable with uncertainty must be part of the state variable. Therefore
 the state variable is defined as: $X(t) = \{G, v_t, C, R_m, v_y\}$. 
