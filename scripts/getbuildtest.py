@@ -17,7 +17,7 @@ BOOST_URL="http://sodium.resophonic.com/boost-cmake/1.41.0.cmake0/boost-1.41.0.c
 BINDINGS_URL="http://mathema.tician.de/news.tiker.net/download/software/boost-numeric-bindings/boost-numeric-bindings-20081116.tar.gz"
 ITK_URL="http://voxel.dl.sourceforge.net/sourceforge/itk/InsightToolkit-3.18.0.tar.gz"
 OPENMPI_URL="http://www.open-mpi.org/software/ompi/v1.4/downloads/openmpi-1.4.1.tar.gz"
-LAPACK_URL="http://www.netlib.org/lapack/lapack-3.2.1-CMAKE.tgz"
+LAPACK_URL="http://www.netlib.org/lapack/lapack-3.2.1.tgz"
 MATLAB_NIFTI="http://www.pc.rhul.ac.uk/staff/J.Larsson/software/cbiNifti/cbiNifti.tar.gz"
 
 
@@ -114,9 +114,8 @@ def cmakeinst(basedir, instdir, name, url, defstrings = "", src_dir = ""):
     
     os.chdir(build_dir)
     cmakecmd = "cmake %s -DCMAKE_INSTALL_PREFIX=%s %s" % (src_dir, instdir, " ".join(defstrings));
-    print cmakecmd
     if options.debug:
-        cmakecmd = cmakecmd + " -DCMAKE_BUILD_TYPE=Debug"
+        cmakecmd = cmakecmd + " -DCMAKE_BUILD_TYPE=Release"
     elif options.optimize:
         cmakecmd = cmakecmd + " -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS_RELEASE=\-O3 \-march=native" + \
                     "-DCMAKE_C_FLAGS_RELEASE=\"-O3 -march=native\""
@@ -228,16 +227,49 @@ if not join(cmake_install_dir, "bin") in prof_bin:
 ###########################
 # LAPACK
 ###########################
-lapack_src_dir = getep(depdir,"lapack",LAPACK_URL)
-tmp = lapack_src_dir.split("-CMAKE")
-print tmp
-lapack_src_dir = "-CMAKE".join(tmp[0:-1]) + tmp[-1]
-print lapack_src_dir
-lapack_install_dir = cmakeinst(depdir, depprefix, "lapack", LAPACK_URL, defstrings=["-DBUILD_TESTING=OFF"], \
-            src_dir=join(lapack_src_dir))
-prof_ld += [join(lapack_install_dir, "lib")]
-print prof_ld, prof_bin
+lapack_src_dir = getep(depdir, "lapack", LAPACK_URL)
+lapack_install_dir = join(depprefix, "lib")
+print "Creating %s" % lapack_install_dir
+try:
+    os.makedirs(lapack_install_dir)
+except os.error:
+    print "Directory " + options.depdir + " may overwrite."
 
+os.chdir(lapack_src_dir)
+if os.system("make -j%i blaslib" % ncpus()) != 0:
+    print "Build Failed in Lapack blaslib"
+    sys.exit()
+
+if os.system("make -j%i all" % ncpus()) != 0:
+    print "build in %s Lapack" 
+    sys.exit()
+
+for filen in os.listdir("./"):
+    if splitext(filen)[1] == ".a":
+        shared = splitext(filen)[0]+ ".so"
+        
+        print "Creating %s" % shared
+        os.system("ar -x %s; gcc -shared *.o -o %s; rm *.o" % (filen, shared))
+        
+        print "Installing %s" % shared
+        shutil.copy(shared, lapack_install_dir)
+
+        print "Installing %s" % shared + ".0"
+        os.symlink(join(lapack_install_dir, shared), join(lapack_install_dir, shared+".0"))
+        
+        print "Installing %s" % shared + ".0.0.0"
+        os.symlink(join(lapack_install_dir, shared), join(lapack_install_dir, shared+".0.0.0"))
+        
+        print "Installing %s" % filen
+        shutil.copy(filen, lapack_install_dir)
+
+if not lapack_install_dir in prof_ld:
+    prof_ld += [lapack_install_dir];
+print prof_ld, prof_bin
+#        os.
+#os.path.
+os.chdir(topdir)
+exit
 ###########################
 # gsl
 ###########################
