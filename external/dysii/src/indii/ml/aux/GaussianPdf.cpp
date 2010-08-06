@@ -167,7 +167,7 @@ double GaussianPdf::densityAt(const vector& x) {
   }
   
   double p = ZI * exp(-0.5 * exponent);
-  if (isnan(p)) {
+  if (p != p) {
     p = 0.0;
   }
   

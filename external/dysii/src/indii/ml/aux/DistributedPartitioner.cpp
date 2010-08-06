@@ -85,10 +85,10 @@ bool DistributedPartitioner::init(DiracMixturePdf* p,
       }
       boost::mpi::broadcast(world, value, guesser);
 
-      if (isnan(value)) {
+      if (value != value) {
         guesser++;
       }
-    } while (isnan(value) && guesser < size);
+    } while ( (value != value) && guesser < size);
     
     /* if we've managed to find a value... */
     if (guesser < size) {
