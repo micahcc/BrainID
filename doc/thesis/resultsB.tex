@@ -99,10 +99,12 @@ areas that have been missed because of the smoothing.
 \subfigure[]{\label{fig:hm_canon_spm_y} \includegraphics[scale=3]{images/spm_hm_y}}
 \subfigure[]{\label{fig:hm_canon_spm_z} \includegraphics[scale=3]{images/spm_hm_z}}
 \subfigure{\label{fig:scale_spm} \includegraphics[scale=.5]{images/scale1}}
-\caption{Sagittal, coronal and axial slices of SPM results (\autoref{fig:hm_canon_spm_x} \autoref{fig:hm_canon_spm_y} 
-         \autoref{fig:hm_canon_spm_x}), as well as a series of axial slices, \autoref{fig:hm_spm}. Units
-         of activation are in Student's T-scores. Higher indicates higher assurance that the signal cannot
-         have occurred through noise alone.}
+\caption{SPM results. Units of activation are in Student's T-scores; higher indicates higher 
+        assurance that the signal cannot have occurred through noise alone. 
+        Sagittal, coronal and axial slices  are 
+        \autoref{fig:hm_canon_spm_x}, \autoref{fig:hm_canon_spm_y}, and
+         \autoref{fig:hm_canon_spm_z}, respectively. A series of axial slices are
+         shown in \autoref{fig:hm_spm}. }
 \label{fig:hm_canon_spm}
 \end{figure}
 
@@ -112,10 +114,13 @@ areas that have been missed because of the smoothing.
 \subfigure[]{\label{fig:hm_canon_pfilter_y} \includegraphics[scale=3]{images/pfilter_hm_y}}
 \subfigure[]{\label{fig:hm_canon_pfilter_z} \includegraphics[scale=3]{images/pfilter_hm_z}}
 \subfigure{\label{fig:scale_pfilter} \includegraphics[scale=.5]{images/scale2}}
-\caption{Sagittal, coronal and axial (\autoref{fig:hm_canon_pfilter_x} \autoref{fig:hm_canon_pfilter_y} 
-         \autoref{fig:hm_canon_pfilter_x}), as well as a series of axial slices, \autoref{fig:hm_pfilter}. 
-         Units of match is normalized residual. The lowest (best) levels were $.7$.
-         The highest error shown is $1$.}
+\caption{Particle Filter results measured in normalized $\sqrt{MSE}$. 
+        Units of match is normalized residual where the  the lowest (best) levels shown are
+        $.7$ and the highest error shown (threshold) is $1$.
+        Sagittal, coronal and axial slices are shwon in \autoref{fig:hm_canon_pfilter_x},
+        \autoref{fig:hm_canon_pfilter_y}, and 
+         \autoref{fig:hm_canon_pfilter_z}, respectively. A series of axial slices are shown in
+         \autoref{fig:hm_pfilter}.  }
 \label{fig:hm_canon_pfilter}
 \end{figure}
 
@@ -138,10 +143,12 @@ areas that have been missed because of the smoothing.
 \subfigure[]{\label{fig:hm_canon_mi_y} \includegraphics[scale=3]{images/mi_hm_y}}
 \subfigure[]{\label{fig:hm_canon_mi_z} \includegraphics[scale=3]{images/mi_hm_z}}
 \subfigure{\label{fig:scale_mi} \includegraphics[scale=.5]{images/scale4}}
-\caption{Sagittal, coronal and axial (\autoref{fig:hm_canon_pfilter_x} \autoref{fig:hm_canon_pfilter_y} 
-         \autoref{fig:hm_canon_pfilter_x}), as well as a series of axial slices, \autoref{fig:hm_pfilter}. 
+\caption{Particle Filter results measured in mutual information. 
          Units of match is bits (standard for base-2 Mutual Information). The highest (best) levels are 
-         $.42$. The worst shown is $.1$.}
+         $.42$ and the worst shown (threshold) is $.1$.
+        Sagittal, coronal and axial slices are shwon in \autoref{fig:hm_canon_mi_x},
+        \autoref{fig:hm_canon_mi_y}, and \autoref{fig:hm_canon_mi_z}, respectively. 
+        A series of axial slices are shown in \autoref{fig:hm_mi}.  }
 \label{fig:hm_canon_pfilter_mi}
 \end{figure}
 

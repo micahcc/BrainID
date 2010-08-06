@@ -1,6 +1,6 @@
 \chapter{Methods}
 \label{sec:Methods}
-Although the particle filter I used for this work is a standard Regularized
+Although the particle filter  is a standard Regularized
 Particle filter, as described in \cite{Arulampalam2002a}, optimizing the 
 particle filter for use with FMRI data is non-trivial. 
 
@@ -10,13 +10,15 @@ For the BOLD model described in \autoref{sec:BOLD Physiology}, several
 different studies have endeavored to calculate parameters. The results
 of these studies may be found in \autoref{tab:Params}, and the methods 
 used for each may be found in \autoref{sec:Prior Works}. Unfortunately,
-\cite{Friston2000} only studied small regions; and most research with
-reasonable speed (including \cite{Friston2002b}) used these results as 
+\cite{Friston2000} only studied regions deemed active by the General 
+Linear Model; and most other research (including \cite{Friston2002b}) used these results as 
 the source for their priors. 
-The one exception is \cite{Johnston2008}, which came to an extremely different
+The one exception is \cite{Johnston2008}, which came to a extremely different
 distributions. For a particle filter, the choice of a prior is
-the single most important design choice. Consequently for this work,
-I wanted to be conservative; which meant going with the accepted result,
+the single most important design choice. A very wide prior will require
+more particles to be sufficiently dense, a very thin prior may miss
+the true parameters. Consequently, for this work it was natural
+to use priors that will give results consistent with similar tests. accepted result,
 \cite{Friston2000}. This constrains the usefulness of the model to
 areas that fall within the prior distribution, yet will allow results
 to be comparable to other works. There is a significant need for better

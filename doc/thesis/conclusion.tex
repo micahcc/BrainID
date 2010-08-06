@@ -1,9 +1,41 @@
-    \chapter{Conclusion}
+\chapter{Conclusion}
 \label{sec:Conclusion}
-In this paper I have proposed and demonstrated the use of a particle filter
-for the estimation of BOLD model parameters. In doing so, it has been possible
-to estimate the BOLD time-series and judge the quality of the estimated time-
-series with respect to the true BOLD signal. As result, it is possible to use
+This work has proposed and demonstrated the use of a particle filter
+for the estimation of BOLD model parameters. Because many of the parameters
+were under constrained from the point of view of the BOLD response, a
+full posterior estimate was a more logical approach to parameter estimation
+than typical point estimates of parameters. The particle filter also converged
+quickly to correct output estimates, and thus provides a framework
+for future real-time FMRI experiments. Final BOLD estimates were also comparable
+to the results of SPM. 
+
+* Overview of results
+** Parameters under-constrained
+** Output estimates good
+
+* Pros/Cons
+** Pro
+*** Non-parametric
+*** Real time
+*** Full Posterior
+*** More intuitive
+** Cons
+*** Computation longer than SPM
+*** Harder to interpret
+
+* Enhancements/Dehancements 
+** flatten prior
+** \% difference using spline?
+** "smart knots"
+** DC gain as a parameter
+** linearizing
+
+* Future works
+** Extensive test of quality of volterra kernel estimate from friston
+** Better de-trending
+** Automatic estimation of measurement error.
+
+As result, it is possible to use
 the particle filter to localize areas where a known stimuli most directly drives
 neural activation. In the future it will be possible to use the estimated states
 ($v,q,s,f$) to drive other models and learn more about how regions of the brain
