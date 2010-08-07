@@ -102,11 +102,68 @@ to unforeseen difficulties in FMRI data.
 %% "smart knots"
 %% DC gain as a parameter
 %% linearizing
+\section{Particle Filter Variations}
+There are quite a few areas where the particle filter could be tuned. While
+some of these areas were touched on \autoref{sec:Methods}, certain parts were
+not used in the analysis and so weren't mentioned. 
+
+\subsection{Prior Distribution}
+Starting with a flattened
+prior (by setting weights to be non-uniform after the initial particles have
+been drawn) was not used in the final analysis. The reason for not flattening
+the prior was a practical issue with weighting points in a 
+7 dimensional joint distribution. Often differences in particle weights approached machine 
+precision, meaning that the flattened prior was actually far from flat. Instead
+the distribution became unpredictable, which made the results unpredictable. This
+is quantization issue that will exist unless the prior were made to be deterministic
+or the initial number particles was raised to computationally prohibitive levels.
+
+Wider prior
+
+\subsection{Detrending}
+A large number of de-trending methods were tested, but all had some major problem. 
+One viable method that could be utilized given the right experimental design is detrending
+based on areas of low activity. This has the advantage that it wouldn't require an arbitrary
+constant to be added to the pre-processed signal for the BOLD model to fit properly.
+The disadvantage of this approach is that it could hide long fall times by normalizing them
+out. It also requires periodic breaks in the stimulus, which could reduce value of those
+samples for fitting purposes. 
+
+Another potential way to deal with detrending is to 
+linearize. This would use the delta between measurements for fitting rather than the 
+direct value. This has the advantage of not requiring detrending and thus 
+gives nearly raw data to the particle filter
+for processing. The effectiveness of this method depends directly on the type of stimulus.
+In an event driven stimulus with sparse stimuli this could be extremely effective because
+the DC level has minimal data; however the longer high levels are held the less effective
+this will be. On the other hand, splines will also reduce the plateaus, so its possible
+linearizing may be just as effective. I found in tests that large drift-low white noise
+type signals performed much better with a linearization approach, as one might expect. 
+The results were equal to or worse in real data; but that was only for one particular
+stimulus sequence. 
+
+A subtle difference that could be made in detrending is how the percent difference
+is calculated. In this work the spline was subtracted, and then the result
+was divided by the average of the initial signal. A more correct method may be dividing
+by the spline value at that particular point. The reason for not dividing by the spline
+at that point is that it could be less stable, and in a sense the trend has already
+been removed. The difference is not particularly large though 
+(dividing by 1020 rather than 1000 for instance) as long as the spline didn't have heavy swings. 
+
+Finally, rather than adding a constant to the detrended data before
+applying the particle filter, a DC gain parameter could be added to the model. In
+tests, this could work well, however, it often did not. The problem with this
+could simply be the addition of another degree of freedom without any increase in
+the number of particles. Increasing the number of particles further though
+can be computationally intractable. Thus, while this is in a sense the correct
+solution, it is an impractical one. 
+
 
 % Future works
 %% Extensive test of quality of volterra kernel estimate from friston
 %% Better de-trending
 %% Automatic estimation of measurement error.
+%todo
 
 As result, it is possible to use
 the particle filter to localize areas where a known stimuli most directly drives
