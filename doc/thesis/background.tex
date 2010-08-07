@@ -173,7 +173,8 @@ on actual FMRI data. However, in that case, the voxels were chosen from
 regions that were detected as active by the GLM. It is therefore possible
 that the parameters are biased toward parameters that fit the linear model.
 
-\subsection{Linear Approximation}
+\subsection{Polynomial Approximation}
+\label{sec:Background Linear Approximation}
 In \cite{Friston2002b}, a novel combination of linear and nonlinear modeling
 was used to generate parameter estimates. Because there is no closed 
 form solution to the ballon model, it impossible to 
@@ -204,7 +205,7 @@ Although there are certainly benefits to using a derived model, rather
 than a purely empirical model, there are serious implications. The
 first problem is that all the powerful classical techniques of gradient
 descent are off limits; since the model is a true nonlinear dynamical
-system with no closed form solution (although \autoref{sec:Linear Approximation}
+system with no closed form solution (although \autoref{sec:Background Linear Approximation}
 circumvented this by calculating a Volterra Series approximation). Without
 a Jacobian for residuals, the Gauss-Newton method
 is impossible. Additionally, a gradient descent is slow
@@ -435,6 +436,21 @@ of the parameters, using unbiased techniques may be called for. A further
 comparison between the distributions found in \cite{Johnston2008} and 
 \cite{Friston2000} will be discussed in \autoref{sec:PriorDist}, including
 graphs: \autoref{fig:MeanResponseF}, \autoref{fig:MeanResponseJ}.
+
+\subsection{Previous Particle Filter Approaches}
+In \cite{Murray2008} a particle filter based approach was used to integrate
+the BOLD equations. The method used in that work focused primarily on estimating
+the BOLD output and state equations as a nonlinear stochastic differential 
+equation. The primary difference between \cite{Murray2008} and this work is that
+\cite{Murray2008} took the parameters as a given. Thus, differences in the BOLD output
+were taken to be primarily driven by stochastic changes in the underlying state
+equations. Because the parameters were not allowed to change, the estimate of 
+the BOLD signal was not very good. The fact that the
+differences in BOLD response cannot be explained solely by stochastic elements 
+is important, however. The particle filter library created
+in that work, $dysii$, forms the basis for the particle filter used in this work, 
+and was extremely well designed. The work also clearly presents the particle filter;
+both its derivation and use. 
 
 \section{Conclusion}
 Currently there is no ideal solution to solving this system of nonlinear
