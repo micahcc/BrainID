@@ -2,11 +2,12 @@
 \label{sec:Conclusion}
 This work has demonstrated the use of the particle filter to
 learn parameters of the BOLD model. Since the inception of the
-BOLD equations, many attempts have been made to learn the parameters,
-given FMRI data. These attempts have typically either been extremely 
-slow or made extensive approximations. While the particle filter method
+BOLD equations, many attempts have been made use FMRI data to 
+to learn these parameters. These attempts have typically either been extremely 
+slow or relied on extensive assumptions. While the particle filter method
 is not quick, 60 seconds to analyze each voxel is well within the capabilities
-of the typical research lab. 
+of the typical research lab. Previous attempts have also treated
+the problem as if there were a single solution.
 
 One significant finding of this work, that would not be clear without 
 calculating a full posterior distribution, is the interplay 
@@ -18,8 +19,33 @@ any single estimate of parameters is insufficient for analysis. As such,
 approaches to the BOLD model that do not treat the parameters as distributions
 will not be able to overcome the inherent indeterminability of the
 parameters. Besides the Unscented Kalman Filter, this is the only approach
-that accomplishes this task without recalculating the parameters over and 
-over to build a distribution. The Unscented Kalman Filter, though, is limited
-to Gaussian estimation. 
+that accomplishes this task without repeatedly calculating the parameters 
+to build a distribution. The Unscented Kalman Filter, of course, is limited
+to Gaussian estimation which limits its ability to estimate the posterior. 
 
+The primary reason this method has not been used before is the high 
+dimensionality of the system. In \cite{Murray2008} the idea of learning
+the parameters is floated as the correct method, yet 
+learning 7 parameters with a Monte Carlo method is often intractable. The 
+concern was that so many parameters creates a prohibitively large 
+search space, that requires too many particle to learn properly. To overcome
+this difficulty, instead of starting the algorithm with 1000 particles,
+the initial number of particles was set to 16,000. This meant that
+when the search space was the largest, the number of particles was
+sufficiently dense to represent the prior distribution. Then resampling
+was performed for the first time, the number of particles was dropped, 
+since the weight of most the particles had dropped to 0. The result is
+a particle filter algorithm that spends computing resources only where
+they are really needed.
+
+Many of the approaches to determining areas of neural activation aim
+to be Bayesian, yet ultimately must make limiting assumptions about
+the distributions that turn the approach into classical statistics. 
+This approach is a true Bayesian non-parametric approach that given
+enough measurements will approach the true probability distribution
+of the parameters. While the conclusion that the parameters are not
+uniquely identifiable is a disappointing in light years of research 
+attempting to learn these parameters, it in fact further demonstrates
+the need to estimate probability distribution rather than a single 
+parameter estimate.
 
