@@ -29,7 +29,8 @@ to form an accurate estimate of the BOLD signal. This trait bridges the gap with
 of activation tests, such as the statistical
 parametric mapping. As the results in \autoref{sec:RealData} show, the heatmaps, especially
 those of mutual information, closely resembled the results of SPM. While the activation
-tests were more sensitive, they were also more prone to false positive. However, it is
+tests were more sensitive, there were some false positive, though at this point it is
+difficult to quantify. It is
 worth noting that certain enhancements could be useful in reducing false positives; for instance
 by using the maximum likelihood, or median of the final distribution.  Future work may 
 shed further light on these techniques. 
@@ -87,9 +88,8 @@ how the particle filter works. This is in contrast to the Volterra based approac
 of \cite{Friston2000}, which is quite complex. Additionally very few assumptions
 are needed for the particle filter. It is a common problem in traditional statistics 
 for assumptions to be unrealistic which means the results may be invalid or at 
-least in question. 
-Fewer and more realistic assumptions mean that the particle filter is more robust
-to unforeseen difficulties in FMRI data. 
+least in question.  Fewer and more realistic assumptions mean that the particle 
+filter is more robust to unforeseen difficulties in FMRI data. 
 
 \chapter{Future Work}
 % Enhancements/Dehancements 

@@ -77,6 +77,45 @@ at every voxel. To validate the quality of the particle filter results
 it is necessary to compare the both the location and the fit calculated by the particle filter
 with SPM's location and fit.
 
+\section{FMRI Configuration}
+For the FMRI data discussed in \autoref{sec:RealData}, tests were 
+performed on a right handed volunteer using a Gradient EPI sequence
+on a 1.5T GE scanner with a 2.1s TR. Slices were 5mm thick and echo
+time was (TODO). The subject was then presented with either a single or
+double flash, at randomly dispersed time points over the course of
+5 minutes, 10 seconds. The FMRI began 18.9 seconds
+before the beginning of the experiment, to allow for transients 
+in to image to settle out. The timing of the flashes are shown in 
+\autoref{tab:flashes}, with time 0 corresponding to the beginning of
+the 10th TR (so 9 images were dropped). 
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c || c |}
+\hline 
+Single Flash Times & Double Flash Times \\
+\hline 
+.7 & 2\\
+2.7 & 21\\
+5.7 & 28\\
+12.7 & 52\\
+\hline 
+\end{tabular}
+\caption{Timing of single and double flashes.}
+\label{tab:flashes} 
+\end{table}
+
+After dropping the first 9 volume, each of the remaining volumes was
+co-registered with the first volume in time. At this point the SPM method
+diverges from the experimental method. For the particle filter, detrending 
+was then applied as discussed in \autoref{sec:Detrend} and the resulting
+data was processed with the particle filter. To generate the SPM output
+in this section, the co-registered data was passed through a high pass
+filter with a cut off of (TODO). The data was then smoothed spatially 
+with a Gaussian kernel (FWHM 8x8x8 voxels). A Statistical Parametric Map
+was then generated using SPM8. All settings used in SPM8 were the defaults
+for analyzing FMRI data.
+
 \section{Results}
 The results from T-values from SPM8 are shown in \autoref{fig:hm_canon_spm} (threshold of
 4), and the results from 
