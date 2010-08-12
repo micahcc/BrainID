@@ -6,6 +6,9 @@
 #include <vector>
 #include <algorithm>
 
+//for isnan
+#include "boost/math/special_functions/fpclassify.hpp"
+
 using namespace indii::ml::aux;
 
 DistributedPartitioner::DistributedPartitioner(const unsigned int nth) :
@@ -85,10 +88,10 @@ bool DistributedPartitioner::init(DiracMixturePdf* p,
       }
       boost::mpi::broadcast(world, value, guesser);
 
-      if (value != value) {
+      if (boost::math::isnan<double>(value)) {
         guesser++;
       }
-    } while ( (value != value) && guesser < size);
+    } while (boost::math::isnan<double>(value) && guesser < size);
     
     /* if we've managed to find a value... */
     if (guesser < size) {

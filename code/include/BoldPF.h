@@ -28,6 +28,8 @@
 #include "boost/numeric/bindings/traits/ublas_vector.hpp"
 #include "boost/numeric/bindings/traits/ublas_symmetric.hpp"
 #include "boost/numeric/bindings/lapack/lapack.hpp"
+#include "boost/numeric/bindings/lapack/lapack.hpp"
+#include <boost/math/special_functions/fpclassify.hpp>
 
 namespace aux = indii::ml::aux;
 
@@ -184,7 +186,7 @@ aux::matrix calcCov(indii::ml::aux::DiracMixturePdf& p)
     for(unsigned int i = 0 ; i < p.getSize() ;i++) {
         if(p.getWeight(i) > 0)
             sum += p.getWeight(i)*outer_prod(p.get(i)-mu, p.get(i)-mu);
-        if(isnan(sum(8,8))) {
+        if(boost::math::isnan<double>(sum(8,8))) {
             std::cerr << "Sum" << std::endl;
             outputMatrix(std::cerr, sum);
             std::cerr << std::endl << "old" << std::endl;
@@ -344,7 +346,7 @@ int BoldPF::run(void* pass = NULL)
             //check for errors, could be caused by total collapse of particles,
             //for instance if all the particles go to an unreasonable value like 
             //inf/nan/neg
-            if(isnan(ess)) {
+            if(boost::math::isnan<double>(ess)) {
                 *debug << "\n" << "Error! ESS was " << ess << "\n";
                 status = ERROR;
                 break;

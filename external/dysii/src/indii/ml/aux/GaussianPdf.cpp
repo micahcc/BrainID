@@ -9,6 +9,7 @@
 #include "boost/numeric/bindings/traits/ublas_vector.hpp"
 #include "boost/numeric/bindings/traits/ublas_symmetric.hpp"
 #include "boost/numeric/bindings/lapack/lapack.hpp"
+#include "boost/math/special_functions/fpclassify.hpp"
 
 #include <assert.h>
 
@@ -167,7 +168,7 @@ double GaussianPdf::densityAt(const vector& x) {
   }
   
   double p = ZI * exp(-0.5 * exponent);
-  if (p != p) {
+  if (boost::math::isnan<double>(p)) {
     p = 0.0;
   }
   

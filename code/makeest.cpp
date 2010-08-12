@@ -9,6 +9,9 @@
 #include <string>
 #include <sstream>
 
+#include <boost/math/special_functions/fpclassify.hpp>
+
+
 template <typename T>
 void writeImage(std::string base, std::string name, typename T::Pointer in)
 {
@@ -142,7 +145,7 @@ int main(int argc, char* argv[])
         it.GoToBegin();
         while(!it.IsAtEnd()) {
             while(!it.IsAtEndOfLine()) {
-                if(!isnan(it.Get())) {
+                if(!boost::math::isnan<float>(it.Get())) {
                     index3 = it.GetIndex();
                     for(uint32_t l = 0 ; l < 3 ; l++)
                         index4[l] = index3[l];

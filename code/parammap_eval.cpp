@@ -1,3 +1,5 @@
+#include <boost/math/special_functions/fpclassify.hpp>
+
 #include <itkOrientedImage.h>
 #include <itkImageFileWriter.h>
 #include <itkImageFileReader.h>
@@ -224,8 +226,10 @@ Image4DType::Pointer simulate(Image4DType::Pointer paramImg, Label3DType::Pointe
 
                 /*If it is time to sample, do so*/
                 while(dt_l*index4[3] <= rt) {
-                    if(isnan(readout(state, params)) || isinf(readout(state,params))) 
+                    if(boost::math::isnan<double>(readout(state, params)) || 
+                                boost::math::isinf<double>(readout(state,params))) {
                         throw(-2);
+                    }
                     out->SetPixel(index4, readout(state, params));
                     index4[3]++;
                 }

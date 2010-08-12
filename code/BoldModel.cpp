@@ -5,6 +5,8 @@
 #include <indii/ml/aux/GaussianPdf.hpp>
 #include <indii/ml/aux/DiracPdf.hpp>
 
+#include <boost/math/special_functions/fpclassify.hpp>
+
 #include <vector>
 #include <cmath>
 #include <ctime>
@@ -147,7 +149,7 @@ int BoldModel::transition(aux::vector& dustin, const double time,
      * inf - inf = nan, so nan or inf in any member 
      * will cause this to fail
     */
-    if(isnan(tmp) || isinf(tmp)) {
+    if(boost::math::isnan<double>(tmp) || boost::math::isinf<double>(tmp)) {
         dustin = defaultstate;
         return -1;
     }

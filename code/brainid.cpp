@@ -9,6 +9,8 @@
 #include <itkImageSliceIteratorWithIndex.h>
 #include <itkMetaDataObject.h>
 
+
+
 #include <indii/ml/filter/ParticleFilter.hpp>
 #include <indii/ml/filter/StratifiedParticleResampler.hpp>
 #include <indii/ml/aux/GaussianPdf.hpp>
@@ -17,6 +19,8 @@
 
 #include <indii/ml/aux/Almost2Norm.hpp>
 #include <indii/ml/aux/AlmostGaussianKernel.hpp>
+
+#include <boost/math/special_functions/fpclassify.hpp>
 
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
@@ -531,7 +535,7 @@ int main(int argc, char* argv[])
             //check for errors, could be caused by total collapse of particles,
             //for instance if all the particles go to an unreasonable value like 
             //inf/nan/neg
-            if(isnan(ess) || isinf(ess)) {
+            if(boost::math::isnan<double>(ess) || boost::math::isinf<double>(ess)) {
                 *out << std::endl << "Total Weight: "
                             << filter.getFilteredState().getDistributedTotalWeight()
                             << endl;
