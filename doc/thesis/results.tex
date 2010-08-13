@@ -6,10 +6,10 @@ are necessary to investigate the power of particle filters in
 identifying the BOLD model in a noisy environment. If the particle filter is unable
 to get back to the \emph{true} time-series in spite of noise then the particle filter
 will not be useful. Additionally, determination of reasonable parameters from the
-time-series is also desirable. The reason to then simulate an entire slice is that
-Physics-Oriented Simulated Scanner for Understanding MRI (POSSUM)
-models noise more realistically, for instance by adding noise in the frequency domain. 
-It also provides insight into the applicability of particle filters in modeling the BOLD 
+time-series is also desirable. An entire slice is then simulated using 
+Physics-Oriented Simulated Scanner for Understanding MRI (POSSUM) which
+models noise more realistically. POSSUM also provides insight into the 
+applicability of particle filters in modeling the BOLD 
 signal on a large scale. Both sorts of tests are usefull in determining the
 consistency of the particle filter. For the single voxel tests, each test will
 actually be performed eleven different times, each with a new noise realization.
