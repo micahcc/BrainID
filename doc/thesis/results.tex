@@ -23,26 +23,26 @@ test of the consistency of the BOLD model.
 \section{Single Time Series}
 \label{sec:Single Voxel Simulation}
 Given the state-space equations for the BOLD signal, simulating a single time 
-series is relatively straight forward. After generating a true signal,
+series was relatively straight forward. After generating a true signal,
 identically and independently distributed (I.I.D.) Gaussian noise and a Wiener
-process with Gaussian I.I.D. steps wered added to this true signal. Finally a 
-carrier level is added, since BOLD is typically
+process with Gaussian I.I.D. steps were added to this true signal. Finally a 
+carrier level was added, since BOLD is typically
 measured as a \% difference from the baseline. The particle filter
 algorithm will immediately remove this by calculating the \% difference, 
 but adding a carrier level meant that the exact same algorithm used 
 for simulated data could be used for the real data. 
 
 Once this noisy simulated time series was generated, the particle filter algorithm
- was then run on single time series image. Here I will include two sets of tests 
-to determine the power of the particle filter in modeling. The first set are 
+ was run on the single time series image. Here I include four sets of tests 
+to determine the power of the particle filter in modeling. The first two were
 used to demonstrate the ability of the particle filter to find the most likely
-set of parameters/state variables over the course of the run. The second type
-of test will investigate the problem of false-positives. As the first
-round of tests will show, given that there is an underlying BOLD signal, 
+set of parameters/state variables over the course of the run. The second two 
+tests investigated the problem of false-positives. As the first
+round of tests show, given that there is an underlying BOLD signal, 
 the particle filter is excellent at finding the most probable cause of 
 the observed signal. However, as discussed in the false positive tests,
-even if there is no underlying signal, the particle filter will still determine
-the most likely BOLD signal; which may not be flat. Thus, it is 
+even if when there was no underlying signal, the particle filter still determined
+the most likely BOLD signal; which was not 0. Thus, it was
 important to investigate methods of determining false positives using 
 other methods. 
 
@@ -55,12 +55,12 @@ other methods.
 %The particle filter used the parameters defined in \autoref{tab:Prior} (\autoref{sec:PriorDistrib}),
 %thus the particle filter was not centered over the correct values. 
 \begin{figure}
-\includegraphics[clip=true,trim=6cm 2cm 6cm 3.5cm,width=7cm]{images/realization_lownoise}
+\includegraphics[clip=true,trim=6cm 2cm 6cm 3.5cm,width=17cm]{images/realization_lownoise}
 \caption{Test Signals with low noise compared to the clean signal.}
 \label{fig:LowNoiseRealization}
 \end{figure}
 \begin{figure}
-\includegraphics[clip=true,trim=6cm 2cm 6cm 3.5cm,width=7cm]{images/preprocessed_lownoise}
+\includegraphics[clip=true,trim=6cm 2cm 6cm 3.5cm,width=17cm]{images/preprocessed_lownoise}
 \caption{A comparison of the preprocessed signals for the low noise case. This is the
 noisy input to the actual particle filter algorithm.}
 \label{fig:PreprocessedLowNoise}
@@ -76,38 +76,38 @@ $\{\tau_0 = 1.45, \alpha = .3, E_0 = .47, V_0 = .044, \tau_s = 1.94, \tau_f = 1.
 These same parameters were also used in the high noise case. The noise realizations were
 then generated based on a measurement noise ($\sigma_y$) of $.001$ and a drift standard deviation
 ($\sigma_x$) of $.0005$. The measurement noise as well as the steps of the drift
-were taken to be Gaussian
+were taken to be Gaussian.
 For this low noise case, the eleven realizations are shown in \autoref{fig:LowNoiseRealization}.
 The actual signal delivered into the particle filter
-was the result of some preprocessing to remove drift, as described in 
+was the result of preprocessing to remove drift, as described in 
 \autoref{sec:Methods Preprocessing}. The bias introduced into the signal by preprocessing 
 may have some effect on the resulting fit; thus the preprocessed signal is compared
 to the true BOLD signal in \autoref{fig:PreprocessedLowNoise}.
-The preprocessing consists of several steps, which are discussed in detail in \autoref{sec:Methods Preprocessing}.
 The data shows that the spline struggles to match the signal near the end, although 
-overall, the preprocessing seems to have been successful at removing trends. Finally, the 
-set of fits to the true BOLD signal are shown in \autoref{fig:FitComparisonLowNoise}.
-The filtering property of the particle filter is clear from the results here.  In several locations the output
+overall, the preprocessing seems to have been successful at removing trends. While finding
+a better preprocessing algorithm could be useful, non will ever be perfect. In this case
+the cause of the problem was the final stimuli that pushed the final median well above the base
+level. The fitting lines to the true BOLD signal are shown in \autoref{fig:FitComparisonLowNoise}.
+ In several locations the output
 of the particle filter looks like a filtered version of the input. For instance toward the
 end, the estimates stay flat in spite of the preprocessed data drifting off. By
-this point, the algorithm has converged sufficiently to know that that such a movement in
-signal isn't possible. A similar circumstance occurs at 100 seconds in. 
-It is also worth noting the bias introduced by pre-processing 
+this point, the algorithm has converged sufficiently to prevent inexplicable movement.
+A similar circumstance occurs at 100 seconds. Note that bias introduced by pre-processing 
 results in a slightly larger peak signal. The final parameter sets are shown in 
 \autoref{tab:LowNoiseResults}. Note that throughout the results, unless otherwise specified,
-the residual will be defined as the square root of the mean squared residual, 
+the term \emph{residual} will be defined as the square root of the mean squared residual, 
 \begin{equation}
 \text{Residual} = \sqrt{\sum (\hat{y}_k - y_k)^2}
 \end{equation}
 where $\hat{y}_k$ is the estimated output at time $k$ and $y_k$ is the output
-sample at time $k$. Note the subtle distinction between this and the error
-which is defines as 
+sample at time $k$. Note the subtle distinction between this and what will be 
+termed the \emph{error} which is defines as 
 \begin{equation}
 \text{Error} = \sqrt{\sum (\hat{y}_k - Y_k)^2}
 \end{equation}
 where $\hat{y}_k$ is the estimated output, and $Y_k$ is the underlying (free of noise)
-output. Throughout this section and the next, the terms \emph{error} and \emph{residual}
-will be referencing these values, for an entire timeseries.
+signal. Throughout this section and the next, the terms error and residual
+will be referencing these values (for a particular timeseries).
 
 \begin{table}[t]
 \centering
@@ -139,24 +139,24 @@ last is mean over the 11 runs. The $\sqrt{MSR}$ is residual and $\sqrt{MSE}$ is 
 \label{tab:LowNoiseResults} 
 \end{table}
 
-\begin{table}[t]
-\centering
-\begin{tabular}{|c | c  c  c  c  c  c  c |}
-\hline 
-  & $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$ \\
-\hline 
-\rowcolor[gray]{.8} $\tau_0$ &   0.0189481 & -0.0014269 & -0.0011267 & -1.13e-05 & -0.0025616 & -0.0189559 & 0.0070405 \\
-$\alpha$ &                       -0.0014269 & 0.0026716 & 9.93e-05 & -0.0002041 & -0.0008632 & -0.0016823 & 0.0071891 \\
-\rowcolor[gray]{.8} $E_0$    &   -0.0011267 & 9.93e-05 & 0.0010701 & -0.0002277 & -0.0001177 & 0.0001013 & 0.0016972 \\
-$V_0$    &                       -1.13e-05 & -0.0002041 & -0.0002277 & 0.0005401 & 4.3e-06 & 4.56e-05 & -0.0080494 \\
-\rowcolor[gray]{.8} $\tau_s$ &   -0.0025616 & -0.0008632 & -0.0001177 & 4.3e-06 & 0.0128056 & 0.012878 & -0.005516 \\
-$\tau_f$ &                       -0.0189559 & -0.0016823 & 0.0001013 & 4.56e-05 & 0.012878 & 0.0416927 & -0.0158182 \\
-\rowcolor[gray]{.8} $\epsilon$&  0.0070405 & 0.0071891 & 0.0016972 & -0.0080494 & -0.005516 & -0.0158182 & 0.1567165 \\
-\hline 
-\end{tabular}
-\caption{Typical Covariance matrix of the parameters at the end of a run.}
-\label{tab:CovSim} 
-\end{table}
+%\begin{table}[t]
+%\centering
+%\begin{tabular}{|c | c  c  c  c  c  c  c |}
+%\hline 
+%  & $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$ \\
+%\hline 
+%\rowcolor[gray]{.8} $\tau_0$ &   0.0189481 & -0.0014269 & -0.0011267 & -1.13e-05 & -0.0025616 & -0.0189559 & 0.0070405 \\
+%$\alpha$ &                       -0.0014269 & 0.0026716 & 9.93e-05 & -0.0002041 & -0.0008632 & -0.0016823 & 0.0071891 \\
+%\rowcolor[gray]{.8} $E_0$    &   -0.0011267 & 9.93e-05 & 0.0010701 & -0.0002277 & -0.0001177 & 0.0001013 & 0.0016972 \\
+%$V_0$    &                       -1.13e-05 & -0.0002041 & -0.0002277 & 0.0005401 & 4.3e-06 & 4.56e-05 & -0.0080494 \\
+%\rowcolor[gray]{.8} $\tau_s$ &   -0.0025616 & -0.0008632 & -0.0001177 & 4.3e-06 & 0.0128056 & 0.012878 & -0.005516 \\
+%$\tau_f$ &                       -0.0189559 & -0.0016823 & 0.0001013 & 4.56e-05 & 0.012878 & 0.0416927 & -0.0158182 \\
+%\rowcolor[gray]{.8} $\epsilon$&  0.0070405 & 0.0071891 & 0.0016972 & -0.0080494 & -0.005516 & -0.0158182 & 0.1567165 \\
+%\hline 
+%\end{tabular}
+%\caption{Typical Covariance matrix of the parameters at the end of a run.}
+%\label{tab:CovSim} 
+%\end{table}
 
 \begin{figure}
 \subfigure[Converging histogram for $\tau_0$, $\alpha$, $E_0$, and $V_0$ of the first run, low noise simulation.]
@@ -172,47 +172,47 @@ $\tau_f$ &                       -0.0189559 & -0.0016823 & 0.0001013 & 4.56e-05 
 \label{fig:LowNoiseHist}
 \end{figure}
 
-There are a few results worth noting in the final parameter estimates (which 
-are the mean of the particle filter's posterior distribution). First the time constants vary 
+There are a few important results in the final parameter estimates (which 
+are the mean of the particle filter's posterior distribution). First, the time constants vary 
 greatly across
 runs with different noise realizations, yet the sum of the individual time constants
 ($\tau_f$, $\tau_s$ and $\tau_0$) seems to be more consistent. In general the 
 time constants fall short of the true time constant. This could be a limitation
 based on the prior distribution (which notably has an initial mean below the true values) 
-or it could be caused by the disassociated benefits of a correct time
-constant with regards to a correct output. It often takes several measurement periods before 
-a difference
-in time constants becomes relevant to the weight. Its also possible that output is insensitive
-to differences in the time constants; althouhg varying the activation durations could induce
-better estimates.  The large variation of $V_0$ are also interesting, although as one final
-covariance matrix shows, there is a definite negative correlation between $\epsilon$ and $V_0$.
-In general,
-with this admittedly small amount of noise, it would appear that the relation between a set
-of parameters/stimuli and the output is not injective; a time
-series is not unique to a single set of parameters. This is good justification that 
-simultaneous blood volume or tagged flow calculations with the conventional FMRI 
-could benefit the model. 
-
-The covariance matrix (\autoref{tab:CovSim}) provides a great deal of insight into 
-the way parameters evolve in the particle filter. The fact that there are so many 
-covariance elements that are as big or bigger than variance elements indicates just
-loose the parameters set is. Every single parameters, including $\alpha$ seems to
-have a non-zero covariance. Why $\alpha$ and $\epsilon$ would be positively related
-is one of the most interesting element. Given the difficulty in mapping out a 
-seven dimensional space, it is difficult to know why such correlations exist. 
- Notice the covariance of $\tau_f$ and $\tau_0$
-is $-0.019$ whereas
-the variance of $\tau_0$ and $\tau_f$ are $0.019$ and $0.04$ respectively. Clearly there is 
-some measure of ill-defined behavior between the different time-constants, which is to
-be expected given the number steps before a stimuli affects the output. 
+or it could be other parameters are compensating. Its also possible that output is insensitive
+to differences in the time constants; although varying the activation durations could induce
+better estimates.  
 The convergence properties of the first run in \autoref{tab:LowNoiseResults} 
-demonstrates the migration of parameters to match the estimates. Given the relatively high
-variance of parameters, its likely that more measurements or perhaps more variation
-in the stimuli could further differentiate the parameters. Its also notable that
-the final mean of the parameters may not be the best point estimator, and that perhaps
-using the mode would be a better way to estimate the output. Regardless, the time series'
+demonstrates the migration of parameters to match the estimates. In spite of the
+rather wide final parameter variances, the time series'
 generated from the estimated mean seems to match the correct signal very well 
 (\autoref{fig:FitComparisonLowNoise}).
+
+
+%The large variation of $V_0$ are also interesting, although as the final
+%covariance matrix of the first run shows, there is a significant correlation between $\epsilon$ and $V_0$.
+%In general, with even a small amount of noise, parameters are ill defined. Thus at
+%least for this set of stimuli the parameters are not uniquely identifiable. 
+%
+%The covariance matrix (\autoref{tab:CovSim}) provides a great deal of insight into 
+%the way parameters evolve in the particle filter. The number of 
+%covariance elements that exceed the variance elements indicates the
+%significant interplay between parameters. Every single parameters, including $\alpha$, 
+%has a non-zero covariance. Why $\alpha$ and $\epsilon$ would be positively related
+%is the most interesting element. The answer of how exactly each parameter
+%compensates for other parameters is complex.  Notice the covariance of $\tau_f$ and $\tau_0$
+%is $-0.019$ whereas the variance of $\tau_0$ and $\tau_f$ are $0.019$ and $0.04$ respectively. 
+%%stopped here
+%As Clearly there is some measure of ill-defined behavior between the different time-constants, which is to
+%be expected given the number steps before a stimuli affects the output. 
+%The convergence properties of the first run in \autoref{tab:LowNoiseResults} 
+%demonstrates the migration of parameters to match the estimates. Given the relatively high
+%variance of parameters, its likely that more measurements or perhaps more variation
+%in the stimuli could further differentiate the parameters. Its also notable that
+%the final mean of the parameters may not be the best point estimator, and that perhaps
+%using the mode would be a better way to estimate the output. Regardless, the time series'
+%generated from the estimated mean seems to match the correct signal very well 
+%(\autoref{fig:FitComparisonLowNoise}).
 
 %HIGH NOISE SECTION, with a signal
 \subsection{High Noise}
@@ -530,6 +530,69 @@ with zero mean, and the particle filter stayed flat. At best the particle filter
 over-smooth, estimating a centerline to noisy signal. In such a case
 the residual will be the same as the alternative, although the mutual information will 
 be different.
+
+\subsection{Very Long FMRI Run}
+\begin{figure}[H]
+\centering
+\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=16cm]{images/longfit}}
+\caption{BOLD estimate converging for a very long FMRI run.}
+\label{fig:long_preprocessed}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=16cm]{images/longfit_500}}
+\caption{BOLD estimate converging for a very long FMRI run, first 500 seconds.}
+\label{fig:long_preprocessed}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c | c  c  c  c  c  c  c |}
+\hline 
+  & $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$ \\
+\hline 
+\rowcolor[gray]{.8} $\tau_0$ &   0.0189481 & -0.0014269 & -0.0011267 & -1.13e-05 & -0.0025616 & -0.0189559 & 0.0070405 \\
+$\alpha$ &                       -0.0014269 & 0.0026716 & 9.93e-05 & -0.0002041 & -0.0008632 & -0.0016823 & 0.0071891 \\
+\rowcolor[gray]{.8} $E_0$    &   -0.0011267 & 9.93e-05 & 0.0010701 & -0.0002277 & -0.0001177 & 0.0001013 & 0.0016972 \\
+$V_0$    &                       -1.13e-05 & -0.0002041 & -0.0002277 & 0.0005401 & 4.3e-06 & 4.56e-05 & -0.0080494 \\
+\rowcolor[gray]{.8} $\tau_s$ &   -0.0025616 & -0.0008632 & -0.0001177 & 4.3e-06 & 0.0128056 & 0.012878 & -0.005516 \\
+$\tau_f$ &                       -0.0189559 & -0.0016823 & 0.0001013 & 4.56e-05 & 0.012878 & 0.0416927 & -0.0158182 \\
+\rowcolor[gray]{.8} $\epsilon$&  0.0070405 & 0.0071891 & 0.0016972 & -0.0080494 & -0.005516 & -0.0158182 & 0.1567165 \\
+\hline 
+\end{tabular}
+\caption{Typical Covariance matrix of the parameters at the end of a run.}
+\label{tab:long_cov} 
+\end{table}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c | c  c  c  c  c  c  c |}
+\hline 
+  & $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$ \\
+\hline 
+\rowcolor[gray]{.8} $\tau_0$ &   0.0189481 & -0.0014269 & -0.0011267 & -1.13e-05 & -0.0025616 & -0.0189559 & 0.0070405 \\
+$\alpha$ &                       -0.0014269 & 0.0026716 & 9.93e-05 & -0.0002041 & -0.0008632 & -0.0016823 & 0.0071891 \\
+\rowcolor[gray]{.8} $E_0$    &   -0.0011267 & 9.93e-05 & 0.0010701 & -0.0002277 & -0.0001177 & 0.0001013 & 0.0016972 \\
+$V_0$    &                       -1.13e-05 & -0.0002041 & -0.0002277 & 0.0005401 & 4.3e-06 & 4.56e-05 & -0.0080494 \\
+\rowcolor[gray]{.8} $\tau_s$ &   -0.0025616 & -0.0008632 & -0.0001177 & 4.3e-06 & 0.0128056 & 0.012878 & -0.005516 \\
+$\tau_f$ &                       -0.0189559 & -0.0016823 & 0.0001013 & 4.56e-05 & 0.012878 & 0.0416927 & -0.0158182 \\
+\rowcolor[gray]{.8} $\epsilon$&  0.0070405 & 0.0071891 & 0.0016972 & -0.0080494 & -0.005516 & -0.0158182 & 0.1567165 \\
+\hline 
+\end{tabular}
+\caption{Typical Covariance matrix of the parameters at the end of a run.}
+\label{tab:long_corr} 
+\end{table}
+
+To test how well the particle filter would do given much more data, and 
+determine the inherent variance in the model parameters, a very long simulation
+with randomly generated impulse input was created. The preprocessed timeseries
+and the final estimate are shown in \autoref{fig:long_preprocessed}, 
+ and the final covariance matrix of the parameters is shown in \autoref{tab:long_cov}.
+Note that even though the
+BOLD response converged well (\autoref{fig:long_converge}),
+the parameters still have significant correlation (\autoref{tab:long_corr}). This points
+to a certain amount of indeterminability of the parameters. 
 
 \subsection{Single Voxel Review}
 \label{sec:SingleVoxelReview}
