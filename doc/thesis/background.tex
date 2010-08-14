@@ -3,9 +3,9 @@
 Currently, FMRI is used to determine the location of responses
 to stimuli. The method of finding activation is discussed in 
 \autoref{sec:Statistical Parametric Mapping}. The goal of this 
-work is to move away from the question "Is this region active"
-and instead ask "What does the activation look like". Answering
-this question necessitates more complex models and require
+work is to move away from simple localization, and move toward
+characterizing the response curve. Doing so 
+necessitates more complex models and requires
 more computation. Already there have been several other
 attempts to model the BOLD response; these works will be discussed
 in this chapter.
@@ -85,7 +85,8 @@ to minimize the error.
 \begin{figure}
 \centering
 \includegraphics[scale=.7]{images/HRF}
-\caption{Canonical Hemodynamic Response Function}
+\caption{Canonical Hemodynamic Response Function (y-axis unts are arbitrary because 
+normalization is performed).}
 \label{fig:HRF}
 \end{figure}
 
@@ -105,10 +106,10 @@ of the columns of $X$.
 
 Smoothing the input with a single HRF poses certain problems.
 It is well known that different Hemodynamic Response Functions are necessary 
-for different regions of the brain. The Canonical HRF that is most used, 
-has been optimized for the visual cortex. As \autoref{sec:Post Stimulus Undershoot}
-discussed, there are certainly variations in the shape of the
-BOLD response, over both brain regions and patients. Handwerker et. al. (\cite{Handwerker2004})
+for different regions of the brain \cite{Handwerker2004}. The Canonical HRF that is most often used, 
+has been optimized for the visual cortex. As discussed in \autoref{sec:Post Stimulus Undershoot},
+there are certainly variations in the shape of the
+BOLD response, over both brain regions and patients. Handwerker et. al. \cite{Handwerker2004}
 discuessed the implications of choosing an incorrect HRF, the most important
 of which is a definite increase in false negatives. While an atlas
 of Hemodynamic Response Functions for each region could definitely 
@@ -165,7 +166,7 @@ is not easily seen in other imaging modalities.
 
 \section{Approaches to the Balloon Model}
 Unlike Statistical Parametric Mapping, the techniques described in this
-section are all attempts to learn some version of the BOLD model. 
+section are all attempts to regress some version of the BOLD model. 
 Although \cite{Buxton1998} and \cite{Friston2000}
 both proposed physiologically reasonable values for the model parameters, 
 \cite{Friston2002b} was the first paper to calculate the parameters based 
@@ -178,11 +179,11 @@ that the parameters are biased toward parameters that fit the linear model.
 In \cite{Friston2002b}, a novel combination of linear and nonlinear modeling
 was used to generate parameter estimates. Because there is no closed 
 form solution to the ballon model, it impossible to 
-calculate the Jacobian matrix $\frac{\partial Y}{\theta}$. Thus 
+calculate the Jacobian matrix $\frac{\partial Y}{\partial \theta}$. Thus 
 \cite{Friston2002b} approximates the partial using a Volterra Kernel. 
-At each step of the Expectation-
-Maximization (EM) algorithm, the differential equation is integrated, calculating
-the residuals. Then, for each $\theta_i$ surrounding the current estimate of 
+At each step of the Expectation-Maximization (EM) algorithm, 
+the differential equation is integrated and the residuals
+calculated. Then, for each $\theta_i$ surrounding the current estimate of 
 $\theta$, a Volterra-Kernel expansion of the output $y$ is generated. Generation
 of the Volterra Kernel is quick, and, since there
 is an analytical solution calculating partial derivatives is easy. 
@@ -192,7 +193,7 @@ for estimating the states is notation-heavy and can be found in \cite{Friston200
 There are a few caveats with this method of optimization. First, the 
 partials are based on an approximate values (using Volterra-Kernels) of $y$.
 Importantly, the Volterra-Expansion of $y$ is not able to model interactions
-between state variables (\cite{Friston2002b}); which certainly increases error.
+between state variables \cite{Friston2002b}; which certainly increases error.
 Additionally, all the tests performed
 in \cite{Friston2002b} were on regions found to be active by the General
 Linear Model. For this reason, the reliability of the approximation is unknown
@@ -305,10 +306,10 @@ In order to estimate the posterior at $t$, a deterministic set of sigma points
 (often 2 per dimension, plus 1 at the mode of the multivariate distribution)
 weighted according to a Gaussian estimate of $X(t-1)$ are passed through
 the update equation. This set of points are then used to estimate the 
-mean and covariance of $X(t)$. The benefit of this, is that it requires
+mean and covariance of $X(t)$. The benefit of this is that it requires
 no Jacobian and only a few extra calculations to get a decent estimate of
 a posterior Gaussian. Hu et. al. used the UKF to  perform a similar type of analysis to
-the one performed in this work (\cite{Hu2009}). 
+the one performed in this work \cite{Hu2009}. 
 
 \begin{figure}
 \includegraphics[width=16cm]{images/kalman}

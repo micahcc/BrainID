@@ -1,7 +1,7 @@
 \chapter{Particle Filters}
 \label{sec:Particle Filter}
 \section{Introduction}
-Particle filters, a type of Sequential Monte Carlo (SMC) methods,
+Particle filters, a type of Sequential Monte Carlo (SMC) method,
 are a powerful method for estimating the posterior probability distribution
  of parameters given a timeseries of measurements. Unlike Markov 
 Chain Monte Carlo (MCMC) estimation, particle filters are designed for 
@@ -23,9 +23,9 @@ of possible particles and then, as measurements come in, weights
 particles based on the quality of their output estimates. Thus parameter sets 
 that tend to give good estimations of the measurements get weighted higher
 than parameter sets that give poor estimates. Although the reliance on
-a prior distribution are often troublesome, when the system being modeled
+a prior distribution is often troublesome, when the system being modeled
 has physical meaning, establishing reasonable ranges for parameters may be 
-quite easy. Optimizing the prior can be more difficult though,
+quite easy. Optimizing the prior distribution can be more difficult,
 unless the system has been extensively studied.
 
 Suppose a set or stream of measurements at discrete times are given, 

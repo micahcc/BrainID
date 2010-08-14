@@ -1,6 +1,6 @@
 \chapter{Introduction}
 Traditional methods of analyzing timeseries images produced by 
-Function Magnetic Resonance 
+Functional Magnetic Resonance 
 Imaging (FMRI) perform regression using the linear combination of explanatory variables. 
 Though adding nonlinear degrees of freedom naturally mandates more computation,
 in this thesis I will discuss a Sequential Monte Carlo method of fitting a nonlinear
@@ -13,15 +13,15 @@ and provides more detailed output. Additionally,
 by using a separate particle filter for each single time series it 
 is possible to estimate parameters and make real-time predictions
 for small neural regions, a feature which could be useful towards real time FMRI 
-(\cite{DeCharms2005}). Future works will also benefit from the ability to 
+\cite{DeCharms2005}. Future works will also benefit from the ability to 
 apply conditions to the posterior distribution in post-processing without
-having to recalculating the parameters; for instance to impose of additional 
+recalculating parameters; for instance to impose additional 
 physiological
 constraints. Modeling the BOLD response as a nonlinear system is the
 best way to determine the correlation of stimulus sequence with the BOLD
 response; yet in the past doing this on a large scale has been far too
 computationally taxing. The solution used here takes approximately 40 seconds
-for a single voxel's time series (5 minutes in length, with a quad core machine). 
+for a single voxel's time series (5 minutes in length, with Core 2 Duo Q6600). 
 
 This thesis is organized as follows. In the introduction I will introduce
 FMRI, the method by which neural time changing data is detected. This section
@@ -42,7 +42,7 @@ for the direction of future works.
 
 \section{Historic Context}
 For the past twenty years, Functional Magnetic Resonance Imaging (FMRI) 
-has been at the forefront of cognitive research. Despite it's
+has been at the forefront of cognitive research. Despite its
 limited temporal resolution, FMRI is the standard tool for localizing 
 neural activation.  Whereas other methods
 of analyzing neural signals can be invasive or difficult to acquire, 
@@ -67,7 +67,7 @@ Incremental improvements were made to this model until
 set of equations. And while there have been numerous adaptations in the model, 
 many of them summarized in \cite{Deneux2006}, even the basic versions
 have less bias error than the empirically driven \emph{Canonical Hemodynamic Model}
-\cite{Deneux2006}, \cite{Handwerker2004}.
+\cite{Deneux2006,Handwerker2004}.
 On the other hand BOLD signal models have numbers
 of parameters ranging from seven \cite{Riera2004} to 50 \cite{Behzadi2005} 
 for a signal as short as 100 samples long. This number of parameters presents
@@ -81,7 +81,7 @@ time.
 Detecting neural activity using the changes in FMRI images is based on 
 the Blood Oxygen Level Dependent (BOLD) signal.
 The BOLD signal is caused by minute changes in the ratio of Deoxygenated
-Hemoglobin to Oxygenated Hemoglobin in blood vessels throughout the brain.
+Hemoglobin to Oxygenated Hemoglobin in blood vessels throughout the brain \cite{Ogawa}.
 Because Deoxygenated Hemoglobin (DHb) is paramagnetic, higher concentrations
 attenuate the signal detected during T2-weighted Magnetic Resonance Imaging (MRI)
 techniques. The most common FMRI imaging technique, due to its rapid repetition 
@@ -161,7 +161,7 @@ that the only chemical changes will be in
 capillary beds feeding neurons. In practice this may not be the case, for
 instance near large veins, and it may explain some of the
 noise seen in FMRI imaging (see \autoref{sec:Introduction Noise}. 
-Because MRI lacks is unitless and certain
+Because MRI is unitless and certain
 areas will have a higher base MR signal, all FMRI studies deal with
 percent change from the base signal; rather than raw values. 
 
@@ -169,7 +169,7 @@ percent change from the base signal; rather than raw values.
 \label{sec:BOLD Physiology}
 It is well known that the two types of hemoglobin act as a contrast agents in 
 EPI imaging
-\cite{Buxton1998}, \cite{WEISSKOFF1994}, \cite{Ogawa}, however the connection
+\cite{Buxton1998, WEISSKOFF1994, Ogawa}, however the connection
 between Deoxyhemoglobin/Oxygenated Hemoglobin and neural activity is non-trivial. 
 Intuitively, increased 
 metabolism will increase Deoxyhemoglobin, however blood vessels are quick
@@ -177,11 +177,11 @@ to compensate by increasing local blood flow. Increased inflow, accomplished by 
 capillary beds, precedes increased outflow, driving increased 
 blood storage.
 Since the local MR signal depends on the ratio of Deoxyhemoglobin to Oxygenated
-Hemoglobin, increased blood volume effects this ratio if 
+Hemoglobin, increased blood volume affects this ratio if 
 metabolism doesn't exactly match the increased inflow of oxygenated blood.
 This was the impetus
-for the ground breaking balloon model (\cite{Buxton1998}) and windkessel
-model (\cite{Mandeville1999}). These works derive, from first principals,
+for the ground breaking balloon model \cite{Buxton1998} and windkessel
+model \cite{Mandeville1999}. These works derive, from first principals,
 the changes in deoxyhemoglobin ratio and volume of capillaries given flow waveform.
 These were the first two attempts to quantitatively account for the shape of the 
 BOLD signal as a consequence of the lag between the cerebral blood volume (CBV) 
@@ -214,7 +214,7 @@ rate and $\alpha$ which is Grubb's parameter controlling the balloon model.
 $\tau_0$ is a single time constant controlling the speed of $v$ and $q$.
 
 This completed balloon model was well summarized again
-in \cite{Riera2003}.  \cite{Obata2004} refined the readout equation 
+in \cite{Riera2003}. Ogawa et. al. \cite{Obata2004} refined the readout equation 
 of the BOLD signal based on the
 deoxyhemoglobin content (q) and local blood volume (v), resulting in the
 final BOLD equation:
@@ -241,12 +241,12 @@ there are other additions which give it more degrees of freedom.
 \section{Post Stimulus Undershoot}
 \label{sec:Post Stimulus Undershoot}
 Although the most widely used, the BOLD model described in \autoref{eq:bold}
-and \autoref{eq:boldout} have been extended in various fashions. The most
+and \autoref{eq:boldout} has been extended in various fashions. The most
 significant feature missing from the original model is the 
 post-stimulus undershoot.
 The post-stimulus undershoot is the term used for a prolonged subnormal
 BOLD response for a period of 10 to 60 seconds after stimulus has
-ceased (\cite{Chen2009}, \cite{Mandeville1999a}).
+ceased \cite{Chen2009,Mandeville1999a}.
 
 Because \autoref{eq:bold} is not capable of producing such a prolonged undershoot,
 additional factors must be at play. Two prominent theories exist to explain the post 
@@ -256,16 +256,16 @@ content in the voxel. The first and simplest explanation is that the post-stimul
 undershoot is caused by a prolonged increase in CMRO2 after CBV and CBF
 have returned to their base levels. This theory is justified by 
 studies that show CBV and CBF returning to the baseline before the BOLD signal
-(\cite{Frahm2008}, \cite{Donahue2009}, \cite{Buxton2004}, \cite{Lu2004},
-\cite{Shen2008}). Unfortunately, because of limitations on FMRI and in vivo
+\cite{Frahm2008, Donahue2009, Buxton2004, Lu2004, Shen2008}. 
+Unfortunately, because of limitations on FMRI and in vivo
 CBV/CBF measurement techniques it is difficult to isolate whether CBF and
 CBV truly have returned to their baseline. Other studies indicate
-that there can be a prolonged supernormal CBV (\cite{Mandeville1999a}, 
-\cite{Behzadi2005}, \cite{Chen2009a}), although none of these papers completely
+that there can be a prolonged supernormal CBV \cite{Mandeville1999a,
+Behzadi2005, Chen2009a}, although none of these papers completely
 rule out the possibility of increased CMRO2. The discrepancies may in part
 be explained by a spatial dependence in the post-stimulus undershoot; described
-by \cite{Yacoub2006}. \cite{Chen2009}
-makes a compelling case that most of the post stimulus undershoot can be 
+by \cite{Yacoub2006}. In \cite{Chen2009}
+a compelling case is made that most of the post stimulus undershoot can be 
 explained by combination of a prolonged CBV increase, and a prolonged CBF 
 undershoot, and that
 the previous measurements showing a quick recovery of CBV 
@@ -287,7 +287,7 @@ In \cite{Deneux2006} Deneux et. al. compared these models and though
 that work did not deal extensively with the 
 post-stimulus undershoot, it did show incremental improvements
 in quality from the additional parameters. 
-Importantly,\cite{Deneux2006} did show that by 
+Importantly, \cite{Deneux2006} did show that by 
 simply adding viscoelastic terms from \cite{Buxton2004}, a slowed return 
 to baseline is possible to model, without greatly increasing
 complexity. Regardless, because these models are more 
@@ -295,8 +295,8 @@ complex, and the parameters are not well characterized, in this work the simple
 Balloon model is used. 
 
 In summary, there have been extensive refinements to the Balloon
-model,however, the increased complexity and lack of known priors 
-make these models less desirable. Additional degrees of freedom 
+model; however, the increased complexity and lack of known priors 
+make these models difficult to work with. Additional degrees of freedom 
 could also make parameter estimation intractable.
 
 \section{Properties of the BOLD Model}
@@ -306,7 +306,7 @@ several studies have analyzed its properties.
 The most important property is that the system is dissipative, and given
 enough time will converge to a constant value. This is found simply by
 analyzing the eigenvalues of the state equation Jacobian, 
-(\cite{Deneux2006}, \cite{Hu2009}). The steady state of the Balloon
+\cite{Deneux2006, Hu2009}. The steady state of the Balloon
 model equations gives:
 
 \begin{eqnarray}
@@ -318,13 +318,15 @@ y_{ss} &=& V_0((k_1+k_2)(1-q_{ss}) - (k_2+k_3)(1-v_{ss}))
 \label{eq:steadystate}
 \end{eqnarray}
 
+where the parameters are all the same as in \autoref{eq:bold}
+
 In real FMRI data, there is a significant nonlinearity in response; with short sequences
-responding disproportionately strong (\cite{Birn2001}, \cite{Wager2005}, \cite{Deneux2006}).
+responding disproportionately strongly \cite{Birn2001, Wager2005, Deneux2006}.
 This nonlinearity is accounted for in the Balloon model, although \cite{Deneux2006}
 shows that when duration of stimuli varies greatly,
 modeling Neural Habituation is necessary to fully capture the range of responses. 
 In both \cite{Birn2001} and \cite{Deneux2006} it was found that 
-Stimuli lasting longer than 4 seconds 
+stimuli lasting longer than 4 seconds 
 tend to be more linear, which is why block designs are so well accounted for
 by the General Linear Model (see \autoref{sec:Current Techniques General Linear Model}).
 

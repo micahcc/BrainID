@@ -18,6 +18,8 @@
 
 %\usepackage[left=3cm,top=2cm,right=3cm]{geometry}
 
+ \usepackage[hang,small,bf]{caption}
+
 \usepackage{colortbl}
 \usepackage{times}
 \usepackage[siunitx]{circuitikz}
@@ -30,7 +32,11 @@
 \usepackage{graphicx}
 \usepackage{subfigure}
 \usepackage{cancel}
-\usepackage[colorlinks=true]{hyperref}
+\usepackage[colorlinks=true,linkcolor=black]{hyperref}
+\def\chapterautorefname{Chapter}
+\def\sectionautorefname{Section}
+\def\subsectionautorefname{Section}
+
 
 \usepackage{algorithm}
 \numberwithin{algorithm}{chapter}
@@ -127,7 +133,8 @@ Traditional methods of analyzing FMRI images use a linear combination of
 just a few static regressors. This works demonstrates an alternative
 approach using a physiologically inspired nonlinear model. By using a 
 particle filter to optimize the model parameters, the computation time
-is kept reasonable without requiring a linearization of the noise in the state
+is kept below a minute per voxel without requiring a linearization 
+of the noise in the state
 variables. The activation results show regions similar those found in 
 SPM; however, there are some notable regions not detected by 
 SPM. Though the parameters selected by the particle filter based approach
@@ -178,7 +185,7 @@ parameter distribution.
 \include{discussion}
 \include{conclusion}
 
-\bibliographystyle{ieeetr}
+\bibliographystyle{plain}
 %\bibliographystyle{apalike}
 %\bibliographystyle{abbrvnat}
 %\bibliographystyle{abbrv}
