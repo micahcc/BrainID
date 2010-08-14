@@ -534,16 +534,16 @@ be different.
 \subsection{Very Long FMRI Run}
 \begin{figure}[H]
 \centering
-\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=16cm]{images/longfit}}
+\includegraphics[clip=true,trim=1cm 0cm 0cm 0cm, width=17cm]{images/long_converge}
 \caption{BOLD estimate converging for a very long FMRI run.}
-\label{fig:long_preprocessed}
+\label{fig:long_converge}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=16cm]{images/longfit_500}}
+\includegraphics[clip=true,trim=1cm 0cm 0cm 0cm, width=17cm]{images/long_converge_500}
 \caption{BOLD estimate converging for a very long FMRI run, first 500 seconds.}
-\label{fig:long_preprocessed}
+\label{fig:long_converge_500}
 \end{figure}
 
 \begin{table}[t]
@@ -552,35 +552,36 @@ be different.
 \hline 
   & $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$ \\
 \hline 
-\rowcolor[gray]{.8} $\tau_0$ &   0.0189481 & -0.0014269 & -0.0011267 & -1.13e-05 & -0.0025616 & -0.0189559 & 0.0070405 \\
-$\alpha$ &                       -0.0014269 & 0.0026716 & 9.93e-05 & -0.0002041 & -0.0008632 & -0.0016823 & 0.0071891 \\
-\rowcolor[gray]{.8} $E_0$    &   -0.0011267 & 9.93e-05 & 0.0010701 & -0.0002277 & -0.0001177 & 0.0001013 & 0.0016972 \\
-$V_0$    &                       -1.13e-05 & -0.0002041 & -0.0002277 & 0.0005401 & 4.3e-06 & 4.56e-05 & -0.0080494 \\
-\rowcolor[gray]{.8} $\tau_s$ &   -0.0025616 & -0.0008632 & -0.0001177 & 4.3e-06 & 0.0128056 & 0.012878 & -0.005516 \\
-$\tau_f$ &                       -0.0189559 & -0.0016823 & 0.0001013 & 4.56e-05 & 0.012878 & 0.0416927 & -0.0158182 \\
-\rowcolor[gray]{.8} $\epsilon$&  0.0070405 & 0.0071891 & 0.0016972 & -0.0080494 & -0.005516 & -0.0158182 & 0.1567165 \\
+\rowcolor[gray]{.8} $\tau_0$  & 0.0004334 & 5.2e-05 & -6.95e-05 & 3.3e-06 & 0.0001628 & -2e-07 & 0.0001798 \\
+$\alpha$                      & 5.2e-05 & 7.9e-06 & -6.4e-06 & 3e-07 & 1.04e-05 & -1.92e-05 & 2.58e-05 \\
+\rowcolor[gray]{.8} $E_0$     & -6.95e-05 & -6.4e-06 & 1.9e-05 & -9e-07 & -4.11e-05 & -3.24e-05 & -3.92e-05 \\
+$V_0$                         & 3.3e-06 & 3e-07 & -9e-07 & 1e-07 & 1.1e-06 & 9e-07 & 1e-06 \\
+\rowcolor[gray]{.8} $\tau_s$  & 0.0001628 & 1.04e-05 & -4.11e-05 & 1.1e-06 & 0.0001589 & 0.0001518 & 7.88e-05 \\
+$\tau_f$                      & -2e-07 & -1.92e-05 & -3.24e-05 & 9e-07 & 0.0001518 & 0.0002966 & -2.34e-05 \\
+\rowcolor[gray]{.8} $\epsilon$& 0.0001798 & 2.58e-05 & -3.92e-05 & 1e-06 & 7.88e-05 & -2.34e-05 & 0.0001966 \\
 \hline 
 \end{tabular}
-\caption{Typical Covariance matrix of the parameters at the end of a run.}
+\caption{Covariance matrix of the parameters at the end of a run.}
 \label{tab:long_cov} 
 \end{table}
 
-\begin{table}[t]
-\centering
 \begin{tabular}{|c | c  c  c  c  c  c  c |}
 \hline 
   & $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$ \\
 \hline 
-\rowcolor[gray]{.8} $\tau_0$ &   0.0189481 & -0.0014269 & -0.0011267 & -1.13e-05 & -0.0025616 & -0.0189559 & 0.0070405 \\
-$\alpha$ &                       -0.0014269 & 0.0026716 & 9.93e-05 & -0.0002041 & -0.0008632 & -0.0016823 & 0.0071891 \\
-\rowcolor[gray]{.8} $E_0$    &   -0.0011267 & 9.93e-05 & 0.0010701 & -0.0002277 & -0.0001177 & 0.0001013 & 0.0016972 \\
-$V_0$    &                       -1.13e-05 & -0.0002041 & -0.0002277 & 0.0005401 & 4.3e-06 & 4.56e-05 & -0.0080494 \\
-\rowcolor[gray]{.8} $\tau_s$ &   -0.0025616 & -0.0008632 & -0.0001177 & 4.3e-06 & 0.0128056 & 0.012878 & -0.005516 \\
-$\tau_f$ &                       -0.0189559 & -0.0016823 & 0.0001013 & 4.56e-05 & 0.012878 & 0.0416927 & -0.0158182 \\
-\rowcolor[gray]{.8} $\epsilon$&  0.0070405 & 0.0071891 & 0.0016972 & -0.0080494 & -0.005516 & -0.0158182 & 0.1567165 \\
+\rowcolor[gray]{.8} $\tau_0$  & & & & & & & \\
+$\alpha$                      & 0.889884 & & & & & & \\
+\rowcolor[gray]{.8} $E_0$     & -0.7661395 & -0.5230723 & & & & & \\
+$V_0$                         & 0.6244049 & 0.4239271 & -0.7964774 & & & & \\
+\rowcolor[gray]{.8} $\tau_s$  & 0.6204843 & 0.295425 & -0.7481253 & 0.3440421 & & & \\
+$\tau_f$                      & -0.0004259 & -0.3966881 & -0.4314174 & 0.1962954 & 0.6990775 & & \\
+\rowcolor[gray]{.8} $\epsilon$& 0.6158116 & 0.6558179 & -0.641348 & 0.2846632 & 0.4458142 & -0.097079 & \\
 \hline 
 \end{tabular}
-\caption{Typical Covariance matrix of the parameters at the end of a run.}
+\begin{table}[t]
+\centering
+
+\caption{Correlation of parameter estimates at the end of a run.}
 \label{tab:long_corr} 
 \end{table}
 
@@ -596,6 +597,45 @@ to a certain amount of indeterminability of the parameters.
 
 \subsection{Single Voxel Review}
 \label{sec:SingleVoxelReview}
+
+The first step in determining the validity of a model is to provide some order of quality
+to rate the results by. Unfortunately, because of the variability in the signal levels the
+raw $\sqrt{MSR}$ cannot perform this task. As demonstrated by \autoref{sec:PureNoiseLowMag},
+a low residual does not necessarily indicate a good fit. 
+Therefore, instead I  normalized the signal based on a value proportional to
+the magnitude of the signal. Considering the tendency of FMRI noise to have large unexplainable
+peaks and troughs, rather than using MAX and MIN values to estimate the scale of the 
+signal, I used a robust estimator of 
+scale; the Median-Absolute-Deviation (MAD). This is an estimator of the standard
+deviation, and thus a good estimator of the scale of the input signal. 
+The normalized residual values are 
+shown in \autoref{tab:SignleVoxelActivationComparison}. A second potential method of 
+gauging performance is mutual information. Mutual information is a method of measuring
+the interdependence of two random variables. If two signals are truly independent,
+then the mutual information will be zero. Although ideally suited to Bernoulli 
+random variables where there are a finite number of options, by using histograms
+it is possible to derive a joint distribution of two signals. The algorithm for 
+mutual information is based on that joint distribution:
+\begin{equation}
+\sum_{x,y} p(x,y) \log_2\left(\frac{p(x,y)}{p(x)p(y)}\right)
+\end{equation}
+Unfortunately the number of bins causing bias in the output, thus to correct for this,
+I subtracted the estimated bias:
+\begin{equation}
+\text{bias} = \frac{N_{bins}}{2Nlog(2)}
+\end{equation}
+where $N$ is the number of samples and $N_{bins}$ is the number of bins. For all
+the mutual information estimates in this work 6 bins are used for the marginal
+distribution of each signal. Additionally, throughout log base 2 will be used.
+This leads to 36 total bins in the joint, so the bias is: 
+\begin{equation}
+\text{bias} = \frac{18}{N}
+\end{equation}
+After calculating the empirical mutual information, I subtracted the bias from
+the estimated mutual information. Note that this can result in negative mutual
+information, which should not technically be possible; so any negative mutual information
+was taken as 0.
+
 \begin{table}[t]
 \centering
 \begin{tabular}{|c | c | c | c | c | c | c | c | c |}
@@ -636,43 +676,6 @@ max &  0.98892  &0.5458  & 0.18339   &1.18996 & 0.06326  &  1.43196 & 0.03163  &
 \label{tab:SignleVoxelActivationComparison} 
 \end{table}
 
-The first step in determining the validity of a model is to provide some order of quality
-to rate the results by. Unfortunately, because of the variability in the signal levels the
-raw $\sqrt{MSR}$ cannot perform this task. As demonstrated by \autoref{sec:PureNoiseLowMag},
-a low residual does not necessarily indicate a good fit. 
-Therefore, instead I  normalized the signal based on a value proportional to
-the magnitude of the signal. Considering the tendency of FMRI noise to have large unexplainable
-peaks and troughs, rather than using MAX and MIN values to estimate the scale of the 
-signal, I used a robust estimator of 
-scale; the Median-Absolute-Deviation (MAD). This is an estimator of the standard
-deviation, and thus a good estimator of the scale of the input signal. 
-The normalized residual values are 
-shown in \autoref{tab:SignleVoxelActivationComparison}. A second potential method of 
-gauging performance is mutual information. Mutual information is a method of measuring
-the interdependence of two random variables. If two signals are truly independent,
-then the mutual information will be zero. Although ideally suited to Bernoulli 
-random variables where there are a finite number of options, by using histograms
-it is possible to derive a joint distribution of two signals. The algorithm for 
-mutual information is based on that joint distribution:
-\begin{equation}
-\sum_{x,y} p(x,y) \log_2\left(\frac{p(x,y)}{p(x)p(y)}\right)
-\end{equation}
-Unfortunately the number of bins causing bias in the output, thus to correct for this,
-I subtracted the estimated bias:
-\begin{equation}
-\text{bias} = \frac{N_{bins}}{2Nlog(2)}
-\end{equation}
-where $N$ is the number of samples and $N_{bins}$ is the number of bins. For all
-the mutual information estimates in this work 6 bins are used for the marginal
-distribution of each signal. Additionally, throughout log base 2 will be used.
-This leads to 36 total bins in the joint, so the bias is: 
-\begin{equation}
-\text{bias} = \frac{18}{N}
-\end{equation}
-After calculating the empirical mutual information, I subtracted the bias from
-the estimated mutual information. Note that this can result in negative mutual
-information, which should not technically be possible; so any negative mutual information
-was taken as 0.
 
 Comparing the results of \autoref{sec:HighNoise} and \autoref{sec:PureNoiseHighMag}, 
 distinguishing between these cases with ether normalized residual or mutual information
@@ -712,7 +715,7 @@ underlying parameters (other than perhaps $\epsilon$ and $V_0$).
 Also worth noting is that the noise level was set to an SNR of 20, due to changes in the 
 program the true signal-to-noise ratio was much lower, as seen in the fit in \autoref{fig:simslicefit1}.
 
-\begin{figure}[H]
+\begin{figure}
 \centering
 \includegraphics[width=15cm]{images/simslice_noise}
 \caption{A single time-series fit in the simulated slice.}
