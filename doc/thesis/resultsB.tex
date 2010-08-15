@@ -28,12 +28,12 @@ were compared with SPM, both in terms of the location and the fit.
 For the FMRI data discussed in \autoref{sec:RealData}, tests were 
 performed on a right handed volunteer using a GE SIGNA HDx 1.5 Tesla
 scanner with a single echo EPI sequence. Slice spacing was
-5mm, and pixel sizes were 3.75mm.  Repitition Time was 2.1s, 
+5mm, and pixel sizes were 3.75mm.  Repetition Time was 2.1s, 
 Echo Time was 40 ms and the imaging frequency was set to $63.854$MHz.
 The image resolution was $64 \times 64 \times 28$. 
 The subject was presented with either a single or
 double flash and was asked to respond with a right handed
-or lefted handed finger tap, respectively. The FMRI began 18.9 seconds
+or left handed finger tap, respectively. The FMRI began 18.9 seconds
 before the beginning of the experiment, to allow for transients 
 in to image to settle out. The timing of the flashes are shown 
 below with time 0 corresponding to the beginning of
@@ -108,9 +108,9 @@ areas that have been missed because of the smoothing.
 \subfigure[]{\label{fig:hm_canon_pfilter_y} \includegraphics[scale=3]{images/pfilter_hm_y}}
 \subfigure[]{\label{fig:hm_canon_pfilter_z} \includegraphics[scale=3]{images/pfilter_hm_z}}
 \subfigure{\label{fig:scale_pfilter} \includegraphics[scale=.5]{images/scale2}}
-\caption{Particle Filter results measured in normalized $\sqrt{MSE}$. 
-        Units of match is normalized residual where the  the lowest (best) levels shown are
-        $.7$ and the highest error shown (threshold) is $1$.
+\caption{Particle Filter results measured in normalized error. 
+        Units of match is normalized residual where the lowest (best) levels shown are
+        $0.7$ and the highest error shown (threshold) is $1$.
         Sagittal, coronal and axial slices are shwon in \autoref{fig:hm_canon_pfilter_x},
         \autoref{fig:hm_canon_pfilter_y}, and 
          \autoref{fig:hm_canon_pfilter_z}, respectively. A series of axial slices are shown in
@@ -139,8 +139,8 @@ areas that have been missed because of the smoothing.
 \subfigure{\label{fig:scale_mi} \includegraphics[scale=.5]{images/scale4}}
 \caption{Particle Filter results measured in mutual information. 
          Units of match is bits (standard for base-2 Mutual Information). The highest (best) levels are 
-         $.42$ and the worst shown (threshold) is $.1$.
-        Sagittal, coronal and axial slices are shwon in \autoref{fig:hm_canon_mi_x},
+         $0.42$ and the worst shown (threshold) is $0.1$.
+        Sagittal, coronal and axial slices are shown in \autoref{fig:hm_canon_mi_x},
         \autoref{fig:hm_canon_mi_y}, and \autoref{fig:hm_canon_mi_z}, respectively. 
         A series of axial slices are shown in \autoref{fig:hm_mi}.  }
 \label{fig:hm_canon_pfilter_mi}
@@ -176,7 +176,7 @@ however shows just why the residual was high and the mutual information was low.
 prime example of a false positive due to the large smoothing kernel applied by SPM. 
 For instance at 75 seconds, the stimulus is not present, and so the signal should drop off; yet
 it doesn't. While a few peaks seem to match, most of the signal does not correlate with the
-expected state progression. This voxel is not being driven direcly by the input, although it
+expected state progression. This voxel is not being driven directly by the input, although it
 may be gated or driven through intermediate region. 
 
 The third voxel, compared in \autoref{fig:comp3}, was far away from any other active voxels 
@@ -187,7 +187,7 @@ present in the signal that is not being explained by the particle filter,
 In both preprocessed time-series the input is extremely noisy, yet by the normalized residual 
 the response is good. This is an example of a false positive from the residual metric. 
 
-The fourth voxel (\autoref{fig:comp4}) selected for anyalysis had a relatively high residual, and was not picked
+The fourth voxel (\autoref{fig:comp4}) selected for analysis had a relatively high residual, and was not picked
 for activation by SPM. The mutual information was only $0.06$
 for the image. It is simple to see why the residual was not acceptable in this case.
 At the same time, the peaks do seem to correlate with the measurement peaks. Regardless,
@@ -199,8 +199,8 @@ series input to SPM is far less noisy. Regardless this is another case where the
 seem to match, yet nothing else does. Take for instance the measurements from $30$ seconds
 to $40$ seconds. At that point there is a significant spike in the BOLD signal, yet the
 actual measured signal declines. This is an indication that the BOLD signal is not directly
-being driven by the input. It is likeley that the cause of the activation in this reason is
-not true activation, but recieved from surrounding active regions through spatial smoothing. 
+being driven by the input. It is likely that the cause of the activation in this reason is
+not true activation, but received from surrounding active regions through spatial smoothing. 
 
 %23-21-7
 \begin{figure}
@@ -356,9 +356,9 @@ of the residual is certainly necessary. Although there is no hard threshold on t
 normalized residual, it would appear that the normalization is providing a reasonable
 ordering of regression quality. Mutual information also shows promising results.
 Many of the differences between SPM and the particle filter seem to be driven
-more by the pre-processing methods than the regression methd. The reason for 
-SPM applying such extrensive smoothing is to combat false positives. While this is
+more by the pre-processing methods than the regression method. The reason for 
+SPM applying such extensive smoothing is to combat false positives. While this is
 extremely important, regions such as \autoref{fig:comp6} show the problem with doing 
 so. In all, the particle filter method does very good job of estimating parameters that
-fit the measurements; and at the very least this method is a workable, albiet
+fit the measurements; and at the very least this method is a workable, albeit
 computationally intensive, alternative to SPM. 

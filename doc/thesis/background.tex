@@ -20,46 +20,45 @@ Given the popularity of Statistical Parametric Mapping (SPM)
 it is important to draw a distinction between it and the methods proposed
 in this work.
 
-\subsection{Classical Activation Detection}
-\label{sec:Square Wave}
-The most basic method of analyzing FMRI data is by standard T-test
-between resting state and active state samples. Simply put, the
-mean is calculated separately for non-stimulus and stimulus time intervals.
-A classic t-test may then be applied, giving the probability that the
-distributions actually have the same mean. Because of the correlated
-noise present in FMRI (\autoref{sec:Introduction Noise}), it is necessary
-to apply some sort of high-pass filter to the data. Without applying
-such a filter, P values must be set extraordinarily high to prevent
-false positives \cite{Smith2007}. If there truly is signal
-due to stimuli, the distributions will not actually be independent
-Gaussians because activation does not fit a square wave 
-(\autoref{sec:BOLD Physiology}). For this reason other methods
-are often more used, as discussed in 
-\autoref{sec:Current Techniques General Linear Model}.
-
 \subsection{Random Field Theory}
 \label{sec:RFT}
-SPM methods make significant use of T-Tests across large regions;
-however, such T-tests work slightly differently than a single
-individual test. A t-test with a p-value of $.05$ over 
+SPM methods make significant use of $t$-Tests across large regions;
+however, such $t$-tests work slightly differently than a single
+individual test. A $t$-test with a p-value of $0.05$ over 
 10,000 voxels, will on average generate 500 false
 positives. This is called the multiple comparison problem. Traditional
 Bonferroni Correction
 deals with this by requiring each test to pass with P
-value of $\frac{.05}{10000}$. The probability of 
-a single false positive would then $.05$. Unfortunately this leads to unrealistically
+value of $\frac{0.05}{10000}$. The probability of 
+a single false positive would then $0.05$. Unfortunately this leads to unrealistically
 low p-values; so low that it would be impossible for any biological system to satisfy. To
 compensate, a Gaussian kernel is applied to smooth the image. This has
 the benefit of reducing the noise variance and 
 decreasing the effective number of independent measurements. Because
 the number of independent measurements is smaller, Bonferroni correction
 can theoretically be applied with a lower scaling factor than
-the original voxel count \cite{Worsley2004}. As side effect of this,
-a single voxel activation is virtually impossible to detect.
+the original voxel count \cite{Worsley2004}. As side effect of this 
+extreme smoothing, a single voxel activation is very hard to detect.
+
+\subsection{Classical Activation Detection}
+\label{sec:Square Wave}
+The most basic method of analyzing FMRI data is by standard $t$-test
+between resting state and active state samples. Simply put, the
+mean is calculated separately for non-stimulus and stimulus time intervals.
+A classic $t$-test may then be applied, giving the probability that the
+distributions actually have the same mean. Because of the correlated
+noise present in FMRI (\autoref{sec:Introduction Noise}), it is necessary
+to apply some sort of high-pass filter to the data. Without applying
+such a filter, P values must be set extraordinarily high to prevent
+false positives \cite{Smith2007}. Because the BOLD response is known
+not to fit a square wave this method is rarely used
+(\autoref{sec:BOLD Physiology}). For this reason other methods
+are often more used, as discussed in 
+\autoref{sec:Current Techniques General Linear Model}.
 
 \subsection{General Linear Model}
 \label{sec:Current Techniques General Linear Model}
-The most common FMRI analysis technique is SPM, though there
+The most common FMRI analysis technique is called SPM, though there
 are more advanced versions than the simple square wave
 method discussed in \autoref{sec:Square Wave}. Hierarchal
 Models are one important improvement that allows researchers
@@ -85,7 +84,7 @@ to minimize the error.
 \begin{figure}
 \centering
 \includegraphics[scale=.7]{images/HRF}
-\caption{Canonical Hemodynamic Response Function (y-axis unts are arbitrary because 
+\caption{Canonical Hemodynamic Response Function (y-axis units are arbitrary because 
 normalization is performed).}
 \label{fig:HRF}
 \end{figure}
@@ -108,36 +107,35 @@ Smoothing the input with a single HRF poses certain problems.
 It is well known that different Hemodynamic Response Functions are necessary 
 for different regions of the brain \cite{Handwerker2004}. The Canonical HRF that is most often used, 
 has been optimized for the visual cortex. As discussed in \autoref{sec:Post Stimulus Undershoot},
-there are certainly variations in the shape of the
-BOLD response, over both brain regions and patients. Handwerker et. al. \cite{Handwerker2004}
-discuessed the implications of choosing an incorrect HRF, the most important
-of which is a definite increase in false negatives. While an atlas
+there are definitely variations in the shape of the
+BOLD response, over both brain regions and patients. Handwerker et. al. 
+discussed the implications of choosing an incorrect HRF, the most important
+of which is a definite increase in false negatives \cite{Handwerker2004}. While an atlas
 of Hemodynamic Response Functions for each region could definitely 
 mitigate this risk, it does not account for variation between patients.
-Thus, the inability to fit parameters other than scale hinders 
-analysis of activation. 
 
 \subsection{Hierarchical Linear Models}
 As mentioned previously and discussed extensively
-in \cite{Friston2002} and \cite{Hofmann1997}, hierarchical models may be 
-applied to account for systematic differences between subjects. For instance, if the
+in Friston et al. and Hoffman et al., hierarchical models may be 
+applied to account for systematic differences between subjects
+\cite{Friston2002, Hofmann1997}. For instance, if the
 study mixes young and old, incorporating
 that into the model is wise, regardless of whether it is the goal of the test. 
 The reason to do this is to account for additional variance that may not
 be otherwise explainable.  The Hierarchical form used by
-\cite{Friston2002} is shown in \autoref{eq:Hierarchical}.
+Friston et al. is shown in \autoref{eq:Hierarchical} \cite{Friston2002}.
 
 \begin{eqnarray}
 \label{eq:Hierarchical}
-Y(t) = X_1(t)\theta_1 + \epsilon_1(t)            \nonumber \\
-\theta_1(t) = X_2(t)\theta_2 + \epsilon_2(t)     \nonumber \\
-...                                              \nonumber \\
-\theta_{n-1}(t) = X_n(t)\theta_n + \epsilon_n(t) 
+Y(t) & = & X_1(t)\theta_1 + \epsilon_1(t)            \nonumber \\
+\theta_1(t) &=& X_2(t)\theta_2 + \epsilon_2(t)     \nonumber \\
+ & ... &                                             \nonumber \\
+\theta_{n-1}(t)& =& X_n(t)\theta_n + \epsilon_n(t) 
 \end{eqnarray}
 
-The Empirical Bayes algorithm is used in both in both \cite{Friston2002} 
-and \cite{Hofmann1997}. Note that in Empirical Bayes point estimators 
-are used for each $\theta$, rather than full distributions.
+The Empirical Bayes algorithm was used by both Friston et al. and Hofmann et al. 
+\cite{Friston2002, Hofmann1997}. Note that in Empirical Bayes point estimators 
+are used for each $\theta$, rather than full distributions or the first two moments.
 
 \subsection{Discussion}
 \label{sec:BackgroundConclusion}
@@ -148,14 +146,13 @@ that almost certainly cause false negatives in the Statistical Parametric
 Maps. Unfortunately nonlinear analyses have only recently become feasible,
 so the scale of the problem is still unknown. The problem is 
 highlighted by the common scenario where no significant
-activation can be found in a single run \cite{Riera2004}
-\cite{Johnston2008}.  
+activation can be found in a single run \cite{Riera2004, Johnston2008}.  
 
 The static nature of the  linear model also limits its potential use. 
 Besides not allowing HRF differences between patients, there is no
 reasonable way to incorporate other forms of physiological
 data. Combined FMRI CBF or CBV imaging methods are improving,
-as seen in \cite{Chen2009}. These techniques could shed light on
+as seen in Chen et al. \cite{Chen2009}. These techniques could shed light on
 neural activation by providing extra measurements, yet a 
 physiologically reasonable model is necessary to incorporate this extra data.
 Activation detection methods also don't have the ability 
@@ -167,44 +164,49 @@ is not easily seen in other imaging modalities.
 \section{Approaches to the Balloon Model}
 Unlike Statistical Parametric Mapping, the techniques described in this
 section are all attempts to regress some version of the BOLD model. 
-Although \cite{Buxton1998} and \cite{Friston2000}
+Although Buxton et al. and Friston et al. 
 both proposed physiologically reasonable values for the model parameters, 
-\cite{Friston2002b} was the first paper to calculate the parameters based 
-on actual FMRI data. However, in that case, the voxels were chosen from
+Friston et al. in 2002 was the first paper to calculate the parameters based 
+on actual FMRI data \cite{Buxton1998, Friston2000, Friston2002b}. 
+However, in that case, the voxels were chosen from
 regions that were detected as active by the GLM. It is therefore possible
 that the parameters are biased toward parameters that fit the linear model.
 
 \subsection{Polynomial Approximation}
 \label{sec:Background Linear Approximation}
-In \cite{Friston2002b}, a novel combination of linear and nonlinear modeling
-was used to generate parameter estimates. Because there is no closed 
+In Friston et al., a novel combination of linear and nonlinear modeling
+was used to generate parameter estimates \cite{Friston2002b}. 
+Although this method was restricted to regions determined to be 
+active by the GLM, there is no reason it could not be applied more broadly.
+Because there is no closed 
 form solution to the ballon model, it impossible to 
 calculate the Jacobian matrix $\frac{\partial Y}{\partial \theta}$. Thus 
-\cite{Friston2002b} approximates the partial using a Volterra Kernel. 
+Friston et al. approximated the partial using a Volterra Kernel \cite{Friston2002b}. 
 At each step of the Expectation-Maximization (EM) algorithm, 
-the differential equation is integrated and the residuals
-calculated. Then, for each $\theta_i$ surrounding the current estimate of 
-$\theta$, a Volterra-Kernel expansion of the output $y$ is generated. Generation
+the differential equation was integrated and the residuals
+calculated. Then, for each $\theta_i$ surrounding the estimate of 
+$\theta$, a Volterra-Kernel expansion of the output $y$ was generated. Generation
 of the Volterra Kernel is quick, and, since there
-is an analytical solution calculating partial derivatives is easy. 
- The full E-M algorithm
-for estimating the states is notation-heavy and can be found in \cite{Friston2002b}.
+is an analytical solution, calculating partial derivatives is easy. 
+The full E-M algorithm for estimating the states is notation-heavy 
+ and can be found in Friston et al. \cite{Friston2002b}.
 
 There are a few caveats with this method of optimization. First, the 
 partials are based on an approximate values (using Volterra-Kernels) of $y$.
 Importantly, the Volterra-Expansion of $y$ is not able to model interactions
-between state variables \cite{Friston2002b}; which certainly increases error.
-Additionally, all the tests performed
-in \cite{Friston2002b} were on regions found to be active by the General
-Linear Model. For this reason, the reliability of the approximation is unknown
-for regions that are active but
-sufficiently nonlinear to avoid detection by conventional tests.
+between state variables; which certainly increases error \cite{Friston2002b}.
+Additionally, to date no extensive review of the accuracy of the 
+Volterra expansion has been performed. Finally all the tests performed
+by Friston et al. were on regions found to be active by the General
+Linear Model \cite{Friston2002b}. For this reason, the reliability of 
+the approximation is unknown for regions that are active but sufficiently 
+nonlinear to avoid detection by conventional tests.
 
 \subsection{Nonlinear Least Squares}
 \label{sec:Nonlinear Least Squares}
 Although there are certainly benefits to using a derived model, rather
 than a purely empirical model, there are serious implications. The
-first problem is that all the powerful classical techniques of gradient
+first problem is that all the powerful linear techniques of gradient
 descent are off limits; since the model is a true nonlinear dynamical
 system with no closed form solution (although \autoref{sec:Background Linear Approximation}
 circumvented this by calculating a Volterra Series approximation). Without
@@ -218,7 +220,7 @@ that could illuminate the BOLD response.
 Simulated Annealing (SA) is a common method of optimizing high dimensional
 regression problems. First the program selects a random starting point, then
 at each iteration it selects a random point in the neighborhood. If the 
-that new point is 
+new point is 
 below some energy constraint (energy is a function of the residual), 
 called the temperature, the algorithm moves
 to that point and continues with the next iteration. The temperature
@@ -250,7 +252,7 @@ not use it here.
 
 Genetic algorithms (GA) are similar to Simulated Annealing, in
 that they randomly move to better solutions based on a cost function.
-However; in genetic algorithms a single point estimate isn't used. Instead
+However, in genetic algorithms, a single point estimate isn't used. Instead
 a population of estimates is generated, each with distinct parameters,
 and then each set of parameters is rated with a fitness function. Parameter
 sets that are good get a higher weight. New parameter sets are generated by 
@@ -285,7 +287,10 @@ requiring high computation time. In the case of the BOLD model,
 each time the energy or fitness needs to be calculated, a large number of cycles
 must be spent re-simulating the BOLD model for the set of parameters. As I'll
 discuss in \autoref{sec:Particle Filter}, the Particle Filter method is able
-to circumvent this re-calculation to some degree.
+to circumvent this re-calculation to some degree. Its worth noting though, that 
+to beat the particle filter algorithm discussed in \autoref{sec:Particle Filter} 
+these would have to converge in less than 1000 simulations (which is far less than
+1000 generations in GA). 
 
 \subsection{Unscented Kalman Filter}
 \label{sec:Unscented Kalman Filter}
@@ -311,7 +316,7 @@ the one performed in this work \cite{Hu2009}.
 \begin{figure}
 \includegraphics[width=16cm]{images/kalman}
 %\includegraphics[trim=6cm .75cm 6cm .75cm,width=16cm]{images/gauss_step_point1sec_3sigma.pdf}
-\caption{Example updates of a distribution using Kalman Filter, \cite{Thrun2005}}
+\caption{Example updates of a distribution using the Kalman Filter, \cite{Thrun2005}}
 \label{fig:EKFWorking}
 \end{figure}
 
@@ -390,21 +395,21 @@ the first two moments, which is the basis for the UKF, is not wise.
 \begin{figure}
 \centering
 \includegraphics[trim=6cm .75cm 6cm .75cm,width=16cm]{images/gauss_step_point1sec_3sigma.pdf}
-\caption{Distributions of state variables after simulating for .1s}
+\caption{Distributions of state variables after simulating for $0.1$s}
 \label{fig:transp1s}
 \end{figure}
 
 \begin{figure}
 \includegraphics[trim=6cm .75cm 6cm .75cm,width=16cm]{images/gauss_step_1sec_3sigma.pdf}
-\caption{Distributions of state variables after simulating for 1s}
+\caption{Distributions of state variables after simulating for $1$s}
 \label{fig:trans1s}
 \end{figure}
 
 \subsection{Hybrid Methods}
-In \cite{Riera2003}, a maximum
+In Riera et al. , a maximum
 likelihood method for innovation processes was used, as described by
-\cite{Ozaki1994}. Ozaki et. al. used a similar construction to a 
-Kalman filter to filter the BOLD signal. 
+Ozakai \cite{Riera2003,Ozaki1994}. Ozaki used a similar construction to a 
+Kalman filter to filter nonlinear signals \cite{Ozakai1994}. 
 The method used in \cite{Riera2003} performs maximum likelihood on
 the innovations rather than the absolute signal levels. 
 By using a Local Linearization Filter,

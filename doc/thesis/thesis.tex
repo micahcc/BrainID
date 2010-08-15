@@ -32,7 +32,7 @@
 \usepackage{graphicx}
 \usepackage{subfigure}
 \usepackage{cancel}
-\usepackage[colorlinks=true,linkcolor=blue]{hyperref}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue]{hyperref}
 \def\chapterautorefname{Chapter}
 \def\sectionautorefname{Section}
 \def\subsectionautorefname{Section}
@@ -98,12 +98,12 @@ Daniel J. Stilwell
 
 \vfill
 
-August 10, 2010\\
+August 30, 2010\\
 Blacksburg, Virginia
 
 \vfill
 
-Keywords: BOLD Response, FMRI, Nonlinear Systems, Particle Filter, Bayesian Statistics
+Keywords: BOLD Response, FMRI, Nonlinear Systems, Particle Filter, Bayesian Statistics, System Identification
 \\
 Copyright 2010, Micah C. Chambers
 
@@ -114,8 +114,7 @@ Copyright 2010, Micah C. Chambers
 \thispagestyle{empty}
 \begin{center}
 
-{\large BOLD Parameter Estimation Using Particle 
-Filters }
+{\large Full Brain Blood-Oxygen-Level-Dependent Signal Parameter Estimation Using Particle Filters}
 
 \vfill
 
@@ -145,10 +144,10 @@ found in other research that attempted to characterize the model parameters.
 For this reason the final distribution of parameters is more medically relevant
 than a single estimate. Because the output of the particle filter is 
 a full posterior probability, the reliance on the mean to estimate 
-parameters is not strictly necessary. This work presents
+parameters is unnecessary. This work presents
 not just a viable alternative to the traditional method of detecting
-activation, but an extensible technique of estimating the joint BOLD
-parameter distribution.
+activation, but an extensible technique of estimating the joint Probability
+Distribution Function of the BOLD parameters.
 
 \vfill
 
@@ -162,7 +161,23 @@ parameter distribution.
 
 % Dedication and Acknowledgments are both optional
 % \chapter*{Dedication}
-% \chapter*{Acknowledgments}
+\chapter*{Acknowledgments}
+
+This thesis would not have been possible without the guidance, advice and
+patience of my advisor, Chris Wyatt. I knew nothing about being a researcher
+or about medical imaging when I came to him, and he taught me to read broadly
+and to always dig deeper. Thank you Dr. Wyatt.
+
+I would also like to thank William Baumann for his help and inspiration. I
+have learned an incredible amount reading papers with you and Dr. Wyatt.
+
+To my parents, for all the psychological (and financial) help along the way,
+thank you so much. When things were the darkest you were there for me, I couldn't
+ask for better parents. Love you guys.
+
+Finally I would like to thank my friends, for the support, for the prayer,
+and, yes, for the occasional stress-relieving game of Halo, SOASE, and every
+type of SC.  You guys are the best. 
 
 \tableofcontents
 \pagebreak
@@ -186,33 +201,13 @@ parameter distribution.
 \include{conclusion}
 
 \bibliographystyle{plain}
+%\bibliographystyle{abbrvnat}
 %\bibliographystyle{apalike}
 %\bibliographystyle{abbrvnat}
 %\bibliographystyle{abbrv}
 \bibliography{library}
 
-
 \end{document}
-
-%trash
-%stream of new developments in modeling the BOLD signal, nothing has have been
-%a plethora of new studies pushing advancements 
-%the choice of analysis tools is still relatively limited. Every widely
-%available analysis tool is based on parametric modeling, which requires
-%prior knowledge of the noise distribution. Indeed, the linear methods
-%usually applied are known not to be robust to non-gaussian, non-white
-%noise, which is why so many pre-processing steps are necessary.
-%These limitations cast a long shadow over any experiment that claims to be
-%able to reject the null hypothesis, no matter the P-value. While obviously
-%there is a correlation between the BOLD signal and actual activity, its
-%possible the current parametric tests are over-estimating the actual amount
-%of activity. Its also possible that the current methods underestimate
-%actual activity. In this paper we propose a robust model-based approach to 
-%activation detection that makes no assumptions about the underlying noise
-%model.
-%
-
-
 
 %\chapter{Introduction}
 %\markright{Albert J. Kippleby \hfill Chapter 1. Introduction \hfill}
