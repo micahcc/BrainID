@@ -28,10 +28,10 @@ decay to ($\{0,1,1,1\}$). Typical particle filters
 also use this state noise as an exploratory measure; however this method is
 less necessary when good priors are available.
 
-Typically a step size of .001 was used, after finding that even .01 can
-at times lead to the state equations careening out of control.
-
-
+For all the analyses  in this work, $1400$ integration points
+per second were used.  Typically a step size of $0.001$ was sufficient,
+however, from time to time $0.001$ can still be too high for the
+BOLD model.
 
 \section{Preprocessing}
 \label{sec:Methods Preprocessing}
@@ -87,7 +87,8 @@ all in grey matter voxels. These time
 series were chosen because they were representative of different types
 of noise found in the resting state data.
 
-TODO give scanner details
+The resting state was gathered in the exact same way as the data in 
+\autoref{sec:ExperimentConfig}, except without the stimuli.
 
 \begin{figure}
 \centering
@@ -449,7 +450,7 @@ overall length of the signal being analyzed. For 1000 measurements it takes
 about 6 minutes. On the other hand, in real circumstances the
 length is only around 150 measurements and takes around 40 seconds (for 1000 
 particles, 1500 integration points and a Quad Core CPU). The size of 
-local linearization steps are also crucial although going above .001 seconds
+local linearization steps are also crucial although going above $0.001$ seconds
 per step is not recommended. In most cases millisecond resolution
 is fine; however, when generating simulated data I found that at times it was
 still not enough every once. This is problematic in the actual particle
