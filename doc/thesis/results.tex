@@ -6,7 +6,7 @@ investigate the ability of particle filters to estimate parameters of the BOLD m
 in a noisy environment. Single voxel tests were
 performed eleven different times, each with a new noise realization.
 Repeating tests with different noise realizations demonstrates the 
-particle filter's resiliance to noise and explores the variance of
+particle filter's resilience to noise and explores the variance of
 the model. 
 
 The slice simulation was performed using 
@@ -223,7 +223,7 @@ could have some effect on the resulting fit; thus the preprocessed signal is com
 to the true BOLD signal in \autoref{fig:PreprocessedLowNoise}.
 Overall, \autoref{fig:PreprocessedLowNoise} shows that the preprocessing was 
 effective at removing trends, although the spline did struggle to match the signal 
-torward the end. This slight drift effect was caused by the final median being 
+toward the end. This slight drift effect was caused by the final median being 
 well above the base
 level. 
 At several time points the particle filter successfully filtered the input
@@ -779,7 +779,7 @@ with significant estimates of the BOLD time series were 1,2 and 3. With
 such a low $\epsilon$, region 4 was below the noise threshold. Notice that the
 regions 1, 2 an 3 stick out in both the residual and the mutual information
 map, indicating that the particle filter was successful in matching those regions. 
-Mutual information was an extremely succesfull metric, with the exception of 
+Mutual information was an extremely successful metric, with the exception of 
 a few false positives. Thus, another heatmap (\autoref{fig:sim_hm2}) is 
 helpful to show what threshold would remove those false positives. 
 
@@ -815,6 +815,11 @@ than $0.14$}
 than $0.14$}
 \label{fig:slicesim_hist3}
 \end{figure}
+
+There were 1479 voxels analyzed, and there 11 were false positives, according
+the mutual information threshold of $0.1$. Raising the threshold to $0.15$ reduced
+the number of false positives to $0$. Quantifying false negatives is harder, because
+of the presence of white matter.
 
 The histograms again demonstrate that a single point estimate of the parameters 
 is elusive for this set of parameters. However the data clearly show the power
