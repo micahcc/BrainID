@@ -2,31 +2,35 @@
 \label{sec:SimulationResults}
 Two levels of simulation are discussed in this section; first of single voxels,
 and second of a single slice (64x64 voxels).  The single time series tests
-investigate the ability of particle filters to estimate the BOLD model 
-in a noisy environment. If the particle filter were unable
-to identify the \emph{true} time-series in spite of noise, then it 
-would not be a good choice for identifying parameters. Single voxel tests were
+investigate the ability of particle filters to estimate parameters of the BOLD model 
+in a noisy environment. Single voxel tests were
 performed eleven different times, each with a new noise realization.
-If runs failed to have consistent estimates of the underlying BOLD signal, then
-that would indicate a significant variance error in the model.
+Repeating tests with different noise realizations demonstrates the 
+particle filter's resiliance to noise and explores the variance of
+the model. 
 
 The slice simulation was performed using 
 Physics-Oriented Simulated Scanner for Understanding MRI (POSSUM) which
 models noise realistically. POSSUM demonstrates the 
 particle filter modeling the BOLD signal on a large scale. 
 In the POSSUM simulation there were four
-discrete parameter sets driving the timeseries', however each voxel had a 
+discrete parameter sets driving the timeseries, although each voxel had a 
 different tissue composition and a different
 noise realization. Therefore the POSSUM simulation was 
 a good test of the applicability of particle filters for performing
 whole brain analysis. 
+
+Note that except for \autoref{sec:VeryLongSim} the same stimulus sequence
+that was used in real data (\autoref{sec:RealData}) was used in the simulations. This sequence may
+be found in \autoref{tab:flashes}, but because of the availability of ground
+truth in simulations is not displayed in this section.
 
 \section{Single Time Series}
 \label{sec:Single Voxel Simulation}
 Given the state-space equations for the BOLD signal, simulating a single time 
 series was straight forward. After generating a true signal,
 identically and independently distributed (I.I.D.) Gaussian noise and a Wiener
-process with Gaussian I.I.D. steps were added to this true signal. Finally a 
+process with Gaussian I.I.D. steps were added to the true signal. Finally a 
 carrier level was added, since BOLD is typically
 measured as a \% difference from the baseline. The particle filter
 algorithm immediately removes this by calculating the \% difference, 
@@ -34,26 +38,108 @@ but adding a carrier level meant that the exact same algorithm used
 for simulated data could be used for the real data. 
 
 Once this noisy simulated time series was generated, the particle filter algorithm
- was run on the single time series image. Five sets of tests were used 
-to determine the power of the particle filter in modeling. The first two (\autoref{sec:SimLowNoise}
-and \autoref{sec:SimHighNoise}) were
-used to demonstrate the ability of the particle filter to find the most likely
-set of parameters/state variables over the course of the run. The second two 
+was run on the single time series image. Five sets of tests 
+determine the power of the particle filter in modeling. 
+The first test demonstrates the particle filter on a very long FMRI
+run, and discusses the inherent learn-ability of the BOLD model 
+(\autoref{sec:VeryLongSim}). 
+The next two (\autoref{sec:SimLowNoise} and \autoref{sec:SimHighNoise}) 
+demonstrate the ability of the particle filter to find the most likely
+set of parameters/state variables over the course of a run identical to the
+real run in \autoref{sec:RealData}. The last two 
 tests (\autoref{sec:PureNoiseLowMag} and \autoref{sec:PureNoiseHighMag}) 
-investigated the problem of false-positives. As the first
-round of tests will show, given that there is an underlying BOLD signal, 
+investigate the problem of false-positives. As the first
+round of tests show, given the presence of an underlying BOLD signal, 
 the particle filter is excellent at finding the most probable cause of 
 the observed signal. As discussed in \autoref{sec:PureNoiseLowMag} and 
-\autoref{sec:PureNoiseHighMag}, even when there was no underlying signal, 
-the particle filter still converged. Thus, it was 
-important to investigate methods of identifying false positives.
+\autoref{sec:PureNoiseHighMag}, even when there is no underlying signal, 
+the particle filter may still converge. Because of this problem, it was 
+necessary to investigate methods of identifying false positives.
 
-The final single-voxel test was used to determine the effectiveness of the
-particle filter for a longer FMRI session. The final covariance and correlation
-matrices are also discussed.
+\subsection{Ideal FMRI Run}
+\label{sec:VeryLongSim}
+
+\begin{figure}
+\centering
+\includegraphics[clip=true,trim=1cm 0cm 0cm 0cm, width=17cm]{images/long_converge}
+\caption{BOLD estimate converging for a very long FMRI run. Darker bars indicate
+bins with more regions. }
+\label{fig:long_converge}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[clip=true,trim=1cm 0cm 0cm 0cm, width=17cm]{images/long_converge_500}
+\caption{BOLD estimate converging for a very long FMRI run, first 500 seconds. Darker bars
+indicate bins with more particles.}
+\label{fig:long_converge_500}
+\end{figure}
+
+\begin{table}[t]
+\begin{tabular}{|c | c  c  c  c  c  c  c |}
+\hline 
+  & $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$ \\
+\hline 
+\rowcolor[gray]{.8} $\tau_0$  & 0.0004334 & 5.2e-05 & -6.95e-05 & 3.3e-06 & 0.0001628 & -2e-07 & 0.0001798 \\
+$\alpha$                      & 5.2e-05 & 7.9e-06 & -6.4e-06 & 3e-07 & 1.04e-05 & -1.92e-05 & 2.58e-05 \\
+\rowcolor[gray]{.8} $E_0$     & -6.95e-05 & -6.4e-06 & 1.9e-05 & -9e-07 & -4.11e-05 & -3.24e-05 & -3.92e-05 \\
+$V_0$                         & 3.3e-06 & 3e-07 & -9e-07 & 1e-07 & 1.1e-06 & 9e-07 & 1e-06 \\
+\rowcolor[gray]{.8} $\tau_s$  & 0.0001628 & 1.04e-05 & -4.11e-05 & 1.1e-06 & 0.0001589 & 0.0001518 & 7.88e-05 \\
+$\tau_f$                      & -2e-07 & -1.92e-05 & -3.24e-05 & 9e-07 & 0.0001518 & 0.0002966 & -2.34e-05 \\
+\rowcolor[gray]{.8} $\epsilon$& 0.0001798 & 2.58e-05 & -3.92e-05 & 1e-06 & 7.88e-05 & -2.34e-05 & 0.0001966 \\
+\hline 
+\end{tabular}
+\caption{Covariance matrix of the parameters at the end of \autoref{fig:long_converge}.}
+\label{tab:long_cov} 
+\end{table}
+
+\begin{table}[t]
+\begin{tabular}{|c | c  c  c  c  c  c  c |}
+\hline 
+  & $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$ \\
+\hline 
+\rowcolor[gray]{.8} $\tau_0$  & & & & & & & \\
+$\alpha$                      & 0.889884 & & & & & & \\
+\rowcolor[gray]{.8} $E_0$     & -0.7661395 & -0.5230723 & & & & & \\
+$V_0$                         & 0.6244049 & 0.4239271 & -0.7964774 & & & & \\
+\rowcolor[gray]{.8} $\tau_s$  & 0.6204843 & 0.295425 & -0.7481253 & 0.3440421 & & & \\
+$\tau_f$                      & -0.0004259 & -0.3966881 & -0.4314174 & 0.1962954 & 0.6990775 & & \\
+\rowcolor[gray]{.8} $\epsilon$& 0.6158116 & 0.6558179 & -0.641348 & 0.2846632 & 0.4458142 & -0.097079 & \\
+\hline 
+\end{tabular}
+\caption{Correlation of parameter estimates at the end of \autoref{fig:long_converge}.}
+\label{tab:long_corr} 
+\end{table}
+
+To begin the single voxel simulation; I generated a signal using the following parameters:
+$\{\tau_0 = 1.45, \alpha = 0.3, E_0 = 0.47, V_0 = 0.044, \tau_s = 1.94, \tau_f = 1.99, \epsilon = 1.8\}$.
+These same parameters were used throughout this chapter. Noise
+was generated based on measurement noise ($\sigma_y$) of $0.001$ and drift standard deviation
+($\sigma_x$) of $0.0005$. The measurement noise as well as the steps of the drift
+were taken to be Gaussian. The actual signal delivered into the particle filter
+was the result of preprocessing to remove drift, as described in 
+\autoref{sec:Methods Preprocessing}. 
+
+To test how well the particle filter would do plenty of data, and 
+determine the inherent variance in the model parameters, a very long simulation
+with randomly generated impulse stimulus was created. The preprocessed timeseries
+and the final estimate are shown in \autoref{fig:long_converge};
+the final covariance matrix of the parameters is in \autoref{tab:long_cov}.
+Note that even though the BOLD response converged well (\autoref{fig:long_converge}),
+the parameters still have significant correlation (\autoref{tab:long_corr}). 
+This is in spite of the noisy input (green line in \autoref{fig:long_converge}).
+Based on the histograms in the first 500 seconds, the parameters converged to
+their final values well before the end.
+Although this is only a single test, the correlation (\autoref{tab:long_corr}) 
+of the parameters 
+indicates significant parameter indeterminability. When the input
+consists entirely of impulses, the best parameters are not one particular
+set, but a spectrum. Note that the correlation is in parameters whose priors
+are completely independent. It is possible that varying the type of input could
+give improved results, although informal tests did not show significant difference.
 
 %LOW NOISE SECTION, with a signal
-\subsection{Signal with Low Noise}
+\subsection{Simulation with Low Noise}
 \label{sec:SimLowNoise}
 %tests had noise of $ \{\sigma_y = .01, \sigma_x = .005\} $, where $\sigma_y$ is the
 %measurement noise, and $\sigma_x$ is the wiener step size. Both signals used the
@@ -81,44 +167,6 @@ noisy input to the actual particle filter algorithm.}
 \caption{A comparison of the fitted signals for the low noise case.}
 \label{fig:FitComparisonLowNoise}
 \end{figure}
-
-To begin the single voxel simulation; I generated a signal using the following parameters:
-$\{\tau_0 = 1.45, \alpha = 0.3, E_0 = 0.47, V_0 = 0.044, \tau_s = 1.94, \tau_f = 1.99, \epsilon = 1.8\}$.
-These same parameters were used for all the tests in this chapter (except when the signal
-consists entirely of noise). The noise realizations were
-then generated based on a measurement noise ($\sigma_y$) of $0.001$ and a drift standard deviation
-($\sigma_x$) of $0.0005$. The measurement noise as well as the steps of the drift
-were taken to be Gaussian.
-For this low noise case, the eleven realizations are shown in \autoref{fig:LowNoiseRealization}.
-The actual signal delivered into the particle filter
-was the result of preprocessing to remove drift, as described in 
-\autoref{sec:Methods Preprocessing}. The bias introduced into the signal by preprocessing 
-could have some effect on the resulting fit; thus the preprocessed signal is compared
-to the true BOLD signal in \autoref{fig:PreprocessedLowNoise}.
-The data shows that the spline struggles to match the signal near the end, although 
-overall, the preprocessing seems to have been successful at removing trends.  In this case
-the cause of the problem was the final stimuli that pushed the final median well above the base
-level. The estimated BOLD signal is compared to the true BOLD signal in \autoref{fig:FitComparisonLowNoise}.
-At several time points the particle filter successfully filtered the input. 
-For instance, in the last 30 seconds
-the estimates stay flat in spite of the preprocessed data drifting off. By
-this point, the algorithm has converged sufficiently to prevent inexplicable movement.
-A similar circumstance occurs at 100 seconds in. Note that bias introduced by pre-processing 
-results in a slightly larger peak signal. The final parameter sets are shown in 
-\autoref{tab:LowNoiseResults}. Note that throughout the results, unless otherwise specified,
-the term \emph{residual} will be defined as the square root of the mean squared residual, 
-\begin{equation}
-\text{Residual} = \sqrt{\sum (\hat{y}_k - y_k)^2}
-\end{equation}
-where $\hat{y}_k$ is the estimated output at time $k$ and $y_k$ is the preprocessed output
-sampled at time $k$. Note the subtle distinction between this and what will be 
-termed the \emph{error} which is defines as 
-\begin{equation}
-\text{Error} = \sqrt{\sum (\hat{y}_k - Y_k)^2}
-\end{equation}
-where $\hat{y}_k$ is the estimated output, and $Y_k$ is the underlying (free of noise)
-signal. Throughout this section and the next, the terms error and residual
-will be referencing these values.
 
 \begin{table}[t]
 \centering
@@ -148,6 +196,42 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 \caption{Estimated Parameters on 11 different runs with low noise. First row is the true value, and last is the average.}
 \label{tab:LowNoiseResults} 
 \end{table}
+
+The following tests all use less data, on par with the average length of an FMRI
+session.  For this low noise case, the eleven realizations are shown in 
+\autoref{fig:LowNoiseRealization}.
+The bias introduced into the signal by preprocessing 
+could have some effect on the resulting fit; thus the preprocessed signal is compared
+to the true BOLD signal in \autoref{fig:PreprocessedLowNoise}.
+Overall, \autoref{fig:PreprocessedLowNoise} shows that the preprocessing was 
+effective at removing trends. The spline did struggle to match the signal 
+torward the end. This slight drift effect was caused by the final median being 
+well above the base
+level. The estimated BOLD signal is compared to the true BOLD signal in \autoref{fig:FitComparisonLowNoise}.
+At several time points the particle filter successfully filtered the input. 
+For instance, in the last 30 seconds
+the estimates stay flat in spite of the preprocessed data drifting off. By
+this point, the algorithm had converged sufficiently to prevent such inexplicable movement.
+A similar circumstance occurs at 100 seconds in. A combination of 
+noise and preprocessing biased the results toward a peak signal above the true peaks. 
+The final parameter sets are shown in 
+\autoref{tab:LowNoiseResults}. 
+
+
+Note that throughout the results, unless otherwise specified,
+the term \emph{residual} will be defined as the square root of the mean squared residual, 
+\begin{equation}
+\text{Residual} = \sqrt{\sum (\hat{y}_k - y_k)^2}
+\end{equation}
+where $\hat{y}_k$ is the estimated output at time $k$ and $y_k$ is the preprocessed output
+sampled at time $k$. Note the subtle distinction between this and what will be 
+termed the \emph{error} which is defines as 
+\begin{equation}
+\text{Error} = \sqrt{\sum (\hat{y}_k - Y_k)^2}
+\end{equation}
+where $\hat{y}_k$ is the estimated output, and $Y_k$ is the underlying (free of noise)
+signal. Throughout this section and the next, the terms error and residual
+will be referencing these values.
 
 %\begin{table}[t]
 %\centering
@@ -180,21 +264,23 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 \subfigure[Converging histogram for $q$, $s$, $f$, and $BOLD$ of the first run, low noise simulation.]
 {\includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=16cm]{images/converge_lownoise3}}
 \label{fig:LowNoiseHist}
+\caption{Convergence of the first run from \autoref{tab:LowNoiseResults}. The bars represent
+a histogram, where darker bars indicate more particles in that bin.}
 \end{figure}
 
 There are a few important results in the final parameter estimates (which 
 are the mean of the particle filter's posterior distribution). First, the time constants vary 
 greatly across
-runs with different noise realizations, yet the sum of the individual time constants
-($\tau_f$, $\tau_s$ and $\tau_0$) seems to be more consistent. In general the 
-time constants fall short of the true time constant. This could be a limitation
+runs, yet the sum of the individual time constants
+($\tau_f$, $\tau_s$ and $\tau_0$) were more consistent. In general the 
+time constants fell short of the true time constant. This could be a limitation
 based on the prior distribution (which notably has an initial mean below the true values) 
-or it could be other parameters are compensating. It is also possible that output is insensitive
-to differences in the time constants.  
+or it could be that other parameters compensated. It is also possible that the output is insensitive
+to small differences in the time constants.  
 The convergence properties of the first run in \autoref{tab:LowNoiseResults} 
-demonstrates the migration of parameters to match the estimates. In spite of the
-wide final parameter variances, the time series'
-generated from the estimated mean match the correct signal very well 
+demonstrates the migration of parameters through the run. In spite of the
+significant differences in parameter estimates, the estimated BOLD
+consistently performed well 
 (\autoref{fig:FitComparisonLowNoise}).
 
 
@@ -226,11 +312,11 @@ generated from the estimated mean match the correct signal very well
 %HIGH NOISE SECTION, with a signal
 \subsection{High Noise}
 \label{sec:SimHighNoise}
-\begin{figure}
-\includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=15cm]{images/realization_highnoise}
-\caption{Test Signals with high noise ($\sigma_x = 0.01, \sigma_y=0.005$) compared to the clean signal.}
-\label{fig:HighNoiseRealization}
-\end{figure}
+%\begin{figure}
+%\includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=15cm]{images/realization_highnoise}
+%\caption{Test Signals with high noise ($\sigma_x = 0.01, \sigma_y=0.005$) compared to the clean signal.}
+%\label{fig:HighNoiseRealization}
+%\end{figure}
 
 \begin{figure}
 \includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=15cm]{images/preprocessed_highnoise}
@@ -259,13 +345,12 @@ generated from the estimated mean match the correct signal very well
 For the high noise simulation, the exact same procedure was followed as in \autoref{sec:SimLowNoise}
 except that $\sigma_y$ and $\sigma_x$ were set to $0.01$ and $0.005$,
 respectively. This is an order of magnitude higher than the previous tests, and indeed the
-noise appears to dominate the output, as \autoref{fig:HighNoiseRealization} shows. 
-The preprocessed signals are shown in 
-\autoref{fig:PreprocessedHighNoise} and the results of the particle filter
+noise appears to dominate the output, as \autoref{fig:PreprocessedHighNoise} shows. 
+The results of the particle filter
 for each of the eleven runs are shown in \autoref{fig:FitComparisonHighNoise}. 
-The noise and preprocessing again led the estimate
-to somewhat higher activation levels, and it would appear that the subtleties of
-different time constants are being lost in the noise. 
+The noise and preprocessing again led the estimates
+to higher peak activation levels, and the subtleties of different time constants 
+are being lost in the noise. 
 
 \begin{table}[t]
 \centering
@@ -301,15 +386,15 @@ and \autoref{fig:FitComparisonHighNoiseJust2}, respectively.}
 \label{tab:HighNoiseResults} 
 \end{table}
 
-Two runs are shown in more detail in \autoref{fig:NoiseComparisonJustTwo}.
-Run 1 has higher peaks, in spite of the fact that both signals are based
-on the same underlying signal. There also appears
-to be more drift than the 20 measurements per knot could fit, which explains run 1's
-prolonged increase at 170 seconds. Interestingly, run 1 and run 2 emphasize
+\autoref{fig:NoiseComparisonJustTwo} shows two of the runs in more detail.
+There appears
+to be more drift than the 20 measurements per knot could fit, which explains 
+the prolonged increase at 170 seconds in Run 1; although such areas
+permeate the preprocessed signals.
+Interestingly, Run 1 and Run 2 emphasize
 different aspects of the signal. Run 2 had a much better match to the 
-peaks, when compared to the true signal, yet run 1 matched the post-stimulus
-undershoot better. Despite the rather significant amount of noise, the ultimate results are 
-actually quite good. \autoref{tab:HighNoiseResults} shows
+peaks, when compared to the true signal, yet Run 1 matched the post-stimulus
+undershoot better.  \autoref{tab:HighNoiseResults} shows
 the error  for all eleven runs, and highlights the two runs analyzed 
 in \autoref{fig:ConvergenceRuns1} and \autoref{fig:ConvergenceRuns2}.
 
@@ -351,38 +436,34 @@ The particles converged much faster when more noise was present (\autoref{fig:Co
 \autoref{fig:ConvergenceRuns2}). This also caused significantly more resampling which 
 is the explanation for the percieved jumps in the histograms. 
 The parameters arrived at for all 11 runs are shown in \autoref{tab:HighNoiseResults}.
-Clearly the additional noise has resulted in much more sporadic results. This is often the 
+Clearly the additional noise resulted in much more sporadic results. This is often the 
 result when the particle filter converges too fast, in this case the result of the 
-weighting functions' variance being smaller than the measurement noise ($0.005$ vs. $0.01$). 
-The error suffers due to this effect.
+weighting function's variance being smaller than the measurement noise ($0.005$ vs. $0.01$). 
+The error clearly suffers due to this effect (\autoref{tab:HighNoiseResults}).
 
 %NO SIGNAL, LOW NOISE
 \subsection{Pure Noise, Low magnitude}
 \label{sec:PureNoiseLowMag}
 The next two single-voxel tests forced the particle filter to attempt to learn a noise-only
-time series. In this first test the noise used is the same as that from the \autoref{sec:SimHighNoise},
-$\sigma_x = 0.01, \sigma_y = 0.005$. The parameters were set the same as well, but the
-stimulus neuronal efficiency ($\epsilon$) was set to 0. In effect it simulates a region 
-of the brain that does respond to the stimulus. The importance of this test is
-to determine how the
-particle filter responds to a signal that is not correlated with the input. Additionally,
-this test determines how the output may be differentiated from the output of the previous
-two sections. The time series'
-are shown in \autoref{fig:NoiseOnly} and the preprocessed versions are shown 
-in \autoref{fig:PreprocessedNoiseOnly}.
-The line fits are shown in \autoref{fig:fits_noiseonly}. 
+time series. In this test the noise was the same as that from the \autoref{sec:SimHighNoise},
+$\sigma_x = 0.01, \sigma_y = 0.005$. The stimulus neuronal efficiency ($\epsilon$) was set 
+to 0, in effect simulating a brain region with no response to the stimuli.
+This test was used to determine how the output of a pure noise timeseries
+is different from that of a simple noisy signal (as in the previous two sections). 
+The preprocessed signals are shown in \autoref{fig:PreprocessedNoiseOnly}
+and line fit for each run is shown in \autoref{fig:fits_noiseonly}. 
+
+%\begin{figure}[H]
+%\centering
+%\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=7cm]{images/realization_noiseonly}
+%\caption{Time-series lacking any real signal. With, ($\sigma_x = 0.01, \sigma_y=0.005$).}
+%\label{fig:NoiseOnly}
+%\end{figure}
 
 \begin{figure}[H]
 \centering
-\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=7cm]{images/realization_noiseonly}
-\caption{Time-series lacking any real signal. With, ($\sigma_x = 0.01, \sigma_y=0.005$).}
-\label{fig:NoiseOnly}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=7cm]{images/preprocessed_noiseonly}
-\caption{A comparison of the preprocessed signals for the signal-free case (
+\includegraphics[clip=true,trim=6cm 2cm 6cm 3.5cm,width=15cm]{images/preprocessed_noiseonly}
+\caption{Comparison of the preprocessed signals for the low noise signal-free case (
 $\sigma_y = 0.01, \sigma_x = 0.005$).}
 \label{fig:PreprocessedNoiseOnly}
 \end{figure}
@@ -416,7 +497,7 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 \centering
 \includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/fits_noiseonly}
 \caption{Fits to the non-active, low noise signal. Note that the line is thick because all
-the fits overlap. All 11 fitted lines.}
+the estimates overlap. All 11 fitted lines.}
 \label{fig:fits_noiseonly}
 \end{figure}
 
@@ -448,58 +529,45 @@ Same run as \autoref{fig:justnoise_fit_0}}
 \label{fig:JustNoiseConvergence}
 \end{figure}
 
-The data shows that the parameters did not converge to any unreasonable
-values; individual parameters could not be used as a distinguishing factor
-to determine the validity of the model. Additionally the residual 
-also appears to be lower than the residual of the low noise simulation from \autoref{sec:SimLowNoise}. 
-The precision with which the convergence occurred is actually the best seen in any
-simulation.  The reason for the low error is that the overall
-signal is significantly smaller than any other simulation in this thesis.
-The peaks never even 1\% difference, with most staying even below .5\% 
-(\autoref{fig:PreprocessedNoiseOnly}). Because the stayed 
-well within the range of $0.005$, which is the standard deviation of the weighting function
-the particles did not ever get substantially different weights. Thus, the reason
-the fits are in such agreement is that no particles gained increased weight, and so
-no convergence occurred at all, as further shown by \autoref{fig:JustNoiseConvergence}. 
-This is good evidence that a per time-series weighting function could benefit
-even out the convergence rate; and thus allow better determination between signals
-like this and low noise case from earlier.
-Thus we have now seen how the particle filter responds when the signal is completely
-random and low level, however there is also some possibility that the signal will
-be random, yet active. Thus one more test is necessary; time series with no 
-underlying signal (as far as responding stimuli) but with enough noise to 
-actually be considered a signal. 
+The data shows that the parameters did really not converge
+\autoref{fig:JustNoiseConvergence}.
+The peaks never even reached 1\% difference
+(\autoref{fig:PreprocessedNoiseOnly}) so  the signal  stayed 
+well within the range of $0.005$, the standard deviation of the weighting function.
+Note that the residuals
+were actually lower than the residuals in the low noise simulation from \autoref{sec:SimLowNoise}
+and the parameter estimates were extremely consistent across 11 runs. 
+The low residual was caused by the overall
+signal being significantly smaller than any previous simulation.
+From these results it would seem that lack of convergence could be
+a differentiating factor from a signal with an actual signal; however,
+the next section casts doubt on this possibility. 
 
 %NO SIGNAL, VERY HIGH NOISE
 \subsection{Pure Noise, High Magnitude}
 \label{sec:PureNoiseHighMag}
-To determine how the particle filter will respond to active, yet unrelated
-portions of the brain, in this section random data will again be used, but
-with even higher standard deviations. To simulate this case another
-pure noise signal was generated using a $\sigma_x$ of $.1$ and a $\sigma_y$ of $0.05$.
+To determine how the particle filter responds to active, yet unrelated
+portions of the brain, this section repeats the previous with much higher
+noise peaks. To simulate this case another
+pure noise signal was generated using $\sigma_x$ of $.1$ and $\sigma_y$ of $0.05$.
 
-As before, the convergence all seems to follow a similar path, leaving almost no
-variance in the estimated time series (\autoref{fig:fits_noiseonly_high}). Now, however
-the peaks are comparable to peaks in a real timeseries. Interestingly the algorithm
-suffered from almost constant particle deprivation, meaning that the heuristic
+As before, the convergence all follows a similar path, leaving almost no
+variance in the estimated time series (\autoref{fig:fits_noiseonly_high}). 
+Interestingly the algorithm suffered from almost constant particle deprivation, 
+meaning that the heuristic
 for rescuing the particle filter from particle deprivation, discussed in
-\autoref{sec:Resampling} in fact was working against the proper course of action. 
- The proper course of action in this case would be for the particle filter to fail,
- since no particle can really properly estimate a random sequence. When this mechanism
- was removed, all 11 runs stopped due to particle deprivation (all weights hit zero). 
- The problem with allowing particle deprivation to occur is that it can \emph{rarely}
- occur if the prior happens to not be dense enough in the area of the solution. Thus,
- there is an issue of false positives vs. false negatives. A middle ground, such as 
- allowing deprivation to occur if the recovery mechanism has already triggered once
- may be an acceptable compromise, however it would be difficult to strike the 
- right balance. Instead, for the purposes here, I depend on other methods, described
- later, evaluate if the results were reasonable or not. 
+\autoref{sec:Resampling}, in fact was working against the proper course of action. 
+The proper course of action in this case would be for the particle filter to fail,
+since no particle can really properly estimate a random sequence. When this mechanism
+was removed, all 11 runs stopped due to particle deprivation (all weights hit zero). 
+The problem with allowing particle deprivation to occur is that it can \emph{rarely}
+occur if the prior happens to miss the solution. 
 
 \begin{figure}[H]
 \centering
-\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/fits_noiseonly_high}
-\caption{Fits to the non-active, high noise signal. Note that the line is thick because all
-the fits overlap. All 11 fitted lines.}
+\includegraphics[clip=true,trim=6cm 2cm 5cm 3cm,width=15cm]{images/fits_noiseonly_high}
+\caption{BOLD estimates for the non-active, high noise signal. Note the line thickness is caused
+by all the estimates overlapping.}
 \label{fig:fits_noiseonly_high}
 \end{figure}
 
@@ -527,79 +595,10 @@ the fits overlap. All 11 fitted lines.}
 %\label{fig:JustNoiseConvergenceLarge}
 %\end{figure}
 
-From \autoref{fig:justbignoise_fit_0} it is clear that, despite the fact that the input 
-is competely detached from the signal, a non-zero response by the particle filter does
-lead to decreased residual. This is primarily due to the preprocessing which forces the signal to
-have a non-zero mean. While this scheme could create a type of artificial activation for
-the particle filter, in reality the residual will still be less than if the signal were left
-with zero mean, and the particle filter stayed flat. At best the particle filter will 
-over-smooth, estimating a centerline to noisy signal. In such a case
-the residual will be the same as the alternative, although the mutual information will 
-be different.
-
-\subsection{Very Long FMRI Run}
-\begin{figure}[H]
-\centering
-\includegraphics[clip=true,trim=1cm 0cm 0cm 0cm, width=17cm]{images/long_converge}
-\caption{BOLD estimate converging for a very long FMRI run.}
-\label{fig:long_converge}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[clip=true,trim=1cm 0cm 0cm 0cm, width=17cm]{images/long_converge_500}
-\caption{BOLD estimate converging for a very long FMRI run, first 500 seconds.}
-\label{fig:long_converge_500}
-\end{figure}
-
-\begin{table}[t]
-\centering
-\begin{tabular}{|c | c  c  c  c  c  c  c |}
-\hline 
-  & $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$ \\
-\hline 
-\rowcolor[gray]{.8} $\tau_0$  & 0.0004334 & 5.2e-05 & -6.95e-05 & 3.3e-06 & 0.0001628 & -2e-07 & 0.0001798 \\
-$\alpha$                      & 5.2e-05 & 7.9e-06 & -6.4e-06 & 3e-07 & 1.04e-05 & -1.92e-05 & 2.58e-05 \\
-\rowcolor[gray]{.8} $E_0$     & -6.95e-05 & -6.4e-06 & 1.9e-05 & -9e-07 & -4.11e-05 & -3.24e-05 & -3.92e-05 \\
-$V_0$                         & 3.3e-06 & 3e-07 & -9e-07 & 1e-07 & 1.1e-06 & 9e-07 & 1e-06 \\
-\rowcolor[gray]{.8} $\tau_s$  & 0.0001628 & 1.04e-05 & -4.11e-05 & 1.1e-06 & 0.0001589 & 0.0001518 & 7.88e-05 \\
-$\tau_f$                      & -2e-07 & -1.92e-05 & -3.24e-05 & 9e-07 & 0.0001518 & 0.0002966 & -2.34e-05 \\
-\rowcolor[gray]{.8} $\epsilon$& 0.0001798 & 2.58e-05 & -3.92e-05 & 1e-06 & 7.88e-05 & -2.34e-05 & 0.0001966 \\
-\hline 
-\end{tabular}
-\caption{Covariance matrix of the parameters at the end of a run.}
-\label{tab:long_cov} 
-\end{table}
-
-\begin{tabular}{|c | c  c  c  c  c  c  c |}
-\hline 
-  & $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$ \\
-\hline 
-\rowcolor[gray]{.8} $\tau_0$  & & & & & & & \\
-$\alpha$                      & 0.889884 & & & & & & \\
-\rowcolor[gray]{.8} $E_0$     & -0.7661395 & -0.5230723 & & & & & \\
-$V_0$                         & 0.6244049 & 0.4239271 & -0.7964774 & & & & \\
-\rowcolor[gray]{.8} $\tau_s$  & 0.6204843 & 0.295425 & -0.7481253 & 0.3440421 & & & \\
-$\tau_f$                      & -0.0004259 & -0.3966881 & -0.4314174 & 0.1962954 & 0.6990775 & & \\
-\rowcolor[gray]{.8} $\epsilon$& 0.6158116 & 0.6558179 & -0.641348 & 0.2846632 & 0.4458142 & -0.097079 & \\
-\hline 
-\end{tabular}
-\begin{table}[t]
-\centering
-
-\caption{Correlation of parameter estimates at the end of a run.}
-\label{tab:long_corr} 
-\end{table}
-
-To test how well the particle filter would do given much more data, and 
-determine the inherent variance in the model parameters, a very long simulation
-with randomly generated impulse input was created. The preprocessed timeseries
-and the final estimate are shown in \autoref{fig:long_preprocessed}, 
- and the final covariance matrix of the parameters is shown in \autoref{tab:long_cov}.
-Note that even though the
-BOLD response converged well (\autoref{fig:long_converge}),
-the parameters still have significant correlation (\autoref{tab:long_corr}). This points
-to a certain amount of indeterminability of the parameters. 
+Because of the preprocessing steps, the pure noise signal can look markedly like a real
+signal (\autoref{fig:justbignoise_fit_0}). The preprocessing also causes the particle filter
+to converge to a non-zero response in spite of the fact that the input does not correlate
+with the stimuli in any way (\autoref{fits_noiseonly_high}). 
 
 \subsection{Single Voxel Review}
 \label{sec:SingleVoxelReview}
