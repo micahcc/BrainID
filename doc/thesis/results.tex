@@ -84,7 +84,8 @@ noisy input to the actual particle filter algorithm.}
 
 To begin the single voxel simulation; I generated a signal using the following parameters:
 $\{\tau_0 = 1.45, \alpha = 0.3, E_0 = 0.47, V_0 = 0.044, \tau_s = 1.94, \tau_f = 1.99, \epsilon = 1.8\}$.
-These same parameters were used for all the tests in this chapter. The noise realizations were
+These same parameters were used for all the tests in this chapter (except when the signal
+consists entirely of noise). The noise realizations were
 then generated based on a measurement noise ($\sigma_y$) of $0.001$ and a drift standard deviation
 ($\sigma_x$) of $0.0005$. The measurement noise as well as the steps of the drift
 were taken to be Gaussian.
@@ -258,14 +259,13 @@ generated from the estimated mean match the correct signal very well
 For the high noise simulation, the exact same procedure was followed as in \autoref{sec:SimLowNoise}
 except that $\sigma_y$ and $\sigma_x$ were set to $0.01$ and $0.005$,
 respectively. This is an order of magnitude higher than the previous tests, and indeed the
-noise appears to dominate the output, as seen in \autoref{fig:HighNoiseRealization}.  
-As before, the results of preprocessing are helpful in identifying the reason for
-bias in the estimated output signal; thus the preprocessed signals are shown in 
-\autoref{fig:PreprocessedHighNoise}. The results of the particle filter
+noise appears to dominate the output, as \autoref{fig:HighNoiseRealization} shows. 
+The preprocessed signals are shown in 
+\autoref{fig:PreprocessedHighNoise} and the results of the particle filter
 for each of the eleven runs are shown in \autoref{fig:FitComparisonHighNoise}. 
-The preprocessing again led the estimate
+The noise and preprocessing again led the estimate
 to somewhat higher activation levels, and it would appear that the subtleties of
-different time constants are being lost due to the noise. 
+different time constants are being lost in the noise. 
 
 \begin{table}[t]
 \centering
@@ -308,72 +308,68 @@ to be more drift than the 20 measurements per knot could fit, which explains run
 prolonged increase at 170 seconds. Interestingly, run 1 and run 2 emphasize
 different aspects of the signal. Run 2 had a much better match to the 
 peaks, when compared to the true signal, yet run 1 matched the post-stimulus
-undershoot better. Its worth noting that the post-stimulus undershoots
-here are much shorter than the observed prolonged post-stimulus undershoot
-discussed in \autoref{sec:Post Stimulus Undershoot}. 
-Despite the rather significant amount of noise, the ultimate results are 
+undershoot better. Despite the rather significant amount of noise, the ultimate results are 
 actually quite good. \autoref{tab:HighNoiseResults} shows
 the error  for all eleven runs, and highlights the two runs analyzed 
 in \autoref{fig:ConvergenceRuns1} and \autoref{fig:ConvergenceRuns2}.
 
-\begin{figure}
+\begin{figure}[H]
 \subfigure[$\tau_0$, $\alpha$, $E_0$, $V_0$, Run 1]
 {\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run5_1}}\\
 \end{figure}
 
-\begin{figure}
+\begin{figure}[H]
 \subfigure[$\tau_s$, $\tau_f$, $\epsilon$, $v$, Run 1] 
 {\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run5_2}}\\
 \end{figure}
 
-\begin{figure}
+\begin{figure}[H]
 \subfigure[$q$, $s$, $f$, $BOLD$, Run 1 ]
 {\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run5_3}}
 \caption{Converging histogram for parameters during run 1, as in \autoref{fig:NoiseComparisonJustTwo}.}
 \label{fig:ConvergenceRuns1}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[H]
 \subfigure[$\tau_0$, $\alpha$, $E_0$, $V_0$, Run 2]
 {\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run6_1}}\\
 \end{figure}
-\begin{figure}
+
+\begin{figure}[H]
 \subfigure[$\tau_s$, $\tau_f$, $\epsilon$, $v$, Run 2] 
 {\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run6_2}}\\
 \end{figure}
-\begin{figure}
+
+\begin{figure}[H]
 \subfigure[$q$, $s$, $f$, $BOLD$, Run 2 ]
 {\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run6_3}}
 \caption{Converging histogram for parameters during run 2, as in \autoref{fig:NoiseComparisonJustTwo}.}
 \label{fig:ConvergenceRuns2}
 \end{figure}
 
-There are a number of interesting convergence properties of the
-particle filter when more noise is present, as both \autoref{fig:ConvergenceRuns1} and
-\autoref{fig:ConvergenceRuns2} show. The particle filter seems to converge
-significantly faster; as points tend to be further out on the weighting function. This
-also causes significantly more resampling which is the explanation for the percieved
-jumps in resolution that occur from time to time. Here it is clear that the mode and
-the mean will not be substantially different. Because of the increased noise, its likely
-that the weighting function is not sufficiently wide to account for the measurement noise.
-
-The parameters arrived at for all ten filter runs are shown in \autoref{tab:HighNoiseResults}.
-Clearly the additional noise have resulted in much more sporadic results. This is often the 
-result when the particle filter converges too fast, a result of the weighting functions' variance
-being smaller than the measurement noise ($0.005$ vs. $0.01$). The error
-certainly suffers due to this effect.
+The particles converged much faster when more noise was present (\autoref{fig:ConvergenceRuns1}, 
+\autoref{fig:ConvergenceRuns2}). This also caused significantly more resampling which 
+is the explanation for the percieved jumps in the histograms. 
+The parameters arrived at for all 11 runs are shown in \autoref{tab:HighNoiseResults}.
+Clearly the additional noise has resulted in much more sporadic results. This is often the 
+result when the particle filter converges too fast, in this case the result of the 
+weighting functions' variance being smaller than the measurement noise ($0.005$ vs. $0.01$). 
+The error suffers due to this effect.
 
 %NO SIGNAL, LOW NOISE
-\subsection{Pure-Noise, low magnitude}
+\subsection{Pure Noise, Low magnitude}
 \label{sec:PureNoiseLowMag}
-The next two single-voxel tests force the particle filter to attempt to learn a noise-only
+The next two single-voxel tests forced the particle filter to attempt to learn a noise-only
 time series. In this first test the noise used is the same as that from the \autoref{sec:SimHighNoise},
-$\sigma_x = 0.01, \sigma_y = 0.005$. The parameters will be set the same as well, but the
-stimulus/input neuronal efficiency ($\epsilon$) will be set to 0. In effect it is a region of the brain for
-which no visual stimulus induces activity. The question then is how the
-particle filter will respond to signal that does not correlate with the input, and how
-the output may be differentiated from a time series that does. The time series'
-are shown in \autoref{fig:NoiseOnly}, the preprocessed versions are shown in \autoref{fig:PreprocessedNoiseOnly}.
+$\sigma_x = 0.01, \sigma_y = 0.005$. The parameters were set the same as well, but the
+stimulus neuronal efficiency ($\epsilon$) was set to 0. In effect it simulates a region 
+of the brain that does respond to the stimulus. The importance of this test is
+to determine how the
+particle filter responds to a signal that is not correlated with the input. Additionally,
+this test determines how the output may be differentiated from the output of the previous
+two sections. The time series'
+are shown in \autoref{fig:NoiseOnly} and the preprocessed versions are shown 
+in \autoref{fig:PreprocessedNoiseOnly}.
 The line fits are shown in \autoref{fig:fits_noiseonly}. 
 
 \begin{figure}[H]
@@ -452,10 +448,10 @@ Same run as \autoref{fig:justnoise_fit_0}}
 \label{fig:JustNoiseConvergence}
 \end{figure}
 
-The data shows that the parameters have not taken any visible turns into
-unrealistic territory; individual parameters will not be a distinguishing factor
-in determining the validity of the model. Additionally the residual 
-also appears to be lower than the residual of the low noise simulation from earlier. 
+The data shows that the parameters did not converge to any unreasonable
+values; individual parameters could not be used as a distinguishing factor
+to determine the validity of the model. Additionally the residual 
+also appears to be lower than the residual of the low noise simulation from \autoref{sec:SimLowNoise}. 
 The precision with which the convergence occurred is actually the best seen in any
 simulation.  The reason for the low error is that the overall
 signal is significantly smaller than any other simulation in this thesis.
