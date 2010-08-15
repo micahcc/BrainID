@@ -120,14 +120,13 @@ were taken to be Gaussian. The actual signal delivered into the particle filter
 was the result of preprocessing to remove drift, as described in 
 \autoref{sec:Methods Preprocessing}. 
 
-To test how well the particle filter would do plenty of data, and 
+To test how well the particle filter would do with plenty of data, and 
 determine the inherent variance in the model parameters, a very long simulation
-with randomly generated impulse stimulus was created. The preprocessed timeseries
+with randomly generated impulse stimuli was created. The preprocessed timeseries
 and the final estimate are shown in \autoref{fig:long_converge};
 the final covariance matrix of the parameters is in \autoref{tab:long_cov}.
 Note that even though the BOLD response converged well (\autoref{fig:long_converge}),
 the parameters still have significant correlation (\autoref{tab:long_corr}). 
-This is in spite of the noisy input (green line in \autoref{fig:long_converge}).
 Based on the histograms in the first 500 seconds, the parameters converged to
 their final values well before the end.
 Although this is only a single test, the correlation (\autoref{tab:long_corr}) 
@@ -137,6 +136,8 @@ consists entirely of impulses, the best parameters are not one particular
 set, but a spectrum. Note that the correlation is in parameters whose priors
 are completely independent. It is possible that varying the type of input could
 give improved results, although informal tests did not show significant difference.
+In spite of the noisy input (green line in \autoref{fig:long_converge}), the estimates
+of the BOLD were actually very close to the true (noise-free) BOLD signal.
 
 %LOW NOISE SECTION, with a signal
 \subsection{Simulation with Low Noise}
@@ -197,22 +198,40 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 \label{tab:LowNoiseResults} 
 \end{table}
 
-The following tests all use less data, on par with the average length of an FMRI
-session.  For this low noise case, the eleven realizations are shown in 
+\begin{figure}
+\subfigure[Converging histogram for $\tau_0$, $\alpha$, $E_0$, and $V_0$ of the first run, low noise simulation.]
+{\includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=16cm]{images/converge_lownoise1}}\\
+
+\subfigure[Converging histogram for $\tau_s$, $\tau_f$, $\epsilon$, and $v$ of the first run, low noise simulation.]
+{\includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=16cm]{images/converge_lownoise2}}\\
+\end{figure}
+
+\begin{figure}
+\subfigure[Converging histogram for $q$, $s$, $f$, and $BOLD$ of the first run, low noise simulation.]
+{\includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=16cm]{images/converge_lownoise3}}
+\caption{Convergence of the first run from \autoref{tab:LowNoiseResults}. The bars represent
+a histogram, where darker bars indicate more particles in that bin.}
+\label{fig:LowNoiseHist}
+\end{figure}
+
+The following tests all use less data (shorter sequences), on par with 
+the average length of an FMRI session. For this low noise case 
+$(\sigma_y = 0.001,\ \sigma_x = .0005)$, the eleven realizations are shown in 
 \autoref{fig:LowNoiseRealization}.
 The bias introduced into the signal by preprocessing 
 could have some effect on the resulting fit; thus the preprocessed signal is compared
 to the true BOLD signal in \autoref{fig:PreprocessedLowNoise}.
 Overall, \autoref{fig:PreprocessedLowNoise} shows that the preprocessing was 
-effective at removing trends. The spline did struggle to match the signal 
+effective at removing trends, although the spline did struggle to match the signal 
 torward the end. This slight drift effect was caused by the final median being 
 well above the base
-level. The estimated BOLD signal is compared to the true BOLD signal in \autoref{fig:FitComparisonLowNoise}.
-At several time points the particle filter successfully filtered the input. 
+level. 
+At several time points the particle filter successfully filtered the input
+(\autoref{fig:FitComparisonLowNoise}).
 For instance, in the last 30 seconds
 the estimates stay flat in spite of the preprocessed data drifting off. By
 this point, the algorithm had converged sufficiently to prevent such inexplicable movement.
-A similar circumstance occurs at 100 seconds in. A combination of 
+A similar circumstance occurs at around 100 seconds in. A combination of 
 noise and preprocessing biased the results toward a peak signal above the true peaks. 
 The final parameter sets are shown in 
 \autoref{tab:LowNoiseResults}. 
@@ -251,22 +270,6 @@ will be referencing these values.
 %\caption{Typical Covariance matrix of the parameters at the end of a run.}
 %\label{tab:CovSim} 
 %\end{table}
-
-\begin{figure}
-\subfigure[Converging histogram for $\tau_0$, $\alpha$, $E_0$, and $V_0$ of the first run, low noise simulation.]
-{\includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=16cm]{images/converge_lownoise1}}\\
-
-\subfigure[Converging histogram for $\tau_s$, $\tau_f$, $\epsilon$, and $v$ of the first run, low noise simulation.]
-{\includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=16cm]{images/converge_lownoise2}}\\
-\end{figure}
-
-\begin{figure}
-\subfigure[Converging histogram for $q$, $s$, $f$, and $BOLD$ of the first run, low noise simulation.]
-{\includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=16cm]{images/converge_lownoise3}}
-\label{fig:LowNoiseHist}
-\caption{Convergence of the first run from \autoref{tab:LowNoiseResults}. The bars represent
-a histogram, where darker bars indicate more particles in that bin.}
-\end{figure}
 
 There are a few important results in the final parameter estimates (which 
 are the mean of the particle filter's posterior distribution). First, the time constants vary 
@@ -432,8 +435,9 @@ in \autoref{fig:ConvergenceRuns1} and \autoref{fig:ConvergenceRuns2}.
 \label{fig:ConvergenceRuns2}
 \end{figure}
 
-The particles converged much faster when more noise was present (\autoref{fig:ConvergenceRuns1}, 
-\autoref{fig:ConvergenceRuns2}). This also caused significantly more resampling which 
+The particles converged much faster when more noise was present (\autoref{fig:LowNoiseHist} vs. 
+\autoref{fig:ConvergenceRuns1}, \autoref{fig:ConvergenceRuns2}). 
+This also caused significantly more resampling which 
 is the explanation for the percieved jumps in the histograms. 
 The parameters arrived at for all 11 runs are shown in \autoref{tab:HighNoiseResults}.
 Clearly the additional noise resulted in much more sporadic results. This is often the 
