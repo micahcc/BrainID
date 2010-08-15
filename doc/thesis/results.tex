@@ -56,7 +56,7 @@ the observed signal. As discussed in \autoref{sec:PureNoiseLowMag} and
 the particle filter may still converge. Because of this problem, it was 
 necessary to investigate methods of identifying false positives.
 
-\subsection{Ideal FMRI Run}
+\subsection{Ideal Analysis}
 \label{sec:VeryLongSim}
 
 \begin{figure}
@@ -208,7 +208,7 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 
 \begin{figure}
 \subfigure[Converging histogram for $q$, $s$, $f$, and $BOLD$ of the first run, low noise simulation.]
-{\includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=16cm]{images/converge_lownoise3}}
+{\label{fig:LowNoiseHistc} \includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=16cm]{images/converge_lownoise3}}
 \caption{Convergence of the first run from \autoref{tab:LowNoiseResults}. The bars represent
 a histogram, where darker bars indicate more particles in that bin.}
 \label{fig:LowNoiseHist}
@@ -313,7 +313,7 @@ consistently performed well
 %(\autoref{fig:FitComparisonLowNoise}).
 
 %HIGH NOISE SECTION, with a signal
-\subsection{High Noise}
+\subsection{Simulation with High Noise}
 \label{sec:SimHighNoise}
 %\begin{figure}
 %\includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=15cm]{images/realization_highnoise}
@@ -413,7 +413,7 @@ in \autoref{fig:ConvergenceRuns1} and \autoref{fig:ConvergenceRuns2}.
 
 \begin{figure}[H]
 \subfigure[$q$, $s$, $f$, $BOLD$, Run 1 ]
-{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run5_3}}
+{\label{fig:ConvergenceRuns1c} \includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run5_3}}
 \caption{Converging histogram for parameters during run 1, as in \autoref{fig:NoiseComparisonJustTwo}.}
 \label{fig:ConvergenceRuns1}
 \end{figure}
@@ -430,7 +430,7 @@ in \autoref{fig:ConvergenceRuns1} and \autoref{fig:ConvergenceRuns2}.
 
 \begin{figure}[H]
 \subfigure[$q$, $s$, $f$, $BOLD$, Run 2 ]
-{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run6_3}}
+{\label{fig:ConvergenceRuns2c} \includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run6_3}}
 \caption{Converging histogram for parameters during run 2, as in \autoref{fig:NoiseComparisonJustTwo}.}
 \label{fig:ConvergenceRuns2}
 \end{figure}
@@ -438,12 +438,15 @@ in \autoref{fig:ConvergenceRuns1} and \autoref{fig:ConvergenceRuns2}.
 The particles converged much faster when more noise was present (\autoref{fig:LowNoiseHist} vs. 
 \autoref{fig:ConvergenceRuns1}, \autoref{fig:ConvergenceRuns2}). 
 This also caused significantly more resampling which 
-is the explanation for the percieved jumps in the histograms. 
-The parameters arrived at for all 11 runs are shown in \autoref{tab:HighNoiseResults}.
-Clearly the additional noise resulted in much more sporadic results. This is often the 
+is the explanation for the perceived jumps in the histograms. 
+Clearly the additional noise resulted in much more sporadic results (\autoref{tab:HighNoiseResults}). 
+This is often the 
 result when the particle filter converges too fast, in this case the result of the 
 weighting function's variance being smaller than the measurement noise ($0.005$ vs. $0.01$). 
 The error clearly suffers due to this effect (\autoref{tab:HighNoiseResults}).
+Note that neither Run 1 or Run 2 estimated the underlying state well (\autoref{fig:ConvergenceRuns1c}
+and \autoref{fig:ConvergenceRuns2c}), whereas
+in the previous test the particle filter was extremely successful in this area (\autoref{fig:LowNoiseHistc}).
 
 %NO SIGNAL, LOW NOISE
 \subsection{Pure Noise, Low magnitude}
@@ -551,9 +554,9 @@ the next section casts doubt on this possibility.
 \subsection{Pure Noise, High Magnitude}
 \label{sec:PureNoiseHighMag}
 To determine how the particle filter responds to active, yet unrelated
-portions of the brain, this section repeats the previous with much higher
-noise peaks. To simulate this case another
-pure noise signal was generated using $\sigma_x$ of $.1$ and $\sigma_y$ of $0.05$.
+portions of the brain, this section repeats the test of \autoref{sec:PureNoiseLowMag} 
+with much higher noise peaks. To simulate this case another
+pure noise signal was generated using $\sigma_x$ of $0.1$ and $\sigma_y$ of $0.05$.
 
 As before, the convergence all follows a similar path, leaving almost no
 variance in the estimated time series (\autoref{fig:fits_noiseonly_high}). 
@@ -565,7 +568,12 @@ The proper course of action in this case would be for the particle filter to fai
 since no particle can really properly estimate a random sequence. When this mechanism
 was removed, all 11 runs stopped due to particle deprivation (all weights hit zero). 
 The problem with allowing particle deprivation to occur is that it can \emph{rarely}
-occur if the prior happens to miss the solution. 
+occur in good data if the prior distribution does not cover a solution. 
+
+Because of the preprocessing steps, the pure noise signal can look markedly like a real
+signal (\autoref{fig:justbignoise_fit_0}). The preprocessing causes the particle filter
+to converge to a non-zero response in spite of the fact that the input does not correlate
+with the stimuli in any way (\autoref{fig:fits_noiseonly_high}). 
 
 \begin{figure}[H]
 \centering
@@ -599,36 +607,31 @@ by all the estimates overlapping.}
 %\label{fig:JustNoiseConvergenceLarge}
 %\end{figure}
 
-Because of the preprocessing steps, the pure noise signal can look markedly like a real
-signal (\autoref{fig:justbignoise_fit_0}). The preprocessing also causes the particle filter
-to converge to a non-zero response in spite of the fact that the input does not correlate
-with the stimuli in any way (\autoref{fits_noiseonly_high}). 
-
 \subsection{Single Voxel Review}
 \label{sec:SingleVoxelReview}
-
 The first step in determining the validity of a model is to provide some order of quality
-to rate the results by. Unfortunately, because of the variability in the signal levels the
-raw residual cannot perform this task. As demonstrated by \autoref{sec:PureNoiseLowMag},
+to rate the results by. Unfortunately, because of the variability in the signal levels, the
+raw residual cannot perform this task. As demonstrated by \autoref{tab:NoiseOnlyResults},
 a low residual does not necessarily indicate a good fit. 
 Therefore, instead I  normalized the signal based on a value proportional to
 the magnitude of the signal. Considering the tendency of FMRI noise to have large unexplainable
 peaks and troughs, rather than using MAX and MIN values to estimate the scale of the 
 signal, I used a robust estimator of 
-scale; the Median-Absolute-Deviation (MAD). This is an estimator of the standard
+scale; the Median-Absolute-Deviation (MAD) which is defined in equation \autoref{eq:mad}.
+This is an estimator of the standard
 deviation, and thus a good estimator of the scale of the input signal. 
 The normalized residual values are 
-shown in \autoref{tab:SignleVoxelActivationComparison}. A second potential method of 
+shown in \autoref{tab:SingleVoxelActivationComparison}. A second potential method of 
 gauging performance is mutual information. Mutual information is a method of measuring
 the interdependence of two random variables. If two signals are truly independent,
-then the mutual information will be zero. Although ideally suited to Bernoulli 
-random variables where there are a finite number of options, by using histograms
+then the mutual information will be zero. Although ideally suited to discrete
+distributions, by using histograms
 it is possible to derive a joint distribution of two signals. The algorithm for 
 mutual information is based on that joint distribution:
 \begin{equation}
 \sum_{x,y} p(x,y) \log_2\left(\frac{p(x,y)}{p(x)p(y)}\right)
 \end{equation}
-Unfortunately the number of bins causing bias in the output, thus to correct for this,
+Unfortunately the number of bins causes bias in the output, thus to correct for this,
 I subtracted the estimated bias:
 \begin{equation}
 \text{bias} = \frac{N_{bins}}{2Nlog(2)}
@@ -640,8 +643,7 @@ This leads to 36 total bins in the joint, so the bias is:
 \begin{equation}
 \text{bias} = \frac{18}{N}
 \end{equation}
-After calculating the empirical mutual information, I subtracted the bias from
-the estimated mutual information. Note that this can result in negative mutual
+ Note that subtracting the bias can result in negative mutual
 information, which should not technically be possible; so any negative mutual information
 was taken as 0.
 
@@ -682,63 +684,67 @@ max &  0.98892  &0.5458  & 0.18339   &1.18996 & 0.06326  &  1.43196 & 0.03163  &
 \end{tabular}
 \caption{Mutual Information and the normalized $\sqrt{MSE}$, 
     for signal/noise configurations.}
-\label{tab:SignleVoxelActivationComparison} 
+\label{tab:SingleVoxelActivationComparison} 
 \end{table}
 
 
-Comparing the results of \autoref{sec:SimHighNoise} and \autoref{sec:PureNoiseHighMag}, 
+Comparing the results of \autoref{sec:SimHighNoise} and \autoref{sec:PureNoiseHighMag} 
+in \autoref{tab:SingleVoxelActivationComparison}, 
 distinguishing between these cases with ether normalized residual or mutual information
 is not clear cut. While the average mutual information is in fact more than 10 times
-greater than the average mutual information in the two non-signal cases, the maximum
+the average mutual information in the two non-signal cases, the maximum
 mutual information of the low noise/no signal case exceeds the minimum M.I. of the high noise/signal
 case. The Low Noise/ signal determination is easier to make; given
 the minimum mutual information is above $.8$ and the maximum normalized residual is below $.6$.
 However, it is worth noting that the worst case scenario  for mutual information (maximum) in the
 low noise/no signal case does not concur with the worse case (minimum) normalized residual. 
-There is no reason why this has to be the case, it is beneficial. In
+There is no reason why this has to be the case, but it is beneficial. In
 other words, if it were necessary to make a statement that
-a particular voxel active or inactive; the accuracy would improve if both techniques
-were used with loose restrictions, but a voxel would only be considered active if the
-voxel passed both tests. 
+a particular voxel were active or inactive; the accuracy would improve if both techniques
+were used with loose restrictions.
 
 There were two primary purposes of these tests. First, given the nature of monte-carlo
 techniques it is important to ensure consistency of results. Although the parameter
-sets were somewhat inconsistent, the quality of the fit was actually quite consistent
-across eleven runs. The second purpose was of course to determine how the particle 
-filter responded to different signal to noise ratios. 
+sets were inconsistent, the quality of the fit was actually quite consistent
+over eleven runs. The second purpose was of course to determine how the particle 
+filter responded to different signal to noise ratios. From \autoref{sec:SimLowNoise},
+the particle filter performed extremely well in filtering out nonsensical measurements.
 
 \section{Multi-voxel Simulation}
 \label{sec:Multi-voxel Simulation}
-To test the usefulness of the particle filter for I used a modified version of the FSL tool 
+To test the usefulness of the particle filter on a larger scale, I used a modified version 
+of the FSL tool 
 POSSUM to generate an entire FMRI image from a parameter map. The parameter map was generated
 by taking an existing activation map and assigning discrete parameter sets to each region.
 The result was a four dimensional (length x width
 x height x parameter) image with spatially varying parameters. Possum was then modified
 to take a parameter map and generate activation levels depending on the parameters at that
-point. The patch for POSSUM will be made available. As an unfortunate side effect of 
-not using Possums' original activation scale, I manually added 750 to the total level of
-simulated Possum images. This is because the BOLD \% difference levels were in the range
-of 50 - 100\% from the base, about 5 times as large as they should have been. Ultimately
-this has no effect on the quality of the simulation and should not effect the 
-underlying parameters (other than perhaps $\epsilon$ and $V_0$). 
-Also worth noting is that the noise level was set to an SNR of 20, due to changes in the 
-program the true signal-to-noise ratio was much lower, as seen in the fit in \autoref{fig:simslicefit1}.
+point. The patch for POSSUM will be made available. As side effect of 
+not using POSSUM's original activation scale, the BOLD \% difference levels 
+were in the range of 50 - 100\% from the base, about 5 times as large as they 
+should have been. I therefore manually added 750 to the total level of
+simulated POSSUM images, putting results into the 1 - 5\% range. This 
+had no effect on the quality of the simulation and should not effect the 
+underlying parameters (other than $V_0$). 
+Also worth noting is that the noise level was set to an SNR of 20, due to changes 
+in the program the true signal-to-noise ratio was much lower, as seen in the 
+fit in \autoref{fig:simslicefit1}.
 
+%todo where is this from?
 \begin{figure}
 \centering
-\includegraphics[width=15cm]{images/simslice_noise}
-\caption{A single time-series fit in the simulated slice.}
+\includegraphics[clip=true,trim=5cm 2cm 4.5cm 2cm,width=15cm]{images/simslice_noise}
+\caption{A single time-series fit in the simulated slice. Preprocessed BOLD is
+the noisy response generated by POSSUM.}
 \label{fig:simslicefit1}
 \end{figure}
 
-For each time-series in the simulated FMRI image, the final \emph{static} parameters were saved
-into a parameter map. This parameter map may then be compared to the map used to generate the 
-simulated data; additionally a new simulation using the calculated parameters may also be 
+For each time-series in the simulated FMRI image, the final parameters were saved
+into a parameter map. This parameter map could then be compared to the map used to generate the 
+simulated data; additionally a new simulation using the calculated parameters could also be 
 generated to test the difference in BOLD levels between the real parameters and the
-estimated ones. Since it is the parameters are far from orthogonal 
-(\cite{Deneux2006}), its possible that two sets of parameters are functionally equivalent,
-despite large difference. This way, a quantitative difference between the two parameter sets 
-was found.
+estimated ones. Since the parameters were far from orthogonal 
+\cite{Deneux2006}, this provided a quantitative difference between the two parameter sets.
 
 \begin{figure}[H]
 \centering
@@ -804,21 +810,21 @@ than $0.14$}
 \label{fig:slicesim_hist3}
 \end{figure}
 
+
+%todo quantify the number of false positives, add extra Heatmap removing false positives
 The histograms again demonstrate that a single point estimate of the parameters 
-is elusive for the current model. However the data clearly show the power
+is elusive for this set of parameters. However the data clearly show the power
 of the particle filter at identifying regions of activation; which is usually
 performed with statistical parametric maps. The thresholds applied to this
 slice, both for mutual information and residuals is arbitrary, and needs further
 research. Tighter thresholds removes the false positives present
-in the images at the cost of false negatives. Interestingly the false 
-positives present in the Mutual Information
+in the images at the cost of false negatives. As noted in \autoref{sec:SingleVoxelReview}
+the false positives present in the Mutual Information
 map are different from those in the residual map. This furthers the argument from
-\autoref{sec:SingleVoxelReview} for combining the two metrics to 
-increase power. Although
+for combining the two metrics to increase power. Although
 at first glance it would appear that there are false negatives in the 
 \autoref{fig:simslice_hm}; this is
 not actually the case. POSSUM simulates different tissues, and white matter
 does not typically  have a BOLD response. This is why there are holes in regions
-2 and 3. These results certainly indicate that the particle filter is effective
-at regressing against a noisy signal. Therefore the next section moves forward
-with real FMRI data. 
+2 and 3. These results indicate that the particle filter is effective
+at regressing against a noisy signal. 

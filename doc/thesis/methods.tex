@@ -220,6 +220,7 @@ as \autoref{fig:PreprocessedLowNoise} and \autoref{fig:PreprocessedHighNoise} sh
 
 \begin{equation}
 y_{\text{gain}, 0:K} = 1.4826\text{median}_{i=0:K}(y_i - \text{median}(y_{0:K}))
+\label{eq:mad}
 \end{equation}
 
 A serious concern when adding and subtracting arbitrary values to 
@@ -269,7 +270,7 @@ predicts the actual measurements.
 There are quite a few options when using a particle filter; those
 options will be discussed in this section.
 
-\section{Prior Distribution}
+\subsection{Prior Distribution}
 \label{sec:PriorDist}
 For the BOLD model described in \autoref{sec:BOLD Physiology}, several
 different studies have endeavored to calculate parameters. The results
@@ -384,7 +385,7 @@ and depending on the complexity of the system or desired accuracy
 they could be changed; however, they seem to be the minimum that
 will give consistent results.
 
-\section{Resampling}
+\subsection{Resampling}
 \label{sec:Resampling}
 The algorithm for resampling is described in \autoref{sec:Particle Filter Resampling}.
 When regularizing, the Gaussian kernel is convenient,
@@ -407,7 +408,7 @@ reasons, resampling was only performed when the $N_{eff}$ dropped below
 caused by a large spike in error, resampling was only performed when 
 two consecutive low ($<50$) $N_{eff}$'s were found. 
 
-\section{Choosing $P(y_k | x_k)$}
+\subsection{Choosing $P(y_k | x_k)$}
 \label{sec:Methods Weighting Function}
 The choice of $P(y_k | x_k)$ is the second most important design decision, behind 
 the prior. While the conventional choice for an unknown distribution is the 

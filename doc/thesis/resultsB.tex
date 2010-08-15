@@ -1,82 +1,29 @@
-%\chapter{Real Data}
-%Finally, we also performed inference on a real FMRI scan. The scanner we used...
-%... more specifics...
-
-% TODO include single?
-%Before performing tests on a full image, I the particle filter
-%on regions deemed active and inactive by statistical parametric mapping
-%(SPM). This served the purpose of adjusting the priors as well as the 
-%preprocessing based on real world signals. This was actually done before
-%the simulations, and then results were carried back the simulations 
-%to check consistency.
-%After work adjusting parameters, most importantly the weighting function and the 
-%priors, particle filter was applied to every voxel in an FMRI image.
-%The results of this large scale analysis was a parameter map which was
-%then used to calculate normalized square-root MSE image. 
-%
-%\section{Single-Voxel Analysis}
-%The choice of a prior, as discussed previously, is extremely important. While a
-%prior may have the potential to give good results, being a monte-carlo algorithm
-%there is the possibility for inconsistencies. Thus, increasing the variance
-%of the time-constants may allow additional flexibility, it will also cause
-%additional model variance. Before running on a full volume I adjusted the 
-%prior to ensure that the same input would give the same output 100 times in a 
-%row. While this may seem like a given, with a random drawing of the prior,
-%this can be difficult. Case in point, the exact same algorithm run twice
-%with the time constants all having standard deviations of $.35$ resulted in two
-%very different fits, shown in \autoref{fig:badfit_param1}.
-%
-%\begin{figure}
-%\subfigure{\includegraphics[clip=true,trim=6cm 2cm 6cm 3.5cm,width=17cm]{images/badfit_param1}}
-%\subfigure{\includegraphics[clip=true,trim=6cm 2cm 6cm 3.5cm,width=17cm]{images/goodfit_param1}}
-%\caption{The same priors gave rise to both fits.}
-%\label{fig:badfit_param1}
-%\end{figure}
-%
-%For this reason, I actually lowered the standard deviations of the time
-%constants to prevent over-smoothing. This resulted in more consistent,
-%though potentially slightly worse fits, two examples of which are 
-%shown in \autoref{fig:param2_var}. 
-%
-%\begin{figure}
-%\subfigure{\includegraphics[clip=true,trim=6cm 2cm 6cm 3.5cm,width=17cm]{images/param2a}}
-%\subfigure{\includegraphics[clip=true,trim=6cm 2cm 6cm 3.5cm,width=17cm]{images/param2b}}
-%\caption{A poor fit, using the same parameters as }
-%\label{fig:param2_var}
-%\end{figure}
-%
-%todo: stats of the 100 fits?
-%
-%\section{Single Time-Series Simulation}
-%
 \chapter{Real Data}
 \label{sec:RealData}
-Modeling the BOLD response is of course not of much use if does not work for
-real FMRI.  Although this algorithm will hopefully lead to more novel methods 
-of analysis, the standard use for modeling the BOLD signal is to locate activation.
-Activation is defined as areas where the input is the primary drive
-for the BOLD response, as opposed to intermediate factors controlling it. 
-Once areas where the BOLD 
-model may be accurately estimated are found, integrating the model will allow for accurate
-estimation of the state between measurements, which could then be used for more 
-advanced analysis, for instance of areas that are being driven by other brain regions.
-It all begins with localizing the first activation regions in the
-chain. Therefore this section compares the output of the particle filter 
-with conventional SPM. 
+The ultimate goal of modeling the BOLD response is to estimate parameters
+in real FMRI data. The most basic use of modeling the BOLD signal is to
+locate activation. A voxel is considered active when the stimulus 
+is the primary drive for the BOLD response. This is in contrast to 
+most voxels which have are controlled by intermediate or complete unrelated factors. 
+Inactive regions cannot be modeled because their input is unknown, therefore
+parameter estimates in such regions are impossible. 
+Because SPM is the de facto standard for localizing activation,
+this section compares its output with that of the particle filter.
 
-The data described in this section are fundamentally different in several 
-ways. SPM preprocesses the image by spatially smoothing the FMRI image (in this section 
-SPM8 was used with an $8mm x 8mm x 8mm$ Gaussian kernel), whereas
-this is not done in the particle filter algorithm. Additionally, a spline
-was used to de-trend, rather than SPM8's high pass filter (with a cut
-off based on a globally estimated autocorrelation). Thus the preprocessing pipelines 
-are different; but the output of SPM8 is also different. Whereas SPM outputs
-a t-statistic for each voxel, the output 
-of the particle filter is a posterior probability distribution of the parameters
-at every voxel. To validate the quality of the particle filter results 
-it is necessary to compare the both the location and the fit calculated by the particle filter
-with SPM's location and fit.
+%todo check SPM smoothing parameter
+Note that SPM must pre-process the image with a spatial smoothing 
+filter. For this work SPM8 was smoothed with a
+$8\text{mm} \times  8\text{mm} \times 8\text{mm}$ Full-Width Half Maximum
+(FWHM) Gaussian kernel.  
+Additionally, SPM8 applied a high pass filter (with a cut
+off based on a globally estimated autocorrelation). Thus the preprocessing pipeline
+of SPM is very different from that of the particle filter. SPM8 also outputs
+a T-statistic for each voxel, whereas the 
+particle filter's primary output is a posterior probability distribution of the parameters
+at every voxel. To validate the quality of the particle filter, the results 
+were compared with SPM, both in terms of the location and the fit.
 
+%todo check scanner information/stimulus
 \section{FMRI Configuration}
 For the FMRI data discussed in \autoref{sec:RealData}, tests were 
 performed on a right handed volunteer using a Gradient EPI sequence
@@ -89,6 +36,7 @@ in to image to settle out. The timing of the flashes are shown in
 \autoref{tab:flashes}, with time 0 corresponding to the beginning of
 the 10th TR (so 9 images were dropped). 
 
+%todo the stimulus
 \begin{table}[t]
 \centering
 \begin{tabular}{|c || c |}
@@ -105,15 +53,16 @@ Single Flash Times & Double Flash Times \\
 \label{tab:flashes} 
 \end{table}
 
-After dropping the first 9 volume, each of the remaining volumes was
-co-registered with the first volume in time. At this point the SPM method
+%spm options
+After dropping the first 9 volumes, each of the remaining volumes was
+co-registered with the first. At this point the SPM method
 diverges from the experimental method. For the particle filter, detrending 
 was then applied as discussed in \autoref{sec:Detrend} and the resulting
 data was processed with the particle filter. To generate the SPM output
-in this section, the co-registered data was passed through a high pass
-filter with a cut off of (TODO). The data was then smoothed spatially 
-with a Gaussian kernel (FWHM 8x8x8 voxels). A Statistical Parametric Map
-was then generated using SPM8. All settings used in SPM8 were the defaults
+in this section, the co-registered data was spatially smoothed,
+and then filtered with an adaptive cut off (which is built into the
+SPM analysis). For the SPM analysis, the Canonical HRF was used
+and model derivatives were included. All settings used in SPM8 were the defaults
 for analyzing FMRI data.
 
 \section{Results}
