@@ -14,7 +14,7 @@ this section compares its output with that of the particle filter.
 Note that SPM must pre-process the image with a spatial smoothing 
 filter. For this work SPM8 was smoothed with a
 $8\text{mm} \times  8\text{mm} \times 8\text{mm}$ Full-Width Half Maximum
-(FWHM) Gaussian kernel.  
+(FWHM) Gaussian kernel. 
 Additionally, SPM8 applied a high pass filter (with a cut
 off based on a globally estimated autocorrelation). Thus the preprocessing pipeline
 of SPM is very different from that of the particle filter. SPM8 also outputs
@@ -23,35 +23,40 @@ particle filter's primary output is a posterior probability distribution of the 
 at every voxel. To validate the quality of the particle filter, the results 
 were compared with SPM, both in terms of the location and the fit.
 
-%todo check scanner information/stimulus
+%scanner info?
 \section{FMRI Configuration}
 For the FMRI data discussed in \autoref{sec:RealData}, tests were 
-performed on a right handed volunteer using a Gradient EPI sequence
-on a 1.5T GE scanner with a 2.1s TR. Slices were 5mm thick and echo
-time was (TODO). The subject was then presented with either a single or
-double flash, at randomly dispersed time points over the course of
-5 minutes, 10 seconds. The FMRI began 18.9 seconds
+performed on a right handed volunteer using a GE SIGNA HDx 1.5 Tesla
+scanner with a single echo EPI sequence. Slice spacing was
+5mm, and pixel sizes were 3.75mm.  Repitition Time was 2.1s, 
+Echo Time was 40 ms and the imaging frequency was set to $63.854$MHz.
+The image resolution was $64 \times 64 \times 28$. 
+The subject was presented with either a single or
+double flash and was asked to respond with a right handed
+or lefted handed finger tap, respectively. The FMRI began 18.9 seconds
 before the beginning of the experiment, to allow for transients 
-in to image to settle out. The timing of the flashes are shown in 
-\autoref{tab:flashes}, with time 0 corresponding to the beginning of
+in to image to settle out. The timing of the flashes are shown 
+below with time 0 corresponding to the beginning of
 the 10th TR (so 9 images were dropped). 
 
-%todo the stimulus
-\begin{table}[t]
-\centering
-\begin{tabular}{|c || c |}
-\hline 
-Single Flash Times & Double Flash Times \\
-\hline 
-.7 & 2\\
-2.7 & 21\\
-5.7 & 28\\
-12.7 & 52\\
-\hline 
-\end{tabular}
-\caption{Timing of single and double flashes.}
-\label{tab:flashes} 
-\end{table}
+The timing of the single flashes were:
+
+1.706, 11.944, 17.063, 18.769, 34.125, 39.244, 44.231, 47.644, 49.350, 
+61.294, 64.706, 66.413, 69.825, 71.531, 73.238, 76.650, 80.063, 
+90.169, 96.994, 110.644, 117.469, 120.881, 130.988, 132.694, 154.875, 
+158.288, 161.700, 165.113, 168.525, 176.925, 178.631, 183.750, 190.575, 
+204.225, 205.931, 211.050, 216.038, 222.863, 226.275, 236.513, 248.456, 
+255.281, 258.563, 263.681, 273.919, 277.331, 287.569, 292.688, 294.394, 
+299.381
+
+and the timing of the double flashes were:
+
+0.131, 6.825, 20.475, 27.300, 35.831, 52.763, 54.469, 59.588, 86.756, 
+91.875, 107.231, 108.938, 112.350, 114.056, 115.763, 119.175, 126.000, 
+134.400, 136.106, 141.225, 144.638, 156.581, 159.994, 166.819, 171.806, 
+175.219, 185.456, 188.869, 202.519, 212.756, 217.744, 221.156, 227.981, 
+229.688, 233.100, 243.338, 245.044, 246.750, 250.163, 261.975, 270.506, 
+272.213, 280.744, 282.450, 289.275, 296.100, 301.088, 304.500
 
 %spm options
 After dropping the first 9 volumes, each of the remaining volumes was
@@ -62,7 +67,8 @@ data was processed with the particle filter. To generate the SPM output
 in this section, the co-registered data was spatially smoothed,
 and then filtered with an adaptive cut off (which is built into the
 SPM analysis). For the SPM analysis, the Canonical HRF was used
-and model derivatives were included. All settings used in SPM8 were the defaults
+and model time derivatives were included although not in the contrast
+vector. All other settings used in SPM8 were left at default
 for analyzing FMRI data.
 
 \section{Results}
@@ -140,18 +146,19 @@ areas that have been missed because of the smoothing.
 \label{fig:hm_canon_pfilter_mi}
 \end{figure}
 
+%37-14-7
 \begin{figure}
 \subfigure[Particle Filter]{\label{fig:comp1pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/1_pfilter_37_14_7}}\\
 \subfigure[SPM]{\label{fig:comp1spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/1_spm_37_14_7}}
-\caption{Section 1, Estimated vs. Actual BOLD response}
+\caption{Section 1, Estimated vs. Actual BOLD response. T-Score: $10.71$, Mutual Information: $0.33$, Residual: $0.72$.}
 \label{fig:comp1}
 \end{figure}
 
- 
+%34-12-7 
 \begin{figure}
 \subfigure[Particle Filter]{\label{fig:comp2pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/2_pfilter_34_12_7}}\\
 \subfigure[SPM]{\label{fig:comp2spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/2_spm_34_12_7}}
-\caption{Section 2, Estimated vs. Actual BOLD response}
+\caption{Section 2, Estimated vs. Actual BOLD response. T-Score: $6.97$, Mutual Information: $0.04$, Residual: $1.02$.}
 \label{fig:comp2}
 \end{figure}
 
@@ -180,9 +187,9 @@ present in the signal that is not being explained by the particle filter,
 In both preprocessed time-series the input is extremely noisy, yet by the normalized residual 
 the response is good. This is an example of a false positive from the residual metric. 
 
-The fourth voxel (\autoref{fig:comp4}selected for anyalysis had a relatively high residual, and was not picked
-for activation by SPM. On the other hand, the mutual information was above the threshold
-for the image (todo). It is simple to see why the residual was not acceptable in this case.
+The fourth voxel (\autoref{fig:comp4}) selected for anyalysis had a relatively high residual, and was not picked
+for activation by SPM. The mutual information was only $0.06$
+for the image. It is simple to see why the residual was not acceptable in this case.
 At the same time, the peaks do seem to correlate with the measurement peaks. Regardless,
 this is an example of a  false positive from the mutual information metric. 
 
@@ -195,17 +202,19 @@ actual measured signal declines. This is an indication that the BOLD signal is n
 being driven by the input. It is likeley that the cause of the activation in this reason is
 not true activation, but recieved from surrounding active regions through spatial smoothing. 
 
+%23-21-7
 \begin{figure}
 \subfigure[Particle Filter]{\label{fig:comp3pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/3_pfilter_23_21_7}}\\
 \subfigure[SPM]{\label{fig:comp3spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/3_spm_23_21_7}}
-\caption{Section 3, Estimated vs. Actual BOLD response}
+\caption{Section 3, Estimated vs. Actual BOLD response. T-Score: $2.85$, Mutual Information: $-0.03$, Residual: $0.81$.}
 \label{fig:comp3}
 \end{figure}
 
+%33-30-4
 \begin{figure}[H]
 \subfigure[Particle Filter]{\label{fig:comp4pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/4_pfilter_26_15_7}}\\
 \subfigure[SPM]{\label{fig:comp4spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/4_spm_26_15_7}}
-\caption{Section 4, Estimated vs. Actual BOLD response}
+\caption{Section 4, Estimated vs. Actual BOLD response. T-Score: $0.50$, Mutual Information: $0.06$, Residual: $0.95$. }
 \label{fig:comp4}
 \end{figure}
 
@@ -213,7 +222,7 @@ not true activation, but recieved from surrounding active regions through spatia
 \begin{figure}
 \subfigure[Particle Filter]{\label{fig:comp5pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/5_pfilter_29_9_13}}\\
 \subfigure[SPM]{\label{fig:comp5spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/5_spm_29_9_13}}
-\caption{Section 5, Estimated vs. Actual BOLD Response}
+\caption{Section 5, Estimated vs. Actual BOLD Response. T-Score: $4.17$, Mutual Information: $0.02$, Residual: $1.14$.}
 %\caption{Section 5, Below threshold in both particle filter checks, but above threshold in SPM. Mutual Information of $0.0212822$, T-Value
 %of $4.17399$ and $MSE$ of $1.14171$.}
 \label{fig:comp5}
@@ -223,7 +232,7 @@ not true activation, but recieved from surrounding active regions through spatia
 \begin{figure}
 \subfigure[Particle Filter]{\label{fig:comp6pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/6_pfilter_36_17_19}}\\
 \subfigure[SPM]{\label{fig:comp6spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/6_spm_36_17_19}}
-\caption{Section 6, Estimated vs. Actual BOLD Response}
+\caption{Section 6, Estimated vs. Actual BOLD Response. T-Score: $2.49$, Mutual Information: $.34$, Residual: $0.78$.}
 %\caption{Section 6, MI of $0.335504$, T Value: $2.49154$, normalized error: $0.783348$ Not visible in SPM}
 \label{fig:comp6}
 \end{figure}
@@ -232,7 +241,7 @@ not true activation, but recieved from surrounding active regions through spatia
 \begin{figure}
 \subfigure[Particle Filter]{\label{fig:comp7pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/7_pfilter_29_26_1}}\\
 %\subfigure[SPM]{\label{fig:comp7spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/5_spm_25_34_25}}
-\caption{Section 6, Estimated vs. Actual BOLD Response}
+\caption{Section 6, Estimated vs. Actual BOLD Response. T-Score: $1.32$, Mutual Information: $0.11$, Residual: $1.10$.}
 %\caption{Section 7, $.1052$ in MI, $1.31534$ in SPM (which left this flat) and $1.09992$ normalized $\sqrt{MSE}$. Only visible in MI map. }
 \label{fig:comp7}
 \end{figure}
