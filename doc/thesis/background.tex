@@ -1,4 +1,4 @@
-\chapter{Alternative Techniques}
+\chapter{Alternate Methods}
 \label{sec:Prior Works}
 Currently, FMRI is used to determine the location of responses
 to stimuli. The method of finding activation is discussed in 
@@ -14,7 +14,7 @@ in this chapter.
 \label{sec:Statistical Parametric Mapping}
 Although not strictly the same as parameter calculation from 
 FMRI, activation detection is similar and worth discussing. Estimation of 
-parameters may be considered generalization of the idea 
+parameters is a generalization of the idea 
 of activation detection.
 Given the popularity of Statistical Parametric Mapping (SPM) 
 it is important to draw a distinction between it and the methods proposed
@@ -30,12 +30,12 @@ positives. This is called the multiple comparison problem. Traditional
 Bonferroni Correction
 deals with this by requiring each test to pass with P
 value of $\frac{0.05}{10000}$. The probability of 
-a single false positive would then $0.05$. Unfortunately this leads to unrealistically
+a single false positive would then be $0.05$. Unfortunately this leads to unrealistically
 low p-values; so low that it would be impossible for any biological system to satisfy. To
 compensate, a Gaussian kernel is applied to smooth the image. This has
 the benefit of reducing the noise variance and 
 decreasing the effective number of independent measurements. Because
-the number of independent measurements is smaller, Bonferroni correction
+the number of \emph{independent} measurements is smaller, Bonferroni correction
 can theoretically be applied with a lower scaling factor than
 the original voxel count \cite{Worsley2004}. As side effect of this 
 extreme smoothing, a single voxel activation is very hard to detect.
@@ -48,7 +48,7 @@ mean is calculated separately for non-stimulus and stimulus time intervals.
 A classic $t$-test may then be applied, giving the probability that the
 distributions actually have the same mean. Because of the correlated
 noise present in FMRI (\autoref{sec:Introduction Noise}), it is necessary
-to apply some sort of high-pass filter to the data. Without applying
+to apply a high-pass filter to the data. Without applying
 such a filter, P values must be set extraordinarily high to prevent
 false positives \cite{Smith2007}. Because the BOLD response is known
 not to fit a square wave this method is rarely used
@@ -58,9 +58,9 @@ are often more used, as discussed in
 
 \subsection{General Linear Model}
 \label{sec:Current Techniques General Linear Model}
-The most common FMRI analysis technique is called SPM, though there
-are more advanced versions than the simple square wave
-method discussed in \autoref{sec:Square Wave}. Hierarchal
+The most common FMRI analysis tool is SPM, which generates
+statistical parametric map using more advanced methods than a simple
+square wave. Hierarchal
 Models are one important improvement that allows researchers
 to combine data across multiple runs, patients and stimuli
 (see \cite{Hofmann1997} for more on Hierarchical Modeling). 
