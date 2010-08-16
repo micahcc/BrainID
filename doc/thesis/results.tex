@@ -716,12 +716,12 @@ Although not perfect, both methods do provide a decent metric.
 \begin{figure}
 \centering
 \subfigure[Region labels for simulated slice.]{
-\includegraphics[height=9.5cm]{images/simregions.png} \label{fig:simslice_mask} }
-\subfigure[Grey matter map for simulate region.]{\includegraphics[height=9.5cm]{images/sim_gm}}
+\includegraphics[height=9cm]{images/simregions.png} \label{fig:simslice_mask} }
+\subfigure[Grey matter map for simulate region.]{\includegraphics[height=9cm]{images/sim_gm}}
 \subfigure[Residual Map. Scale is Normalized error. Lower (yellow) is better.]
-{\label{fig:simslice_hm_res} \includegraphics[height=9cm]{images/sim_hm}}
+{\label{fig:simslice_hm_res} \includegraphics[height=8cm]{images/sim_hm}}
 \subfigure[Mutual Information Map. Scale is bits. Higher (yellow) is better.]
-{\label{fig:sim_hm_mi} \includegraphics[height=9cm]{images/sim_hm_mi}}
+{\label{fig:sim_hm_mi} \includegraphics[height=8cm]{images/sim_hm_mi}}
 \caption{Comparison of activation with greymatter, parameter regions.}
 \label{fig:simslice_hm}
 \end{figure}
@@ -827,9 +827,9 @@ Mutual Information map, although some active voxels were also removed.
 The histograms again demonstrate that a single point estimate of the parameters 
 is elusive for this set of parameters. However the data clearly show the power
 of the particle filter at identifying regions of activation.
- The thresholds applied to this
-slice, both for mutual information and residuals are arbitrary. Applying a
-threshold is helpful for visualization, but is rarely useful for further analysis.
+The thresholds applied to this slice, both for mutual information and 
+residuals somewhat arbitrary. Applying a
+threshold is helpful for visualization but is rarely useful for further analysis.
 As noted in \autoref{sec:SingleVoxelReview},
 the false positives present in the Mutual Information
 map are different from those in the residual map. This furthers the argument 

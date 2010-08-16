@@ -10,10 +10,15 @@ incapable of learning the model. However, given the high quality
 of BOLD estimates, this is almost certainly not the case. The other 
 possible explanation is that the given stimulus is not sufficiently
 varied to bring out all the properties of the system. While it is 
-possible that this is the case, it is unlikely that even the best 
-stimulus sequence could differentiate all the parameters. The fact
-that \autoref{sec:VeryLongSim}, which used randomly spaced impulses,
-still had a high correlation definitely indicates that the parameters
+possible that this is the case, it is unlikely that any
+stimulus sequence could differentiate all the parameters. 
+Its also extremely intesting that the histograms of parameters' mean
+approach the width of the prior, even when the particle filter converges
+proprerly to far thinner distributions. Its possible the prior 
+distribution is far wider than 
+it needs to be. Finally, the fact that \autoref{sec:VeryLongSim}, which 
+used randomly spaced impulses,
+still had a high correlation further indicates that the parameters
 are ill-defined. 
 
 Thus there is little doubt that the parameters of the BOLD model are under
@@ -176,9 +181,11 @@ distribution. The prior distribution used in this work is listed in \autoref{tab
 and is based on the findings of Friston et al. \cite{Friston2000}. Unfortunately, that
 result depended on a quadratic approximation (Volterra Series) which has
 not been extensively tested (at least not in a published work). 
-Additionally, the current prior is
-based only around the BOLD output, which is why it is good at generating
-estimates of the BOLD signal, but weak in estimating parameters. 
+This is in additoin to the fact that the parameters are ill-defined, and
+thus the parameters found in Friston et al. are most likely far too wide.
+The prior is also
+based completely on the BOLD output, which is why it is good at generating
+estimates of the BOLD signal, but weak at estimating parameters. 
 The best solution would be to have
 in-vivo estimates of the actual parameters, although this
 is unlikely to happen. Instead, better estimates could be found
@@ -189,22 +196,24 @@ parameters, reducing the mobility of the parameters.
 
 Another major area for improvement is removing drift. 
 A large number of detrending methods were tested, but every method was in some way limited. 
-One viable method that could be utilized, given the right experimental design, is detrending
-based on areas of low activity. This has the advantage that it wouldn't require an arbitrary
-constant to be added to the pre-processed signal for the BOLD model to fit properly.
-The disadvantage of this approach is that it could hide long fall times by normalizing them
-out. It also requires periodic breaks in the stimulus, which could reduce value of those
-samples for fitting purposes. 
+One potentially viable method that could be utilized, given the right 
+experimental design, is detrending based on intervals of low activity. This 
+has the advantage that it wouldn't require an arbitrary
+constant to be added to the pre-processed signal for the
+BOLD model to fit properly.  The disadvantage of this approach is 
+that it could hide long fall times by normalizing them
+out. It also requires periodic breaks in the stimulus, 
+which could reduce value of those samples for fitting purposes. 
 
 In terms of dealing with drift, linearizing is another possibility.
-This would use the delta between measurements for fitting rather than the 
+This would use the delta between measurements for fitting, rather than the 
 direct value. This has the advantage of not requiring detrending and thus 
-gives nearly raw data to the particle filter
-for processing. The effectiveness of this method depends directly on the type of stimulus.
+gives nearly raw data to the particle filter for processing. 
+The effectiveness of this method depends directly on the type of stimulus.
 In a test with rapid impulse stimuli, this could be extremely effective because
-the DC level has minimal data; conversely prolonged flat level levels make this less effective.
-In tests I found that large drift-low white noise
-type signals performed much better with a linearization approach, as one might expect. 
+the DC level has minimal data; conversely prolonged flat levels make this less effective.
+In tests I found that large drift/low white noise
+type signals performed much better with a linearization approach.
 For the stimulus sequence used in \autoref{sec:RealData}, the results tended to be worse
 than using spline detrending.
 
@@ -218,10 +227,10 @@ the brain, and there is no way to actively measure noise without also knowing
 the underlying signal. One possible solution is having the particle filter automatically
 set the weight based on the total particle weight, or on the prevalence of resampling.
  
-\subsection{Experimental Changes}
+\section{Experimental Design Improvements}
 \label{sec:Sideways Measurements}
-One definite way of improving the results of the particle filter is additional
-measurements. While increasing the sample rate of FMRI scanners may
+One definite way of improving the results of the particle filter is through
+additional measurements. While increasing the sample rate of FMRI scanners may
 not be possible, simultaneous measurements of volume and flow is
 possible, albeit at 9T in a cat \cite{Hu2009}. Just one of those measurements
 though would be extremely powerful when incorporated into the BOLD
