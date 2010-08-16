@@ -71,13 +71,13 @@ Next, its assumes that input cannot directly
 influence the output, which in the case of the BOLD signal is a good assumption.
 Finally, because the only difference between the members of $X(t)$ and 
 $\Theta$ is an update function, from now on $X$ will encapsulate
-$\Theta$. The assumptions now allow for a simplified version of the
+$\Theta$. The assumptions allow for a simplified version of the
 state space equations:
 
 \begin{eqnarray}
-\dot{X}_k = f(X_{k-1}, u_k, \nu_x)
+\dot{X}_k &=& f(X_{k-1}, u_k, \nu_x)
 \label{eq:stateass}\\
-Y_k = g(X_k, \nu_y)
+Y_k &= &g(X_k, \nu_y)
 \label{eq:measass}
 \end{eqnarray}
 

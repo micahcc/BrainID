@@ -241,13 +241,13 @@ The final parameter sets are shown in
 Note that throughout the results, unless otherwise specified,
 the term \emph{residual} will be defined as the square root of the mean squared residual, 
 \begin{equation}
-\text{Residual} = \sqrt{\sum (\hat{y}_k - y_k)^2}
+\text{Residual} = \sqrt{\frac{1}{N}\sum (\hat{y}_k - y_k)^2}
 \end{equation}
 where $\hat{y}_k$ is the estimated output at time $k$ and $y_k$ is the preprocessed output
 sampled at time $k$. Note the subtle distinction between this and what will be 
 termed the \emph{error} which is defines as 
 \begin{equation}
-\text{Error} = \sqrt{\sum (\hat{y}_k - Y_k)^2}
+\text{Error} = \sqrt{\frac{1}{N}\sum (\hat{y}_k - Y_k)^2}
 \end{equation}
 where $\hat{y}_k$ is the estimated output, and $Y_k$ is the underlying (free of noise)
 signal. Throughout this section and the next, the terms error and residual
