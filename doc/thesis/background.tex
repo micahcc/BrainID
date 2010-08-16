@@ -179,7 +179,7 @@ was used to generate parameter estimates \cite{Friston2002b}.
 Although this method was restricted to regions determined to be 
 active by the GLM, there is no reason it could not be applied more broadly.
 Because there is no closed 
-form solution to the ballon model, it impossible to 
+form solution to the balloon model, it impossible to 
 calculate the Jacobian matrix $\frac{\partial Y}{\partial \theta}$. Thus 
 Friston et al. approximated the partial using a Volterra Kernel \cite{Friston2002b}. 
 At each step of the Expectation-Maximization (EM) algorithm, 
@@ -297,11 +297,11 @@ these would have to converge in less than 1000 simulations (which is far less th
 The Unscented Kalman Filter (UKF) is a powerful Gaussian/Bayes filter that attempts
 to model the posterior distribution of dynamical systems as a multivariate
 Gaussian. The Unscented Kalman Filter (UKF) generalizes the Extended Kalman
-Filter by allowing the state update to be a function, $g$,
+Filter by allowing the state update and output functions to be arbitrary functions.
 
 \begin{eqnarray}
 X(t) &=& g(u(t), X(t-1))\\
-Y(t) &=& h(X(t)
+Y(t) &=& h(X(t))
 \end{eqnarray}
 
 In order to estimate the posterior at $t$, a deterministic set of sigma points 
@@ -328,14 +328,14 @@ the distribution, $X(t)$. When this occurs, every step from  $X(t+1)$
 to $X(t)$ will introduce additional
 error in the posterior distribution. Furthermore, it is not really known what 
 sort of underlying distributions may exist in such a mixed biological,
-mechanical, chemical system such as the brain. Assuming the parameters
-all to be Gaussian could be a gross error. On the other hand, for
-small variances and short time steps the Gaussian distribution is a good 
-fit, and so in some cases the Unscented Kalman Filter could work quite
-well. The assumption of Gaussianity is what allows
+mechanical, chemical system such as the brain.
+ The assumption of Gaussianity is what allows
 the UKF to estimate the posterior using only the first and second moments;
 however, if this assumption is violated significant error will result.
-
+ On the other hand, for
+small variances and short time steps the Gaussian distribution is a good 
+fit, and so in some cases the Unscented Kalman Filter could work quite
+well. 
 \begin{table}[t]
 \centering
 \begin{tabular}{|c || c |}
@@ -369,10 +369,10 @@ the degree of nonlinearity present in the system. The parameters used are
 shown in \autoref{tab:steptable}
 
 In order to drive the system without input I intentionally set $s_t$ a non-steady
-state, but physiologically plausible, value. The value of $u$ is left at zero 
+state, but physiologically plausible, value. The value of $u$ was left at zero 
 the entire time, so the 
 system would decay naturally (see \autoref{sec:BOLD Physiology})
-\autoref{fig:transp1s} shows the results when the system after the
+\autoref{fig:transp1s} shows the results after the
 system ran for 100 milliseconds. 
 The Q-Q plots fit will with a Gaussian, demonstrating that at this short
 time interval nonlinearities have not yet begun to effect the distribution.
@@ -409,62 +409,71 @@ the first two moments, which is the basis for the UKF, is not wise.
 In Riera et al. , a maximum
 likelihood method for innovation processes was used, as described by
 Ozakai \cite{Riera2003,Ozaki1994}. Ozaki used a similar construction to a 
-Kalman filter to filter nonlinear signals \cite{Ozakai1994}. 
-The method used in \cite{Riera2003} performs maximum likelihood on
-the innovations rather than the absolute signal levels. 
+Kalman filter on nonlinear signals \cite{Ozaki1994}. 
+The method used by Riera et al. used this method to perform maximum likelihood on
+the innovations rather than the absolute signal levels \cite{Riera2003}. 
 By using a Local Linearization Filter,
 innovation noise such as noise in $\dot{f}$ is turned into simple 
 Gaussian noise. This approach is useful when the DC portion of the signal is
 of no use; however, it depends greatly on the type of signal. I found that
 this method was not very effective for the BOLD signal, when I used it 
-with the particle filter approach discussed in the next chapter.
+with the particle filter approach discussed in the next chapter; although its
+effectiveness depended greatly on the stimulus.
 
-In \cite{Johnston2008}, a hybrid particle filter/gradient
+In Johnston et al., a hybrid particle filter/gradient
 descent algorithm was used to simultaneously derive the static and dynamic 
-parameters, (classically known as parameters and state variables, respectively).
-A particle filter is used to calculate the state variables at each
-time; then the estimated distribution of the particles is used to find
+parameters, (classically known as parameters and state variables, respectively)
+ \cite{Johnston2008}.
+A particle filter was used to calculate the state variables at each
+time; then the estimated distribution of the particles was used to find
 the most likely set of parameters that would give that distribution of state variables.
-This process is repeated until the parameters converge. Interestingly
-\cite{Johnston2008} comes to a very different set of parameter estimates as compared
-to the original \cite{Friston2000} estimates (\autoref{tab:Params}). In fact the results 
+This process was repeated until the parameters converged. Interestingly Johnston et al.
+came to a very different set of parameter estimates as compared
+to the original Friston et al. estimates (\autoref{tab:Params})
+\cite{Johnston2008, Friston2000}. In fact the results 
 are significantly different from virtually every other study. The most obvious discrepancy
 is the larger time constants, $\tau_f$, $\tau_s$ and $\tau_0$. 
 While of course this could be poor convergence of the algorithm, there is another other possibility.
 Unlike all the other methods mentioned, excepting the methods in \autoref{sec:Nonlinear Least Squares},
-the algorithm described in \cite{Johnston2008} does not depend on prior distributions.
+the algorithm described in Johnston et al. does not depend on prior distributions \cite{Johnston2008}.
 It is possible then that the bias toward the prior in other methods skewed their results. 
-While \cite{Johnston2008} is certainly in the minority; further exhaustive studies 
-of the parameters, using unbiased techniques may be called for. A further 
-comparison between the distributions found in \cite{Johnston2008} and 
-\cite{Friston2000} will be discussed in \autoref{sec:PriorDist}.
+While Johnston et al. is certainly in the minority; further exhaustive studies 
+of the parameters, using unbiased techniques may be called for \cite{Johnston2008}. A further 
+comparison between the distributions found in Johnston et al. and Friston et al. 
+will be discussed in \autoref{sec:PriorDist} \cite{Johnston2008, Friston2000}.
+
+In Vakorin et al., a combination of Genetic Algorithms and Simulated Annealing were
+used to estimate not only the parameters, but the true stimuli driving the BOLD
+signal. This addresses the inherent uncertainty of exactly where and when 
+stimuli actually get applied. Unfortunately this algorithm was extremely slow.
 
 \subsection{Previous Particle Filter Approaches}
-In \cite{Murray2008} a particle filter based approach was used to integrate
-the BOLD equations. The method used in that work focused primarily on estimating
+In a PhD thesis, Murray used a particle filter based approach was used to integrate
+the BOLD equations \cite{Murray2008}. The method used in that work focused primarily on estimating
 the BOLD output and state equations as a nonlinear stochastic differential 
-equation. The primary difference between \cite{Murray2008} and this work is that
-\cite{Murray2008} took the parameters as a given. Thus, differences in the BOLD output
+equation. The primary difference between that work and this is that
+Murray took the parameters as a given \cite{Murray2008}. Thus, differences in the BOLD output
 were taken to be primarily driven by stochastic changes in the underlying state
 equations. Because the parameters were not allowed to change, the estimate of 
 the BOLD signal was not very good. The fact that the
 differences in BOLD response cannot be explained solely by stochastic elements 
-is important, however. The particle filter library created
-in that work, $dysii$, forms the basis for the particle filter used in this work, 
-and was extremely well designed. The work also clearly presents the particle filter;
+is important, however. The filtering framework created
+in that work, dysii, forms the basis for the particle filter used in this work, 
+and was very designed. The work also clearly presents the particle filter;
 both its derivation and use. 
 
 \section{Conclusion}
 Currently there is no ideal solution to solving this system of nonlinear
 equations. Exhaustive search type methods such as those employed by
-\cite{Johnston2008} and \cite{Vakorin2007} have long
-run times even for a single voxel. While Volterra models are an interesting
+Johnston et al. and Vakorin et al. have long
+run times even for a single voxel \cite{Johnston2008, Vakorin2007}. 
+While Volterra models are an interesting
 solution,there have not yet been exhaustive tests to determine whether
 such approximations work well throughout state space. The most promising
 method of those reviewed here is the Kalman filter based method. It is
 able to maintain a fast runtime while still approaching the solution.
-While the reliance on a Gaussian estimate to the true posterior distribution could
-cause problems, some modifications could make it powerful. 
+The reliance on a Gaussian estimate to the true posterior distribution could
+cause problems however. 
 The particle filter method proposed in the next section bears a strong 
-resemblance to the unscented Kalman filter; albeit with more points estimating
-the posterior. 
+resemblance to the unscented Kalman filter; albeit without the Gaussian 
+assumptions. 

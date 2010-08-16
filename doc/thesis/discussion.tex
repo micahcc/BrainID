@@ -4,38 +4,43 @@
 % Overview of results
 %% Parameters under-constrained
 %% Output estimates good
-The results unequivocally show that the parameters of the BOLD model are under
-constrained. While unsurprising given the sensitivity analysis in \cite{Deneux2006},
-it is still an important limitation when calculating parameters. Thus, other methods
-that depend on a point estimate of the parameters, such as least squares 
-or kalman filters (which uses the first two moments) are limited. While estimates of
-the  BOLD signal may still be correct, the estimate
-of the underlying parameters and state variables are suspect. Similarly, as the
-histograms in \autoref{sec:Multi-voxel Simulation} and \autoref{sec:Real Data Parameter Estimates}
-show, using the mean to estimate parameters also makes little sense in the particle filter
-case. Attributing the variance of estimate to the underlying parameter distribution would
-also be a mistake; given that variance persisted even in simulated data. While parameters 
-definitely vary from person to person and cortex to cortex, the estimated distributions 
-in \autoref{sec:Real Data Parameter Estimates} are wider than the true underlying 
-distribution. For this reason and because of the nonlinear relation between
-parameters, any analysis should take the entire posterior estimate into account, 
-rather than relying on an idealized Gaussian. In this sense, particle filters represent
-an important step forward in BOLD parameter estimation. Representing
-the uncertainty in parameters as a Gaussian is insufficient; so using a particle filter
-or Bayesian estimate of the posterior is not simply an enhancement, but a necessary precaution.
+There are two possible, but unlikely causes for the large variance in
+parameter estimates. First, it could be that the particle filter is
+incapable of learning the model. However, given the high quality
+of BOLD estimates, this is almost certainly not the case. The other 
+possible explanation is that the given stimulus is not sufficiently
+varied to bring out all the properties of the system. This also is unlikely
+because of results in \autoref{sec:VeryLongSim} which used a random impulse
+stimulus sequence. The high correlation of the parameters in \autoref{sec:VeryLongSim},
+point to a significant trade off in parameters. 
 
-Although point estimates of parameters are not dependable estimates of the 
-true parameters, they still useful. Analysis of differences in parameters
-could be medically relevant for instance. Additionally, a single estimate for parameters is still able
-to form an accurate estimate of the BOLD signal. This trait bridges the gap with earlier types 
-of activation tests, such as the statistical
-parametric mapping. As the results in \autoref{sec:RealData} show, the heatmaps, especially
+Thus the results show that the parameters of the BOLD model are under
+constrained. While unsurprising given the sensitivity analysis by Deneux et al.,
+it is a notable conclusion \cite{Deneux2006}. Thus, other methods
+that depend on a point estimate of the parameters, such as least squares 
+or Kalman filters (which uses the first two moments) are limited. While estimates of
+the  BOLD signal may still be correct, the estimate
+of the underlying parameters and state variables cannot be described without using
+a joint probability distribution function. In this sense, particle 
+filters represent an important step forward in BOLD parameter 
+estimation. Representing uncertainty with a mean
+and variance is insufficient; so using a particle filter
+or Bayesian estimate of the posterior is not simply an enhancement, 
+but a necessary precaution.
+
+Because of the ill-defined nature of the parameters, the results 
+of Friston et al. may have been wider than true parameter distribution
+\cite{Friston2002}. Any algorithm that attempts to calculate parameters
+of the BOLD model should be run multiple times, to check for consistency.
+
+As the results in \autoref{sec:RealData} show, the heatmaps, especially
 those of mutual information, closely resembled the results of SPM. While the activation
-tests were more sensitive, there were some false positive, though at this point it is
-difficult to quantify. It is
-worth noting that certain enhancements could be useful in reducing false positives; for instance
-by using the maximum likelihood, or median of the final distribution.  Future work may 
-shed further light on these techniques. 
+tests were more sensitive, there were some additional false positives, 
+though at this problem is difficult to quantify. Regions with M.I. above 
+$0.15$ consistently fit the FMRI data well, and simulations showed that
+the particle filter performed extremely well in the face of significant
+noise. In sum, the estimated BOLD output remained consistent despite
+large swings in parameters.
 
 % Pros/Cons
 %% Cons
@@ -52,46 +57,40 @@ estimation. For this reason, there is no guarantee of optimality or even
 convergence for finite measurements. However, for the BOLD nonlinear ODE 
 this is less of a concern than it might first appear to be. For this
 particular problem there can be no guarantee of a global minimum, and although
-other techniques guarantee a local minimum, the particle filter doesn't settle 
-to one of these local minima because it can settle into multiple ones. This
-difference typifies the major difference between the particle filter and 
-competing approaches. 
+other techniques guarantee a local minimum, the particle filter in some
+sense can settle into multiple local minima. 
 
 One difficulty
-with the use of a particle filter with a finite number of datapoint is the calculation of a good
-weight function $P(y_k | x_k)$  that will converge reasonably quickly. If the weight
-function does not sufficiently differentiate particles, the final distribution will 
-no be significantly different from the prior distribution. On the other hand, if the 
-weight function is too thin, it will unfairly eliminate viable particles. Given sufficient
+with the use of a particle filter when given a finite number of measurements is finding
+a good weight function $P(y_k | x_k)$. This is more important for a finite
+number of measurements because $P(y_k | x_k)$ needs to converge in finite time.
+In spite of this potential problem, \autoref{sec:VeryLongSim} managed
+to converge in less than 500 seconds.  Given sufficient
 measurements it is better to let the algorithm take longer to converge, because the
-convergence will be better (more accurate). The particle filter takes longer
+convergence will be less prone to particle deprivation. The particle filter takes longer
 to run than Volterra approximation method from \autoref{sec:Background Linear Approximation};
 however, it is free from the uncertainty of whether a quadratic approximation is 
 sufficient for the BOLD model. 
 
-The particle filter certainly has significant advantages over other estimation procedures
+The particle filter also has advantages over other estimation procedures
 discussed in \autoref{sec:Prior Works}. The most important advantage is that it provides
-an estimate of the posterior probability, rather than a single estimate. While it is natural
-to want a simple estimate of parameters, such an estimate is impossible with this particular
-model. The results are more difficult to interpret, but this is a necessity. The fact that 
-the final distribution is not dependent on any particular distribution is also advantageous.
-Of particular note; the final distribution does not need to conform to any parametric
-distribution. While the particle filter was not fast for full brain calculations, its speed
+an estimate of the posterior probability, rather than a single estimate. While researchers
+often want a simple estimate of parameters, such an estimate is impossible with this particular
+model. The fact that the final distribution does not need to conform to a
+parametric distribution is also advantageous, given the nonlinearities in the system.
+While the particle filter took a day to calculate for full brain calculations, its speed
 was sufficient on a quad core machine to perform real time calculations of small regions
 (approximate run time .27 seconds per voxel-measurement). Today it would be possible
  to perform real time analysis of 10 voxels on an average quad core. The algorithm also scales
 well and does not require burdensome amounts of memory (approximately 11 megabytes). 
-For this reason this algorithm is perfect for extension to vector or video card
-based processors. 
 
 A more practical benefit with the particle filter is that it is mathematically
 simple. An understanding of Bayesian statistics is all that is necessary to understand
 how the particle filter works. This is in contrast to the Volterra based approach
-of \cite{Friston2000}, which is quite complex. Additionally very few assumptions
-are needed for the particle filter. It is a common problem in traditional statistics 
-for assumptions to be unrealistic which means the results may be invalid or at 
-least in question.  Fewer and more realistic assumptions mean that the particle 
-filter is more robust to unforeseen difficulties in FMRI data. 
+of, which can be quite complex. Additionally very few assumptions
+are needed for the particle filter; which reduces the risk of those assumptions
+being violated. Fewer and more realistic assumptions make the particle 
+filter more robust to unforeseen difficulties in FMRI data. 
 
 \chapter{Future Work}
 \label{sec:FutureWork}
@@ -121,6 +120,8 @@ algorithms could be strengthened by applying the latest technique rather than a
 spline. Third, the experiment itself may be modified to improve results.
 And the last method is improving the , by using a more
 advanced version.
+
+Collapse parameters
 
 \subsection{Prior Distribution}
 The prior distribution used in this work is listed in \autoref{tab:Prior}, 

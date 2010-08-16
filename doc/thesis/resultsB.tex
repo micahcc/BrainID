@@ -4,7 +4,7 @@ The ultimate goal of modeling the BOLD response is to estimate parameters
 in real FMRI data. The most basic use of modeling the BOLD signal is to
 locate activation. A voxel is considered active when the stimulus 
 is the primary drive for the BOLD response. This is in contrast to 
-most voxels which have are controlled by intermediate or complete unrelated factors. 
+most voxels which are controlled by intermediate or completely unrelated factors. 
 Inactive regions cannot be modeled because their input is unknown, therefore
 parameter estimates in such regions are impossible. 
 Because SPM is the de facto standard for localizing activation,
@@ -17,7 +17,7 @@ $8\text{mm} \times  8\text{mm} \times 8\text{mm}$ Full-Width Half Maximum
 Additionally, SPM8 applied a high pass filter (with a cut
 off based on a globally estimated autocorrelation). Thus the preprocessing pipeline
 of SPM is very different from that of the particle filter. SPM8 also outputs
-a T-statistic for each voxel, whereas the 
+a $t$-statistic for each voxel, whereas the 
 particle filter's primary output is a posterior probability distribution of the parameters
 at every voxel. To validate the quality of the particle filter, the results 
 were compared with SPM, both in terms of the location and the fit.
@@ -60,7 +60,7 @@ and the timing of the double flashes were:
 
 %spm options
 After dropping the first 9 volumes, each of the remaining volumes was
-co-registered with the first. At this point the SPM method
+co-registered with the new first volume. At this point the SPM method
 diverges from the experimental method. For the particle filter, detrending 
 was then applied as discussed in \autoref{sec:Detrend} and the resulting
 data was processed with the particle filter. To generate the SPM output
@@ -68,32 +68,34 @@ in this section, the co-registered data was spatially smoothed,
 and then filtered with an adaptive cut off (which is built into the
 SPM analysis). For the SPM analysis, the Canonical HRF was used
 and model time derivatives were included although not in the contrast
-vector. All other settings used in SPM8 were left at default
+vector. All other settings used in SPM8 were left at the default
 for analyzing FMRI data.
 
 \section{Results}
-The results from T-values from SPM8 are shown in \autoref{fig:hm_canon_spm} (threshold of
+The $t$-values from SPM8 are shown in \autoref{fig:hm_canon_spm} (threshold of
 4), and the results from 
 the particle filter are shown in \autoref{fig:hm_canon_pfilter} and \autoref{fig:hm_canon_pfilter_mi}.
 Note that the scales for all three images are different, because the metrics are different.
-SPM measures using T-Tests to determine the likelihood of a false positive. \autoref{fig:hm_canon_pfilter}
+SPM measures using $t$-tests to determine the likelihood of a false positive. \autoref{fig:hm_canon_pfilter}
 uses simple normalized residuals, meaning that lower indicates less error.  
-\autoref{fig:hm_canon_pfilter_mi} measures in terms of the dependence between the 
+\autoref{fig:hm_canon_pfilter_mi} measures in terms of mutual dependence between the 
 measured signal and the estimated signal; thus higher indicates a better fit. The particle
 filter data shows a large number of false positives, however application of a threshold
 of $.85$ on the residual map removes these false positives. Similarly, in the mutual information
 map, the false positives may be elminated by upping the threshold to $.15$. However, just
 because the results disagree with SPM does not necessarily mean they are false positives.
 SPM operates on smoothed data (8mm x 8mm x 8mm), so there are certainly active 
-areas that have been missed because of the smoothing. 
+areas that have been missed because of the smoothing. Note that throughout this 
+section yellow indicates a better fit.
 
 \begin{figure}[H]
+\centering
 \subfigure[]{\label{fig:hm_spm} \includegraphics[scale=.85]{images/spm_hm}}
 \subfigure[]{\label{fig:hm_canon_spm_x} \includegraphics[scale=3]{images/spm_hm_x}}
 \subfigure[]{\label{fig:hm_canon_spm_y} \includegraphics[scale=3]{images/spm_hm_y}}
 \subfigure[]{\label{fig:hm_canon_spm_z} \includegraphics[scale=3]{images/spm_hm_z}}
 \subfigure{\label{fig:scale_spm} \includegraphics[scale=.5]{images/scale1}}
-\caption{SPM results. Units of activation are in Student's T-scores; higher indicates higher 
+\caption{SPM results. Units of activation are in Student's $t$-scores; higher indicates higher 
         assurance that the signal cannot have occurred through noise alone. 
         Sagittal, coronal and axial slices  are 
         \autoref{fig:hm_canon_spm_x}, \autoref{fig:hm_canon_spm_y}, and
@@ -103,6 +105,7 @@ areas that have been missed because of the smoothing.
 \end{figure}
 
 \begin{figure}[H]
+\centering
 \subfigure[]{\label{fig:hm_pfilter} \includegraphics[scale=.85]{images/pfilter_hm}}
 \subfigure[]{\label{fig:hm_canon_pfilter_x} \includegraphics[scale=3]{images/pfilter_hm_x}}
 \subfigure[]{\label{fig:hm_canon_pfilter_y} \includegraphics[scale=3]{images/pfilter_hm_y}}
@@ -119,6 +122,7 @@ areas that have been missed because of the smoothing.
 \end{figure}
 
 %\begin{figure}[H]
+%\centering
 %\subfigure[]{\label{fig:hm_pfilter85} \includegraphics[scale=.75]{images/pfilter85_hm}}
 %\subfigure[]{\label{fig:hm_canon_pfilter85_x} \includegraphics[scale=3]{images/pfilter_hm85_x}}
 %\subfigure[]{\label{fig:hm_canon_pfilter85_y} \includegraphics[scale=3]{images/pfilter_hm85_y}}
@@ -132,6 +136,7 @@ areas that have been missed because of the smoothing.
 %\end{figure}
 
 \begin{figure}[H]
+\centering
 \subfigure[]{\label{fig:hm_mi} \includegraphics[scale=.85]{images/mi_hm}}
 \subfigure[]{\label{fig:hm_canon_mi_x} \includegraphics[scale=3]{images/mi_hm_x}}
 \subfigure[]{\label{fig:hm_canon_mi_y} \includegraphics[scale=3]{images/mi_hm_y}}
@@ -148,119 +153,119 @@ areas that have been missed because of the smoothing.
 
 %37-14-7
 \begin{figure}
-\subfigure[Particle Filter]{\label{fig:comp1pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/1_pfilter_37_14_7}}\\
-\subfigure[SPM]{\label{fig:comp1spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/1_spm_37_14_7}}
-\caption{Section 1, Estimated vs. Actual BOLD response. T-Score: $10.71$, Mutual Information: $0.33$, Residual: $0.72$.}
+\centering
+\subfigure[Particle Filter]{\label{fig:comp1pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/1_pfilter_37_14_7}}\\
+\subfigure[SPM]{\label{fig:comp1spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/1_spm_37_14_7}}
+\caption{Section 1, Estimated vs. Actual BOLD response. $t$-Score: $10.71$, Mutual Information: $0.33$, Residual: $0.72$.}
 \label{fig:comp1}
 \end{figure}
 
 %34-12-7 
 \begin{figure}
-\subfigure[Particle Filter]{\label{fig:comp2pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/2_pfilter_34_12_7}}\\
-\subfigure[SPM]{\label{fig:comp2spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/2_spm_34_12_7}}
-\caption{Section 2, Estimated vs. Actual BOLD response. T-Score: $6.97$, Mutual Information: $0.04$, Residual: $1.02$.}
+\centering
+\subfigure[Particle Filter]{\label{fig:comp2pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/2_pfilter_34_12_7}}\\
+\subfigure[SPM]{\label{fig:comp2spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14.5cm]{images/2_spm_34_12_7}}
+\caption{Section 2, Estimated vs. Actual BOLD response. $t$-Score: $6.97$, Mutual Information: $0.04$, Residual: $1.02$.}
 \label{fig:comp2}
 \end{figure}
 
-I chose several voxels to discuss further from \autoref{fig:hm_canon_pfilter} and \autoref{fig:hm_canon_spm}.
-The first voxel, labeled 1, had a very high T-score, high mutual information,  as well as 
-a low error (around $.7$). Thus, the
-fit should be very good in both the SPM and particle filter output; this comparison is shown in 
-\autoref{fig:comp1}. Recall that SPM worked on a slightly less noisy time series because of the
-spatial smoothing; this explains the lack of the sharp peak in the particle filter's preprocessed
-data. Regardless, as expected, both work. 
-
-I chose the second voxel (\autoref{fig:comp2}) because it was active in SPM and it would appear to be in a prime
-location to be active in the SPM image (given the results in the surrounding voxels). The fit,
-however shows just why the residual was high and the mutual information was low. This is a
-prime example of a false positive due to the large smoothing kernel applied by SPM. 
-For instance at 75 seconds, the stimulus is not present, and so the signal should drop off; yet
-it doesn't. While a few peaks seem to match, most of the signal does not correlate with the
-expected state progression. This voxel is not being driven directly by the input, although it
-may be gated or driven through intermediate region. 
-
-The third voxel, compared in \autoref{fig:comp3}, was far away from any other active voxels 
-and yet had a very low (around $.7$) residual. At the same time, the mutual information was
-high enough to make the point suspect. Although the estimated signal seems to run down the
-middle of the measurement signal; it is clear that there is a significant amount of noise
-present in the signal that is not being explained by the particle filter, 
-In both preprocessed time-series the input is extremely noisy, yet by the normalized residual 
-the response is good. This is an example of a false positive from the residual metric. 
-
-The fourth voxel (\autoref{fig:comp4}) selected for analysis had a relatively high residual, and was not picked
-for activation by SPM. The mutual information was only $0.06$
-for the image. It is simple to see why the residual was not acceptable in this case.
-At the same time, the peaks do seem to correlate with the measurement peaks. Regardless,
-this is an example of a  false positive from the mutual information metric. 
-
-The fifth voxel (\autoref{fig:comp5}) is an example of a region with increased activation
-due to smoothing. The fit provided by the BOLD particle filter is not very good, and the time
-series input to SPM is far less noisy. Regardless this is another case where the peaks
-seem to match, yet nothing else does. Take for instance the measurements from $30$ seconds
-to $40$ seconds. At that point there is a significant spike in the BOLD signal, yet the
-actual measured signal declines. This is an indication that the BOLD signal is not directly
-being driven by the input. It is likely that the cause of the activation in this reason is
-not true activation, but received from surrounding active regions through spatial smoothing. 
-
 %23-21-7
 \begin{figure}
-\subfigure[Particle Filter]{\label{fig:comp3pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/3_pfilter_23_21_7}}\\
-\subfigure[SPM]{\label{fig:comp3spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/3_spm_23_21_7}}
-\caption{Section 3, Estimated vs. Actual BOLD response. T-Score: $2.85$, Mutual Information: $-0.03$, Residual: $0.81$.}
+\centering
+\subfigure[Particle Filter]{\label{fig:comp3pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/3_pfilter_23_21_7}}\\
+\subfigure[SPM]{\label{fig:comp3spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/3_spm_23_21_7}}
+\caption{Section 3, Estimated vs. Actual BOLD response. $t$-Score: $2.85$, Mutual Information: $-0.03$, Residual: $0.81$.}
 \label{fig:comp3}
 \end{figure}
 
 %33-30-4
 \begin{figure}[H]
-\subfigure[Particle Filter]{\label{fig:comp4pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/4_pfilter_26_15_7}}\\
-\subfigure[SPM]{\label{fig:comp4spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/4_spm_26_15_7}}
-\caption{Section 4, Estimated vs. Actual BOLD response. T-Score: $0.50$, Mutual Information: $0.06$, Residual: $0.95$. }
+\centering
+\subfigure[Particle Filter]{\label{fig:comp4pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/4_pfilter_26_15_7}}\\
+\subfigure[SPM]{\label{fig:comp4spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/4_spm_26_15_7}}
+\caption{Section 4, Estimated vs. Actual BOLD response. $t$-Score: $0.50$, Mutual Information: $0.06$, Residual: $0.95$. }
 \label{fig:comp4}
 \end{figure}
 
 % or in original coordinates 29-9-13
 \begin{figure}
-\subfigure[Particle Filter]{\label{fig:comp5pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/5_pfilter_29_9_13}}\\
-\subfigure[SPM]{\label{fig:comp5spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/5_spm_29_9_13}}
-\caption{Section 5, Estimated vs. Actual BOLD Response. T-Score: $4.17$, Mutual Information: $0.02$, Residual: $1.14$.}
-%\caption{Section 5, Below threshold in both particle filter checks, but above threshold in SPM. Mutual Information of $0.0212822$, T-Value
+\centering
+\subfigure[Particle Filter]{\label{fig:comp5pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/5_pfilter_29_9_13}}\\
+\subfigure[SPM]{\label{fig:comp5spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/5_spm_29_9_13}}
+\caption{Section 5, Estimated vs. Actual BOLD Response. $t$-Score: $4.17$, Mutual Information: $0.02$, Residual: $1.14$.}
+%\caption{Section 5, Below threshold in both particle filter checks, but above threshold in SPM. Mutual Information of $0.0212822$, $t$-Value
 %of $4.17399$ and $MSE$ of $1.14171$.}
 \label{fig:comp5}
 \end{figure}
 
 %23-10-18 or in original coordinates 36-17-19
 \begin{figure}
-\subfigure[Particle Filter]{\label{fig:comp6pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/6_pfilter_36_17_19}}\\
-\subfigure[SPM]{\label{fig:comp6spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/6_spm_36_17_19}}
-\caption{Section 6, Estimated vs. Actual BOLD Response. T-Score: $2.49$, Mutual Information: $.34$, Residual: $0.78$.}
+\centering
+\subfigure[Particle Filter]{\label{fig:comp6pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/6_pfilter_36_17_19}}\\
+\subfigure[SPM]{\label{fig:comp6spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/6_spm_36_17_19}}
+\caption{Section 6, Estimated vs. Actual BOLD Response. $t$-Score: $2.49$, Mutual Information: $.34$, Residual: $0.78$.}
 %\caption{Section 6, MI of $0.335504$, T Value: $2.49154$, normalized error: $0.783348$ Not visible in SPM}
 \label{fig:comp6}
 \end{figure}
 
 %16-19-0 or in original coordinates 29-26-1
 \begin{figure}
-\subfigure[Particle Filter]{\label{fig:comp7pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/7_pfilter_29_26_1}}\\
-%\subfigure[SPM]{\label{fig:comp7spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=15cm]{images/5_spm_25_34_25}}
-\caption{Section 6, Estimated vs. Actual BOLD Response. T-Score: $1.32$, Mutual Information: $0.11$, Residual: $1.10$.}
+\centering
+\subfigure[Particle Filter]{\label{fig:comp7pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/7_pfilter_29_26_1}}\\
+%\subfigure[SPM]{\label{fig:comp7spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/5_spm_25_34_25}}
+\caption{Section 7, Estimated vs. Actual BOLD Response. $t$-Score: $1.32$, Mutual Information: $0.11$, Residual: $1.10$.}
 %\caption{Section 7, $.1052$ in MI, $1.31534$ in SPM (which left this flat) and $1.09992$ normalized $\sqrt{MSE}$. Only visible in MI map. }
 \label{fig:comp7}
 \end{figure}
 
-Voxel 6 (\autoref{fig:comp6}) is another region that is active according to both metrics used
-in this work, yet was missed by SPM. The time series in \autoref{fig:comp6} shows an extremely
-good fit, perhaps the best in this batch, for the particle filter. In contrast, the
-fit for SPM is abysmal. In spite of the fact that several other areas around are active
-as well, the smoothing seems to have completely wiped out activation in this voxel. 
+I chose several voxels to further investigate from \autoref{fig:hm_canon_pfilter} and \autoref{fig:hm_canon_spm}.
 
-Finally voxel 7 is a completely ambiguous time series. While the thresholds applied here
-are empirical, this voxel is on the borderline of the thresholds for both mutual information
-and the residual. The signal itself is extremely noisy, it should the voxel should be rejected.
-However this case is reminiscent of the pure-noise tests performed in the previous chapter. 
-This time series an extremely good example of the danger of false positives. In spite of the
-fact that the signal oscillates far faster than the BOLD estimate, because of that, it is somehow
-able to maintain a mutual information value of $.1052$ and a residual of just $1.09992$.
-As such, a clear method of detecting these sorts of regions is necessary if the results
-of the particle filter algorithm are toe be trusted. 
+Section 1 (\autoref{fig:comp1}) had a very high $t$-score, high mutual information and
+a low error. Visual inspection makes it obvious that this voxel fits the BOLD model. A region
+such as this would be called strong activation by Neurologists. The
+reason for the cleaner looking signal in SPM is the additional Gaussian spatial smoothing
+applied in preprocessing. This
+has allowed for an extremely good fit in SPM, although the particle filter handles the noise
+well. 
+
+Section 2 is a difficult voxel to assess (\autoref{fig:comp2}). 
+While certain peaks seem to correlate, over all 
+the particle filter input signal is extremely noisy. 
+This would appear to be a false positive on SPM's part because of the Gaussian smoothing.
+This voxel is not being driven directly by the input, although it
+could be gated or driven through intermediate region. 
+
+Section 3 and 4 are both examples of nearly pure-noise signals, at least from the standpoint
+of the given stimulus (\autoref{fig:comp3}, \autoref{fig:comp4}). 
+These two voxels are false positives by the normalized residual.
+Note that in both cases the Mutual Information was extremely low, meaning that
+according the M.I. these were not good fits. Both section 3 and 4 have 
+significant peaks, begging the question of whether they may be active,
+but not correlated directly with the input.
+
+It is questionable whether the fifth voxel should be considered inside the
+brain; however, like section 2, SPM deemed it active (\autoref{fig:comp5}). 
+Also like section 2, the most likely cause of the problem is the smoothing
+applied for SPM. There are certain peaks that certainly match the
+BOLD signal, yet that is only a small part of the whole. 
+Take for instance the measurements between $30$ and $40$ seconds.
+In that interval there is a significant spike in the BOLD signal, yet the
+actual measured signal declines. This is an indication that the BOLD signal is not directly
+being driven by the input. The SPM fit is not particularly good either,
+with the $t$-score barely above the threshold of $4$. 
+
+Section 6 (\autoref{fig:comp6}) is a clear example of a false negative 
+from SPM. The BOLD model fit is extremely good, yet the SPM signal looks completely
+like noise. One possible reason for this is that the low peak signal ($<0.03$),
+made it more susceptible to being smoothed out.
+
+Section 7 is an ambiguous time series. While the thresholds applied here
+are empirical, this voxel is on the borderline for both mutual information
+and the normalized residual. 
+This case is reminiscent of the pure-noise tests performed in the previous chapter,
+and is a perfect example of the false positive problem. 
+The signal oscillates far faster than the BOLD estimate, yet 
+somehow the mutual information reaches $.1052$ and the normalized residual is just below $1.1$.
 
 \section{Parameter Estimates}
 \label{sec:Real Data Parameter Estimates}
@@ -270,7 +275,7 @@ information about the system. Additionally, as an aggregate they form a distribu
 the feasible parameters parameters for a particular patient. Therefore 
 \autoref{fig:pmap0} through \autoref{fig:pmap6}
 contain the parameter maps for the system and \autoref{fig:realhist} is a histogram across all voxels
-for which the mutual information was greater than $.15$. As before, the threshold is not
+for which the mutual information was greater than $0.15$. As before, the threshold is not
 scientifically derived, yet in tests this threshold provided a decent balance to remove most
 of the questionably active voxels in the system. 
 
@@ -331,12 +336,10 @@ of the questionably active voxels in the system.
 \end{figure}
 
 Regions with poor fit cannot have reliable parameter estimates because the input did not meaningfully
-correlate input with output. Therefore before creating the maps,
-each parameters map was masked to regions with mutual information greater than $.15$. I chose mutual
-information over the residual because in the maps comparing regression fitness, the mutual information
-maps had more coherency and less randomness. Additionally, in the single voxel tests (\autoref{sec:SingleVoxelReview}) 
-there was more separation between the no signal case and the signal case than there was in the 
-residual metric. 
+correlate input with output, which is why a threshold was applied. 
+Mutual information was chosen over the residual because the
+maps had more coherency, and had less error in slice simulations (\autoref{fig:sim_hm2} vs. 
+\autoref{fig:simslice_hm_res}). 
 
 \begin{figure}
 \centering
@@ -345,20 +348,22 @@ residual metric.
 \label{fig:realhist}
 \end{figure}
 
-The parameter maps show consistency parameter across active regions, however, 
-the histogram of parameter estimates across all regions with $M.I. > .15$ is the
-more interesting result (\autoref{fig:realhist}). 
+The histograms show variance higher than the prior, indicating that
+parameters are migrating quite a bit during particle filter convergence. 
+It can be said that all of these regions had relatively accurate BOLD 
+measurements, and yet the final parameter estimates vary widely.
 
 \section{Discussion}
-From the maps generated, the similarities to SPM8's results are encouraging. At the 
-very least the output of the particle filter seems to meet the quality of SPM. The normalization
-of the residual is certainly necessary. Although there is no hard threshold on the 
-normalized residual, it would appear that the normalization is providing a reasonable
-ordering of regression quality. Mutual information also shows promising results.
-Many of the differences between SPM and the particle filter seem to be driven
-more by the pre-processing methods than the regression method. The reason for 
-SPM applying such extensive smoothing is to combat false positives. While this is
-extremely important, regions such as \autoref{fig:comp6} show the problem with doing 
-so. In all, the particle filter method does very good job of estimating parameters that
-fit the measurements; and at the very least this method is a workable, albeit
-computationally intensive, alternative to SPM. 
+The activation maps generated by the particle filter are very similar
+to those produced by SPM. This indicates that the particle filter is
+successfully estimating the BOLD output, in spite of the lack of spatial
+smoothing. Comparing the mutual information metric with the normalized residual,
+M.I. gives much better clusters, although that doesn't necessarily mean it
+is better. Although many of the differences between SPM and the particle filter 
+were driven by differences in preprocessing, it is worth noting that 
+the preprocessing applied by SPM are necessary for SPM to give decent results.
+Without spatial smoothing SPM is unable to cope with additional noise, and
+gives significant numbers of false positives. 
+
+Although the parameter maps have some spatial coherence, the histograms
+of the parameters still indicate that the parameters are under-determined. 
