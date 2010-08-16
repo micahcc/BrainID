@@ -407,7 +407,7 @@ to make some assumption. If the weighting function ($P(y_k | x_k)$) exactly
 matches the measurement error, then the ideal particle filter will result.
 Particles with $x_k$'s that repeatedly estimate $y_k$ with large residual 
 will quickly have weights near 0. Thus, a weighting function that
-exactly matches $P(Y(t) | X(t))$ will easily, and correctly throw out incorrect
+exactly matches $P(Y(t) | X(t))$ will easily and correctly throw out invalid
 particles.  The cost of choosing an overly broad distribution for this
 function is slow convergence.  On the other hand, an overly thin 
 distribution will lead to particle deprivation (all particles
@@ -420,8 +420,8 @@ The Laplace distribution also has the
 benefit of a non-zero slope at the origin; meaning it 
 differentiates between particles even near the origin.
 
-After trial and error, for this work the Gaussian with a standard deviation 
-of $0.005$ was chosen. Although using an adaptive weighting function
+After trial and error, for this work I chose the Gaussian with a standard deviation 
+of $0.005$. Although using an adaptive weighting function
 might be better, in tests this often led to unpredictable results. 
 With some work it may be possible to set the standard deviation by
 taking a small sample from resting data and using the sample standard deviation.
@@ -449,5 +449,5 @@ number of particles stays high, resampling could take a long time to occur.
 For this reason, rather than allowing the particle filter to continue on 
 with this large number of particles, after 20 seconds have passed the
 algorithm forces resampling. The choice of 20 seconds is 
-arbitrary, but at the very least it the particles some time to be reweighted. 
+arbitrary, but at the very least it gives the particles time to be weighted. 
 
