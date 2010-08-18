@@ -1,0 +1,422 @@
+% PROJECT: <ETD> Electronic Thesis and Dissertation Initiative
+%   TITLE: LaTeX report template for ETDs in LaTeX
+%  AUTHOR: Neill Kipp, nkipp@vt.edu
+%     URL: http://etd.vt.edu/latex/
+% SAVE AS: etd.tex
+% REVISED: September 6, 1997
+% 
+%\documentclass[12pt,dvips]{report}
+\documentclass[12pt]{report}
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{8.5in}
+\setlength{\evensidemargin}{0in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\topmargin}{0in}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.1in}
+
+%\usepackage[left=3cm,top=2cm,right=3cm]{geometry}
+
+ \usepackage[hang,small,bf]{caption}
+
+\usepackage{colortbl}
+\usepackage{times}
+\usepackage[siunitx]{circuitikz}
+%\usetikzlibrary{trees}
+%\usetikzlibrary{shapes,snakes}
+\usepackage{verbatim}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage{cancel}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue]{hyperref}
+\def\chapterautorefname{Chapter}
+\def\sectionautorefname{Section}
+\def\subsectionautorefname{Section}
+
+
+\usepackage{algorithm}
+\numberwithin{algorithm}{chapter}
+\usepackage{algorithmic}
+
+%\doublespacing
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\qed}{\\$\Box$}
+\newcommand{\qle}{\stackrel{?}{\le}}
+\newcommand{\qeq}{\stackrel{?}{=}}
+\newcommand{\closure}{\overline}
+\newcommand{\intersect}{\cap}
+\newcommand{\union}{\cup}
+\newcommand{\nullset}{\emptyset}
+\newcommand{\minus}{\ \backslash\ }
+
+
+\begin{comment}
+
+:Author: Micah Chambers
+\end{comment}
+
+\begin{document}
+\thispagestyle{empty}
+\pagenumbering{roman}
+\begin{center}
+
+% TITLE
+{\Large 
+Full Brain Blood-Oxygen-Level-Dependent Signal Parameter Estimation Using Particle Filters
+}
+
+\vfill
+
+Micah C. Chambers
+
+\vfill
+
+Thesis submitted to the Faculty of the \\
+Virginia Polytechnic Institute and State University \\
+in partial fulfillment of the requirements for the degree of
+
+\vfill
+
+Master of Science \\
+in \\
+Electrical Engineering
+
+\vfill
+
+Chris L. Wyatt, Chair \\
+William T. Baumann\\
+Aloysius. A. Beex \\
+Daniel J. Stilwell
+
+\vfill
+
+August 30, 2010\\
+Blacksburg, Virginia
+
+\vfill
+
+Keywords: BOLD Response, FMRI, Nonlinear Systems, Particle Filter, Bayesian Statistics, System Identification
+\\
+Copyright 2010, Micah C. Chambers
+
+\end{center}
+
+\pagebreak
+
+\thispagestyle{empty}
+\begin{center}
+
+{\large Full Brain Blood-Oxygen-Level-Dependent Signal Parameter Estimation Using Particle Filters}
+
+\vfill
+
+Micah C. Chambers
+
+\vfill
+
+(ABSTRACT)
+
+\vfill
+
+\end{center}
+
+Traditional methods of analyzing FMRI images use a linear combination of
+just a few static regressors. This work demonstrates an alternative
+approach using a physiologically inspired nonlinear model. By using a 
+particle filter to optimize the model parameters, the computation time
+is kept below a minute per voxel without requiring a linearization 
+of the noise in the state
+variables. The activation results show regions similar to those found in 
+SPM; however, there are some notable regions not detected by 
+SPM. Though the parameters selected by the particle filter based approach
+are more than sufficient to predict the BOLD response,
+more model constraints are needed to uniquely identify a single set
+of parameters. This ill-posed nature explains the large discrepancies
+found in other research that attempted to characterize the model parameters.
+For this reason the final distribution of parameters is more medically relevant
+than a single estimate. Because the output of the particle filter is 
+a full posterior probability, the reliance on the mean to estimate 
+parameters is unnecessary. This work presents
+not just a viable alternative to the traditional method of detecting
+activation, but an extensible technique of estimating the joint probability
+distribution function of the BOLD parameters.
+
+\vfill
+
+% GRANT INFORMATION
+
+%That this work received support from the Southeastern Universities
+%Research Association (SURA) ``Monticello Library Project'' is purely
+%coincidental.
+
+\pagebreak
+
+% Dedication and Acknowledgments are both optional
+% \chapter*{Dedication}
+\chapter*{Acknowledgments}
+
+This thesis would not have been possible without the guidance, advice and
+patience of my advisor, Chris Wyatt. I knew nothing about being a researcher
+or about medical imaging when I came to him, and he taught me to read broadly
+and to always dig deeper. Thank you Dr. Wyatt.
+
+I would also like to thank William Baumann for his help and inspiration. I
+have learned an incredible amount reading papers with you and Dr. Wyatt.
+
+To my parents, for all the psychological (and financial) help along the way,
+thank you so much. When things were the darkest you were there for me, I couldn't
+ask for better parents. Love you guys.
+
+Finally I would like to thank my friends, for the support, for the prayer,
+and, yes, for the occasional stress-relieving game of Halo, SOASE, and every
+type of SC.  You guys are the best. 
+
+\tableofcontents
+\pagebreak
+
+\listoffigures
+\pagebreak
+
+\listoftables
+\pagebreak
+
+\pagenumbering{arabic}
+\pagestyle{myheadings}
+
+\include{intro}
+\include{background}
+\include{particlefilters}
+\include{methods}
+\include{results}
+\include{resultsB}
+\include{discussion}
+\include{conclusion}
+
+\bibliographystyle{plain}
+%\bibliographystyle{abbrvnat}
+%\bibliographystyle{apalike}
+%\bibliographystyle{abbrvnat}
+%\bibliographystyle{abbrv}
+\bibliography{library}
+
+\end{document}
+
+%\chapter{Introduction}
+%\markright{Albert J. Kippleby \hfill Chapter 1. Introduction \hfill}
+%
+%William Shakespeare has profoundly affected the field of literature
+%worldwide.  In the United States there was a surge of Shakespearean
+%literature starting in the 1960s, with the opening of the Montgomery
+%Shakespearean festival and continuing into the present ...
+
+%%%%%%%%%%%%%%%%%
+%
+% Include an EPS figure with this command:
+%   \epsffile{filename.eps}
+%
+
+%%%%%%%%%%%%%%%%
+%
+% Do tables like this:
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%
+%% PROJECT: <ETD> Electronic Thesis and Dissertation Initiative
+%%   TITLE: LaTeX report template for ETDs in LaTeX
+%%  AUTHOR: Neill Kipp, nkipp@vt.edu
+%%     URL: http://etd.vt.edu/latex/
+%% SAVE AS: etd.tex
+%% REVISED: September 6, 1997
+%% 
+%
+%% Instructions: Remove the data from this document and replace it with your own,
+%% keeping the style and formatting information intact.  More instructions
+%% appear on the Web site listed above.
+%
+%\documentclass[12pt,dvips]{report}
+%
+%\setlength{\textwidth}{6.5in}
+%\setlength{\textheight}{8.5in}
+%\setlength{\evensidemargin}{0in}
+%\setlength{\oddsidemargin}{0in}
+%\setlength{\topmargin}{0in}
+%
+%\setlength{\parindent}{0pt}
+%\setlength{\parskip}{0.1in}
+%
+%% Uncomment for double-spaced document.
+%% \renewcommand{\baselinestretch}{2}
+%
+%% \usepackage{epsf}
+%
+%\begin{document}
+%
+%\thispagestyle{empty}
+%\pagenumbering{roman}
+%\begin{center}
+%
+%% TITLE
+%{\Large 
+%Use of Metaphor in Shakespeare's Plays and its Potential
+%Application in Twenty-first Century Literature
+%}
+%
+%\vfill
+%
+%Albert J. Kippleby
+%
+%\vfill
+%
+%Dissertation submitted to the Faculty of the \\
+%Virginia Polytechnic Institute and State University \\
+%in partial fulfillment of the requirements for the degree of
+%
+%\vfill
+%
+%Doctor of Philosophy \\
+%in \\
+%Literature and Technology
+%
+%\vfill
+%
+%Neill A. Kipp, Chair \\
+%Emilio J. Arce \\
+%Scott A. Guyer \\
+%Laura Weiss
+%
+%\vfill
+%
+%July 16, 1997 \\
+%Blacksburg, Virginia
+%
+%\vfill
+%
+%Keywords: Metaphysics, Information Retrieval, Spacecraft
+%\\
+%Copyright 1997, Albert J. Kippleby
+%
+%\end{center}
+%
+%\pagebreak
+%
+%\thispagestyle{empty}
+%\begin{center}
+%
+%{\large Use of Metaphor in Shekespeare's Plays and its Potential
+%Application in Twenty-first Century Literature}
+%
+%\vfill
+%
+%Albert J. Kippleby
+%
+%\vfill
+%
+%(ABSTRACT)
+%
+%\vfill
+%
+%\end{center}
+%
+%The need for concrete examples increases when technology becomes
+%difficult to explain.  In documentation for computer systems
+%especially, we see a wide audience of field experts attempting to
+%comprehend documentation for computer software and hardware of which
+%they should only require a cursory understanding.  Additionally, as
+%the pace of the information age quickens we see document authors
+%struggle for \textit{examplia-concretes} with wide applicability, and
+%consistently rely on excerpts from Shakespearean literature as a
+%public-domain source for their various explications.
+%
+%We predict the twenty-first century will be no different.  Actuarial
+%studies show explosion in the information industry such that four out
+%of five persons will be \textit{bona fide} electronic document
+%authors; many of those will have one or more college degrees.  We
+%prove through computer simulation \textsc{Machinum Simitatores} that
+%authors of twenty-first century literature will be affected by these
+%examples and will include metaphor with Shakespearean source into
+%their writing with increasing frequency.
+%
+%\vfill
+%
+%% GRANT INFORMATION
+%
+%That this work received support from the Southeastern Universities
+%Research Association (SURA) ``Monticello Library Project'' is purely
+%coincidental.
+%
+%\pagebreak
+%
+%% Dedication and Acknowledgments are both optional
+%% \chapter*{Dedication}
+%% \chapter*{Acknowledgments}
+%
+%\tableofcontents
+%\pagebreak
+%
+%\listoffigures
+%\pagebreak
+%
+%\listoftables
+%\pagebreak
+%
+%\pagenumbering{arabic}
+%\pagestyle{myheadings}
+%
+%\chapter{Introduction}
+%\markright{Albert J. Kippleby \hfill Chapter 1. Introduction \hfill}
+%
+%William Shakespeare has profoundly affected the field of literature
+%worldwide.  In the United States there was a surge of Shakespearean
+%literature starting in the 1960s, with the opening of the Montgomery
+%Shakespearean festival and continuing into the present ...
+%
+%%%%%%%%%%%%%%%%%%
+%%
+%% Include an EPS figure with this command:
+%%   \epsffile{filename.eps}
+%%
+%
+%%%%%%%%%%%%%%%%%
+%%
+%% Do tables like this:
+%
+% \begin{table}
+% \caption{The Graduate School wants captions above the tables.}
+%\begin{center}
+% \begin{tabular}{ccc}
+% x & 1 & 2 \\ \hline
+% 1 & 1 & 2 \\
+% 2 & 2 & 4 \\ \hline
+% \end{tabular}
+%\end{center}
+% \end{table}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%% If you are using BibTeX, uncomment the following:
+%% \thebibliography
+%%
+%% Otherwise, uncomment the following:
+%% \chapter*{Bibliography}
+%
+%% \appendix
+%
+%% In LaTeX, each appendix is a "chapter"
+%% \chapter{Program Source}
+%
+%
+%% Finally, the VITA
+%\chapter*{Vita}
+%
+%Albert was born on a sunny day...
+%
+%\end{document}
