@@ -1,43 +1,37 @@
 %Micah Chambers
 
 \documentclass{beamer}
-\usepackage[orientation=landscape,size=custom,width=16,height=10,scale=0.5,debug]{beamerposter} 
+\usepackage[orientation=landscape,size=custom,width=16,height=10,scale=0.5]{beamerposter} 
 
 \mode<presentation>
 {
-  \usetheme{VT}
+  \usetheme{Antibes}
   % or ...
 
-  \setbeamercovered{transparent}
+  %\setbeamercovered{transparent}
   % or whatever (possibly just delete it)
 }
 
-\usefonttheme[onlylarge]{structurebold}
-\usecolortheme{crane}
-\setbeamerfont*{frametitle}{size=\normalsize,series=\bfseries}
-\setbeamertemplate{navigation symbols}{}
-\setbeamercovered{transparent}
+%\usefonttheme[onlylarge]{structurebold}
+%\usecolortheme{crane}
+%\setbeamerfont*{frametitle}{size=\normalsize,series=\bfseries}
+%\setbeamertemplate{navigation symbols}{}
+%\setbeamercovered{transparent}
 
-
-\usepackage[english]{babel}
-% or whatever
-
-\usepackage[latin1]{inputenc}
-% or whatever
 
 \usepackage{graphics}
 %\usepackage{times}
-\usepackage[T1]{fontenc}
-\usepackage[small]{caption}
+%\usepackage[T1]{fontenc}
+%\usepackage[small]{caption}
 \usepackage{algorithmic}
 
-\title{BOLD Parameter Estimation using Sequential Monte Carlo Methods}
+\title{Full Brain Blood-Oxygen-Level-Dependent Signal \\
+Parameter Estimation using Sequential Monte Carlo Methods}
 
 %\subtitle{}
 
 \author{Micah Chambers}
-
-\institute {Virginia Tech Bioimaging Systems Lab}
+\institute{Virginia Tech Bioimaging Systems Lab}
 
 \subject{Medical Imaging}
 
@@ -65,7 +59,7 @@
   % You might wish to add the option [pausesections]
 \end{frame}
 
-\section{FMRI Review}
+\section{Background}
 \begin{frame}{The BOLD Response}
 \begin{figure}
 \includegraphics[scale=.23]{model}
