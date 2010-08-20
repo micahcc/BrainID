@@ -113,28 +113,89 @@ BOLD Response, FMRI, Nonlinear Systems, Particle Filter, Bayesian Statistics, Sy
 Functional Magnetic Resonance Imaging (FMRI)
 time series perform regression using a linear 
 combination of static explanatory variables. 
-In this paper I will demonstrate the use of the Particle 
-Filters as a means of estimating the governing parameters of the 
-nonlinear BOLD model at a computation cost 
-that would still allow real time calculations for multiple voxels.
-Practically, this paper presents an alternative
-to detecting neural activity from the traditionally
-used Statistical Parametric Mapping (SPM). Though more computationally intense,
-this method is capable of modeling nonlinear effects, 
-and provides significantly more detailed output. 
-By using a separate particle filter for each single time series it 
-is possible to estimate parameters and make real-time predictions
-for small neural regions, a feature which could be useful towards real time FMRI 
-\cite{DeCharms2005}. Future works will also benefit from the ability to 
-apply conditions to the posterior distribution in post-processing without
-recalculating parameters; for instance to impose additional 
-physiological
-constraints. Modeling the BOLD (Blood-Oxygen-Level-Dependent) response 
-as a nonlinear system is the
-best way to determine the correlation of stimulus sequence with the BOLD
-response; yet in the past doing this on a large scale has been far too
-computationally taxing. The solution used here takes approximately 40 seconds
-for a single 5 minute time series (with Core 2 Duo Q6600). 
+However, the static nature of the General Linear Model (GLM)
+limits its potential use. It is well known that different 
+Hemodynamic Response Functions are necessary 
+for different regions of the brain to prevent excessive false
+negatives \cite{Handwerker2004}. Additionally quite a few studies
+have reported spatially varying nonlinearities \cite{Wager2005,Birn2001}.
+Besides not allowing HRF differences between patients, there is no
+reasonable way to incorporate other forms of physiological
+data. Combined FMRI CBF or CBV imaging methods are improving,
+as seen in Chen et al. \cite{Chen2009}. These techniques could shed light on
+neural activation by providing extra measurements, yet a 
+physiologically reasonable model is necessary to incorporate this extra data.
+Activation detection methods also don't have the ability 
+to identify pathologies based on state variables or parameters. For
+example, decreased compliance of blood vessels could indicate, or 
+even cause, a neurological condition that 
+is not easily seen in other imaging modalities. 
+
+It is well known that the changes in deoxy-hemoglobin content is the
+primary driver of short term changes in MR signal for FMRI imaging
+techniques \cite{Buxton1998, WEISSKOFF1994, Ogawa, Obata2004}. For
+this reason, the nonlinear state equations that change Deoxy-Hb (DHb) 
+content have been heavily studied, and are well-characterized. Attempts
+at learning the parameters of the BOLD model have also been actively
+studied but significantly less successful. The most wide-spread method
+of calculating the parameters, from two papers by Friston et al., 
+are part of the SPM toolkit; though this algorithm is rarely used 
+as well \cite{Friston2000, Friston2002b}. 
+This method depends on a quadratic convolution (two term Volterra Kernel)
+based estimation of the BOLD output to obtain partials with respect 
+to parameters. Problematically, quality of the Volterra estimate
+is not well known, so it is difficult to quantify error. This method 
+also doesn't account for noise in the parameters or the state variables.
+These shortcomings have led to several other separate attempts. In particular 
+Riera et al. linearized the noise and thus performed regression between
+the model and steps of the BOLD output \cite{Riera2003}. 
+In Vakorin et al., a combination of Genetic Algorithms and Simulated 
+Annealing were used to estimate not only the parameters, but the 
+true stimuli driving the BOLD signal \cite{Vakorin2007}. 
+This addresses the inherent uncertainty of exactly where and when 
+stimuli actually get applied. Unfortunately this algorithm was extremely slow.
+In Johnston et al. a particle filter was applied with the purpose of
+estimating the output distribution, which was then used to optimize
+parameters by means of least squares based techniques \cite{Johnston2008}. 
+Murray used a particle filter, similar to \cite{Johnston2008}, but
+held the model parameters constant; thus all error in the output
+was treated as the result of noise in the underlying parameters 
+\cite{Murray2008}.  Hu et al. used an unscented kalman filter (UKF) 
+was used to optimize parameters \cite{Hu2009}.
+
+\section{Methods}
+\label{sec:Methods}
+\begin{itemize}
+\item BOLD Model
+\item Particle Filter Description 
+\item Description of Simulation
+\item Description of Real FMRI data
+\end{itemize}
+
+\section{Results}
+\label{sec:Results}
+\begin{itemize}
+\item Simulation Results - Possum Only
+\begin{itemize}
+    \item Histogram of parameters for each region
+    \item Final histogram of one run?
+    \item Comparison of MI with SNR
+\end{itemize}
+\item FMRI Results 
+\begin{itemize}
+    \item Activation maps comparing M.I. with SPM
+\end{itemize}
+\end{itemize}
+
+\section{Discussion}
+\label{sec:Discussion}
+
+\begin{itemize}
+\item Parameters ill-defined
+\end{itemize}
+
+\section{Conclusion}
+\label{sec:Conclusion}
 
 %This article is organized as follows. The rest of the introduction will
 %overview similar efforts and discuss their strengths ans weaknesses.
