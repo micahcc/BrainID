@@ -1,7 +1,8 @@
 %Micah Chambers
 
 \documentclass{beamer}
-\usepackage[orientation=landscape,size=custom,width=16,height=10,scale=0.5]{beamerposter} 
+%\usepackage[orientation=landscape,size=custom,width=16,height=10,scale=0.5]{beamerposter} 
+%\setbeameroption{show notes on second screen}
 
 \mode<presentation>
 {
@@ -59,8 +60,8 @@ Parameter Estimation using Sequential Monte Carlo Methods}
   % You might wish to add the option [pausesections]
 \end{frame}
 
-\section{Background}
-\begin{frame}{The BOLD Response}
+\section{Introduction}
+\begin{frame}{Balloon Model}
 \begin{figure}
 \includegraphics[scale=.23]{model}
 \caption{
@@ -68,6 +69,60 @@ Parameter Estimation using Sequential Monte Carlo Methods}
     \cite{nonlinearfiltering}
 }
 \end{figure}
+\note{Rates range from below 1 Hz to 5 to 6 Hundred Hz}
+\note{Change in average firing rates increase metabolism and sympathetic response causes
+        increased inflow of oxygenated blood.}
+\note{In the version of the Balloon model I used, the flow is locked to metabolism.}
+\note{According the balloon model this increases the local blood volume, and the outflow pressure.}
+\note{So the signal is altered by changes in the ratio of Deoxyhemoglobin and Oxygenated Hemoglobin,
+        which are a function of Volume and Oxygenation.}
+\end{frame}
+
+\begin{frame}{Equations}
+  \begin{itemize}
+    \item Flow Inducing Signal
+    $$\dot{s}(t) = \epsilon u(t) - s(t)/\tau_s - (f(t)/\tau_f - 1)$$
+    \item Normalized Cerebral Blood Inflow:
+    $$\dot{f}(t) = s $$
+    \item Normalized Cerebral Blood Volume:
+    $$\dot{v}(t) = (1/\tau_0)( f(t) - v(t) ^ {1/\alpha}) $$
+    \item Normalized Deoxyhaemoglobin Content:
+    $$\dot{q}(t) = \frac{1}{\tau_0}\left(\frac{f(t)(1- (1-E_0)^{1/f(t)})}{E_0} - 
+            \frac{q(t)}{v(t)^{1-1/\alpha}}\right)$$
+    \item Hemodynamic Response - BOLD Signal
+    $$y(t) = V_0(a_1( 1 - Q(t)) - a_2(1 - V(t)))$$
+  \end{itemize}
+  \note{System is dissipative:}
+  \note{If no input is provided, it will rather quickly decay.}
+  \note{Constant input leads to steady state response.}
+  \note{First term in $\dot{q}$ is the metabolism term}
+  \note{Outflow is the $v^{1/\alpha}$ term
+  \note{Significant nonlinearity.}
+\end{frame}
+
+\begin{frame}{Solutions: Approximate Method}
+  \begin{itemize}
+    \item Canonical Hemodynamic Response Function
+    \note{Linear Approximation}
+    \begin{itemize}
+        \item Maximum Likelihood Possible
+        \item Inflexible - even to changes in onset time
+    \end{itemize}
+    
+    \item Volterra Kernel 
+    \note{Quadratic Approximation}
+    \begin{itemize}
+        \item Quadratic Convolution used to approximate Jacobian Matrix.
+        \note{Because of the nonlinearities in the BOLD model, step size for
+                integrating would otherwise be extremely small}
+        \item Volterra approximation quality is not known.
+        \note{Its possible this isn't even know-able}
+    \end{itemize}
+    \note{Volterra Approximation depends on sparsity etc}
+  \end{itemize}
+    \begin{center}
+    \includegraphics[width=10cm,height=4cm]{HRF}
+    \end{center}
 \end{frame}
 
 \begin{frame}{BOLD Signal Properties}
@@ -141,19 +196,6 @@ Parameter Estimation using Sequential Monte Carlo Methods}
 \end{frame}
 
 \section{Nonlinear Regression}
-\begin{frame}{Equations}
-  \begin{itemize}
-    \item Normalized Cerebral Blood Flow:
-    $$\ddot{f}(t) = \epsilon u(t) - \dot{f}(t)/\tau_s - (f(t)/\tau_f - 1)$$
-    \item Normalized Cerebral Blood Volume:
-    $$\dot{v}(t) = (1/\tau_0)( f(t) - v(t) ^ {1/\alpha}) $$
-    \item Normalized Deoxyhaemoglobin Content:
-    $$\dot{q}(t) = \frac{1}{\tau_0}\left(\frac{f(t)(1- (1-E_0)^{1/f(t)})}{E_0} - 
-            \frac{q(t)}{v(t)^{1-1/\alpha}}\right)$$
-    \item Hemodynamic Response - BOLD Signal
-    $$y(t) = V_0(a_1( 1 - Q(t)) - a_2(1 - V(t)))$$
-  \end{itemize}
-\end{frame}
 
 \begin{frame}{Model Comparison}
   \begin{figure}
