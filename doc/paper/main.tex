@@ -15,6 +15,7 @@
 \usepackage[cmex10]{amsmath}
 \interdisplaylinepenalty=2500
 
+\usepackage{algorithm}
 \usepackage{algorithmic}
 \usepackage{array}
 
@@ -282,7 +283,7 @@ change in relaxation rate with change in blood oxygenation, and
 $\epsilon_0 = 1.43$ is the ratio of signal MR from intravascular to 
 extravascular regions at rest. Although, these constants change with 
 experiment ($TE$, $\nu_0$, $r_0$), patient, and brain 
-region ($E_0$, $r_0$), often the estimated values by Obata are 
+region ($E_0$, $r_0$), often the estimated values by Obata et al. are 
 taken as the constants $a_1 = k_1 + k_2 = 3.4$, and $a_2 = k_2+k_3 = 1$ in 
 studies using 1.5 Tesla scanners \cite{Obata2004}.
 Additional compartments and parameters have been added since 
@@ -294,7 +295,265 @@ used in this work, although future works may benefit from constraining
 the parameters as described by Deneux et al. \cite{Buxton2004, Deneux2006}.
 
 \subsection{Particle Filter}
-\label{sec:ParticleFilter}
+\label{sec:ParticleFilters}
+Particle filters, a type of Sequential Monte Carlo (SMC) method,
+are a powerful method for estimating the posterior probability distribution
+ of parameters given a time series of measurements. Unlike Markov 
+Chain Monte Carlo (MCMC) estimation, particle filters are designed for 
+time-varying random variables. Unlike the UFK, sample points are kept
+and continuously propagated forward, rather than being used to calculate
+the first two moments. Thus, the posterior distribution is
+stored as an empircal distribution made up of sample points.
+Particle filters are preferred when the model is nonlinear, 
+and non-Gaussian. This section based primarily on 
+Arulampalam et al. and Thrun et al. \cite{Arulampalam2002a, Thrun2005}.
+
+The idea of the particle filter is to build an empirical distribution
+out of a large number of parameter sets, called particles. Each
+particle contains all the parameters and states needed to propagate
+the model forward.  The particle filter begins with a wide distribution 
+(called the Prior Distribution)
+of possible particles and then, as measurements come in, weights 
+particles based on the quality of their output estimates. Thus parameter sets 
+that tend to give good estimations of the measurements get weighted higher
+than parameter sets that give poor estimates. Although the reliance on
+a prior distribution could be problematic, when the system being modeled
+has physical meaning, establishing reasonable ranges for parameters may be 
+quite easy. Optimizing the prior distribution can be more difficult,
+unless the system has been extensively studied.
+
+\subsubsection{Assumptions}
+Suppose a set or stream of measurements at discrete times are given, 
+$\{Y_k, k = 1, 2, 3, ... K\}$, where $K$ may be infinite. 
+Because $k$ is a discrete time, let $t_k$ define the continuous
+time of $k$.
+Suppose also that there is a hidden set of state variables,
+$X(t)$ that drives the value of $Y(t)$. Throughout this section
+with $X_k = X(t_k)$. The goal of the particle filter is to estimate the 
+distribution of the
+true parameters $\Theta$ that dictates the movement of $X(t)$.
+The model also permits random motion in $X(t)$, so the 
+particle filter also estimates the distribution of $X(t)$.
+The only difference between the members of parameter vector
+$\Theta$ and those of $X(t)$ is that the memebers of
+$\Theta$ have no known update equation. Members of both vectors
+are permitted to have some noise, although this
+may not be explicitly stated in the model. The generic, continuous, nonlinear
+system definition is shown in \autoref{eq:GenericNonlinear}.
+
+\begin{eqnarray}
+\dot{X}(t) = f(t, X(t), u(t), \theta, \nu_x) \nonumber \\
+Y(t) = g(t, X(t), u(t), \theta, \nu_y)
+\label{eq:GenericNonlinear}
+\end{eqnarray}
+
+$X(t)$ is vector of state variables, $\Theta$ is a vector of system
+constants, $u(t)$ is an input, $Y(t)$ the observation, and
+$\nu_x$ and $\nu_y$ are random variates. Although any of these
+variables could be a vector, for the sake of simplicity only
+$\Theta$ and $X(t)$ will be considered as such. 
+
+I will also make a few  simplifying assumptions for this work. 
+First, the systems are assumed to be 
+time invariant. This 
+assumption is based on the idea that if you paused the system for $\Delta t$
+seconds, when unfrozen the system would continue as if nothing happened. 
+Few biological systems are predictable enough for them to be summarized
+by a time varying function, least of all the brain. While heart beats are certainly
+periodic and have an effect on the BOLD signal, the period varies too much
+for the system to be considered varying with time. 
+Next, its assumes that input cannot directly
+influence the output, which in the case of the BOLD signal is a good assumption.
+Finally, because the only difference between the members of $X(t)$ and 
+$\Theta$ is an update function, from now on $X$ will encapsulate
+$\Theta$. The assumptions allow for a simplified version of the
+state space equations:
+
+\begin{eqnarray}
+\dot{X}_k &=& f(X_{k-1}, u_k, \nu_x)
+\label{eq:stateass}\\
+Y_k &= &g(X_k, \nu_y)
+\label{eq:measass}
+\end{eqnarray}
+
+\subsubsection{Prior Distribution}
+The goal of the particle filter is to evolve an empirical distribution 
+$P(x_k | u_{0:k}, Y_{0:k})$,
+that asymptotically approaches the true probability distribution $P(X_k | u_{0:k})$.
+Note that capital $X$ will be used as the actual realizations of 
+the state variable, whereas $x$ will denote estimates of $X$.
+Additionally, the notation $a:b$ indicates the set $[a,b]$,
+as in $u_{a:b}$, which would indicate all the inputs from time $a$ to time $b$.
+Considering the noise present in $X$,
+ $P(X_k | u_{0:k})$ is not a single true value but probability distribution. 
+
+To begin with, the particle filter must be given a prior distribution, from
+which the initial $N_p$ particles are drawn. A particle contains a weight
+as well as an estimate of $X_k$, which as previously mentioned, contains every
+variable needed to run the model. Then the prior is generated from a 
+given distribution, $\alpha(X)$, by:
+
+\begin{equation}
+\{(x^i_0,w^i) : x^i_0 \sim \alpha(X), w^i = 
+            \frac{1}{N_p} : i \in \{1, 2, ... , N_p\} \}
+\end{equation}
+
+Where $N_p$ is the number of particles or points used to 
+describe the prior using a Mixture PDF.  Note that any 
+exponents will be explicitly labeled as such, to avoid 
+confusion with the particle numbering scheme. 
+
+Therefore, as $N_p \rightarrow \infty$:
+\begin{equation}
+\alpha(X) \approx P(x_0) = \sum_{i=0}^{N_p} w^i\delta(X - x^i_0 ) dx
+\end{equation}
+Where $\delta(x-x_0)$ is 1 if and only if $x = x_0$
+(the Kronecker delta function).
+$\alpha(X)$, the prior distribution, \emph{must} cover the 
+true posterior distribution in order for the particle filter
+to converge to the true posterior distribution.
+
+\subsubsection{Basic Particle Filter}
+For all the following areas, the probabilities implicitly depend on $u_{0:k}$, 
+so they are left off for simplicity.
+Whenever a measurement becomes available it permits refinement of the
+posterior density.  Incorporating new data is called sequential 
+importance sampling. The weight of a particle in an empirical distribution
+is defined as
+\begin{equation}
+w^i_k \propto \frac{P(x^i_{0:k} | y_{0:k})}{q(x^i_{0:k} | y_{0:k})}
+\label{eq:weightfunc}
+\end{equation}
+where $q$ is called an \emph{importance density}. The importance density
+is the density of the particles, thus by dividing by this value, the weight
+should not depend on the location of the estimation points, but rather
+only on $P(x^i_{0:k} | y_{0:k})$, the probability of that particle
+being correct given all the measurements up to time $k$. 
+Note that if there is a far off peak in
+the posterior that $q$ does not have support points in, there will 
+be quantization errors, and that part of the density cannot be modeled. 
+This is why $q$ must fully cover $P(x^i_{0:k} | y_{0:k})$.
+
+To update the weight of a particular particle at time $k$, it is necessary to 
+calculate both $q(x^i_{0:k} | y_{0:k})$ and $P(x^i_{0:k} | y_{0:k})$, 
+in \autoref{eq:Support} and \autoref{eq:UpdateBayes} respectively.
+
+Note that $q(x^i_{0:k} | y_{0:k})$ may be simplified by assuming that 
+$y_k$ doesn't contain any additional information about $x_{k-1}$. 
+\begin{equation}
+q(x^i_{0:k} | y_{0:k}) = q(x^i_{0:k} | y_{0:k-1})
+\label{eq:QAssump}
+\end{equation}
+The choice of the importance density, $q(x_k | x_{k-1}, y_{0:k})$ is 
+a design decision; however it is common to use the state model: 
+\begin{equation}
+q(x_k | x_{k-1}, y_{0:k}) =  P(x_k | x_{k-1})
+\label{eq:ImportanceDensity}
+\end{equation}
+This choice for importance density is helpful because 
+$P(x_k | x_{k-1})$ is freely available: its simply the set 
+of particles propagated forward in time using the state 
+equations. Additionally it makes
+updating weights simple, as seen later (\autoref{eq:weightevolve}).
+$q(x^i_{0:k} | y_{0:k})$ may then be simplified:
+\begin{equation}
+q(x_{0:k} | y_{0:k}) = P(x_k | x_{k-1})q(x_{0:k-1} | y_{0:k-1})  
+\label{eq:Support}
+\end{equation}
+
+Calculating $P(x_{0:k} | y_{0:k})$ 
+uses the assumption that the distribution of $y_k$ is 
+fully constrained by $x_k$, and that $x_k$ is similarly fully 
+constrained by $x_{k-1}$, I make the good assumptions that:
+\begin{eqnarray}
+P(y_k | x_{0:k}, y_{0:k-1}) &=& P(y_k | x_k) \nonumber \\
+P(x_k | x_{0:k}, y_{0:k-1}) &=& P(x_k | x_{k-1})
+\label{eq:MarkovProperty}
+\end{eqnarray}
+These are restatements of the state equations assumed by \autoref{eq:stateass}
+and \autoref{eq:measass}.
+Additionally, for the particle filter $y_k$ and $y_{0:k-1}$ are 
+constant across all particles, thus $P(y_k| y_{0:k-1})$ can
+be dropped when the equality is changed to a proportion. 
+Using these properties and Bayes' Theorem, $P(x^i_{0:k} | y_{0:k})$ 
+may be broken up as follows:
+\begin{equation}
+P(x_{0:k} | y_{0:k}) \propto P(y_k| x_k) P(x_k | x_{k-1}) P(x_{0:k-1} | y_{0:k-1}) 
+ \label{eq:UpdateBayes}
+\end{equation}
+
+Plugging \autoref{eq:ImportanceDensity} and the result of \autoref{eq:UpdateBayes}
+into \autoref{eq:weightfunc} leads to:
+\begin{eqnarray}
+w^i_k & \propto & \frac{P(y_k| x^i_k)  P(x^i_{0:k-1} | y_{0:k-1})}
+                         {q(x^i_{0:k-1} | y_{0:k-1})} \nonumber \\
+& \propto & w^i_{k-1}P(y_k| x_k) 
+\label{eq:weightevolve}
+\end{eqnarray}
+
+Thus, by making the following simple assumptions, evolving a posterior
+density  requires no knowledge of noise distribution.
+\begin{enumerate}
+\item $f(t, x(t), u(t)) = f(x(t), u(t))$ and $g(t, x(t), u(t)) = g(x(t))$ 
+\item The prior distribution PDF, $q(x_i(0))$, covers $P(x_i(0))$
+\item Markov Property: $P(x_k | x_{0:k-1}) = Pr(x_k | x_{k-1})$
+\item $q(x_{0:k-1} | y_{0:k}) = q(x_{0:k-1} | y_{0:k-1})$
+\end{enumerate}
+
+From the definition of $w_i$, the algorithm to calculate
+an approximation of $P(X(t_k) | Y_{0:k})$ or $P(X(t_k + \delta t) | Y_{0:k})$
+is simple (see Algorithm \autoref{alg:BasicParticleFilter}). 
+
+\subsubsection{Sequential Importance Resampling}
+\label{sec:ParticleFilterResampling}
+As a consequence of the wide prior distribution 
+(required for a proper discretization of a continuous
+distribution), a significant proportion of particles quickly
+develop insignificant weights. 
+Ideally the computation time spent on tails would be proportional to 
+the actual size of the tails.  The case where a large number of the 
+weights have become extremely small
+is called particle degeneracy. In  Lui et al. 
+an ideal measurement of degeneracy based on the particles' true 
+weight is given \cite{Liu1998b}. An approximation of 
+the effective number of particles is also given: 
+\begin{equation}
+N_{eff} \approx \frac{\sum_{i=0}^{N_p} w_i}{\sum_{i=0}^{N_p} w_i^2}
+\label{eq:neff}
+\end{equation}
+To alleviate particle degeneracy, a technique known as resampling 
+may be applied. The idea of resampling is to 
+draw from the approximate posterior, thus generating 
+a replica of the posterior probability with 
+a matching support. Each particle in the new distribution,
+$\hat{x}_j$, is drawn from the old distribution 
+(see Algorithm \autoref{alg:Resampling}):
+\begin{equation}
+\hat{x}_j \sim \left(\sum_{i=0}^{N_p} w^i_k\delta(x - x^i_k)\right)
+\end{equation}
+
+For infinite particles this new distribution will match the old.
+Unfortunately, in practice since the support is
+limited to the original particles, the number of \emph{unique} 
+particles can only decrease.
+This effect, called particle impoverishment, can result in 
+excessive quantization errors in the final distribution. 
+To prevent particle impoverishment, instead of sampling from the
+discrete distribution, a smoothing kernel is applied.
+Because the distribution is continuous, particle impoverishment
+is prevented. This regularization process is defined as:
+\begin{equation}
+x_i = x_i + h\sigma \epsilon
+\end{equation}
+Where $h$ is an optional bandwidth, $\sigma$ is the standard 
+deviation such that $\sigma \sigma^T = cov(x)$
+and $\epsilon$ is drawn from the chosen kernel. In this case
+a Gaussian kernel was used, and the bandwidth was set to 1
+(see \autoref{alg:RegResampling}). All the 
+pseudocode may be found in \autoref{sec:algorithms},
+including the complete regularized particle filter used
+(Algorithm \autoref{alg:RegularizedParticleFilter}).
+
 \subsection{Simulation}
 \label{sec:MethodsSim}
 \subsection{Data Acquisition}
@@ -340,8 +599,91 @@ the parameters as described by Deneux et al. \cite{Buxton2004, Deneux2006}.
 %for future works are interpreted. 
 
 \appendices
+
 \section{Particle Filter Algorithm}
-Appendix one text goes here.
+\label{sec:algorithms}
+
+\subsection{Sequential Importance Sampling}
+\label{alg:BasicParticleFilter}
+\begin{algorithm}
+\begin{algorithmic}
+\STATE Initialize Particles:
+\FOR{$i$ : each of $N_p$ particles }
+    \STATE $x^i_0  \sim \alpha(X)$
+    \STATE $w^i_0 = \frac{1}{N_p}$
+\ENDFOR
+\FOR{$k$ : each measurement}
+    \FOR{$i$ : each particle }
+        \STATE $x^i_k = x^i_{k-1} + \int_{t-1}^t f(x(\tau), u(\tau)) d\tau $
+        \STATE $w^i_k = w^i_{k-1}P(y_k | x_k)$
+    \ENDFOR
+\ENDFOR
+\begin{equation*}
+\begin{array}{l}
+P(x(t_k+\Delta t)) \approx \\
+\sum_{i=0}^{N_p} w^i_k \delta\left(x - x^i_k - \int_{t_k}^{t_k+\Delta t} f(x(\tau), u(\tau)) d\tau \right) 
+\end{array}
+\end{equation*}
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Resampling Algorithm}
+\label{alg:RegResampling}
+\begin{algorithm}
+\begin{algorithmic}
+\STATE Calculate total weight, $W_t = \sum_{i=0}^{N_p} w^i$
+\FORALL{$0 < i < N_p$}
+    \STATE Draw $V$ from uniform range $[0, W]$
+    \STATE $C = W_t$
+    \FORALL{$0 < j < N_p$ and $C < V$}
+        \STATE $C = C - w^j$
+    \ENDFOR
+    \STATE Add $[x^j, \frac{1}{N_p}]$ to the new distribution
+\ENDFOR
+\STATE 
+\end{algorithmic}
+\label{alg:Resampling}
+\end{algorithm}
+
+\subsection{Regularized Resampling Algorithm}
+\label{alg:RegResampler}
+\begin{algorithm}
+\begin{algorithmic}
+\STATE Calculate Covariance, $C$, of empirical distribution, $\hat{x}$
+\STATE Find $D$ such that $DD^T = C$
+\STATE Resample $\hat{x}$ using algorithm from \autoref{alg:Resampling}
+\FOR{$0 < i < N_p$}
+    \STATE Draw $\epsilon$ from the standard normal, same dimensionality as $X$
+    \STATE $x^i = x^i + hD\epsilon$
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Regularized Particle Filter}
+\label{alg:RegularizedParticleFilter}
+\begin{algorithm}
+\begin{algorithmic}
+\STATE Initialize Particles:
+\FOR{$i$ : each of $N_p$ particles }
+    \STATE $x^i_0  \sim \alpha(X)$
+    \STATE $w^i_0 = \frac{1}{N_p}$
+\ENDFOR
+\FOR{$k$ : each measurement}
+    \FOR{$i$ : each particle }
+        \STATE $x^i_k = x^i_{k-1} + \int_{t-1}^t f(x(\tau), u(\tau)) d\tau $
+        \STATE $w^i_k = w^i_{k-1}P(y_k | x_k)$
+    \ENDFOR
+
+    \STATE Calculate $N_{eff}$ with \autoref{eq:neff}
+    \IF{$N_{eff} < N_R$ (recommend $N_R = min(50, .1N_p)$ )}
+        \STATE Resample using algorithm from \autoref{alg:RegResampling}
+    \ENDIF
+\ENDFOR
+
+\STATE At $t + \Delta t$, $t \in T$, $P(x(t+\Delta t)) \approx 
+\sum_{i=1}^{N_p} w_i(t)\delta\left(x - (x_i(t) + \int_t^{t+\Delta t} f(x(\tau), u(\tau)) d\tau) \right)$
+ \end{algorithmic}
+ \end{algorithm}
 
 % you can choose not to have a title for an appendix
 % if you want by leaving the argument blank
