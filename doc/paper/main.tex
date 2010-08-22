@@ -146,31 +146,159 @@ based estimation of the BOLD output to obtain partials with respect
 to parameters. Problematically, quality of the Volterra estimate
 is not well known, so it is difficult to quantify error. This method 
 also doesn't account for noise in the parameters or the state variables.
+
 These shortcomings have led to several other separate attempts. In particular 
 Riera et al. linearized the noise and thus performed regression between
-the model and steps of the BOLD output \cite{Riera2003}. 
+the model and steps of the BOLD output \cite{Riera2003}. This aproach
+had the benefit of a Jacobian,  but at the same time removes all DC 
+signal. For this reason, the type of activation limits the
+algorithms' ability to learn the model.
 In Vakorin et al., a combination of Genetic Algorithms and Simulated 
 Annealing were used to estimate not only the parameters, but the 
 true stimuli driving the BOLD signal \cite{Vakorin2007}. 
 This addresses the inherent uncertainty of exactly where and when 
-stimuli actually get applied. Unfortunately this algorithm was extremely slow.
-In Johnston et al. a particle filter was applied with the purpose of
-estimating the output distribution, which was then used to optimize
-parameters by means of least squares based techniques \cite{Johnston2008}. 
+stimuli actually get applied. Unfortunately this algorithm was extremely
+slow; taking hours or days per single time course.
+In Johnston et al. alternating estimates of $P(X_t | \Theta, Y_t)$ and 
+$P(\Theta | Y_t)$ were calculated, to maximize $P(X_t, \Theta | Y_t)$. 
+$P(X_t | \Theta, Y_t)$ was calculated using a particle filter 
+\cite{Johnston2008}. This however was quite slow, and the results
+were inconsistent with other similar works. 
 Murray used a particle filter, similar to \cite{Johnston2008}, but
 held the model parameters constant; thus all error in the output
 was treated as the result of noise in the underlying parameters 
-\cite{Murray2008}.  Hu et al. used an unscented kalman filter (UKF) 
-was used to optimize parameters \cite{Hu2009}.
+\cite{Murray2008}. Murray's results showed that differences in
+BOLD output cannot be well explained by error in the state variables.
+Hu et al. used an unscented kalman filter (UKF) to estimate parameters,
+and filtered parameter sets inconsistent with the output  \cite{Hu2009}.
+ Furthermore, Birn et al. and Yacoub et al. showed that many
+of the characteristics of the BOLD output depend on the region 
+of interest \cite{Birn2001, Yacoub2006}. For this reason, a single
+Hemodynamic Response Function is not likely to accurately estimate
+activation across the full brain. 
+
+With the exception of Hu et al., the works described thus far all
+worked to estimate a single set of parameters that could
+explain the output \cite{Hu2009}. Yet Deneux et al showed that the very similar
+outputs can be achieved with very different parameters \cite{Deneux2006}.
+This explains the inconsistencies in parameters across the different
+studies. Thus, estimating parameters using a least squares
+framework is not likely to be fruitful; and though the posterior
+distributions will vary spatially, that difference will not be
+discernible from a single parameter estimate. The problem with 
+using an Unscented Kalman Filter to approximate the distributions
+is that with a nonlinear, dissipative system, significant non-Gaussian
+effects will be present. In tests, significant non-Gaussian effects 
+began to appear within a second of state integration. With FMRI
+repetition times being well above 1 second, a Gaussian approximation
+will result in significant error. The particle filter, which can be
+thought of an extension of UKF, uses non-parametric distributions
+rather than a Gaussian. For this reason the particle filter, described
+in \autoref{sec:ParticleFilters}, is used in this work.
 
 \section{Methods}
 \label{sec:Methods}
-\begin{itemize}
-\item BOLD Model
-\item Particle Filter Description 
-\item Description of Simulation
-\item Description of Real FMRI data
-\end{itemize}
+\subsection{Bold Model}
+\label{sec:BoldModel}
+In the past fifteen years, a steady stream of studies have built
+on the original Blood Oxygen Level Dependent (BOLD) signal 
+derivation first described by Ogawa et al. \cite{Ogawa}.
+The seminal work by Buxton et al. attempted to explain the
+time evolution of the BOLD signal using a windkessel model to
+describe the local changes in Deoxygenated Hemoglobin content \cite{Buxton1998}.
+Incremental improvements were made to this model until Friston et al.
+brought all the changes together into a single complete 
+set of equations \cite{Friston2000}. And while there have been numerous adaptations in the model, 
+many of them summarized by Deneux et al., even the basic versions
+have less bias error than the empirically driven 
+\emph{Canonical Hemodynamic Model} \cite{Deneux2006,Handwerker2004}.
+On the other hand BOLD signal models have numbers
+of parameters ranging from seven \cite{Riera2003} to 50 \cite{Behzadi2005} 
+for a signal as short as 100 samples long. This number of parameters presents
+a significant risk of being under-determined and having high computation cost. 
+In this work, only the simplest physiologically inspired model will be
+used (with 7 parameters), and steps will be taken to make the most of computation
+time.
+
+It is well known that the two types of hemoglobin act as a contrast agents in 
+EPI imaging \cite{Buxton1998, WEISSKOFF1994, Ogawa}, however the connection
+between Deoxyhemoglobin/Oxygenated Hemoglobin and neural activity is non-trivial. 
+Intuitively, increased metabolism will increase Deoxyhemoglobin, 
+however blood vessels are quick to compensate by increasing local 
+blood flow. Increased inflow, accomplished by loosening 
+capillary beds, precedes increased outflow, driving increased 
+blood storage.  Since the local MR signal depends on the ratio of 
+Deoxyhemoglobin to Oxygenated Hemoglobin, increased blood volume 
+affects this ratio if metabolism doesn't exactly match the increased 
+inflow of oxygenated blood.  This was the impetus
+for the ground breaking balloon model \cite{Buxton1998} and windkessel
+model \cite{Mandeville1999}. These works derive, from first principals,
+the changes in deoxyhemoglobin ratio and volume of capillaries given an 
+inflow waveform.  These were the first two attempts to quantitatively 
+account for the shape of the BOLD signal as a consequence of the lag 
+between the cerebral blood volume (CBV) and the inward cerebral blood 
+flow (CBF). 
+
+Although Buxton et al. demonstrated that a well chosen flow waveform could 
+explain most features of the BOLD signal, it stopped short of proposing a
+realistic waveform for the CBF and CMRO2 \cite{Buxton1998}. Friston et al. 
+gave a reasonable and simple expression for CBF input based on a flow 
+inducing signal and in the same work proposed a simple method
+of estimating metabolic rate: as a linear function of the inward 
+blood flow \cite{Friston2000}. By combining these equations with 
+the balloon model from Buxton et al., it is possible to predict 
+the BOLD signal directly from a stimulus time course:
+\begin{eqnarray}
+\dot{s} &=& \epsilon u(t) - \frac{s}{\tau_s} - \frac{f - 1}{\tau_f} \\
+\dot{f} &=& s\\
+\dot{v} &=& \frac{1}{\tau_0}(f - v^\alpha)\\
+\dot{q} &=& \frac{1}{\tau_0}(\frac{f(1-(1-E_0)^f)}{E_0} - \frac{q}{v^{1-1/\alpha}})
+\label{eq:bold}
+\end{eqnarray}
+where $s$ is a flow inducing signal, $f$ is the input blood flow (CBF),
+$v$ is normalized cerebral blood volume (CBV), and $q$ is the normalized
+local deoxyhemoglobin. The parameters controlling blood flow are 
+$\epsilon$, which is a neuronal efficiency term, $u(t)$ which is 
+the stimulus, and $\tau_f$, $\tau_s$ which are time constants. 
+The parameters for the evolution of blood volume are $E_0$ which 
+the resting metabolic rate and $\alpha$ which is Grubb's parameter 
+controlling the balloon model.  $\tau_0$ is a single time constant 
+controlling the speed of $v$ and $q$.
+
+This completed balloon model was assembled and analyzed
+by Riera et al. \cite{Riera2003}. Obata refined the readout equation 
+of the BOLD signal based on the deoxyhemoglobin content ($q$) and local 
+blood volume ($v$), resulting in the final BOLD equation \cite{Obata2004}.
+\begin{eqnarray}
+y   &=& V_0((k_1 + k_2)(1-q) - (k_2 + k_3)(1-v))\\
+k_1 &=& 4.3 \times \nu_0 \times E_0 \times TE = 2.8 \nonumber \\
+K_2 &=& \epsilon_0 \times r_0 \times E_0 \times TE = .57 \nonumber \\
+k_3 &=& \epsilon_0 - 1 = .43 \nonumber
+\label{eq:boldout}
+\end{eqnarray}
+Where $\nu_0 = 40.3 s^{-1}$  is the frequency offset in Hz for fully
+de-oxygenated blood (at 1.5T), $r_0 = 25 s^{-1}$  is the slope relating
+change in relaxation rate with change in blood oxygenation, and
+$\epsilon_0 = 1.43$ is the ratio of signal MR from intravascular to 
+extravascular regions at rest. Although, these constants change with 
+experiment ($TE$, $\nu_0$, $r_0$), patient, and brain 
+region ($E_0$, $r_0$), often the estimated values by Obata are 
+taken as the constants $a_1 = k_1 + k_2 = 3.4$, and $a_2 = k_2+k_3 = 1$ in 
+studies using 1.5 Tesla scanners \cite{Obata2004}.
+Additional compartments and parameters have been added since 
+Riera et al., however Deneux et al. showed that only the viscoelastic
+effects of Buxton et al. were necessary to model the primary 
+elements of the BOLD response \cite{Riera2003, Deneux2006, Buxton2004}.
+Despite this, only the basic balloon model of Buxton et al. is
+used in this work, although future works may benefit from constraining
+the parameters as described by Deneux et al. \cite{Buxton2004, Deneux2006}.
+
+\subsection{Particle Filter}
+\label{sec:ParticleFilter}
+\subsection{Simulation}
+\label{sec:MethodsSim}
+\subsection{Data Acquisition}
+\label{sec:MethodsData}
 
 \section{Results}
 \label{sec:Results}
