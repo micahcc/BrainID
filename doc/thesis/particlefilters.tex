@@ -309,7 +309,7 @@ distribution as follows:
 \begin{algorithm}
 \caption{Resampling Algorithm}
 \begin{algorithmic}
-\STATE Calculate total weight, $W = \sum_{i=0}^{N_p} w^i$
+\STATE Calculate total weight, $W_t = \sum_{i=0}^{N_p} w^i$
 \FORALL{$0 < i < N_p$}
     \STATE Draw $V$ from uniform range $[0, W]$
     \STATE $C = W_t$
@@ -401,6 +401,7 @@ and limited measurements, it is helpful to have a broader bandwidth to explore t
 \STATE At $t + \Delta t$, $t \in T$, $P(x(t+\Delta t)) \approx 
 \sum_{i=1}^{N_p} w_i(t)\delta\left(x - (x_i(t) + \int_t^{t+\Delta t} f(x(\tau), u(\tau)) d\tau) \right)$
  \end{algorithmic}
+ \label{alg:RegularizedParticleFilter}
  \end{algorithm}
 
 Because 
@@ -412,18 +413,16 @@ resampling, the regularized particle filter is identical to the basic sampling
 importance sampling filter (SIS). 
 
 With regularized resampling, it is possible to prevent both
-particle degeneracy as well as particle impoverishment. Additionally,
-as the particle filter converges, the density of particles
-in the area of the solution goes up. This has a similar effect to 
-simulated annealing where, as the algorithm approaches the end, the
-random steps get smaller and smaller. Note however, that resampling
-carries certain risks.  If for some reason the solution is not covered by the 
+particle degeneracy as well as particle impoverishment. 
+Note that resampling carries certain risks.  
+If for some reason the solution is not covered by the 
 new support, the algorithm may not be able to reach the true value. 
-The ultimate effect of this regularized resampling is a convergence similar to simulated annealing
-or a genetic algorithm. Versions of $x$ that are fit (give good measurements) spawn more children 
+The ultimate effect of this regularized resampling is a convergence 
+similar to simulated annealing or a genetic algorithm. 
+Versions of $x$ that are fit (give good measurements) spawn more children 
 nearby which allow for more accurate estimation near points of high likelihood. 
-As the variance of the estimated
-$x$'s decrease, the radius in which children are spawned also decreases. Eventually the radius
+As the variance of the estimated $x$'s decrease, the radius in 
+which children are spawned also decreases. Eventually the radius
 will approach the width of the underlying uncertainty.
 
 \section{Weighting Function}
