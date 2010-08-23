@@ -15,6 +15,7 @@
 \usepackage[cmex10]{amsmath}
 \interdisplaylinepenalty=2500
 
+\usepackage{colortbl}
 \usepackage{algorithm}
 \usepackage{algorithmic}
 \usepackage{array}
@@ -31,19 +32,19 @@
 %:Institution: Virginia Tech University
 %\end{comment}
 
-%\newcommand{\gettitle}{\text{Full Brain Blood-Oxygen-Level-Dependent Signal Parameter Estimation Using Particle Filters}}
-
 \begin{document}
 
 \title{Full Brain Blood-Oxygen-Level-Dependent Signal Parameter Estimation Using Particle Filters}
 
+%TODO change manuscript recieved/revised
 \author{{Micah~Chambers}% <-this % stops a space
 \thanks{M. Chambers is with the Department
 of Electrical and Computer Engineering, Virginia Tech University, Blacksburg,
 VA, 24060 USA e-mail: (micahc@vt.edu}% <-this % stops a space
 \thanks{Manuscript received April 19, 2005; revised January 11, 2007.}}
 
-\markboth{Journal of \LaTeX\ Class Files,~Vol.~6, No.~1, January~2007}%
+%TODO change journal name
+\markboth{Journal of ...}%
 {Chambers: Full Brain Blood-Oxygen-Level-Dependent Signal Parameter Estimation Using Particle Filters}
 % The only time the second header will appear is for the odd numbered pages
 % after the title page when using the twoside option.
@@ -607,7 +608,9 @@ Tanabe et al.  showed that generally subtracting off
 a spline improved the SNR the most \cite{Tanabe2002}.
 
 To prevent transients at the beginning of the FMRI run, the first 9
-measurements (18.9 seconds) were dropped.
+measurements (18.9 seconds) were dropped. Each of the remaining 
+images were registered to the new first image, to account for
+movement. 
 One knot was used for every 20 time points (at a TR of 2.1), with the first
 knot and last knot taking half as many points as the rest of the knots.
 The median level of each group of measurements was calculated, and the
@@ -619,6 +622,14 @@ the Median-Absolute-Deviation was added to the final signal (\autoref{eq:mad}).
 y_{\text{gain}, 0:K} = 1.4826\underset{i=0:K}{\text{median}}(y_i - \text{median}(y_{0:K}))
 \label{eq:mad}
 \end{equation}
+
+For SPM, the first 9 measurements were again dropped, and the images
+co-registered across time. The co-registered data was spatially smoothed,
+and then filtered with an adaptive cut off (which is built into the
+SPM analysis). For the SPM analysis, the Canonical HRF was used
+and model time derivatives were included (but not in the contrast
+vector). All other settings used in SPM8 were left at the default
+for analyzing FMRI data.
 
 \subsection{Simulation}
 \label{sec:MethodsSim}
@@ -634,13 +645,70 @@ although actual SNR's ranged from .5 to 1.5 in active areas.
 
 \subsection{Data Acquisition}
 \label{sec:MethodsData}
+For the FMRI data discussed in \autoref{sec:RealData}, tests were
+performed on a right handed volunteer using a GE SIGNA HDx 1.5 Tesla
+scanner with a single echo EPI sequence. Slice spacing was
+5mm, and pixel sizes were 3.75mm.  Repetition Time was 2.1s,
+Echo Time was 40 ms and the imaging frequency was set to $63.854$MHz.
+The image resolution was $64 \times 64 \times 28$.
+The subject was presented with either a single or
+double flash and was asked to respond with a right handed
+or left handed finger tap, respectively. The FMRI began 18.9 seconds
+before the beginning of the experiment, to allow for transients
+in to image to settle out. The timing of the flashes are shown
+below with time 0 corresponding to the beginning of
+the 10th TR (so 9 images were dropped).
+
+The timing of the single flashes were:
+1.706, 11.944, 17.063, 18.769, 34.125, 39.244, 44.231, 47.644, 49.350,
+61.294, 64.706, 66.413, 69.825, 71.531, 73.238, 76.650, 80.063,
+90.169, 96.994, 110.644, 117.469, 120.881, 130.988, 132.694, 154.875,
+158.288, 161.700, 165.113, 168.525, 176.925, 178.631, 183.750, 190.575,
+204.225, 205.931, 211.050, 216.038, 222.863, 226.275, 236.513, 248.456,
+255.281, 258.563, 263.681, 273.919, 277.331, 287.569, 292.688, 294.394,
+299.381
+
+Timing of the double flashes were:
+0.131, 6.825, 20.475, 27.300, 35.831, 52.763, 54.469, 59.588, 86.756,
+91.875, 107.231, 108.938, 112.350, 114.056, 115.763, 119.175, 126.000,
+134.400, 136.106, 141.225, 144.638, 156.581, 159.994, 166.819, 171.806,
+175.219, 185.456, 188.869, 202.519, 212.756, 217.744, 221.156, 227.981,
+229.688, 233.100, 243.338, 245.044, 246.750, 250.163, 261.975, 270.506,
+272.213, 280.744, 282.450, 289.275, 296.100, 301.088, 304.500
 
 \section{Results}
 \label{sec:Results}
 \subsection{Simulation}
-The final
-histogram for a single active region, with a single set of true 
-parameters is shown in \autoref{fig:slicesim_hist2}.
+\begin{table*}[t]
+\centering
+\begin{tabular}{|c | c  c  c  c  c  c  |}
+\hline
+  & $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ \\
+\hline
+$\alpha$                      & 0.889884 & & & & & \\
+\rowcolor[gray]{.8} $E_0$     & -0.7661395 & -0.5230723 & & & & \\
+$V_0$                         & 0.6244049 & 0.4239271 & -0.7964774 & & & \\
+\rowcolor[gray]{.8} $\tau_s$  & 0.6204843 & 0.295425 & -0.7481253 & 0.3440421 & & \\
+$\tau_f$                      & -0.0004259 & -0.3966881 & -0.4314174 & 0.1962954 & 0.6990775 & \\
+\rowcolor[gray]{.8} $\epsilon$& 0.6158116 & 0.6558179 & -0.641348 & 0.2846632 & 0.4458142 & -0.097079 \\
+\hline
+\end{tabular}
+\caption{Correlation of parameter estimates for a 2400 second simulation.}
+\label{tab:long_corr}
+\end{table*}
+
+For a 2400 second simulated FMRI run, a signal was generated using the 
+following parameters:
+$\{\tau_0 = 1.45, \alpha = 0.3, E_0 = 0.47, V_0 = 0.044, \tau_s = 1.94, \tau_f = 1.99, \epsilon = 1.8\}$,
+with measurement noise ($\sigma_y$) of $0.001$ and drift standard deviation
+($\sigma_x$) of $0.0005$. The minimum and maximum error particles had MSE of $ $ and $ $,
+respectively, while the mean of the particles gave MSE of $ $. %TODO fill in errors
+The correlation matrix for the final parameter estimates is shown in \autoref{tab:long_corr}.
+The significant correlation of parameters indicate that no one estimate of 
+particles dominate the solution. Additionally, given the very low error in the BOLD,
+the energy graph is full of global minima. The final histogram for a single active region, 
+with a single set of true parameters is shown in \autoref{fig:slicesim_hist2}.
+This also indicates that ill-defined nature of the parameters. 
 
 %parameters:
 %&1.151&  0.353& 0.380& 0.026& 1.98&  2.333& 1.645 \\
@@ -653,10 +721,21 @@ than $0.15$. TODO: add actual error.}
 \label{fig:slicesim_hist2}
 \end{figure*}
 
+\begin{figure}[!t]
+\subfloat[Region labels for simulated slice.]
+{\includegraphics[width=2.5in]{images/simregions.png}\label{fig:simslice_mask}}
+\hfil
+\subfloat[Mutual Information Map. Scale is bits. Higher (yellow) is better.]
+{\label{fig:sim_hm_mi} \includegraphics[width=2.5in]{images/sim_hm_mi}}
+\caption{Comparison of activation with greymatter, parameter regions.}
+\label{fig:simslice_hm}
+\end{figure}
+
 \begin{itemize}
 \item Long Single Result: Correlation Matrix, error in estimate
 \item Possum Results: Histogram of parameters for a region
 \item FMRI Results: Activation maps comparing M.I. with SPM
+\end{itemize}
 
 \section{Discussion}
 \label{sec:Discussion}
