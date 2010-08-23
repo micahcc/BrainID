@@ -57,12 +57,12 @@ VA, 24060 USA e-mail: (micahc@vt.edu}% <-this % stops a space
 
 \begin{abstract}
 Traditional methods of analyzing FMRI images use a linear combination of
-just a few static regressors. This works demonstrates an alternative
+just a few static regressors. This work demonstrates an alternative
 approach using a physiologically inspired nonlinear model. By using a 
 particle filter to optimize the model parameters, the computation time
 is kept below a minute per voxel without requiring a linearization 
 of the noise in the state
-variables. The activation results show regions similar those found in 
+variables. The activation results show regions similar to those found in 
 SPM; however, there are some notable regions not detected by 
 SPM. Though the parameters selected by the particle filter based approach
 are more than sufficient to predict the BOLD response,
@@ -75,7 +75,7 @@ a full posterior probability, the reliance on the mean to estimate
 parameters is unnecessary. This work presents
 not just a viable alternative to the traditional method of detecting
 activation, but an extensible technique of estimating the joint probability
-distribution of the BOLD parameters.
+distribution function of the BOLD parameters.
 \end{abstract}
 
 % Note that keywords are not normally used for peerreview papers.
@@ -487,7 +487,7 @@ into \autoref{eq:weightfunc} leads to:
 \begin{eqnarray}
 w^i_k & \propto & \frac{P(y_k| x^i_k)  P(x^i_{0:k-1} | y_{0:k-1})}
                          {q(x^i_{0:k-1} | y_{0:k-1})} \nonumber \\
-& \propto & w^i_{k-1}P(y_k| x_k) 
+& \propto & w^i_{k-1}P(y_k| x^i_k) 
 \label{eq:weightevolve}
 \end{eqnarray}
 
@@ -553,26 +553,110 @@ a Gaussian kernel was used, and the bandwidth was set to 1
 pseudocode may be found in \autoref{sec:algorithms},
 including the complete regularized particle filter used
 (Algorithm \autoref{alg:RegularizedParticleFilter}).
+\begin{table}[t]
+\centering
+\begin{tabular}{|c || c | c | c |}
+\hline
+Parameter & Distribution & $\mu$ & $\sigma$ \\
+\hline
+$\tau_0$ & Gamma & .98 & .25 \\
+$\alpha$ & Gamma & .33 & .045\\
+$E_0$    & Gamma & .34 & .03  \\
+$V_0$    & Gamma & .04 & .03 \\
+$\tau_s$ & Gamma & 1.54  & .25\\
+$\tau_f$ & Gamma & 2.46  & .25\\
+$\epsilon$ & Gamma & .7  & .6 \\
+\hline
+\end{tabular}
+\caption{Prior distributions used in the particle filter.}
+\label{tab:Prior}
+\end{table}
+\autoref{eq:weightevolve} still depends on knowing
+$P(y_k| x^i_k)$. Ideally this would exactly match the
+measurement error distribution of the system; however,
+even if this distribution is incorrect, the solution will
+still converge. For this work it was assumed that
+\begin{equation}
+P(y_k | x^i_k) = g(X_k, \nu_y) = g(X_k) + \nu_y\text{, }\nu_y \sim N(0, 0.005^2)
+\end{equation}
+A standard deviation of $0.005$ performed well in the general case, primarily
+because the BOLD signal tends to be in the range of $0.01-0.05$, (1\%-5\%).
+Additionally, 1400 Euler integration points were used per second, 
+the system was assumed to start at rest. The system was initialized
+with 16,000 particles, but during the first resampling, the number
+of particles was dropped to 1,000. To prevent over-smoothing, resampling
+was only performed when $\N_{eff}$ (\autoref{eq:neff}) dropped below
+$50$ for two consecutive measurements. 
+
+\subsection{Preprocessing}
+The BOLD response has been
+extensively studied and despite minor discrepancies, the cause of the BOLD
+signal is well known. However, FMRI has an extremely low SNR. 
+A particularly difficult form of noise present 
+in FMRI is a low frequency
+drift, often characterized as a Wiener process \cite{Riera2004}.
+Though not present in all regions, as many as ten to fifteen percent
+of voxels can be affected, thus it is prevalent 
+enough to cause significant inference problems \cite{Tanabe2002, Smith2007}. 
+Though the cause is still not
+clear it is clear that this drift signal is not solely
+due to a physiological effects, given its presence in cadavers and phantoms
+\cite{Smith1999}. The problem mandates the use of a high pass 
+filter \cite{Smith2007}.  In a comparison of high pass filters,
+Tanabe et al.  showed that generally subtracting off
+a spline improved the SNR the most \cite{Tanabe2002}.
+
+To prevent transients at the beginning of the FMRI run, the first 9
+measurements (18.9 seconds) were dropped.
+One knot was used for every 20 time points (at a TR of 2.1), with the first
+knot and last knot taking half as many points as the rest of the knots.
+The median level of each group of measurements was calculated, and the
+knot placed at the average time of the group. After subtracting this spline
+from the timeseries, the resulting timeseries was divided by the original
+sample mean. To compensate for the BOLD signal not generally being zero-mean,
+the Median-Absolute-Deviation was added to the final signal (\autoref{eq:mad}). 
+\begin{equation}
+y_{\text{gain}, 0:K} = 1.4826\underset{i=0:K}{\text{median}}(y_i - \text{median}(y_{0:K}))
+\label{eq:mad}
+\end{equation}
 
 \subsection{Simulation}
 \label{sec:MethodsSim}
+Single voxel simulations were performed by propagating the BOLD
+model forward through time with 2000 integration points per
+second, then adding I.I.D. Gaussian noise and a Wiener process
+with I.I.D. steps. 
+Full volume simulation were performed using 
+a modified version of the FSL tool POSSUM. The modifications allowed
+activation levels to be driven by spatially dependent BOLD parameter
+sets. Due to the modifications, the SNR configuration was set to 20,
+although actual SNR's ranged from .5 to 1.5 in active areas. 
+
 \subsection{Data Acquisition}
 \label{sec:MethodsData}
 
 \section{Results}
 \label{sec:Results}
+\subsection{Simulation}
+The final
+histogram for a single active region, with a single set of true 
+parameters is shown in \autoref{fig:slicesim_hist2}.
+
+%parameters:
+%&1.151&  0.353& 0.380& 0.026& 1.98&  2.333& 1.645 \\
+\begin{figure*}[!t] %top left
+\centering
+\includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=15cm]{images/slicesim_hist2}
+\caption{Histogram of estimated parameters. Average SNR in the region was 
+$0.97$ and Mutual Information between simulation and BOLD estimate was greater 
+than $0.15$. TODO: add actual error.}
+\label{fig:slicesim_hist2}
+\end{figure*}
+
 \begin{itemize}
-\item Simulation Results - Possum Only
-\begin{itemize}
-    \item Histogram of parameters for each region
-    \item Final histogram of one run?
-    \item Comparison of MI with SNR
-\end{itemize}
-\item FMRI Results 
-\begin{itemize}
-    \item Activation maps comparing M.I. with SPM
-\end{itemize}
-\end{itemize}
+\item Long Single Result: Correlation Matrix, error in estimate
+\item Possum Results: Histogram of parameters for a region
+\item FMRI Results: Activation maps comparing M.I. with SPM
 
 \section{Discussion}
 \label{sec:Discussion}
