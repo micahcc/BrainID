@@ -697,24 +697,15 @@ Although not perfect, both methods do provide a decent metric.
 \begin{figure}
 \centering
 \subfigure[Region labels for simulated slice.]{
-\includegraphics[height=9cm]{images/simregions.png} \label{fig:simslice_mask} }
-\subfigure[Grey matter map for simulate region.]{\includegraphics[height=9cm]{images/sim_gm}}
+\includegraphics[height=8cm]{images/simregions.png} \label{fig:simslice_mask} }
 \subfigure[Residual Map. Scale is Normalized error. Lower (yellow) is better.]
 {\label{fig:simslice_hm_res} \includegraphics[height=8cm]{images/sim_hm}}
 \subfigure[Mutual Information Map. Scale is bits. Higher (yellow) is better.]
 {\label{fig:sim_hm_mi} \includegraphics[height=8cm]{images/sim_hm_mi}}
-\caption{Comparison of activation with greymatter, parameter regions.}
+\subfigure[SNR Map of POSSUM simulated data. Mean SNR per region, Region 1: $0.8$, Region 2: $0.97$, and
+Region 3: $0.39$.]{\includegraphics[height=8cm]{images/snr_hm.png}\label{fig:SimSNRhm}}
 \label{fig:simslice_hm}
-\end{figure}
-
-\begin{figure}
-\centering
-\subfigure{
-\includegraphics[width=10cm]{images/snr_hm.png}}
-\subfigure{\includegraphics[width=1cm]{images/scale5.png}}
-\caption{SNR Map of POSSUM simulated data. Region 1 mean SNR was $0.8$, Region 2 mean SNR was $0.97$, and
-Region 3 mean SNR was $0.39$.}
-\label{fig:SimSNRhm}
+\caption{Comparison of activation with greymatter, parameter regions.}
 \end{figure}
 
 To test the usefulness of the particle filter on a larger scale, I used a modified version
