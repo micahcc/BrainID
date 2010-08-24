@@ -6,7 +6,6 @@
 #include <itkImageLinearIteratorWithIndex.h>
 #include <itkResampleImageFilter.h>
 #include <itkNearestNeighborInterpolateImageFunction.h>
-#include <itkLinearInterpolateImageFunction.h>
 #include <itkMetaDataObject.h>
 
 #include "tools.h"
@@ -475,6 +474,7 @@ int main(int argc, char* argv[])
     Image4DType::Pointer trueParamImg;
     try{
         trueParamImg = readImage<Image4DType>(a_dir(), "parammap.nii.gz");
+        std::cout << "Found true parameter map: " << a_dir() << "parammap.nii.gz" << std::endl;
         //todo, need to re-sample trueParamImg
     } catch (...) {
         std::cout << "...none there. If you want to compare with real " 
@@ -523,7 +523,7 @@ int main(int argc, char* argv[])
      * the simulation with the true paramters
      */
     if(trueParamImg) {
-        typedef itk::LinearInterpolateImageFunction<Image4DType, double> InterpT;
+        typedef itk::NearestNeighborInterpolateImageFunction<Image4DType, double> InterpT;
         typedef itk::ResampleImageFilter<Image4DType, Image4DType, double> ResampT;
         InterpT::Pointer interp = InterpT::New();
         ResampT::Pointer resampler = ResampT::New();
