@@ -112,7 +112,8 @@ Therefore, after the particle have been generated they should approximate $\alph
 \begin{equation}
 \alpha(X) \approx P(x_0) = \sum_{i=0}^{N_p} w^i\delta(X - x^i_0 ) dx
 \end{equation}
-Where $\delta(x-x_0)$ is 1 if and only if $x = x_0$ (the Kronecker delta function).
+Where $\delta(x-x_0)$ is 1 if and only if $x = x_0$ 
+(the Kronecker delta function).
 
 If a flat prior is 
 preferred, then each particle's weight could be scaled to the reciprocal of the
@@ -148,8 +149,9 @@ only on $P(x^i_{0:k} | y_{0:k})$, the probability of that particle
 being correct given all the measurements up to time $k$. 
 Note that if there is a far off peak in
 the posterior that $q$ does not have support points in, there will 
-be quantization errors, and that part of the density cannot be modeled. This is why
-it is absolutely necessary that $q$ fully covers $P(x^i_{0:k} | y_{0:k})$.
+be quantization errors, and that part of the density cannot be modeled. 
+This is why it is absolutely necessary that $q$ fully covers 
+$P(x^i_{0:k} | y_{0:k})$.
 
 It is helpful
 to consider how the importance density affects the initial distribution. 
@@ -207,8 +209,8 @@ P(y_k | x_{0:k}, y_{0:k-1}) &=& P(y_k | x_k) \nonumber \\
 P(x_k | x_{0:k}, y_{0:k-1}) &=& P(x_k | x_{k-1})
 \label{eq:MarkovProperty}
 \end{eqnarray}
-These are of course just re-statements of the state equations assumed by \autoref{eq:stateass}
-and \autoref{eq:measass}.
+These are of course just re-statements of the state equations assumed 
+by \autoref{eq:stateass} and \autoref{eq:measass}.
 
 Additionally, for the particle filter $y_k$ and $y_{0:k-1}$ are 
 constant across all particles, thus $P(y_k| y_{0:k-1})$ can
