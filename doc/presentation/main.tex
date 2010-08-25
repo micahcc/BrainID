@@ -1,9 +1,10 @@
 %Micah Chambers
 
 \documentclass{beamer}
-\usepackage{pgfpages}
 %\usepackage[orientation=landscape,size=custom,width=16,height=10,scale=0.5]{beamerposter} 
-\setbeameroption{show notes on second screen}
+
+%\usepackage{pgfpages}
+%\setbeameroption{show notes on second screen}
 
 \mode<presentation>
 {
@@ -68,7 +69,7 @@ Parameter Estimation using Sequential Monte Carlo Methods}
 \includegraphics[width=10cm]{model}
 \caption{
     \tiny
-    \cite{nonlinearfiltering}
+    \cite{Riera2003}
 }
 \end{figure}
 \note{Rates range from below 1 Hz to 5 to 6 Hundred Hz}
@@ -106,9 +107,10 @@ Parameter Estimation using Sequential Monte Carlo Methods}
   \note{Significant nonlinearity.}
 \end{frame}
 
-\begin{frame}{Solutions: Approximate Method}
+\section{Regression}
+\begin{frame}{Approximate Method}
   \begin{itemize}
-    \item 2nd Order Volterra Kernel 
+    \item 2nd Order Volterra Kernel \cite{Friston2000}
     \note{Quadratic Approximation}
     \begin{itemize}
         \item Quadratic Convolution used to approximate Jacobian Matrix.
@@ -135,7 +137,25 @@ Parameter Estimation using Sequential Monte Carlo Methods}
     
   \end{itemize}
 \end{frame}
-%
+
+\begin{frame}{Nonlinear Modeling}
+\begin{itemize}
+    \item Local Linearization filter \cite{Riera2003}
+     \note{Jacobian of the $\dot{x}$ is available, making gradient descent possible}
+    \item Genetic Algorithms and Simulated Annealing \cite{Vakorin2007}
+     \note{Genetic Algorithms were used to optimize spike points, simulated annealing for the parameters}
+    \item Particle Filters to estimate $P(X_t | \Theta, Y_T)$ \cite{Murray2009}
+    \begin{itemize}
+        \item ML estimate of $\Theta$ based on $P(X_t | \Theta, Y_t)$ \cite{Johnston2007}
+         \note{Particle Filter used to estimate states, ML of parameters based on the posterior of states and so on}
+    \end{itemize}
+    \item Unscented Kalman Filter to estimate parameters \cite{Hu2009}
+    \item Direct Particle Filter, used in this work
+     \note{Technically Kalman Filters and Particle Filters are Bayesian Filters}
+     \note{Essentially filtering out inconsistent parameters.}
+\end{itemize}
+\end{frame}
+
 %\begin{frame}{BOLD Signal Properties}
 %  \begin{itemize}
 %    \item Exact variables and parameters are unknown and are
@@ -208,15 +228,6 @@ Parameter Estimation using Sequential Monte Carlo Methods}
 %
 %\section{Nonlinear Regression}
 %
-%\begin{frame}{Model Comparison}
-%  \begin{figure}
-%    \includegraphics[width=5in,height=2.4in]{comparison.png}
-%    \caption{
-%        \tiny
-%        \cite{comparison}
-%    }
-%  \end{figure}
-%\end{frame}
 %
 %\section{Parameter Identification}
 %\begin{frame}{Particle Filters}
@@ -345,8 +356,8 @@ Parameter Estimation using Sequential Monte Carlo Methods}
 %\subsection<presentation>*{For Further Reading}
 
 \begin{frame}[allowframebreaks]
-  \bibliographystyle{abbrvnat}
-  \bibliography{references}
+  \bibliographystyle{plain}
+  \bibliography{../library}
 \end{frame}
 
 \end{document}
