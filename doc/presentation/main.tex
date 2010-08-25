@@ -29,8 +29,8 @@
 %\usepackage[small]{caption}
 \usepackage{algorithmic}
 
-\title{Full Brain Blood-Oxygen-Level-Dependent Signal \\
-Parameter Estimation using Sequential Monte Carlo Methods}
+\title{Full Brain BOLD Signal Parameter Estimation \\
+using Particle Filters}
 
 %\subtitle{}
 
@@ -156,200 +156,135 @@ Parameter Estimation using Sequential Monte Carlo Methods}
 \end{itemize}
 \end{frame}
 
-%\begin{frame}{BOLD Signal Properties}
-%  \begin{itemize}
-%    \item Exact variables and parameters are unknown and are
-%        difficult to calculate.
-%    \item Significant Amount of Lag between activation
-%        and a measurable output - can be as much as 8 seconds.
-%    \item Slow Temporal Resolution
-%    \item Noise characterized by brownian motion, which clashes with low 
-%        frequency elements.
-%    \begin{center}
-%    \includegraphics[width=10cm,height=4cm]{signal_fft.pdf}
-%    \end{center}
-%  \end{itemize}
-%\end{frame}
-%
-%\begin{frame}{Preprocessing}
-%  \begin{itemize}
-%    \item Low Pass Filter (Gaussian Filter, not recommended)
-%    \item Drift Removal (not always performed)
-%    \begin{itemize}
-%        \item High Pass Filter
-%        \item Linear 
-%        \item Quadratic
-%        \item Wavelet 
-%        \item Spline (Which I am using)
-%    \end{itemize}
-%  \end{itemize}
-%  \begin{figure}
-%    \includegraphics[width=10cm]{detrending_effect.png}
-%    \caption{
-%        \tiny
-%        \cite{detrending}
-%    }
-%  \end{figure}
-%\end{frame}
-%
-%\section{Statistical Parametric Mapping}
-%\begin{frame}{Method}
-%  \begin{figure}
-%    \includegraphics[width=11cm]{glm_pipeline.png}
-%    \caption{
-%        \tiny
-%        \cite{spm_pipeline}
-%    }
-%  \end{figure}
-%\end{frame}
-%
-%\begin{frame}{Limitations}
-%\begin{columns}
-%  \column{2.5in}
-%  \begin{itemize}
-%    \item Linear, for a signal which is known to be nonlinear
-%    \item Essentially the weighted sum of a set of "expected" responses.
-%    \item Parametric
-%    \begin{itemize}
-%        \item Forced to make assumptions about underlying distributions
-%        \item No time-scaling.
-%    \end{itemize}
-%  \end{itemize}
-%  \column{3in}
-%  \begin{figure}
-%    \includegraphics[width=2.5in]{glm.png}
-%    \caption{
-%        \tiny
-%        \cite{spm_pipeline}
-%    }
-%  \end{figure}
-%\end{columns}
-%\end{frame}
-%
-%\section{Nonlinear Regression}
-%
-%
-%\section{Parameter Identification}
-%\begin{frame}{Particle Filters}
-%\begin{itemize}
-%    \item Non-parametric, no assumptions are violated
-%    \item Model based, fit parameters to input, constrained by physical variables
-%    \item Fits a mixture PDF to the posterior of all parameters
-%    \item Non-trivial computation cost
-%    \item I use a Regularized Particle Filter
-%    \begin{enumerate}
-%        \item Regularized Re-sampling prevents particles from de-generating into a 
-%            small number of unique particles
-%        \item Allows distributions to move more freely
-%    \end{enumerate}
-%\end{itemize}
-%\end{frame}
-%
-%\begin{frame}{Particle Filter}
-%    \begin{columns}
-%    \column{1.8in}
-%    \begin{itemize}
-%        \item $S_t = \{p_{0,t}, ... , p_{N,t}\}$, the set of particles
-%        \item $w_{i,t}$, weight of particle $p_{i,t}$
-%        \item $y_t$, measurement at time $t$, there is not a $y_t$ for every $t$.
-%        \item $f(p_{i,t},y_t)$, weighting function 
-%        \item $s(p_{i,t})$, step function 
-%    \end{itemize}
-%    \column{3.2in}
-%    \begin{algorithmic}
-%     \STATE Draw $S_0$ from prior distribution 
-%     \FOR{$t = 0:t_{step}:t_{end}$}
-%        \FOR{each $p_{i,t-1} \in S_{t-1}$}
-%           \STATE $p_{i,t} = s(p_{i,t-1})$ 
-%           \IF{There is a measurement at time $t$}
-%               \FOR{every $p_{i,t}$}
-%                    \STATE $w_{i,t} = w_{i,t-1}f(p_{i,t},y_t)$
-%               \ENDFOR 
-%               \STATE Resample if weights are unevenly distributed\\
-%           \ENDIF
-%        \ENDFOR
-%     \ENDFOR
-%%                    \item If a weights are not evenly distributed enough, then resample
-%     \end{algorithmic}
-%     \end{columns}
-%\end{frame}
-%
-%\subsection{Single-Region}
-%\begin{frame}{Single Timeseries Results}
-%  \begin{figure}
-%    \includegraphics[height=3in]{noise.png}
-%  \end{figure}
-%\end{frame}
-%
-%\begin{frame}{Single Timeseries Results, Measurement Convergence}
-%  \begin{figure}
-%    \includegraphics[height=3in]{bold.png}
-%  \end{figure}
-%\end{frame}
-%
-%\begin{frame}{Single Timeseries Results, State Convergence}
-%  \begin{figure}
-%    \includegraphics[height=3in]{state.png}
-%  \end{figure}
-%\end{frame}
-%
-%\begin{frame}{Factors Affecting Convergence}
-%    \begin{enumerate}
-%        \item Weighting function
-%            \begin{itemize}
-%                \item Needs to be continuous and defined for any input, should go to 0
-%                \item Too wide a weighting function results in under-sensitivity, 
-%                            slow or no convergence
-%                \item Too thin a weighting function reduces robustness to noise
-%            \end{itemize}
-%        \item How often re-sampling is done, re-sampling should be minimized
-%            \begin{itemize}
-%                \item Stratified Resampling can result in truncated tails on posterior
-%                \item Regularized Resampling can result in reduced robustness to noise 
-%            \end{itemize}
-%        \item Number of particles
-%            \begin{itemize}
-%                \item More particles give higher fidelity of posterior
-%            \end{itemize}
-%    \end{enumerate}
-%\end{frame}
-%
-%\subsection{Multi-Region}
-%\begin{frame}{Parameter Map Generation/Simulation}
-%\begin{columns}
-%  \column{2.5in}
-%  \begin{enumerate}
-%    \item Generate a parameter map, with a set of parameters for each voxel
-%    \item Simulate every set of parameters, and use as input to possum
-%    \item Perform preprocessing (de-trend and normalize)
-%    \item Run particle filter on every grey matter voxel in image, generating a new
-%            parameter map
-%  \end{enumerate}
-%  \column{3in}
-%  \begin{figure}
-%    \includegraphics[width=2.8in]{equation.png}
-%    \caption{
-%    }
-%  \end{figure}
-%\end{columns}
-%\end{frame}
-%
-%\begin{frame}{Simulation Results, $\tau_0$}
-%  \begin{figure}
-%    \includegraphics[height=3in]{results.png}
-%    \caption{Percent Difference from "Actual"}
-%  \end{figure}
-%\end{frame}
-%
-%\begin{frame}{Simulation Results, multiple}
-%  \begin{figure}
-%    \includegraphics[height=3in]{results2.png}
-%    \caption{Percent Difference from "Actual"}
-%  \end{figure}
-%\end{frame}
-%
-%\section{Conclusion}
-%
+\section{Particle Filter}
+\begin{frame}{Construction}
+\begin{itemize}
+    \item Initialize Particles with Prior ($\alpha$):\\
+        $$\{(x^i_0,w^i) : x^i_0 \sim \alpha(X), w^i = 
+                \frac{1}{N_p}, i \in \{1, 2, ... , N_p\} \}$$
+        $$\alpha(X) \stackrel{\text{\tiny{k=0}}}{\approx} P(x_k) 
+                = \sum_{i=0}^{N_p} w^i\delta(x_k - x^i_k ) dx$$
+    \item Particle Weights at time $t_k$:\\
+        $$w^i_k \propto \frac{P(x^i_{0:k} | y_{0:k})}{q(x^i_{0:k} | y_{0:k})}$$
+      \note{$q$ is the density/location of the particle}
+      \note{$p$ is the actual probability }
+    \item Adding Measurements:\\
+        $$w^i_k \propto & w^i_{k-1}P(y_k| x_k) $$
+      \note{Because of the proportion, note that the weights do not
+            have to integrate to 1, and can be extremely large or extremely small}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Details and Example}
+  \begin{columns}
+    \begin{column}{.55\textwidth}
+        \begin{itemize}
+            \item Non-parametric
+            \item Model based
+            \item Online
+            \item Provides Full Posterior Probability
+            \item Non-trivial computation cost
+            \item Regularized Particle Filter Used
+        \end{itemize}
+    \end{column}
+    \begin{column}{.45\textwidth}
+        \begin{figure}
+          \includegraphics[width=\textwidth]{particle_filter}
+        \end{figure}
+    \end{column}
+    \end{columns}
+\end{frame}
+
+%todo I should probably add labels on the axes
+\section{Methods}
+\begin{frame}{FMRI Noise}
+\centering
+
+Resting State Noise
+
+\includegraphics[trim=3cm 0cm 3cm 0cm,width=.75\textwidth]{noise2_0009_22_38_23}
+
+Resting State Noise Steps
+
+\includegraphics[trim=3cm 0cm 3cm 0cm,width=.75\textwidth]{noise2_0009d_22_38_23}
+
+\note{Tanabe 2002 \autoref{Tanabe2002} 10-15\% of voxels exhibit significant drift}
+\note{Occurs in Cadavers.}
+\end{frame}
+
+\begin{frame}{Preprocessing}
+  \begin{columns}
+    \begin{column}{.7\textwidth}
+        \begin{itemize}
+            \item Drop Inital Volumes (9 Here)
+            \item Realign Over Time
+            \item Detrend
+            \item Gaussian Smoothing (SPM Only)
+            \begin{itemize}
+                \item Imposes Gaussianity
+                \item Increases SNR
+                \item Reduces Bonferroni Correction Requirement
+            \end{itemize}
+        \end{itemize}
+    \end{column}
+    
+    \begin{column}{.3\textwidth}
+    %todo graphic of preprocessing
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\section{Results}
+\begin{frame}{Long Run Results}
+%convergence
+%correlation
+\end{frame}
+
+\begin{frame}{Short Run Results}
+%results image
+%table of estimated parameters
+\end{frame}
+
+\begin{frame}{POSSUM Results}
+%mutual information map
+\end{frame}
+
+\begin{frame}{SPM vs. Mutual Information Map}
+
+\end{frame}
+
+\begin{frame}{Factors Affecting Convergence}
+    \begin{itemize}
+        \item Weighting function
+            \begin{itemize}
+                \item Continuous, Long Tailed, Zero-Mean 
+                \begin{itemize}
+                \item Too wide -> under-sensitivity, slow or no convergence
+                \item Too thin -> reduces robustness to noise, particle deprivation
+                \end{itemize}
+            \end{itemize}
+        \item Resampling 
+            \begin{itemize}
+                \item Stratified Resampling can result in truncated tails 
+                        on posterior
+                \item Regularized Resampling can result in over smoothing and 
+                        slow convergence
+            \end{itemize}
+        \item Number of particles
+            \begin{itemize}
+                \item More particles give higher fidelity posterior
+            \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\section{Conclusion}
+\begin{frame}{Key Findings}
+
+\end{frame}
+
+\begin{frame}{Conclusion}
+\end{frame}
+
 %% All of the following is optional and typically not needed. 
 %\appendix
 %\section<presentation>*{\appendixname}
