@@ -782,7 +782,7 @@ $0.00217$. Peak signals reached levels of $0.025$.
 %todo fix these histograms with marker for true value and drop A1,A2
 \begin{figure*}[!t] %top left
 \centering
-\includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=15cm]{images/slicesim_hist2}
+\includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=15cm]{sec2hist}
 \caption{Histogram of estimated parameters. Average SNR in the region was 
 $0.97$ and Mutual Information between simulation and BOLD estimate was greater 
 than $0.15$.}
@@ -791,7 +791,7 @@ than $0.15$.}
 
 \begin{figure*}[!t] %top left
 \centering
-\includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=15cm]{images/slicesim_hist3}
+\includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=15cm]{sec3hist}
 \caption{Histogram of estimated parameters for region 3. Average SNR in the 
 region was 
 $0.39$ and Mutual Information between simulation and BOLD estimate was greater 
@@ -816,27 +816,30 @@ was a less interesting result.
 \subsection{Real Data}
 \begin{figure*}
 \centering
-\subfigure[]{\label{fig:hm_spm} \includegraphics[scale=.85]{images/spm_hm}}
-\subfigure[]{\label{fig:hm_canon_spm_x} \includegraphics[scale=3]{images/spm_hm_x}}
-\subfigure[]{\label{fig:hm_canon_spm_y} \includegraphics[scale=3]{images/spm_hm_y}}
-\subfigure[]{\label{fig:hm_canon_spm_z} \includegraphics[scale=3]{images/spm_hm_z}}
-\subfigure{\label{fig:scale_spm} \includegraphics[scale=.5]{images/scale1}}
+\subfigure{\label{fig:hm_spm} \includegraphics[scale=3]{spm_hm}}
+\subfigure{\label{fig:scale_spm} \includegraphics[scale=.35]{scale1}}
 \caption{SPM results. Units of activation are in Student's $t$-scores; higher indicates higher
-        assurance that the signal cannot have occurred through noise alone.
-        Sagittal, coronal and axial slices  are
-        \autoref{fig:hm_canon_spm_x}, \autoref{fig:hm_canon_spm_y}, and
-         \autoref{fig:hm_canon_spm_z}, respectively. A series of axial slices are
-         shown in \autoref{fig:hm_spm}. }
+        assurance that the signal cannot have occurred through noise alone.}
 \label{fig:hm_canon_spm}
 \end{figure*}
 
+\begin{figure*}
+\centering
+\subfigure{\label{fig:hm_mi} \includegraphics[scale=3]{hm_mi_strict}}
+\subfigure{\label{fig:scale_mi} \includegraphics[scale=.35]{scale4}}
+\caption{Particle filter results. Units of activation are in mutual information; higher
+    indicates more assured activation.}
+\label{fig:hm_canon_spm}
+\end{figure*}
+
+The result of real experiments concentrates on regions of activation, because
+of the significant possiblity that the parameters are strictly defined. The
+quality of fit used for the particle filter results is mutual information which
+in preliminary testing showed fewer false positives than normalized Mean Squared
+Error. 
 
 \section{Discussion}
 \label{sec:Discussion}
-
-\begin{itemize}
-\item Parameters ill-defined
-\end{itemize}
 
 \section{Conclusion}
 \label{sec:Conclusion}
