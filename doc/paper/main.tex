@@ -770,11 +770,10 @@ $0.00217$. Peak signals reached levels of $0.025$.
 
 \begin{figure}[!t]
 \subfloat[Region labels for simulated slice.]
-{\includegraphics[width=3cm]{images/simregions.png}\label{fig:simslice_mask}}
+{\includegraphics[height=4.5cm]{simregions.png}\label{fig:simslice_mask}}
 \hfil
 \subfloat[Mutual Information Map. Scale is bits. Higher (yellow) is better.]
-{\label{fig:sim_hm_mi} \includegraphics[width=4cm]{images/sim_hm_15_6.png}}
-\subfigure{\includegraphics[width=.6cm]{images/scale6.png}}
+{\label{fig:sim_hm_mi} \includegraphics[height=4.5cm]{sim_hm_15_6.png}}
 \caption{Comparison of activation with greymatter, parameter regions.}
 \label{fig:simslice_hm}
 \end{figure}
@@ -816,8 +815,8 @@ was a less interesting result.
 \subsection{Real Data}
 \begin{figure*}
 \centering
-\subfigure{\label{fig:hm_spm} \includegraphics[scale=3]{spm_hm}}
-\subfigure{\label{fig:scale_spm} \includegraphics[scale=.35]{scale1}}
+\subfloat{\label{fig:hm_spm} \includegraphics[scale=3]{spm_hm}}
+\subfloat{\label{fig:scale_spm} \includegraphics[scale=.35]{scale1}}
 \caption{SPM results. Units of activation are in Student's $t$-scores; higher indicates higher
         assurance that the signal cannot have occurred through noise alone.}
 \label{fig:hm_canon_spm}
@@ -825,11 +824,11 @@ was a less interesting result.
 
 \begin{figure*}
 \centering
-\subfigure{\label{fig:hm_mi} \includegraphics[scale=3]{hm_mi_strict}}
-\subfigure{\label{fig:scale_mi} \includegraphics[scale=.35]{scale4}}
+\subfloat{\label{fig:hm_mi} \includegraphics[scale=3]{hm_mi_strict}}
+\subfloat{\label{fig:scale_mi} \includegraphics[scale=.35]{scale4}}
 \caption{Particle filter results. Units of activation are in mutual information; higher
     indicates more assured activation.}
-\label{fig:hm_canon_spm}
+\label{fig:hm_mi_res}
 \end{figure*}
 
 The result of real experiments concentrates on regions of activation, because
