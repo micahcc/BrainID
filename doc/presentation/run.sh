@@ -1,3 +1,3 @@
 #!/bin/bash
 
-impressive main.pdf
+impressive -c memory --geometry 2048x768 -t None withnotes.pdf
