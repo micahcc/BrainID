@@ -3,7 +3,7 @@
 \documentclass{beamer}
 %\usepackage[orientation=landscape,size=custom,width=16,height=10,scale=0.5]{beamerposter} 
 
-%\usepackage{pgfpages}
+\usepackage{pgfpages}
 %\setbeameroption{show notes on second screen}
 
 \mode<presentation>
@@ -60,12 +60,14 @@ using Particle Filters}
   \titlepage
 \end{frame}
 
+%0
 \begin{frame}{Outline}
   \tableofcontents
   % You might wish to add the option [pausesections]
 \end{frame}
 
 \section{Introduction}
+%2
 \begin{frame}{Balloon Model}
 \begin{figure}
 \includegraphics[width=10cm]{model}
@@ -83,12 +85,15 @@ using Particle Filters}
         which are a function of Volume and Oxygenation.}
 \end{frame}
 
+%4
 \begin{frame}{Time Changing Parameters}
     \includegraphics[clip=true,trim=3cm 1cm 3cm 1cm,width=\textwidth]{stateTS}
     \note{Should include a picture of the different parts of the BOLD signal}
 \end{frame}
 
+%6 
 \begin{frame}{BOLD State Equations}
+  \small
   \begin{itemize}
     \item Flow Inducing Signal
     $$\dot{s}(t) = \epsilon u(t) - s(t)/\tau_s - (f(t)-1)/\tau_f$$
@@ -178,6 +183,32 @@ using Particle Filters}
 \end{itemize}
 \end{frame}
 
+\begin{frame}{Particle Filter Algorithm}
+\footnotesize
+\begin{algorithm}
+\begin{algorithmic}
+\STATE Initialize Particles:
+\FOR{$i$ : each of $N_p$ particles }
+    \STATE $x^i_0  \sim \alpha(X)$
+    \STATE $w^i_0 = \frac{1}{N_p}$
+\ENDFOR
+\FOR{$k$ : each measurement}
+    \FOR{$i$ : each particle }
+        \STATE $x^i_k = x^i_{k-1} + \int_{t-1}^t f(x(\tau), u(\tau)) d\tau $
+        \STATE $w^i_k = w^i_{k-1}P(y_k | x_k)$
+    \ENDFOR
+    \STATE Calculate $N_{eff}$ 
+    \IF{$N_{eff} < N_R$ (recommend $N_R = min(50, .1N_p)$ )}
+        \STATE Regularized Resample 
+    \ENDIF
+\ENDFOR
+
+\STATE At $t + \Delta t$, $t \in T$, $P(x(t+\Delta t)) \approx 
+\sum_{i=1}^{N_p} w_i(t)\delta\left(x - (x_i(t) + \int_t^{t+\Delta t} f(x(\tau), u(\tau)) d\tau) \right)$
+ \end{algorithmic}
+ \end{algorithm}
+\end{frame}
+
 \begin{frame}{Details and Example}
   \begin{columns}
     \begin{column}{.55\textwidth}
@@ -216,9 +247,9 @@ Resting State Noise Steps
 
 \begin{frame}{Preprocessing}
   \begin{columns}
-    \begin{column}{.7\textwidth}
+    \begin{column}{.6\textwidth}
         \begin{itemize}
-            \item Drop Inital Volumes (9, $18.9$ seconds )
+            \item Drop Inital Volumes (9, $18.9$s)
             \item Realign Over Time
             \item Detrend
             \item Gaussian Smoothing (SPM Only)
@@ -230,8 +261,8 @@ Resting State Noise Steps
         \end{itemize}
     \end{column}
     
-    \begin{column}{.3\textwidth}
-    %todo graphic of preprocessing
+    \begin{column}{.4\textwidth}
+        \includegraphics[width=\textwidth]{preprocess}
     \end{column}
   \end{columns}
 \end{frame}
@@ -302,8 +333,8 @@ $\tau_f$                      & -0.0004259 & -0.3966881 & -0.4314174 & 0.1962954
 
 \begin{frame}{Short Run Results C}
 \begin{table}[t]
-\tiny
 \centering
+\resizebox{\textwidth}{!}{
 \begin{tabular}{|c | c | c | c | c | c | c | c | c | c |}
 \hline
 $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & $ \sum \tau $ & Error & Residual\\
@@ -327,7 +358,7 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 1.2187 & 0.3359 & 0.3456 & 0.0800 & 1.599 & 2.2488 & 1.3876 & 5.0665 & 0.003066     & 0.00217\\
 \hline
 \end{tabular}
-\label{tab:LowNoiseResults}
+}
 \end{table}
 \end{frame}
 
@@ -375,7 +406,6 @@ than $0.15$.}
 \subfigure{\includegraphics[height=1.5cm,width=.07\textwidth]{scale4}}
 \note{Particle filter results. Units of activation are in mutual information;
     higher indicates more assured activation.}
-\label{blah2}
 \end{figure}
 \end{column}
 \end{columns}
@@ -394,12 +424,10 @@ than $0.15$.}
         \item Weighting function
             \begin{itemize}
                 \item Continuous, Long Tailed, Zero-Mean 
-                \begin{itemize}
                 \item Too wide $\rightarrow$ under-sensitivity, 
                     slow or no convergence
                 \item Too thin $\rightarrow$ reduces robustness 
                     to noise, particle deprivation
-                \end{itemize}
             \end{itemize}
         \item Resampling 
             \begin{itemize}
@@ -466,7 +494,6 @@ than $0.15$.}
 \subfigure{\includegraphics[width=.1\textwidth]{scale4}}
 \note{Particle filter results. Units of activation are in mutual information;
     higher indicates more assured activation.}
-\label{blah2}
 \end{figure}
 \end{frame}
 
@@ -477,7 +504,6 @@ than $0.15$.}
 \subfigure{\includegraphics[width=.1\textwidth]{scale6}}
 \note{Particle filter results. Units of activation are in mutual information;
     higher indicates more assured activation.}
-\label{blah2}
 \end{figure}
 \end{frame}
 
