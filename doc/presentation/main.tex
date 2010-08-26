@@ -64,6 +64,10 @@ using Particle Filters}
 \begin{frame}{Outline}
   \tableofcontents
   % You might wish to add the option [pausesections]
+  \note{Introduction describes FMRI and the Balloon Model}
+  \note{Potential Approaches - describes previous used methods of analysis}
+  \note{Particle Filter - derives and discusses the BOLD model}
+  \note{Methods - The methods used in this work, how to recreate.}
 \end{frame}
 
 \section{Introduction}
@@ -76,7 +80,7 @@ using Particle Filters}
     \cite{Riera2003}
 }
 \end{figure}
-\note{Rates range from below 1 Hz to 5 to 6 Hundred Hz}
+\note{Rates from below 1 Hz to 5 to 6 Hundred Hz}
 \note{Change in average firing rates increase metabolism and sympathetic response causes
         increased inflow of oxygenated blood.}
 \note{In the version of the Balloon model I used, the flow is locked to metabolism.}
@@ -115,7 +119,7 @@ using Particle Filters}
   \note{Significant nonlinearity.}
 \end{frame}
 
-\section{Regression}
+\section{Potential Approaches}
 \begin{frame}{Approximate Method}
   \begin{itemize}
     \item 2nd Order Volterra Kernel \cite{Friston2000}
@@ -251,7 +255,7 @@ Resting State Noise Steps
         \begin{itemize}
             \item Drop Inital Volumes (9, $18.9$s)
             \item Realign Over Time
-            \item Detrend
+            \item Detrend (SPM uses $0.0078125 Hz$ cut off)
             \item Gaussian Smoothing (SPM Only)
             \begin{itemize}
                 \item Imposes Gaussianity
@@ -270,6 +274,9 @@ Resting State Noise Steps
 \section{Results}
 \begin{frame}{Long Run Results}
 \includegraphics[width=\textwidth]{long_converge}
+\note{Bars drop well before the end}
+\note{Mean is good estimator}
+\note{Mean comes very close to truth}
 \end{frame}
 
 \begin{frame}{Long Run Correlation}
@@ -369,8 +376,7 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 \subfigure[Mutual Information]
 {\includegraphics[height=.46\textheight]{sim_hm_15_6}}
 \subfigure[SNR]{\includegraphics[height=.46\textheight]{snr_hm}}
-\note{Mean SNR per region, Region 1: $0.8$, Region 2: $0.97$, and
-            Region 3: $0.39$.}
+\note{Mean SNR's Region 1: $0.8$, Region 2: $0.97$, and Region 3: $0.39$.}
 \end{figure}
 \end{frame}
 
@@ -378,9 +384,9 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 \begin{figure}
 %\centering
 \includegraphics[clip=true,trim=5cm 2cm 5cm 2cm, width=\textwidth]{sec2hist}
-\note{Histogram of estimated parameters. Average SNR in the region was 
-$0.97$ and Mutual Information between simulation and BOLD estimate was greater 
-than $0.15$.}
+\note{Histogram of estimated parameters.}
+\note{Average SNR: $0.97$}
+\note{Mutual Information greater than $0.15$.}
 \end{figure}
 \end{frame}
 
