@@ -84,13 +84,14 @@ using Particle Filters}
 \end{frame}
 
 \begin{frame}{Time Changing Parameters}
+    \includegraphics[clip=true,trim=3cm 1cm 3cm 1cm,width=\textwidth]{stateTS}
     \note{Should include a picture of the different parts of the BOLD signal}
 \end{frame}
 
 \begin{frame}{BOLD State Equations}
   \begin{itemize}
     \item Flow Inducing Signal
-    $$\dot{s}(t) = \epsilon u(t) - s(t)/\tau_s - (f(t)/\tau_f - 1)$$
+    $$\dot{s}(t) = \epsilon u(t) - s(t)/\tau_s - (f(t)-1)/\tau_f$$
     \item Normalized Cerebral Blood Inflow:
     $$\dot{f}(t) = s $$
     \item Normalized Cerebral Blood Volume:
@@ -197,7 +198,6 @@ using Particle Filters}
     \end{columns}
 \end{frame}
 
-%todo I should probably add labels on the axes
 \section{Methods}
 \begin{frame}{FMRI Noise}
 \centering
@@ -218,7 +218,7 @@ Resting State Noise Steps
   \begin{columns}
     \begin{column}{.7\textwidth}
         \begin{itemize}
-            \item Drop Inital Volumes (9 Here)
+            \item Drop Inital Volumes (9, $18.9$ seconds )
             \item Realign Over Time
             \item Detrend
             \item Gaussian Smoothing (SPM Only)
@@ -381,7 +381,6 @@ than $0.15$.}
 \end{columns}
 \end{frame}
 
-%todo fix histogram like I did with the POSSUM results
 \begin{frame}{Particle Filter Results: Histogram}
 \begin{figure}
 \centering
@@ -423,6 +422,7 @@ than $0.15$.}
     \begin{itemize}
     \item BOLD Parameters Ill-Defined
     \item Particle Filter Capable of good parameter BOLD estimate with 1000 particles
+    \item Mutual Information offers good Estimate of Quality
     \end{itemize}
     \item Future Works
     \begin{itemize}
