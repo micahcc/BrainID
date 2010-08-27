@@ -88,6 +88,7 @@ using Particle Filters}
         which are a function of Volume and Oxygenation.}
 \end{frame}
 
+%todo use image from Buxton 2004
 \begin{frame}{Time Changing Parameters}
     \includegraphics[clip=true,trim=3cm 1cm 3cm 1cm,width=\textwidth]{stateTS}
     \note{Should include a picture of the different parts of the BOLD signal}
@@ -167,11 +168,12 @@ using Particle Filters}
 \end{frame}
 
 \section{Particle Filter}
+%frame with example
+
+
 \begin{frame}{Construction}
 \begin{itemize}
-    \item Initialize Particles with Prior ($\alpha$):\\
-        $$\{(x^i_0,w^i) : x^i_0 \sim \alpha(X), w^i = 
-                \frac{1}{N_p}, i \in \{1, 2, ... , N_p\} \}$$
+    \item Mixture PDF:\\
         $$\alpha(X) \stackrel{\text{\tiny{k=0}}}{\approx} P(x_k) 
                 = \sum_{i=0}^{N_p} w^i\delta(x_k - x^i_k ) dx$$
     \item Particle Weights at time $t_k$:\\
