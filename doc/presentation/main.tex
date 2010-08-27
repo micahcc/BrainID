@@ -88,34 +88,53 @@ using Particle Filters}
         which are a function of Volume and Oxygenation.}
 \end{frame}
 
-%todo use image from Buxton 2004
 \begin{frame}{Time Changing Parameters}
-    \includegraphics[clip=true,trim=3cm 1cm 3cm 1cm,width=\textwidth]{stateTS}
-    \note{Should include a picture of the different parts of the BOLD signal}
+\begin{figure}
+    \includegraphics[width=\textwidth]{graphs}
+\caption{
+    \tiny
+    \cite{Buxton2004}
+}
+\end{figure}
 \end{frame}
 
 %more expansion of all the parameters
-\begin{frame}{BOLD State Equations}
-  \small
-  \begin{itemize}
-    \item Flow Inducing Signal
-    $$\dot{s}(t) = \epsilon u(t) - s(t)/\tau_s - (f(t)-1)/\tau_f$$
-    \item Normalized Cerebral Blood Inflow:
-    $$\dot{f}(t) = s $$
-    \item Normalized Cerebral Blood Volume:
-    $$\dot{v}(t) = (1/\tau_0)( f(t) - v(t) ^ {1/\alpha}) $$
-    \item Normalized Deoxyhaemoglobin Content:\\
-    $$\dot{q}(t) = \frac{1}{\tau_0}\left(\frac{f(t)(1-(1-E_0)^{1/f(t)})}{E_0} -
-            \frac{q(t)}{v(t)^{1-1/\alpha}}\right)$$
-    \item Hemodynamic Response - BOLD Signal
+\begin{frame}{BOLD State Space Model}
+  \scriptsize
+  \begin{columns}
+  \begin{column}{.7\textwidth}
+    \begin{itemize}
+    \item State Vector:
+    \begin{eqnarray}
+    \dot{s}(t) &=& \epsilon u(t) - s(t)/\tau_s - (f(t)-1)/\tau_f \nonumber \\
+    \dot{f}(t) &=& s \nonumber \\
+    \dot{v}(t) &=& (1/\tau_0)( f(t) - v(t) ^ {1/\alpha}) \nonumber \\
+    \dot{q}(t) &=& \frac{1}{\tau_0}\left(\frac{f(t)(1-(1-E_0)^{1/f(t)})}{E_0} -
+            \frac{q(t)}{v(t)^{1-1/\alpha}}\right) \nonumber 
+    \end{eqnarray}
+    \item Output:
     $$y(t) = V_0(a_1( 1 - Q(t)) - a_2(1 - V(t)))$$
-  \end{itemize}
-  \note{System is dissipative:}
-  \note{If no input is provided, it will rather quickly decay.}
-  \note{Constant input leads to steady state response.}
-  \note{First term in $\dot{q}$ is the metabolism term.}
-  \note{Outflow is the $v^{1/\alpha}$ term}
-  \note{Significant nonlinearity.}
+    \end{itemize}
+  \end{column}
+
+  \begin{column}{.3\textwidth}
+        State Variables:
+        $$s(t), f(t), v(t), q(t)$$
+        Parameters:
+        $$\epsilon, \tau_s, \tau_f, \alpha, \tau_0, E_0, V_0$$
+        Constants:
+        $$a_1, a_2$$
+        Input:
+        $$u(t)$$
+  \end{column}
+  \end{columns}
+  \note{System is dissipative:\\
+  If no input is provided, it will rather quickly decay.\\
+  Constant input leads to steady state response.\\
+  First term in $\dot{q}$ is the metabolism term.\\
+  Outflow is the $v^{1/\alpha}$ term\\
+  Significant nonlinearity.\\
+  $a_1 = (4.3\nu_0TE+\epsilon_025\epsilon_0)E_0$, $a_2 = \epsilon_025\epsilon_0E_0 + .43$}
 \end{frame}
 
 \section{Potential Approaches}
