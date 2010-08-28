@@ -36,6 +36,7 @@
 \definecolor{mblue}{RGB}{178,34,34}
 \definecolor{mred}{RGB}{0,0,128}
 \definecolor{mgreen}{RGB}{0,100,0}
+\definecolor{myellow}{RGB}{176,169,0}
 
 \title{Full Brain BOLD Signal Parameter Estimation \\
 using Particle Filters}
@@ -94,12 +95,25 @@ using Particle Filters}
 \section{Introduction}
 \begin{frame}{Balloon Model}
 \begin{figure}
-\includegraphics[width=10cm]{model}
+\includegraphics[width=10cm]{model2}
 \caption{
     \tiny
     \cite{Riera2003}
 }
 \end{figure}
+\note{Its been known for about 20 years that changes in Blood Oxygen Level alter
+        MR signals in certain types of imaging. The basis of contrast in fMRI is 
+        changes in the so-called spin-spin relaxation (or T2$^*$ relaxation time
+        of tissue). The rate of loss in nuclear spin coherence depends on the molecules in the voxel being
+        measured \emph{and the surrounding voxels}. For this reason the signal 
+        detected from BLOOD doesn't just depend on the amount of oxygen, but also the
+        amount of De-oxygenated hemoglobin. The question then, is what drives changes
+        in De-oxygenated Hemoglobin and blood volume?
+        
+        Well the brain has no local oxygen storage, so it is completely dependent on 
+        fresh Oxygenated-Hemoglobin. When the brain becomes more active, firing rates
+        for neurons increase by several orders of magnitude, and recharging these neurons
+        requires additional oxygen for matabolism. }
 \note{Rates from below 1 Hz to 5 to 6 Hundred Hz}
 \note{Change in average firing rates increase metabolism and sympathetic response causes
         increased inflow of oxygenated blood.}
@@ -137,7 +151,7 @@ using Particle Filters}
         \frac{\color{mblue}q(t)}{{\color{mblue}v(t)}^{1-1/\color{mred}\alpha}}\right) \nonumber 
     \end{eqnarray}
     \item Output:
-    $$y(t) = {\color{mred}V_0}(a_1( 1 - {\color{mblue}Q(t)}) - a_2(1 - {\color{mblue}V(t)}))$$
+    $${\color{myellow}y(t)} = {\color{mred}V_0}(a_1( 1 - {\color{mblue}Q(t)}) - a_2(1 - {\color{mblue}V(t)}))$$
     \end{itemize}
   \end{column}
 
@@ -198,31 +212,30 @@ using Particle Filters}
 \begin{frame}{Nonlinear Methods}
 \begin{itemize}
     \begin{columns}
-    \begin{column}{.45\textwidth}
+    \begin{column}{.42\textwidth}
     \item Local Linearization filter, \cite{Riera2003}
     $$f(t)- f(t-1) \sim N(0, \sigma^2)$$
      \note{Jacobian of the $\dot{x}$ is available, making gradient descent possible}
     \item Genetic Algorithms and Simulated Annealing, \cite{Vakorin2007}
      \note{Genetic Algorithms were used to optimize spike points, simulated annealing for the parameters}
-    \item Particle Filters to estimate $P(X_t | \Theta, Y_T)$ \cite{Murray2009}
+    \item Particle Filters to estimate States, \cite{Murray2009}
     \begin{itemize}
-        \item ML estimate of $\Theta$ based on $P(X_t | \Theta, Y_t)$, \cite{Johnston2007}
+        \item ML estimate of $\Theta$, \cite{Johnston2007}
          \note{Particle Filter used to estimate states, ML of parameters based on the posterior of states and so on}
     \end{itemize}
-    \item Unscented Kalman Filter to estimate parameters \cite{Hu2009}
+    \item Unscented Kalman Filter \cite{Hu2009}
      \note{Technically Kalman Filters and Particle Filters are Bayesian Filters}
      \note{Essentially filtering out inconsistent parameters.}
     \end{column}
 
-    \begin{column}{.55\textwidth}
-    \small
+    \begin{column}{.58\textwidth}
     \begin{figure}
-    \includegraphics[width=.7\textwidth]{simulated_annealing}
+    \includegraphics[clip=true,trim=0cm 0cm 0cm 1cm,width=.6\textwidth]{simulated_annealing}
     \caption{Simulated Annealing can escape local minima with chaotic jumps. \cite{Dama}}
     \end{figure}
     \begin{figure}
-    \includegraphics[width=.7\textwidth]{kalman}
-    \caption{(a) Initial Belief  (b) Noisy Measurement  (c) incorporated into the belief. \cite{Thrun2005}}
+    \includegraphics[width=\textwidth]{kalman}
+    \caption{UKF: (a) Initial Belief  (b) Noisy Measurement  (c) incorporated into the belief. \cite{Thrun2005}}
     \end{figure}
     \end{column}
     \end{columns}
@@ -238,10 +251,10 @@ using Particle Filters}
     \item Elevation Map (1D)
     \item Ability To Measure Elevation
     \end{itemize}
-\item Particle Consists of:
+\item Particle Consists of the unknowns:
     \begin{itemize}
-    \item Location (Altered By Speed/Direction) $[0, 20]$
-    \item Direction (Constant, Unknown) $\{Left, Right\}$
+    \item State: Location  $[0, 20]$
+    \item Constant: Direction  $\{Left, Right\}$
     \end{itemize}
 \end{itemize}
 
@@ -275,29 +288,83 @@ using Particle Filters}
 \includegraphics[width=\textwidth]{move2}\\
 \end{frame}
 
+\begin{frame}{Particle Filter Concepts}
+\small
+\begin{columns}
+\begin{column}{.5\textwidth}
+\begin{itemize}
+    \item Weighting Function
+    \item Resampling
+    \begin{itemize}
+        \item Remove Useless Particles
+    \end{itemize}
+    \item Regularized Resampling
+    \begin{itemize}
+        \item Prevent Redundant Particles
+        \item Reduces Quantization Error
+    \end{itemize}
+\end{itemize}
+\end{column}
+
+\begin{column}{.5\textwidth}
+\includegraphics[clip=true,trim=0cm 6cm 0cm 6cm,width=\textwidth]{particle_filter2}
+\end{column}
+\end{columns}
+\end{frame}
+
 \begin{frame}{Construction}
 \begin{itemize}
     \item Mixture PDF at time $k$, with $N_p$ particles:\\
         $$P(x_k) = \sum_{i=0}^{N_p} w^i\delta(x_k - x^i_k ) dx$$
-    \item Particle Weights at time $t_k$:\\
+    \item Weight of Particle $i$, at time $t_k$:\\
         $$w^i_k \propto \frac{P(x^i_{0:k} | y_{0:k})}{q(x^i_{0:k} | y_{0:k})}$$
       \note{$q$ is the density/location of the particle}
       \note{$p$ is the actual probability }
-    \item Incorporating Measurement:\\
+    \item Incorporating a Measurement, $y_k$:\\
         $$w^i_k \propto & w^i_{k-1}P(y_k| x_k) $$
       \note{Because of the proportion, note that the weights do not
             have to integrate to 1, and can be extremely large or extremely small}
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Particle Filter }
+\section{Methods}
+\begin{frame}{Particle Filter Setup}
 \footnotesize
 \begin{itemize}
-    \item 
+    \item Weighting function
+        \begin{itemize}
+            \item Continuous, Long Tailed, Zero-Mean 
+            \item Too wide $\rightarrow$ under-sensitivity, 
+                slow or no convergence
+            \item Too thin $\rightarrow$ reduces robustness 
+                to noise, particle deprivation
+            \item For this work, $N(0, 0.005^2)$ used
+        \end{itemize}
+    \item Resampling 
+        \begin{itemize}
+            \item Stratified Resampling can result in truncated tails 
+                    on posterior
+            \item Regularized Resampling can result in over smoothing and 
+                    slow convergence
+            \item Resampling Performed Rarely
+        \end{itemize}
+    \item Number of particles
+        \begin{itemize}
+            \item More particles give higher fidelity 
+            \item Large Initial Particle Count (16000)
+        \end{itemize}
+    \item Prior Distribution
+    \begin{itemize}
+            \item Large $\tau$ parameters can oversmooth
+            \item $\epsilon$ needs large variance
+    \end{itemize}
 \end{itemize}
+\note{Because the first 20 measurements drop most weights very quickly this gives a large breadth,
+    but after the initial calculations drops the computation requirements}
+\note{This has not been done before}
 \end{frame}
 
-\section{Methods}
+
 \begin{frame}{FMRI Noise}
 \centering
 
@@ -494,30 +561,6 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 \end{frame}
 
 \section{Conclusion}
-\begin{frame}{Factors Affecting Convergence}
-    \begin{itemize}
-        \item Weighting function
-            \begin{itemize}
-                \item Continuous, Long Tailed, Zero-Mean 
-                \item Too wide $\rightarrow$ under-sensitivity, 
-                    slow or no convergence
-                \item Too thin $\rightarrow$ reduces robustness 
-                    to noise, particle deprivation
-            \end{itemize}
-        \item Resampling 
-            \begin{itemize}
-                \item Stratified Resampling can result in truncated tails 
-                        on posterior
-                \item Regularized Resampling can result in over smoothing and 
-                        slow convergence
-            \end{itemize}
-        \item Number of particles
-            \begin{itemize}
-                \item More particles give higher fidelity posterior
-            \end{itemize}
-    \end{itemize}
-\end{frame}
-
 \begin{frame}{Conclusion}
 \begin{itemize}
     \item Summary:
@@ -530,7 +573,6 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
     \begin{itemize}
         \item Further limitations should be placed on priors, Deneux 
             et al. \cite{Deneux2006} shows that parameters could imposed.
-        \item Automation of Weighting Function
         \item Analysis of joint parameter distribution for populations
         \item Real Time analysis possible for multiple Voxels, similar to
             De Charms et al. \cite{DeCharms2005}
