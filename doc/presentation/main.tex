@@ -22,14 +22,20 @@
 %\setbeamercovered{transparent}
 
 
+\usepackage{color}
 \usepackage{colortbl}
 \usepackage[pdftex]{graphicx}
 \graphicspath{{pdf/}{png/}}
 %\usepackage{times}
 %\usepackage[T1]{fontenc}
 %\usepackage[small]{caption}
+\usepackage{algorithm}
 \usepackage{algorithmic}
 \usepackage{subfigure}
+
+\definecolor{mblue}{RGB}{178,34,34}
+\definecolor{mred}{RGB}{0,0,128}
+\definecolor{mgreen}{RGB}{0,100,0}
 
 \title{Full Brain BOLD Signal Parameter Estimation \\
 using Particle Filters}
@@ -54,6 +60,21 @@ using Particle Filters}
 
 %\beamerdefaultoverlayspecification{<+->}
 
+\AtBeginSection{
+\begin{frame}
+\begin{center}
+\structure{\Huge \insertsection}
+\end{center}
+\end{frame}
+}
+
+\AtBeginSubsection{
+\begin{frame}
+\begin{center}
+\structure{\Huge \insertsubsection}
+\end{center}
+\end{frame}
+}
 
 \begin{document}
 \begin{frame}
@@ -88,7 +109,7 @@ using Particle Filters}
         which are a function of Volume and Oxygenation.}
 \end{frame}
 
-\begin{frame}{Time Changing Parameters}
+\begin{frame}{Activation Chain}
 \begin{figure}
     \includegraphics[width=\textwidth]{graphs}
 \caption{
@@ -106,26 +127,32 @@ using Particle Filters}
     \begin{itemize}
     \item State Vector:
     \begin{eqnarray}
-    \dot{s}(t) &=& \epsilon u(t) - s(t)/\tau_s - (f(t)-1)/\tau_f \nonumber \\
-    \dot{f}(t) &=& s \nonumber \\
-    \dot{v}(t) &=& (1/\tau_0)( f(t) - v(t) ^ {1/\alpha}) \nonumber \\
-    \dot{q}(t) &=& \frac{1}{\tau_0}\left(\frac{f(t)(1-(1-E_0)^{1/f(t)})}{E_0} -
-            \frac{q(t)}{v(t)^{1-1/\alpha}}\right) \nonumber 
+    \color{mblue}\dot{s}(t) &=& {\color{mred}\epsilon} {\color{mgreen}u(t)} - 
+                \frac{\color{mblue}s(t)}{\color{mred}\tau_s} - \frac{{\color{mblue}f(t)}-1}{\color{mred}\tau_f} \nonumber \\
+    \color{mblue}\dot{f}(t) &=& \color{mblue}s \nonumber \\
+    \color{mblue}\dot{v}(t) &=& \frac{{\color{mblue}f(t)} - 
+                {\color{mblue}v(t)} ^ {1/{\color{mred}\alpha}}}{\color{mred}\tau_0} \nonumber \\
+    \color{mblue}\dot{q}(t) &=& \frac{1}{\color{mred}\tau_0}
+            \left(\frac{{\color{mblue}f(t)}(1-(1-{\color{mred}E_0})^{1/\color{mblue}f(t)})}{\color{mred}E_0} -
+        \frac{\color{mblue}q(t)}{{\color{mblue}v(t)}^{1-1/\color{mred}\alpha}}\right) \nonumber 
     \end{eqnarray}
     \item Output:
-    $$y(t) = V_0(a_1( 1 - Q(t)) - a_2(1 - V(t)))$$
+    $$y(t) = {\color{mred}V_0}(a_1( 1 - {\color{mblue}Q(t)}) - a_2(1 - {\color{mblue}V(t)}))$$
     \end{itemize}
   \end{column}
 
   \begin{column}{.3\textwidth}
-        State Variables:
-        $$s(t), f(t), v(t), q(t)$$
-        Parameters:
-        $$\epsilon, \tau_s, \tau_f, \alpha, \tau_0, E_0, V_0$$
-        Constants:
+    \begin{itemize}
+        \item State Variables:
+        $${\color{mblue}s(t)}, {\color{mblue}f(t)}, {\color{mblue}v(t)}, {\color{mblue}q(t)}$$
+        \item Parameters:
+        $${\color{mred}\epsilon}, {\color{mred}\tau_s}, {\color{mred}\tau_f}, {\color{mred}\alpha}, 
+                    {\color{mred}\tau_0}, {\color{mred}E_0}, {\color{mred}V_0}$$
+        \item Constants:
         $$a_1, a_2$$
-        Input:
-        $$u(t)$$
+        \item Input:
+        $$\color{mgreen}u(t)$$
+    \end{itemize}
   \end{column}
   \end{columns}
   \note{System is dissipative:\\
@@ -133,12 +160,12 @@ using Particle Filters}
   Constant input leads to steady state response.\\
   First term in $\dot{q}$ is the metabolism term.\\
   Outflow is the $v^{1/\alpha}$ term\\
-  Significant nonlinearity.\\
-  $a_1 = (4.3\nu_0TE+\epsilon_025\epsilon_0)E_0$, $a_2 = \epsilon_025\epsilon_0E_0 + .43$}
+  Significant nonlinearity.}
 \end{frame}
 
-\section{Potential Approaches}
-\begin{frame}{Approximate Method}
+\section{Nonlinear Regression}
+\subsection{Prior Works}
+\begin{frame}{Approximation Method}
   \begin{itemize}
     \item 2nd Order Volterra Kernel \cite{Friston2000}
     \note{Quadratic Approximation}
@@ -168,88 +195,106 @@ using Particle Filters}
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Nonlinear Modeling}
+\begin{frame}{Nonlinear Methods}
 \begin{itemize}
-    \item Local Linearization filter \cite{Riera2003}
+    \begin{columns}
+    \begin{column}{.45\textwidth}
+    \item Local Linearization filter, \cite{Riera2003}
+    $$f(t)- f(t-1) \sim N(0, \sigma^2)$$
      \note{Jacobian of the $\dot{x}$ is available, making gradient descent possible}
-    \item Genetic Algorithms and Simulated Annealing \cite{Vakorin2007}
+    \item Genetic Algorithms and Simulated Annealing, \cite{Vakorin2007}
      \note{Genetic Algorithms were used to optimize spike points, simulated annealing for the parameters}
     \item Particle Filters to estimate $P(X_t | \Theta, Y_T)$ \cite{Murray2009}
     \begin{itemize}
-        \item ML estimate of $\Theta$ based on $P(X_t | \Theta, Y_t)$ \cite{Johnston2007}
+        \item ML estimate of $\Theta$ based on $P(X_t | \Theta, Y_t)$, \cite{Johnston2007}
          \note{Particle Filter used to estimate states, ML of parameters based on the posterior of states and so on}
     \end{itemize}
     \item Unscented Kalman Filter to estimate parameters \cite{Hu2009}
-    \item Direct Particle Filter, used in this work
      \note{Technically Kalman Filters and Particle Filters are Bayesian Filters}
      \note{Essentially filtering out inconsistent parameters.}
+    \end{column}
+
+    \begin{column}{.55\textwidth}
+    \small
+    \begin{figure}
+    \includegraphics[width=.7\textwidth]{simulated_annealing}
+    \caption{Simulated Annealing can escape local minima with chaotic jumps. \cite{Dama}}
+    \end{figure}
+    \begin{figure}
+    \includegraphics[width=.7\textwidth]{kalman}
+    \caption{(a) Initial Belief  (b) Noisy Measurement  (c) incorporated into the belief. \cite{Thrun2005}}
+    \end{figure}
+    \end{column}
+    \end{columns}
 \end{itemize}
 \end{frame}
 
-\section{Particle Filter}
+\subsection{Particle Filter}
 %frame with example
+\begin{frame}{Example System Identification}
+\begin{itemize}
+\item Given:
+    \begin{itemize}
+    \item Elevation Map (1D)
+    \item Ability To Measure Elevation
+    \end{itemize}
+\item Particle Consists of:
+    \begin{itemize}
+    \item Location (Altered By Speed/Direction) $[0, 20]$
+    \item Direction (Constant, Unknown) $\{Left, Right\}$
+    \end{itemize}
+\end{itemize}
 
+\begin{center}
+\includegraphics[clip=true,trim=2cm 3cm 3cm 3cm,width=.7\textwidth]{setup}
+\end{center}
+\end{frame}
+
+\begin{frame}{Initial Distribution}
+\centering
+\includegraphics[width=\textwidth]{init}\\
+\end{frame}
+
+\begin{frame}{Measurement 1}
+\centering
+\includegraphics[width=\textwidth]{meas1}\\
+\end{frame}
+
+\begin{frame}{Step Forward}
+\centering
+\includegraphics[width=\textwidth]{move1}\\
+\end{frame}
+
+\begin{frame}{Measurement 2}
+\centering
+\includegraphics[width=\textwidth]{meas2}\\
+\end{frame}
+
+\begin{frame}{Step Forward}
+\centering
+\includegraphics[width=\textwidth]{move2}\\
+\end{frame}
 
 \begin{frame}{Construction}
 \begin{itemize}
-    \item Mixture PDF:\\
-        $$\alpha(X) \stackrel{\text{\tiny{k=0}}}{\approx} P(x_k) 
-                = \sum_{i=0}^{N_p} w^i\delta(x_k - x^i_k ) dx$$
+    \item Mixture PDF at time $k$, with $N_p$ particles:\\
+        $$P(x_k) = \sum_{i=0}^{N_p} w^i\delta(x_k - x^i_k ) dx$$
     \item Particle Weights at time $t_k$:\\
         $$w^i_k \propto \frac{P(x^i_{0:k} | y_{0:k})}{q(x^i_{0:k} | y_{0:k})}$$
       \note{$q$ is the density/location of the particle}
       \note{$p$ is the actual probability }
-    \item Adding Measurements:\\
+    \item Incorporating Measurement:\\
         $$w^i_k \propto & w^i_{k-1}P(y_k| x_k) $$
       \note{Because of the proportion, note that the weights do not
             have to integrate to 1, and can be extremely large or extremely small}
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Particle Filter Algorithm}
+\begin{frame}{Particle Filter }
 \footnotesize
-\begin{algorithm}
-\begin{algorithmic}
-\STATE Initialize Particles:
-\FOR{$i$ : each of $N_p$ particles }
-    \STATE $x^i_0  \sim \alpha(X)$
-    \STATE $w^i_0 = \frac{1}{N_p}$
-\ENDFOR
-\FOR{$k$ : each measurement}
-    \FOR{$i$ : each particle }
-        \STATE $x^i_k = x^i_{k-1} + \int_{t-1}^t f(x(\tau), u(\tau)) d\tau $
-        \STATE $w^i_k = w^i_{k-1}P(y_k | x_k)$
-    \ENDFOR
-    \STATE Calculate $N_{eff}$ 
-    \IF{$N_{eff} < N_R$ (recommend $N_R = min(50, .1N_p)$ )}
-        \STATE Regularized Resample 
-    \ENDIF
-\ENDFOR
-
-\STATE At $t + \Delta t$, $t \in T$, $P(x(t+\Delta t)) \approx 
-\sum_{i=1}^{N_p} w_i(t)\delta\left(x - (x_i(t) + \int_t^{t+\Delta t} f(x(\tau), u(\tau)) d\tau) \right)$
- \end{algorithmic}
- \end{algorithm}
-\end{frame}
-
-\begin{frame}{Details and Example}
-  \begin{columns}
-    \begin{column}{.55\textwidth}
-        \begin{itemize}
-            \item Non-parametric
-            \item Model based
-            \item Online
-            \item Provides Full Posterior Probability
-            \item Non-trivial computation cost
-            \item Regularized Particle Filter Used
-        \end{itemize}
-    \end{column}
-    \begin{column}{.45\textwidth}
-        \begin{figure}
-          \includegraphics[width=\textwidth]{particle_filter}
-        \end{figure}
-    \end{column}
-    \end{columns}
+\begin{itemize}
+    \item 
+\end{itemize}
 \end{frame}
 
 \section{Methods}
@@ -272,7 +317,7 @@ Resting State Noise Steps
   \begin{columns}
     \begin{column}{.6\textwidth}
         \begin{itemize}
-            \item Drop Inital Volumes (9, $18.9$s)
+            \item Drop Initial Volumes (9, $18.9$s)
             \item Realign Over Time
             \item Detrend (SPM uses $0.0078125 Hz$ cut off)
             \item Gaussian Smoothing (SPM Only)
@@ -291,6 +336,7 @@ Resting State Noise Steps
 \end{frame}
 
 \section{Results}
+\subsection{40 Minute Single Voxel Simulation}
 \begin{frame}{Long Run Results}
 \includegraphics[width=\textwidth]{long_converge}
 \note{Bars drop well before the end}
@@ -298,7 +344,7 @@ Resting State Noise Steps
 \note{Mean comes very close to truth}
 \end{frame}
 
-\begin{frame}{Long Run Correlation}
+\begin{frame}{Long Run Covariance and Correlation}
 \centering
 Estimated Parameter Covariance 
 
@@ -343,21 +389,22 @@ $\tau_f$                      & -0.0004259 & -0.3966881 & -0.4314174 & 0.1962954
 \end{table}
 \end{frame}
 
-\begin{frame}{Short Run Results A}
+\subsection{5 Minute, Single Voxel Simulation}
+\begin{frame}{Preprocessed Noisy Simulation vs. Underlying Signal}
 \begin{center}
 \includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=.9\textwidth]
             {preprocessed_lownoise}
 \end{center}
 \end{frame}
 
-\begin{frame}{Short Run Results B}
+\begin{frame}{Estimated vs. Underlying Signal}
 \begin{center}
 \includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=.9\textwidth]
             {comparison_lownoise}
 \end{center}
 \end{frame}
 
-\begin{frame}{Short Run Results C}
+\begin{frame}{Estimated Parameters}
 \begin{table}[t]
 \centering
 \resizebox{\textwidth}{!}{
@@ -388,7 +435,8 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 \end{table}
 \end{frame}
 
-\begin{frame}{POSSUM Results: Activation}
+\subsection{POSSUM Simulation}
+\begin{frame}{Mutual Information Compared with SNR}
 \begin{figure}
 \centering
 \subfigure[Regions]{\includegraphics[height=.46\textheight]{simregions}}
@@ -402,13 +450,14 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 \begin{frame}{POSSUM Results: Histogram}
 \begin{figure}
 %\centering
-\includegraphics[clip=true,trim=5cm 2cm 5cm 2cm, width=\textwidth]{sec2hist}
+\includegraphics[clip=true,trim=5cm 2cm 5cm 2cm, width=.9\textwidth]{sec2hist}
 \note{Histogram of estimated parameters.}
 \note{Average SNR: $0.97$}
 \note{Mutual Information greater than $0.15$.}
 \end{figure}
 \end{frame}
 
+\subsection{Real FMRI Data}
 \begin{frame}{SPM vs. Mutual Information Map}
 \begin{columns}
 \begin{column}{.5\textwidth}
