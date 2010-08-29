@@ -7,26 +7,22 @@
     \cite{Riera2003}
 }
 \end{figure}
-\note{Its been known for about 20 years that changes in Blood Oxygen Level alter
-        T2$^*$ relaxation times. The basis of contrast in fMRI is 
-        changes in the so-called spin-spin relaxation (or T2$^*$ relaxation time
-        of tissue). The rate of loss in nuclear spin coherence depends on the molecules in the voxel being
-        measured \emph{and the surrounding voxels}. For this reason the signal 
-        detected from BLOOD doesn't just depend on the amount of oxygen, but also the
-        amount of De-oxygenated hemoglobin. The question then, is what drives changes
-        in De-oxygenated Hemoglobin and blood volume?
+\note{
+    \begin{itemize}
+        \item FMRI has been around for about 20 years
+        \item 10 Years Since the First BOLD Model
+        \item Basis of FMRI, T2$^*$ relaxation time, blood oxygen levels
+        \item Windkessel/Balloon Model, Volume Changes driving fluctations
+            in blood oxygen 
+        \item Brain has no local oxygen storage, dependent on blood
+        \item brain active, firing rates of neurons increase 10 or 100x
+        \item recharging requires additional oxygen ... metabolism. 
+        \item Increased metabolism drives increased blood flow
+        \item Increased blood flow increases volume
         
-        Well the brain has no local oxygen storage, so it is completely dependent on 
-        fresh Oxygenated-Hemoglobin. When the brain becomes more active, firing rates
-        for neurons increase by several orders of magnitude, and recharging these neurons
-        requires additional oxygen for matabolism. }
-\note{Rates from below 1 Hz to 5 to 6 Hundred Hz}
-\note{Change in average firing rates increase metabolism and sympathetic response causes
-        increased inflow of oxygenated blood.}
-\note{In the version of the Balloon model I used, the flow is locked to metabolism.}
-\note{According the balloon model this increases the local blood volume, and the outflow pressure.}
-\note{So the signal is altered by changes in the ratio of Deoxyhemoglobin and Oxygenated Hemoglobin,
-        which are a function of Volume and Oxygenation.}
+        \item Rates from below 1 Hz to 5 to 6 Hundred Hz
+    \end{itemize}
+}
 \end{frame}
 
 \begin{frame}{Activation Chain}
@@ -37,6 +33,15 @@
     \cite{Buxton2004}
 }
 \end{figure}
+\note{
+    \begin{itemize}
+        \item CMRO2 Increased Metabolism Causes Initial Drop In Oxygen
+        \item CBF Flow Quickly Compensates Increases Oxygen
+        \item CBV Increases, Decides the outflow, local oxygen content
+        \item This delays result in the characteristic BOLD response
+        \item CBF CMRO2 Locked 
+    \end{itemize}
+}
 \end{frame}
 
 %more expansion of all the parameters
@@ -75,10 +80,33 @@
     \end{itemize}
   \end{column}
   \end{columns}
-  \note{System is dissipative:\\
-  If no input is provided, it will rather quickly decay.\\
-  Constant input leads to steady state response.\\
-  First term in $\dot{q}$ is the metabolism term.\\
-  Outflow is the $v^{1/\alpha}$ term\\
-  Significant nonlinearity.}
+  \note{
+    \tiny
+    \begin{itemize}
+    \item System is dissipative,
+    \item Constant input leads to steady state 
+    \item $u(t)$ is the input
+    \item States
+    \begin{itemize}
+    \item s - Neural Response (Flow Inducing Signal)
+    \item f - Inflow of Oxygenated Blood
+    \item v - Local Blood Volume
+    \item q - Deoxygenated hemoglobin content
+    \end{itemize}
+    \item Parameters
+    \begin{itemize}
+    \item $\epsilon$ - efficiency
+    \item $\tau_s$ - Falloff time for Flow Inducing Signal
+    \item $\tau_f$ - Onset time for Flow Inducing Signal
+    \item $\alpha$ - Grubbs Constant determining outflow volume
+    \item $\tau_0$ - Time Constant for volume, deoxygenated hemoglobin
+    \item $E_0$ - Resting Oxygen Metabolism
+    \item $V_0$ - Resting Metabolism
+    \end{itemize}
+    \item $a_1$,$a_2$ are functions of the imaging modality,
+            and to a vary somewhat with $E_0$. 
+    \item $a_1 = k_1*E_0 + k_2*E_0$
+    \item $a_2 = k_2*E_0 + k_3$
+    \end{itemize}
+  }
 \end{frame}

@@ -5,6 +5,7 @@
 
 \usepackage{pgfpages}
 %\setbeameroption{show notes on second screen}
+\setbeameroption{show notes}
 
 \mode<presentation>
 {
@@ -93,10 +94,15 @@ using Particle Filters}
 \begin{frame}{Outline}
   \tableofcontents
   % You might wish to add the option [pausesections]
-  \note{Introduction describes FMRI and the Balloon Model}
-  \note{Potential Approaches - describes previous used methods of analysis}
-  \note{Particle Filter - derives and discusses the BOLD model}
-  \note{Methods - The methods used in this work, how to recreate.}
+  \note{
+  \begin{itemize}
+  \item Introduction - FMRI and the Balloon Model
+  \item Nonlinear Regression - overview prior works and the particle filter
+  \item Methods - how the particle was configured, and the preprocessing
+  \item Results - Several different types of simulation and real data 
+  \item Conclusion - Why this is important
+  \end{itemize}
+  }
 \end{frame}
 
 \include{introduction}
@@ -133,12 +139,15 @@ using Particle Filters}
 %\section<presentation>*{\appendixname}
 %\subsection<presentation>*{For Further Reading}
 
-\begin{frame}[allowframebreaks]
-  \bibliographystyle{plain}
-  \bibliography{../library}
+\appendix
+
+\section{Backup}
+\begin{frame}{Balloon Flowchart}
+\begin{figure}
+\includegraphics[width=\textwidth]{backup_balloon}
+\end{figure}
 \end{frame}
 
-\appendix
 \begin{frame}{SPM vs. Mutual Information Map, SPM}
 \begin{figure}
 \setcounter{subfigure}{0}
@@ -237,6 +246,21 @@ using Particle Filters}
 %\caption{Section 6, MI of $0.335504$, T Value: $2.49154$, normalized error: $0.783348$ Not visible in SPM}
 \end{figure}
 \end{frame}
+
+\begin{frame}{Particle Filter Results: Histogram}
+\begin{figure}
+\centering
+\includegraphics[clip=truew,trim=8cm 4cm 8cm 4cm,width=.8\textwidth]{realhist}
+\note{Histogram of parameters in active regions ($M.I. > .15$).}
+\end{figure}
+\end{frame}
+
+\section{Bibliography}
+\begin{frame}[allowframebreaks]
+  \bibliographystyle{plain}
+  \bibliography{../library}
+\end{frame}
+
 
 \end{document}
 

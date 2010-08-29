@@ -2,32 +2,40 @@
 \subsection{Prior Works}
 \begin{frame}{Approximation Method}
   \begin{itemize}
-    \item 2nd Order Volterra Kernel \cite{Friston2000}
-    \note{Quadratic Approximation}
-    \begin{itemize}
-        \item Quadratic Convolution used to approximate Jacobian Matrix.
-        \note{Because of the nonlinearities in the BOLD model, step size for
-                integrating would otherwise be extremely small}
-        \item Volterra approximation quality is not known.
-    \end{itemize}
-    \note{Volterra Approximation depends on sparsity etc}
-    {\footnotesize
-    $$y(t) = k_0 + \int_{-\infty}^{\infty} k_1(s_1) x(t-s_1) ds_1
-        + \int_{-\infty}^{\infty} k_2(s_1,s_2) x(t-s_1)x(t-s_2) ds_1 ds_2$$
-        \note{Its possible this isn't even knowable}
-    }
     \item Canonical Hemodynamic Response Function
-    \note{Linear Approximation}
     \begin{itemize}
         \item No Parameters Estimated
         \item Maximum Likelihood Possible
         \item Inflexible - even to changes in onset time
     \end{itemize}
+    \item 2nd Order Volterra Kernel \cite{Friston2000}
+    \begin{itemize}
+        \item Quadratic Convolution used to approximate Jacobian Matrix.
+        \item Volterra approximation quality is not known.
+    \end{itemize}
+    {\footnotesize
+    $$y(t) = k_0 + \int_{-\infty}^{\infty} k_1(s_1) x(t-s_1) ds_1
+        + \int_{-\infty}^{\infty} k_2(s_1,s_2) x(t-s_1)x(t-s_2) ds_1 ds_2$$
+    }
     \begin{center}
     \includegraphics[clip=true,trim=4.88cm 0cm 5cm 1.5cm,height=2.7cm,width=8cm]{HRF}
     \end{center}
     
   \end{itemize}
+  \note{
+    \begin{itemize}
+        \item Neither of these is truly nonlinear method
+        \item General Linear Model uses a generic Kernel across all
+                regions.
+        \item Canonical Hemodynamic Response Function
+        \item Fast, Maximum Likelihood, Not Adaptive, same across regions/patients
+                pathologies
+        \item Volterra Kernel Potentially Offers a Better Fit
+        \item If Kernels Could be quickly optimized, it could work
+        \item Never really used, because optimizing kernels is slow, and
+                its still an approximation
+    \end{itemize}
+  }
 \end{frame}
 
 \begin{frame}{Nonlinear Methods}
@@ -36,17 +44,12 @@
     \begin{column}{.45\textwidth}
     \item Local Linearization filter, \cite{Riera2003}
     $$f(t)- f(t-1) \sim N(0, \sigma^2)$$
-     \note{Jacobian of the $\dot{x}$ is available, making gradient descent possible}
     \item Genetic Algorithms and Simulated Annealing, \cite{Vakorin2007}
-     \note{Genetic Algorithms were used to optimize spike points, simulated annealing for the parameters}
+    \item Unscented Kalman Filter \cite{Hu2009}
     \item Particle Filters to estimate States, \cite{Murray2009}
     \begin{itemize}
         \item ML estimate of $\Theta$, \cite{Johnston2007}
-         \note{Particle Filter used to estimate states, ML of parameters based on the posterior of states and so on}
     \end{itemize}
-    \item Unscented Kalman Filter \cite{Hu2009}
-     \note{Technically Kalman Filters and Particle Filters are Bayesian Filters}
-     \note{Essentially filtering out inconsistent parameters.}
     \end{column}
 
     \begin{column}{.55\textwidth}
@@ -61,6 +64,35 @@
     \end{column}
     \end{columns}
 \end{itemize}
+\note{
+    \tiny
+    \begin{itemize}
+     \item Riera: Local Linearize
+        \begin{itemize}
+            \item Compare Estimated Step (Adjacent Measurements) With Actual Step
+            \item Jacobian is available - gradient descent possible
+            \item Removes Drift/Structured Noise
+            \item Completely Removes DC component - 
+            \item Quality Depends on experimental design: less Effective For 
+                    Block Stimulus
+        \end{itemize}
+        \item Vakorin: GA used to optimize spike train, Simulated Annealing 
+            to Estimate Parameters
+        \item Simulated Annealing is Slow, every step: BOLD recalc
+        \item UKF linearizes the noise, propagates limited number of 
+                samples through the state equation, and then uses 
+                first 2 moments
+        \item Murray kept parameters constant, all differences result of 
+            state-noise
+        \item Johnston - used estimated state distribution to perform
+                maximum likelihood on other parameters.
+        \item ($P(X, \Theta | Y) = P(X | Y, \Theta) P(\Theta | Y)$)
+        \item Johnston's Results don't mesh
+        \item Neither of previous particle filter methods considered it
+                possible 
+        \item All of these methods focus on point estimate of the solution
+    \end{itemize}
+}
 \end{frame}
 
 \subsection{Particle Filter}
@@ -82,26 +114,67 @@
 \begin{center}
 \includegraphics[clip=true,trim=2cm 3cm 3cm 3cm,width=.7\textwidth]{setup}
 \end{center}
+\note{
+\begin{itemize}
+    \item Start with an example.
+    \item One dimensional mountain range
+    \item Have a map and an altimeter to measure elevation
+    \item Don't know where you are or which direction you are moving
+    \item Need a prior distribution that spans both dims direction/location
+\end{itemize}
+}
 \end{frame}
 
 \begin{frame}{Initial Distribution}
 \centering
-\includegraphics[width=\textwidth]{init}\\
+\includegraphics[width=\textwidth]{init}
+\note{
+\begin{itemize}
+    \item Here is the prior, 20 locations, either right or left, 
+        40 total particles
+    \item So each particle contains a unique direction and position
+\end{itemize}
+}
+
 \end{frame}
 
 \begin{frame}{Measurement 1}
 \centering
-\includegraphics[width=\textwidth]{meas1}\\
+\includegraphics[width=\textwidth]{meas1}
+\note{
+\begin{itemize}
+    \item Now measure the elevation, and weight locations that are close
+            to that elevation higher
+    \item Note the second downhill, No particles nearby in terms of $\Delta y$.
+    \item Compare that to the next uphill
+    \item Relation between particle spacing and weighting function
+    \item Now we've applied a measurement, now need to integrate state
+            until the next measurement becomes available.
+\end{itemize}
+}
 \end{frame}
 
 \begin{frame}{Step Forward}
 \centering
-\includegraphics[width=\textwidth]{move1}\\
+\includegraphics[width=\textwidth]{move1}
+\note{
+    \begin{itemize}
+    \item Notice that no movement occurs in terms of right/left. Those
+            are parameters and so they don't change with time.
+    \end{itemize}
+}
 \end{frame}
 
 \begin{frame}{Measurement 2}
 \centering
 \includegraphics[width=\textwidth]{meas2}\\
+\note{
+\begin{itemize}
+    \item So the true location now how been correct twice in a row.
+    \item Note that traveling left over the hill results in similar 
+            measurements
+\end{itemize}
+}
 \end{frame}
 
 \begin{frame}{Step Forward}
@@ -119,6 +192,7 @@
             \item Converts Discrete Estimates of $y$ 
                     Into a Continuous Estimate of $y$
         \end{itemize}
+    \item Particle Density
     \item Resampling
     \begin{itemize}
         \item Remove Useless Particles
@@ -134,6 +208,24 @@
 \includegraphics[clip=true,trim=.75cm 7.07cm .5cm 7cm,width=\textwidth]{particle_filter2}
 \end{column}
 \end{columns}
+\note{
+    \small
+\begin{itemize}
+    \item Weighting function decides how much you want to weight particles
+            that don't exactly match the measurement
+    \item The weighting function and the particle density 
+            (distance between particles) form a sort of net
+    \item Whether the net has holes also depends on the maximum gradient
+            of $y$ with respect to the parameters
+    \item Resampling allows the algorithm to increase density in areas
+            of interest. 
+    \item Resampling could also remove "good" areas
+    \item Resampling typically draws from the set of existing particles,
+            reducing the number of unique particles
+    \item Regularized resampling, instead draws from a smooth version of
+            the posterior distribution, so particles are always unique
+\end{itemize}
+}
 \end{frame}
 
 \begin{frame}{Particle Construction, Particle $i$, Time $k$}
@@ -141,15 +233,11 @@
 \begin{column}{.54\textwidth}
 \begin{itemize}
     \item Mixture PDF, with $N_p$ particles:
-        $$P(x_k) = \sum_{i=0}^{N_p} w^i\delta(x_k - x^i_k ) dx$$
+        $$P(x_k) = \sum_{i=0}^{N_p} w_k^i\delta(x_k - x^i_k ) dx$$
     \item Weight Definition:
         $$w^i_k \propto \frac{P(x^i_{0:k} | y_{0:k})}{q(x^i_{0:k} | y_{0:k})}$$
-      \note{$q$ is the density/location of the particle}
-      \note{$p$ is the actual probability }
     \item Incorporating Measurement $y_k$:
-        $$w^i_k \propto & w^i_{k-1}P(y_k| x_k) $$
-      \note{Because of the proportion, note that the weights do not
-            have to integrate to 1, and can be extremely large or extremely small}
+        $$w^i_k \propto & w^i_{k-1}P(y_k| x^i_k) $$
 \end{itemize}
 \end{column}
 
@@ -398,6 +486,26 @@
 
 \end{column}
 \end{columns}
+\note{
+    \small
+    \begin{itemize}
+        \item The posterior distribution is represented by a mixture
+                PDF, where the probability of a discrete point is based
+                on its relative weight.
+        \item The definition of the weight function is given. 
+        \item $q$ is the importance density, which is just the location
+            of the particles. When you plug in the weights, that 
+            term and the $\delta$ cancel and you are just left
+            with the probability of getting that timeseries of 
+            states given the timeseries of measurements.
+        \item After some simplification, it comes out that weights
+            can be updated with new measurements rather simply.
+        \item On the right that each particle has an estimate
+            for all of those states and unknown parameters.
+        \item Weights Don't Integrate to 1.
+
+    \end{itemize}
+}
 \end{frame}
 
 %\ifx\du\undefined

@@ -2,9 +2,13 @@
 \subsection{40 Minute Single Voxel Simulation}
 \begin{frame}{Long Run Results}
 \includegraphics[width=\textwidth]{long_converge}
-\note{Bars drop well before the end}
-\note{Mean is good estimator}
-\note{Mean comes very close to truth}
+\note{
+\begin{itemize}
+\item Converge 250 measurements
+\item Random spike stimulus, average 1 per second
+\item Definitely excites system
+\end{itemize}
+}
 \end{frame}
 
 \begin{frame}{Long Run Covariance and Correlation}
@@ -46,10 +50,17 @@ $\tau_f$                      & -0.0004259 & -0.3966881 & -0.4314174 & 0.1962954
 \rowcolor[gray]{.8} $\epsilon$& 0.6158116 & 0.6558179 & -0.641348 & 0.2846632 & 0.4458142 & -0.097079 \\
 \hline
 \end{tabular}
-\note{Correlation of parameter estimates at the end of 
-            \autoref{fig:long_converge}.}
 \label{tab:long_corr}
 \end{table}
+\note{
+\begin{itemize}
+\item Covariance and Correlation of the run from the last slide
+\item Significant correlation in parameters that don't change with time
+\item very favorable situation, long with random stimulus, low noise
+\item Not the fault of the particle filter b/c it gives good estimate
+        of the BOLD signal
+\end{itemize}
+}
 \end{frame}
 
 \subsection{5 Minute, Single Voxel Simulation}
@@ -58,6 +69,13 @@ $\tau_f$                      & -0.0004259 & -0.3966881 & -0.4314174 & 0.1962954
 \includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=.9\textwidth]
             {preprocessed_lownoise}
 \end{center}
+\note{
+\begin{itemize}
+\item Simulation with $0.001$, $0.0005$, SNR of about 10
+\item the Drift has been mostly removed
+\item 100 seconds, end still structure to noise
+\end{itemize}
+}
 \end{frame}
 
 \begin{frame}{Estimated vs. Underlying Signal}
@@ -65,6 +83,12 @@ $\tau_f$                      & -0.0004259 & -0.3966881 & -0.4314174 & 0.1962954
 \includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=.9\textwidth]
             {comparison_lownoise}
 \end{center}
+\note{
+\begin{itemize}
+\item Results from previous simulation
+\item Note how well the estimates fit, in spite of drift at 100s, end
+\end{itemize}
+}
 \end{frame}
 
 \begin{frame}{Estimated Parameters}
@@ -73,7 +97,7 @@ $\tau_f$                      & -0.0004259 & -0.3966881 & -0.4314174 & 0.1962954
 \resizebox{\textwidth}{!}{
 \begin{tabular}{|c | c | c | c | c | c | c | c | c | c |}
 \hline
-$\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & $ \sum \tau $ & Error & Residual\\
+$\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & $ \sum \tau $ & Residual & Error\\
 \hline
 \rowcolor[gray]{.8}
 1.45 & 0.3 & 0.47 & 0.044 & 1.94 & 1.99 & 1.8  & 5.38 &  & \\
@@ -96,6 +120,15 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 \end{tabular}
 }
 \end{table}
+\note{
+\begin{itemize}
+\item Parameter estimates from previous simulation
+\item Significant swings in parameters
+\item Error is less than residual, meaning came closer to true signal than it
+        did to the noisy signal.
+\end{itemize}
+}
+
 \end{frame}
 
 \subsection{POSSUM Simulation}
@@ -106,18 +139,52 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 \subfigure[Mutual Information]
 {\includegraphics[height=.46\textheight]{sim_hm_15_6}}
 \subfigure[SNR]{\includegraphics[height=.46\textheight]{snr_hm}}
-\note{Mean SNR's Region 1: $0.8$, Region 2: $0.97$, and Region 3: $0.39$.}
 \end{figure}
+\note{
+    \begin{itemize}
+    \item A full slice simulated using Physics Oriented Simulated Scanner 
+            For Understanding MRI (POSSUM)
+    \item Each of 5 regions was given a distinct parameter set
+    \item Noise is modeled realistically
+    \item White matter, grey matter, and CSF treated differently
+    \item Mean SNR's Region 1: $0.8$, Region 2: $0.97$, and Region 3: $0.39$.
+    \item Regions 1 and 2 stick out. 
+    \end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Mutual Information Compared with SNR, with threshold}
+\begin{figure}
+\centering
+\subfigure[Regions]{\includegraphics[height=.46\textheight]{simregions}}
+\subfigure[Mutual Information]
+{\includegraphics[height=.46\textheight]{sim_hm_15_6}}
+\subfigure[SNR]{\includegraphics[height=.46\textheight]{snr_hm}}
+\end{figure}
+\note{
+    \begin{itemize}
+        \item In order to build histograms of the parameters in each
+            region, I only used successful voxels, based on M.I.
+        \item Requires threshold
+        \item If a region does not correlate with the input, 
+            parameters can't be found.
+    \end{itemize}
+}
 \end{frame}
 
 \begin{frame}{POSSUM Results: Histogram}
 \begin{figure}
 %\centering
 \includegraphics[clip=true,trim=5cm 2cm 5cm 2cm, width=.9\textwidth]{sec2hist}
-\note{Histogram of estimated parameters.}
-\note{Average SNR: $0.97$}
-\note{Mutual Information greater than $0.15$.}
 \end{figure}
+\note{
+\begin{itemize}
+\item Histogram of estimated parameters.
+\item These estimates are all the mean
+\item large variance
+\item In spite of "good" fit, many parameter did not move far from prior
+\end{itemize}
+}
 \end{frame}
 
 \subsection{Real FMRI Data}
@@ -129,9 +196,6 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 
 \subfigure[SPM Results]{\includegraphics[width=.9\textwidth]{spm_hm}}
 \subfigure{\includegraphics[width=.07\textwidth]{scale1}}
-\note{SPM results. Units of activation are in Student's $t$-scores; higher 
-        indicates higher assurance that the signal cannot have occurred 
-        through noise alone.}
 \label{fig:hm_canon_spm}
 \end{figure}
 \end{column}
@@ -141,18 +205,54 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 \setcounter{subfigure}{1}
 \subfigure[Particle Filter Results]{\includegraphics[width=.9\textwidth]{hm_mi_strict}}
 \subfigure{\includegraphics[height=1.5cm,width=.07\textwidth]{scale4}}
-\note{Particle filter results. Units of activation are in mutual information;
-    higher indicates more assured activation.}
 \end{figure}
 \end{column}
 \end{columns}
+\note{
+\begin{itemize}
+\item Explain Units
+\item Many of the regions agree
+\item Definite areas of disagreement
+\item There are several causes for the disagreement
+\begin{itemize}
+    \item SPM smooths quite heavily, 
+    \item removes small regions of moderate activation
+    \item Spreads out some regions of high activation
+    \item SPM is not adaptable, so definite false negatives
+    \item My algorithm could definitely have false positives and false negatives.
+    \item Mutual Information isn't perfect
+\end{itemize}
+\end{itemize}
+}
 \end{frame}
 
 \begin{frame}{Particle Filter Results: Histogram}
 \begin{figure}
 \centering
-\includegraphics[clip=truew,trim=8cm 4cm 8cm 4cm,width=.8\textwidth]{realhist}
-\note{Histogram of parameters in active regions ($M.I. > .15$).}
+\includegraphics[width=.95\textwidth]{realhistm}
 \end{figure}
+\note{
+\begin{itemize}
+\item Histogram of parameters in active regions ($M.I. > .15$).
+\item Mean from other works shown by red line.
+\end{itemize}
+\begin{table}[t]
+\centering
+\begin{tabular}{|c || c | c |}
+\hline 
+Parameter  & Friston et al. \cite{Friston2002} & Jonston et al. \cite{Johnston2008}\\ 
+    
+\hline
+$\tau_0  $ &  $N(.98 , .25^2)$  & $8.38 \pm 1.5  $ \\
+$\alpha  $ &  $N(.33 , .045^2)$  & $.189 \pm .004$ \\
+$E_0     $ &  $N(.34 , .1 ^2)$  & $.635 \pm .072 $ \\
+$V_0     $ &  $.03$ (NC)        & $.0149 \pm .006$ \\
+$\tau_s  $ &  $N(1.54, .25^2)$  & $4.98 \pm 1.07 $ \\
+$\tau_f  $ &  $N(2.46, .25^2)$  & $8.31 \pm 1.51 $ \\
+$\epsilon$ &  $N(.54 , .1 ^2)$  & $.069 \pm .014 $ \\
+\hline
+\end{tabular}
+\end{table}
+}
 \end{frame}
 
