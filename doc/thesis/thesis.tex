@@ -20,6 +20,7 @@
 
  \usepackage[hang,small,bf]{caption}
 
+\usepackage[printonlyused,withpage]{acronym}
 \usepackage{colortbl}
 \usepackage{times}
 \usepackage[siunitx]{circuitikz}
@@ -116,16 +117,18 @@ Micah C. Chambers
 
 \end{center}
 
-Traditional methods of analyzing FMRI images use a linear combination of
+Traditional methods of analyzing functional Magnetic Resonance 
+Images use a linear combination of
 just a few static regressors. This work demonstrates an alternative
 approach using a physiologically inspired nonlinear model. By using a 
 particle filter to optimize the model parameters, the computation time
 is kept below a minute per voxel without requiring a linearization 
 of the noise in the state
 variables. The activation results show regions similar to those found in 
-SPM; however, there are some notable regions not detected by 
-SPM. Though the parameters selected by the particle filter based approach
-are more than sufficient to predict the BOLD response,
+Statistical Parametric Mapping; however, there are some notable regions not 
+detected by that technique. Though the parameters selected by the particle filter based approach
+are more than sufficient to predict the Blood-Oxygen-Level-Dependent signal
+response,
 more model constraints are needed to uniquely identify a single set
 of parameters. This ill-posed nature explains the large discrepancies
 found in other research that attempted to characterize the model parameters.
@@ -135,7 +138,7 @@ a full posterior probability, the reliance on the mean to estimate
 parameters is unnecessary. This work presents
 not just a viable alternative to the traditional method of detecting
 activation, but an extensible technique of estimating the joint probability
-distribution function of the BOLD parameters.
+distribution function of the Blood-Oxygen-Level-Dependent Signal parameters.
 
 \vfill
 
@@ -159,8 +162,12 @@ and to always dig deeper. Thank you Dr. Wyatt.
 I would also like to thank William Baumann for his help and inspiration. I
 have learned an incredible amount reading papers with you and Dr. Wyatt.
 
+The Neuroscientists at Wake Forest have also been extremely helpful. In 
+particular I would like to thank Paul Laurienti for help gathering fMRI
+data and using SPM.
+
 To my parents, for all the psychological (and financial) help along the way,
-thank you so much. When things were the darkest you were there for me, I couldn't
+thank you so much. You were always there for me, I couldn't
 ask for better parents. Love you guys.
 
 Finally I would like to thank my friends, for the support, for the prayer,
@@ -174,6 +181,34 @@ type of SC.  You guys are the best.
 \pagebreak
 
 \listoftables
+\pagebreak
+
+\huge
+\bfseries
+List of Acronyms
+\mdseries
+\normalsize
+\begin{acronym}[CMRO2]
+\acro{BOLD}{Blood-Oxygen-Level-Dependent}
+\acro{CBF}{Cerebral Blood Flow}
+\acro{CBV}{Cerebral Blood Volume}
+\acro{CMRO2}{Cerebral Metabolic Rate of Oxygen}
+\acro{dHb}{Deoxygenated Hemoglobin}
+\acro{EPI}{Echo Planar Imaging}
+\acro{fMRI}{Functional Magnetic Resonance Imaging}
+\acro{GLM}{General Linear Model}
+\acro{HRF}{Hemodynamic Response Function}
+\acro{Hb}{Hemoglobin}
+\acro{MR}{Magnetic Resonance}
+\acro{MRI}{Magnetic Resonance Imaging}
+\acro{O2Hb}{Oxygenated Hemoglobin}
+\acro{RF}{Radio Frequency}
+\acro{SNR}{Signal-to-Noise Ratio}
+\acro{SPM}{Statistical Parametric Mapping}
+\acro{T1}{Longitudinal}
+\acro{T2}{Spin-Spin}
+\acro{TR}{Repetition Time}
+\end{acronym}
 \pagebreak
 
 \pagenumbering{arabic}
