@@ -119,10 +119,21 @@ distinguishing characteristics of the \ac{BOLD} signal. Unfortunately,
 \ac{fMRI} signal levels are all relative: within a particular
 person, scanner and run. 
 
+\begin{figure}
+\centering
+\includegraphics[width=.5\textwidth]{images/bold}
+\caption[Diagram of BOLD Signal]{A) End of Pre-Stimulus Undershoot, $< 2s$ typical,
+B) End of Stimulus, C) Input Bloodflow Drops from Supernormal to Subnormal,
+$5 s$ after B typical, D) Beginning of Post-stimulus Undershoot, $12 s$ after B
+typical, E) Full return to normal, between $20-30s$ after B. \cite{Behzadi2005}}
+\end{figure}
+
 \section{\ac{fMRI}}
 \ac{MRI}, is a method of building 3D images
 non-invasively, based on the difference between nuclear spin
-relaxation times in different molecules. First, the subject 
+relaxation times in different molecules. The technique is
+well established and documented in various works \cite{Bushberg2002}. 
+First, the subject 
 is brought into a large magnetic field which causes nuclear spins
 to align. \ac{RF} signals may
 then be used to excite nuclear spin away from the base alignment. 
@@ -133,7 +144,8 @@ rates, called the \ac{T1} relaxation time, depending on the material excited.
 Additionally, the
 coherence of the spins also decays differently (and roughly an order of 
 magnitude faster
-than \ac{T1} relaxation) based on the properties of the region.
+than \ac{T1} relaxation) based on the properties of the region 
+\cite{Bushberg2002}.
 This gives two primary methods of contrasting substances,
 which form the basis of \ac{T1} and \ac{T2} weighted images. Additionally, 
 dephasing occurs at two different rates, the \ac{T2} relaxation time,
@@ -144,24 +156,26 @@ a sufficiently strong excitation is applied, whereas \ac{T2}$^*$ relaxation
 times are usually less than 100ms. 
 In order to rapidly acquire entire brain images, as done in Functional 
 \ac{MRI}, a single large excitation pulse is applied to the entire brain,
-and the entire volume is acquired in a single \ac{T1} relaxation period. 
+and the entire volume is acquired in a single \ac{T1} relaxation period
+\cite{Obata2004}. 
 Because the entire k-space (spatial-frequency) volume is acquired 
 from a single excitation, the \ac{SNR} is very low
-in \ac{EPI}. 
+in \ac{EPI} \cite{Smith2007}. 
 
 Increasing the spatial resolution of \ac{EPI} necessarily 
 requires more time or faster magnetic field switching. Increasing
 switching rates can result in
 more artifacts and lower signal to noise ratios. The result is
-that at best \ac{fMRI} is capable of 1 second temporal resolution. 
+that at best \ac{fMRI} is capable of 1 second temporal resolution
+\cite{Ladd2010, Poser2010}. 
 The signal is also diluted because each voxel contains
-a variety of neurons, capillaries and veins. 
+a variety of neurons, capillaries and veins \cite{Obata2004}. 
 Thus, the \ac{fMRI} signal, which is sensitive to the chemical composition of 
 materials, is the average signal from various types of tissue
 in addition to the blood. As mentioned in \autoref{sec:Introduction Overview},
 and explored in depth in \autoref{sec:BOLD Physiology},
 the usefulness of \ac{fMRI} comes from discerning changes in 
-\ac{dHb}/\ac{O2Hb}. Therefore, it is necessary to assume
+\ac{dHb}/\ac{O2Hb} \cite{Ogawa, Obata2004}. Therefore, it is necessary to assume
 that the only chemical changes will be in
 capillary beds feeding neurons. In practice this may not be the case, for
 instance near large veins, and it may explain some of the
@@ -170,9 +184,9 @@ Because \ac{MRI} is unitless and certain
 areas will have a higher base \ac{MR} signal, all \ac{fMRI} studies deal with
 percent change from the base signal; rather than raw values. 
 
-\section{\ac{BOLD} Physiology}
+\section{BOLD Physiology}
 \label{sec:BOLD Physiology}
-It is well known that the two types of \ac{Hb} act as a contrast agents in 
+It is well known that the two types of \ac{Hb} act as contrast agents in 
 \ac{EPI} imaging \cite{Buxton1998, WEISSKOFF1994, Ogawa}, however the connection
 between \ac{dHb}/\ac{O2Hb} and neural activity is non-trivial. 
 Intuitively, increased 
@@ -266,7 +280,7 @@ Unfortunately, because of limitations on \ac{fMRI} and in vivo
 \ac{CBV} truly have returned to their baseline. Other studies indicate
 that there can be a prolonged supernormal \ac{CBV}, although none of these papers completely
 rule out the possibility of increased \ac{CMRO2}  \cite{Mandeville1999a,
-Behzadi2005, Chen2009a}. The discrepancies may in part
+Behzadi2005, Chen2009}. The discrepancies may in part
 be explained by a spatial dependence in the post-stimulus undershoot; described
 by Yacoub et al. \cite{Yacoub2006}. In Chen et al. 
 a compelling case is made that most of the post stimulus undershoot can be 
@@ -305,8 +319,9 @@ could also make parameter estimation intractable.
 
 \section{Properties of the \ac{BOLD} Model}
 \label{sec:BOLD Analysis}
-Since the first complete \ac{BOLD} model was proposed by Friston et al.,  
-several studies have analyzed its properties \cite{Friston2002}.  
+Since the first complete \ac{BOLD} model was proposed by Friston et al. 
+\cite{Friston2000},  
+several studies have analyzed its properties.  
 The most important property is that the system is dissipative, and given
 enough time will converge to a constant value. This is found simply by
 analyzing the eigenvalues of the state equation Jacobian, 
@@ -347,7 +362,7 @@ in previous studies (\autoref{tab:Params}).
 \centering
 \begin{tabular}{|c || c | c | c | c|}
 \hline 
-Parameter  & Friston et al. \cite{Friston2002} & Jonston et al. \cite{Johnston2008} 
+Parameter  & Friston et al. \cite{Friston2000} & Jonston et al. \cite{Johnston2007} 
     & Vakorin et al. \cite{Vakorin2007} & Deneux et al. \cite{Deneux2006}\\
 \hline
 $\tau_0  $ &  $N(.98 , .25^2)$  & $8.38 \pm 1.5  $ & $.94$ & .27\\
@@ -360,7 +375,7 @@ $\epsilon$ &  $N(.54 , .1 ^2)$  & $.069 \pm .014 $ & (NC) & .89\\
 \hline
 \end{tabular}
 \caption{Parameters found in various studies. (NC) indicates that the value
-wasn't calculated. \cite{Vakorin2007} made use of the values from \cite{Friston2002}
+wasn't calculated. \cite{Vakorin2007} made use of the values from \cite{Friston2000}
 where not explicitly stated}
 \label{tab:Params} 
 \end{table}

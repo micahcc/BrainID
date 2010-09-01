@@ -7,7 +7,7 @@ are a powerful method for estimating the posterior probability distribution
 Chain Monte Carlo (MCMC) estimation, particle filters are designed for 
 time-varying random variables. The idea behind particle filters is
 similar to Kalman Filters; however, unlike Kalman Filters,
-distributions are stored as an empircal distribution rather than the
+distributions are stored as an empircal distribution rather than 
 as the first two moments of a Gaussian. Thus, particle filters are 
 preferred when the model is nonlinear, and non-gaussian. This section
 is largely based on Arulampalam et al. and Thrun et al. \cite{Arulampalam2002a, Thrun2005}.
@@ -30,17 +30,17 @@ unless the system has been extensively studied.
 
 Suppose a set or stream of measurements at discrete times are given, 
 $\{Y_k, k = 1, 2, 3, ... K\}$, where $K$ may be infinite. 
-Because $k$ is a discrete time, let $t_k$ define the continuous
-time of $k$.
+Let $k$ denote a time index and $t_k$ define the continuous
+time of index $k$.
 Suppose also that there is a hidden set of state variables,
 $X(t)$ that drives the value of $Y(t)$. Throughout this section
-with $X_k = X(t_k)$. The goal of the particle filter is to estimate the 
+$X_k$ will identify $X(t_k)$. The goal of the particle filter is to estimate the 
 distribution of the
 true parameters $\Theta$ that dictates the movement of $X(t)$.
 The model also permits random motion in $X(t)$, so the 
 particle filter also estimates the distribution of $X(t)$.
 The only difference between the members of parameter vector
-$\Theta$ and those of $X(t)$ is that the memebers of
+$\Theta$ and those of $X(t)$ is that the members of
 $\Theta$ have no known update equation. Members of both vectors
 are permitted to have some noise, although this
 may not be explicitly stated in the model. The generic, continuous, nonlinear
@@ -67,7 +67,7 @@ Few biological systems are predictable enough for them to be summarized
 by a time varying function, least of all the brain. While heart beats are certainly
 periodic and have an effect on the BOLD signal, the period varies too much
 for the system to be considered varying with time. 
-Next, its assumes that input cannot directly
+Next, it was assumed that input cannot directly
 influence the output, which in the case of the BOLD signal is a good assumption.
 Finally, because the only difference between the members of $X(t)$ and 
 $\Theta$ is an update function, from now on $X$ will encapsulate
@@ -92,7 +92,7 @@ as in $u_{a:b}$, which would indicate all the inputs from time $a$ to time $b$.
 Considering the noise present in $X$,
  $P(X_k | u_{0:k})$ is not a single true value but probability distribution. 
 
-To begin with, the particle filter must be given a prior distribution, from
+To begin, the particle filter must be given a prior distribution, from
 which the initial $N_p$ particles are drawn. A particle contains a weight
 as well as an estimate of $X_k$, which as previously mentioned, contains every
 variable needed to run the model. Then the prior is generated from a 
@@ -102,17 +102,17 @@ given distribution, $\alpha(X)$, by:
 \{[x^i_0,w^i] : x^i_0 \sim \alpha(X), w^i = \frac{1}{N_p}, i \in \{1, 2, ... , N_p\} \}
 \end{equation}
 
-Where $N_p$ is the number of particles or points used to describe the prior 
+where $N_p$ is the number of particles or points used to describe the prior 
 using a Mixture PDF. 
 Note that any exponents will be explicitly labeled as such, to avoid confusion with
 the particle numbering scheme. 
 
-Therefore, after the particle have been generated they should approximate $\alpha(X)$:
+Therefore, after the particles have been generated they should approximate $\alpha(X)$:
 
 \begin{equation}
 \alpha(X) \approx P(x_0) = \sum_{i=0}^{N_p} w^i\delta(X - x^i_0 ) dx
 \end{equation}
-Where $\delta(x-x_0)$ is 1 if and only if $x = x_0$ 
+where $\delta(x-x_0)$ is 1 if and only if $x = x_0$ 
 (the Kronecker delta function).
 
 If a flat prior is 
@@ -125,7 +125,7 @@ Whether or not to flatten the prior is a design decision. The reason this might
 be preferred over a direct
 uniform distribution is that the distribution width will inherently scale 
 for increased particle counts although some distributions
-flatten out better than others. Either way, $\alpha(X)$ \emph{must} be
+flatten out better than others. Either way, $\alpha(X)$ must be
 wide enough to incorporate any posterior that arises. If the prior is
 not sufficiently dense, the particle filter may be able to compensate, if it is
 not sufficiently wide the particle filter won't converge. 
@@ -147,7 +147,7 @@ is the density of the points, thus by dividing by this value, the weight
 should not depend on the location of the estimation points, but rather
 only on $P(x^i_{0:k} | y_{0:k})$, the probability of that particle
 being correct given all the measurements up to time $k$. 
-Note that if there is a far off peak in
+Note that if there is a distant peak in
 the posterior that $q$ does not have support points in, there will 
 be quantization errors, and that part of the density cannot be modeled. 
 This is why it is absolutely necessary that $q$ fully covers 
@@ -171,7 +171,8 @@ calculate both $q(x^i_{0:k} | y_{0:k})$ and $P(x^i_{0:k} | y_{0:k})$.
 Note that $q(x^i_{0:k} | y_{0:k})$ may be simplified by assuming that 
 $y_k$ doesn't contain any information about $x_{k-1}$. Technically this 
 could be false; since later measurements may shed light on currently hidden
-changes in $x$. For practical applications though it is a helpful assumption.
+changes in $x$, however in this work it is a good assumption because the
+input does not immediately effect the BOLD signal. 
 \begin{equation}
 q(x^i_{0:k} | y_{0:k}) = q(x^i_{0:k} | y_{0:k-1})
 \label{eq:QAssump}
@@ -186,7 +187,7 @@ q(x_k | x_{k-1}, y_{0:k}) =  P(x_k | x_{k-1})
 \label{eq:ImportanceDensity}
 \end{equation}
 The benefit of this choice for importance density is that an approximation for
-$P(x_k | x_{k-1})$ is freely available: its simply the set of particles propagated
+$P(x_k | x_{k-1})$ is freely available; its simply the set of particles propagated
 forward in time using the state equations. Additionally it makes
 updating weights simple, as seen in \autoref{eq:weightevolve}.
 
@@ -203,7 +204,7 @@ q(x_{0:k} | y_{0:k}) & = & q(x_k | x_{0:k-1}, y_{0:k})q(x_{0:k-1} | y_{0:k}) &  
 Calculating $P(x_{0:k} | y_{0:k})$ is a bit more involved. 
 First, using the assumption that the distribution of $y_k$ is 
 fully constrained by $x_k$, and that $x_k$ is similarly fully 
-constrained by $x_{k-1}$, I make the good assumptions that:
+constrained by $x_{k-1}$, I make the assumptions that:
 \begin{eqnarray}
 P(y_k | x_{0:k}, y_{0:k-1}) &=& P(y_k | x_k) \nonumber \\
 P(x_k | x_{0:k}, y_{0:k-1}) &=& P(x_k | x_{k-1})
@@ -238,7 +239,7 @@ w^i_k & \propto & \frac{P(y_k| x^i_k) \cancel{P(x^i_k | x^i_{k-1})} P(x^i_{0:k-1
 \end{eqnarray}
 
 Thus, by making the following simple assumptions, evolving a posterior
-density  requires no knowledge of noise distribution.
+density  requires no knowledge of the noise distribution.
 \begin{enumerate}
 \item $f(t, x(t), u(t)) = f(x(t), u(t))$ and $g(t, x(t), u(t)) = g(x(t))$ 
 \item The prior distribution PDF, $q(x_i(0))$, covers $P(x_i(0))$
