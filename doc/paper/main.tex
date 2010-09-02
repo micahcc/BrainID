@@ -164,9 +164,9 @@ slow; taking hours or days per single time course.
 In Johnston et al. alternating estimates of $P(X_t | \Theta, Y_t)$ and 
 $P(\Theta | Y_t)$ were calculated, to maximize $P(X_t, \Theta | Y_t)$. 
 $P(X_t | \Theta, Y_t)$ was calculated using a particle filter 
-\cite{Johnston2008}. This however was quite slow, and the results
+\cite{Johnston2007}. This however was quite slow, and the results
 were inconsistent with other similar works. 
-Murray used a particle filter, similar to \cite{Johnston2008}, but
+Murray used a particle filter, similar to \cite{Johnston2007}, but
 held the model parameters constant; thus all error in the output
 was treated as the result of noise in the underlying parameters 
 \cite{Murray2008}. Murray's results showed that differences in
@@ -243,11 +243,11 @@ flow (CBF).
 
 Although Buxton et al. demonstrated that a well chosen flow waveform could 
 explain most features of the BOLD signal, it stopped short of proposing a
-realistic waveform for the CBF and CMRO2 \cite{Buxton1998}. Friston et al. 
+realistic waveform for the CBF and CMRO2 \cite{Buxton1998}. Friston et al. \cite{Friston2000}
 gave a reasonable and simple expression for CBF input based on a flow 
 inducing signal and in the same work proposed a simple method
 of estimating metabolic rate: as a linear function of the inward 
-blood flow \cite{Friston2000}. By combining these equations with 
+blood flow. By combining these equations with 
 the balloon model from Buxton et al., it is possible to predict 
 the BOLD signal directly from a stimulus time course:
 \begin{eqnarray}
@@ -307,7 +307,7 @@ the first two moments. Thus, the posterior distribution is
 stored as an empircal distribution made up of sample points.
 Particle filters are preferred when the model is nonlinear, 
 and non-Gaussian. This section based primarily on 
-Arulampalam et al. and Thrun et al. \cite{Arulampalam2002a, Thrun2005}.
+Arulampalam et al. \cite{Arulampalam2002a} and Thrun et al. \cite{thrun2008probabilistic}.
 
 The idea of the particle filter is to build an empirical distribution
 out of a large number of parameter sets, called particles. Each
@@ -516,7 +516,7 @@ the actual size of the tails.  The case where a large number of the
 weights have become extremely small
 is called particle degeneracy. In  Lui et al. 
 an ideal measurement of degeneracy based on the particles' true 
-weight is given \cite{Liu1998b}. An approximation of 
+weight is given \cite{Liu1998}. An approximation of 
 the effective number of particles is also given: 
 \begin{equation}
 N_{eff} \approx \frac{\sum_{i=0}^{N_p} w_i}{\sum_{i=0}^{N_p} w_i^2}
@@ -874,7 +874,7 @@ but a necessary precaution.
 
 Because of the ill-defined nature of the parameters, the results
 of Friston et al. may have been wider than true parameter distribution
-\cite{Friston2002}. Future works that attempt to calculate parameters
+\cite{Friston2002b}. Future works that attempt to calculate parameters
 of the BOLD model should be run multiple times to ensure consistency,
 which most likely cannot be attained. This result is particularly
 troublesome given the number of papers that use those parameters for
