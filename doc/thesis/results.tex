@@ -62,19 +62,19 @@ necessary to investigate methods of identifying false positives.
 \begin{figure}
 \centering
 \includegraphics[clip=true,trim=1cm 0cm 0cm 0cm, width=17cm]{images/long_converge}
-\caption[\ac{BOLD} estimate converging for a very long \ac{fMRI} run.]{\ac{BOLD} estimate 
-converging for a 2400 second \ac{fMRI} run. Darker bars indicate
-bins with more particles with \ac{BOLD} estimate in that range. ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
+\caption[\acs{BOLD} estimate converging for a very long \acs{fMRI} run.]{\acs{BOLD} estimate 
+converging for a 2400 second \acs{fMRI} run. Darker bars indicate
+bins with more particles with \acs{BOLD} estimate in that range. ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
 \label{fig:long_converge}
 \end{figure}
 
 \begin{figure}
 \centering
 \includegraphics[clip=true,trim=1cm 0cm 0cm 0cm, width=17cm]{images/long_converge_500}
-\caption[First 500 seconds of the \ac{BOLD} estimate converging for a very 
-long \ac{fMRI} run.]{First 500 seconds of \ac{BOLD} estimate 
-converging for a 2400 second \ac{fMRI} run. Darker bars indicate
-bins with more particles with \ac{BOLD} estimate in that range. ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
+\caption[First 500 seconds of the \acs{BOLD} estimate converging for a very 
+long \acs{fMRI} run.]{First 500 seconds of \acs{BOLD} estimate 
+converging for a 2400 second \acs{fMRI} run. Darker bars indicate
+bins with more particles with \acs{BOLD} estimate in that range. ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
 \label{fig:long_converge_500}
 \end{figure}
 
@@ -205,7 +205,8 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 1.2187 & 0.3359 & 0.3456 & 0.0800 & 1.599 & 2.2488 & 1.3876 & 5.0665 & 0.003066     & 0.00217\\
 \hline
 \end{tabular}
-\caption{Estimated Parameters on 11 different runs with low noise. First row is the true value, 
+\caption[Estimated Parameters with low noise.]
+{Estimated Parameters on 11 different runs with low noise. First row is the true value, 
 last is the average. $\sum \tau$ is the sum of the estimated time constants.}
 \label{tab:LowNoiseResults}
 \end{table}
@@ -515,7 +516,8 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 1.03009 & 0.33228 & 0.33905 & 0.02902 & 1.44506 & 2.50031 & 0.46076 & 0.00165 \\
 \hline
 \end{tabular}
-\caption{Estimated Parameters on 11 different runs with low noise and no signal present.
+\caption[Estimated Parameters with low noies, and no signal.]
+{Estimated Parameters on 11 different runs with low noise and no signal present.
  ($\sigma_x = 0.005$, $\sigma_y = 0.01$)}
 \label{tab:NoiseOnlyResults}
 \end{table}
@@ -640,12 +642,12 @@ This is an estimator of the standard
 deviation, and thus a good estimator of the scale of the input signal.
 The normalized \ac{RMSR} values are
 shown in \autoref{tab:SingleVoxelActivationComparison}. A second potential method of
-gauging performance is mutual information. Mutual information is a method of measuring
+gauging performance is \ac{MI}. \acl{MI} is a method of measuring
 the interdependence of two random variables. If two signals are truly independent,
-then the mutual information will be zero. Although ideally suited to discrete
+then the \ac{MI} will be zero. Although ideally suited to discrete
 distributions, by using histograms
 it is possible to derive a joint distribution of two signals. The algorithm for
-mutual information is based on that joint distribution:
+\ac{MI} is based on that joint distribution:
 \begin{equation}
 \sum_{x,y} p(x,y) \log_2\left(\frac{p(x,y)}{p(x)p(y)}\right)
 \end{equation}
@@ -655,14 +657,14 @@ I subtracted the estimated bias:
 \text{bias} = \frac{N_{bins}}{2Nlog(2)}
 \end{equation}
 where $N$ is the number of samples and $N_{bins}$ is the number of bins. For all
-the mutual information estimates in this work 6 bins were used for the marginal
+the \ac{MI} estimates in this work 6 bins were used for the marginal
 distribution of each signal. Additionally, throughout log base 2 will be used.
 This leads to 36 total bins in the joint, so the bias is:
 \begin{equation}
 \text{bias} = \frac{18}{N}
 \end{equation}
- Note that subtracting the bias can result in negative mutual
-information, which should not technically be possible; so any negative mutual information
+ Note that subtracting the bias can result in negative 
+\ac{MI}, which should not technically be possible; so any negative \acl{MI}
 was taken as 0.
 
 \begin{table}[t]
@@ -675,10 +677,10 @@ was taken as 0.
 & \multicolumn{2}{|c|}{$\sigma_y = 0.001, \sigma_x = 0.0005$}
 & \multicolumn{2}{|c|}{$\sigma_y = 0.01, \sigma_x = 0.005$}\\
 \hline
-& $M.I.$ & N. Res. &
-  $M.I.$ & N. Res. &
-  $M.I.$ & N. Res. &
-  $M.I.$ & N. Res. \\
+& $MI$ & N. Res. &
+  $MI$ & N. Res. &
+  $MI$ & N. Res. &
+  $MI$ & N. Res. \\
 \hline
 \hline
 1 &   0.86687  &0.47801 &  0.09077  &1.03894 &  0.06326  &  1.29501 & 0.03024  &1.33641 \\
@@ -700,8 +702,7 @@ min &  0.82382  &0.459   &  0.04341  &0.95165 & -0.01075  & 1.15441 & -0.02677 &
 max &  0.98892  &0.5458  & 0.18339   &1.18996 & 0.06326  &  1.43196 & 0.03163  &1.33667 \\
 \hline
 \end{tabular}
-\caption{Mutual Information and the normalized \ac{RMSE}, for each of the previous
-sections.}
+\caption{\acs{MI} and the normalized \acs{RMSE}, for each of the previous sections.}
 \label{tab:SingleVoxelActivationComparison}
 \end{table}
 
@@ -710,27 +711,27 @@ Comparing the results of \autoref{sec:SimHighNoise} and
 \autoref{sec:PureNoiseHighMag}
 in \autoref{tab:SingleVoxelActivationComparison},
 distinguishing between these cases with either normalized \ac{RMSR} or 
-mutual information is not clear cut. While the average mutual information 
+\ac{MI} is not clear cut. While the average \ac{MI}
 is more than 10 times
-the average mutual information in the two non-signal cases, the maximum
-mutual information of the low noise/no signal case exceeds the minimum M.I. 
+the average \ac{MI} in the two non-signal cases, the maximum
+\ac{MI} of the low noise/no signal case exceeds the minimum \ac{MI}
 of the high noise/signal
 case. The Low Noise/signal determination is easier to make; given
-the minimum mutual information is above $.8$ and the maximum normalized 
+the minimum \ac{MI} is above $.8$ and the maximum normalized 
 \ac{RMSR} is below $.6$.
-However, it is worth noting that the worst case scenario  for mutual information (maximum) in the
+However, it is worth noting that the worst case scenario  for \ac{MI} (maximum) in the
 low noise/no signal case does not coincide with the worse case (minimum) normalized residual.
 There is no reason why this has to be the case, but it could be beneficial. In
 other words, if it were necessary to make a statement that
 a particular voxel were active or inactive; the accuracy would improve if both techniques
-were used with loose restrictions. In all, both M.I. and the normalized residual
+were used with loose restrictions. In all, both \ac{MI} and the normalized residual
 provide a good measure of performance.
 
 There were two primary purposes of these tests. First, given the nature of Monte Carlo
 techniques it is important to ensure consistency of results. Although the parameter
 sets were inconsistent, the quality of the fit for the \ac{BOLD} output was often
 accurate even when noise was drastically increased. The second purpose was to validate
-Mutual Information and the normalized \ac{RMSR} as measurements of output quality.
+\ac{MI} and the normalized \ac{RMSR} as measurements of output quality.
 Although not perfect, both methods do provide a decent metric.
 
 \section{Multi-voxel Simulation}
@@ -746,11 +747,12 @@ Region 3: $0.39$.]{\includegraphics[height=9cm]{images/snr_hm.png}\label{fig:Sim
 
 \subfigure[Normalized \ac{RMSR} Map. Scale is Normalized \ac{RMSE}. Lower (yellow) is better.]
 {\label{fig:simslice_hm_res} \includegraphics[height=8.5cm]{images/sim_hm}}
-\subfigure[Mutual Information Map. Scale is bits. Higher (yellow) indicates better fit.]
+\subfigure[\ac{MI} Map. Scale is bits. Higher (yellow) indicates better fit.]
 {\label{fig:sim_hm_mi} \includegraphics[height=8.5cm]{images/sim_hm_mi}}
 
-\caption{Comparison of activation regions, a) grey matter and regions, b) \ac{SNR} of active
-regions, c) \acl{RMSR} Map, d) Mutual Information Map.}
+\caption[Comparison of activation regions.]
+{Comparison of activation regions, a) grey matter and regions, b) \acs{SNR} of active
+regions, c) \acs{RMSR} Map, d) \acs{MI} Map.}
 \label{fig:simslice_hm}
 \end{figure}
 
@@ -797,9 +799,9 @@ Note that region 4 had a very low $\epsilon$, putting it below the noise
 threshold. For this reason, the only areas
 with significant estimates of the \ac{BOLD} time series were 1,2 and 3.
 Notice that the
-regions 1, 2 an 3 stick out in both the \ac{RMSR} and the mutual information
+regions 1, 2 an 3 stick out in both the \ac{RMSR} and the \ac{MI}
 map, indicating that the particle filter was successful in matching those regions.
-Mutual information was an extremely successful metric, with the exception of
+\ac{MI} was an extremely successful metric, with the exception of
 a few false positives (\autoref{fig:simslice_hm_res}). 
 \autoref{fig:sim_hm2} shows what the heat map looks
 like when the threshold is raised from $0.1$ to $0.15$.
@@ -808,7 +810,7 @@ like when the threshold is raised from $0.1$ to $0.15$.
 \subfigure{
 \includegraphics[width=10cm]{images/sim_hm_15_6.png}}
 \subfigure{\includegraphics[width=1cm]{images/scale6.png}}
-\caption{More stringent mutual information heatmap. Higher (yellow) is better.}
+\caption{More stringent \acs{MI} heatmap. Higher (yellow) is better.}
 \label{fig:sim_hm2}
 \end{figure}
 
@@ -817,14 +819,14 @@ like when the threshold is raised from $0.1$ to $0.15$.
 \includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=\textwidth]{images/slicesim_hist1}
 \caption[Histogram of estimated parameters in section 1]{Histogram of estimated parameters in 
 section 1 in voxels 
-with mutual information greater than $0.15$} \label{fig:slicesim_hist1}
+with \acs{MI} greater than $0.15$} \label{fig:slicesim_hist1}
 \end{figure}
 
 \begin{figure} %top left
 \centering
 \includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=\textwidth]{images/slicesim_hist2}
 \caption[Histogram of estimated parameters in section 2]
-{Histogram of estimated parameters in section 2 in voxels with mutual information greater
+{Histogram of estimated parameters in section 2 in voxels with \acs{MI} greater
 than $0.15$}
 \label{fig:slicesim_hist2}
 \end{figure}
@@ -833,26 +835,26 @@ than $0.15$}
 \centering
 \includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=\textwidth]{images/slicesim_hist3}
 \caption[Histogram of estimated parameters in section 3]
-{Histogram of estimated parameters in section 3 in voxels with mutual information greater
+{Histogram of estimated parameters in section 3 in voxels with \acs{MI} greater
 than $0.15$}
 \label{fig:slicesim_hist3}
 \end{figure}
 
 If the thresholds are left at the values of \autoref{fig:simslice_hm}, then
-the normalized \ac{RMSR} gave $2/1479$  false positives and mutual information gave
+the normalized \ac{RMSR} gave $2/1479$  false positives and \ac{MI} gave
 $11/1479$. However, normalized \ac{RMSR} also clearly missed some active voxels, although
 false negatives are harder to quantify because of the presence of white matter.
 Raising the threshold to $0.15$ eliminated the false positives in the
-Mutual Information map, although some active voxels were also removed.
+\ac{MI} map, although some active voxels were also removed.
 
 The histograms again demonstrate that a single point estimate of the parameters
 is elusive for this set of parameters. However the data clearly show the power
 of the particle filter at identifying regions of activation.
-The thresholds applied to this slice, both for mutual information and
+The thresholds applied to this slice, both for \ac{MI} and
 \acp{RMSR} are arbitrary. Applying a
 threshold is helpful for visualization but is rarely useful for further analysis.
 As noted in \autoref{sec:SingleVoxelReview},
-the false positives present in the Mutual Information
+the false positives present in the \ac{MI}
 map are different from those in the \ac{RMSR} map. This furthers the argument
 for combining the two metrics to increase power. Although
 at first glance it would appear that there are false negatives in

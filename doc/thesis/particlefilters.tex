@@ -66,10 +66,10 @@ assumption is based on the idea that if you paused the system for $\Delta t$
 seconds, when unfrozen the system would continue as if nothing happened. 
 Few biological systems are predictable enough for them to be summarized
 by a time varying function, least of all the brain. While heart beats are certainly
-periodic and have an effect on the BOLD signal, the period varies too much
+periodic and have an effect on the \ac{BOLD} signal, the period varies too much
 for the system to be considered varying with time. 
 Next, it was assumed that input cannot directly
-influence the output, which in the case of the BOLD signal is a good assumption.
+influence the output, which in the case of the \ac{BOLD} signal is a good assumption.
 Finally, because the only difference between the members of $X(t)$ and 
 $\Theta$ is an update function, from now on $X$ will encapsulate
 $\Theta$. The assumptions allow for a simplified version of the
@@ -174,7 +174,7 @@ Note that $q(x^i_{0:k} | y_{0:k})$ may be simplified by assuming that
 $y_k$ doesn't contain any information about $x_{k-1}$. Technically this 
 could be false; since later measurements may shed light on currently hidden
 changes in $x$, however in this work it is a good assumption because the
-input does not immediately effect the BOLD signal. 
+input does not immediately effect the \ac{BOLD} signal. 
 \begin{equation}
 q(x^i_{0:k} | y_{0:k}) = q(x^i_{0:k} | y_{0:k-1})
 \label{eq:QAssump}
@@ -356,7 +356,7 @@ x_i = x_i + h\sigma \epsilon
 Where $h$ is an optional bandwidth, $\sigma$ is the standard deviation such that 
 $\sigma \sigma^T = cov(x)$
 and $\epsilon$ is drawn from the chosen kernel. The choice of a kernel is
-complex, although it has been proven that the optimal kernel for reducing MSE between
+complex, although it has been proven that the optimal kernel for reducing \ac{MSE} between
 the original and resampled distributions is 
 is the Epanechnikov Kernel \cite{Musso2001a}. However, Musso et al. 
 also espoused the usefulness of the Gaussian Kernel, due to the ease
@@ -387,7 +387,7 @@ which should decay as particles are ruled out, the particle filter is still able
 In fact, over-smoothing is preferable
 to under smoothing, since over-smoothing simply slows convergence while 
 under-smoothing could leave gaps in the distribution.
-Moreover, because of the high dimensionality of the BOLD model,
+Moreover, because of the high dimensionality of the \ac{BOLD} model,
 and limited measurements, it is helpful to have a broader bandwidth to explore the distribution. 
 
 \begin{algorithm}
@@ -448,7 +448,7 @@ distributions, given the nature of the noise present in FMRI.
 The choice of this function will be discussed further in \autoref{sec:Methods Weighting Function}.
 
 %\section{Piecewise Example}
-%A half wave rectifier takes a AC voltage circuit and removes
+%A half wave rectifier takes a \ac{AC} voltage circuit and removes
 %the negative half  of the signal. The resulting waveform
 %is still not DC, however it is then possible to use a capacitor to 
 %smooth the signal into something similar to DC, as shown in \autoref{fig:HalfWaveIO}.

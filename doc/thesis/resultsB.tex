@@ -82,7 +82,7 @@ uses simple normalized residuals, meaning that lower indicates less error.
 \autoref{fig:hm_canon_pfilter_mi} measures in terms of mutual dependence between the
 measured signal and the estimated signal; thus higher indicates a better fit. The particle
 filter data shows a large number of false positives, however application of a threshold
-of $0.85$ on the residual map removes these false positives. Similarly, in the mutual information
+of $0.85$ on the residual map removes these false positives. Similarly, in the \acl{MI}
 map, the false positives may be eliminated by upping the threshold to $0.15$. However, just
 because the results disagree with \ac{SPM} does not necessarily mean they are false positives.
 \ac{SPM} operates on smoothed data (8 mm x 8 mm x 8 mm), so there are certainly active
@@ -96,7 +96,7 @@ section yellow indicates a better fit.
 \subfigure[Coronal Slice]{\label{fig:hm_canon_spm_y} \includegraphics[scale=3]{images/spm_hm_y}}
 \subfigure[Axial Slice]{\label{fig:hm_canon_spm_z} \includegraphics[scale=3]{images/spm_hm_z}}
 \subfigure{\label{fig:scale_spm} \includegraphics[scale=.5]{images/scale1}}
-\caption[\ac{SPM} Results]{\ac{SPM} results. 
+\caption[\acs{SPM} Results]{\acs{SPM} results. 
         Units of activation are in Student's $t$-scores; higher indicates higher
         assurance that the signal cannot have occurred through noise alone.}
 \label{fig:hm_canon_spm}
@@ -137,9 +137,9 @@ section yellow indicates a better fit.
 \subfigure[Coronal Slice]{\label{fig:hm_canon_mi_y} \includegraphics[scale=3]{images/mi_hm_y}}
 \subfigure[Axial Slice]{\label{fig:hm_canon_mi_z} \includegraphics[scale=3]{images/mi_hm_z}}
 \subfigure{\label{fig:scale_mi} \includegraphics[scale=.5]{images/scale4}}
-\caption[Particle Filter Mutual Information Results]
-        {Particle Filter results measured in mutual information.
-         Units of match is bits (standard for base-2 Mutual Information). The highest (best) levels are
+\caption[Particle Filter \acs{MI} Results]
+        {Particle Filter results measured in \ac{MI}.
+         Units of match is bits (standard for base-2 \ac{MI}). The highest (best) levels are
          $0.42$ and the worst shown (threshold) is $0.1$.}
 \label{fig:hm_canon_pfilter_mi}
 \end{figure}
@@ -149,7 +149,7 @@ section yellow indicates a better fit.
 \centering
 \subfigure[Particle Filter]{\label{fig:comp1pfilter} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/1_pfilter_37_14_7}}
 \subfigure[SPM]{\label{fig:comp1spm} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/1_spm_37_14_7}}
-\caption[Time Series Comparison, Section 1]{Section 1, Estimated vs. Actual \ac{BOLD} response. $t$-Score: $10.71$, Mutual Information: $0.33$, Residual: $0.72$.}
+\caption[Time Series Comparison, Section 1]{Section 1, Estimated vs. Actual \ac{BOLD} response. $t$-Score: $10.71$, \ac{MI}: $0.33$, Residual: $0.72$.}
 \label{fig:comp1}
 \end{figure}
 
@@ -158,7 +158,7 @@ section yellow indicates a better fit.
 \centering
 \subfigure[Particle Filter]{\label{fig:comp2pfilter} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/2_pfilter_34_12_7}}
 \subfigure[SPM]{\label{fig:comp2spm} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/2_spm_34_12_7}}
-\caption[Time Series Comparison, Section 2]{Section 2, Estimated vs. Actual \ac{BOLD} response. $t$-Score: $6.97$, Mutual Information: $0.04$, Residual: $1.02$.}
+\caption[Time Series Comparison, Section 2]{Section 2, Estimated vs. Actual \ac{BOLD} response. $t$-Score: $6.97$, \ac{MI}: $0.04$, Residual: $1.02$.}
 \label{fig:comp2}
 \end{figure}
 
@@ -167,7 +167,7 @@ section yellow indicates a better fit.
 \centering
 \subfigure[Particle Filter]{\label{fig:comp3pfilter} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/3_pfilter_23_21_7}}
 \subfigure[SPM]{\label{fig:comp3spm} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/3_spm_23_21_7}}
-\caption[Time Series Comparison, Section 3]{Section 3, Estimated vs. Actual \ac{BOLD} response. $t$-Score: $2.85$, Mutual Information: $-0.03$, Residual: $0.81$.}
+\caption[Time Series Comparison, Section 3]{Section 3, Estimated vs. Actual \ac{BOLD} response. $t$-Score: $2.85$, \ac{MI}: $-0.03$, Residual: $0.81$.}
 \label{fig:comp3}
 \end{figure}
 
@@ -176,7 +176,7 @@ section yellow indicates a better fit.
 \centering
 \subfigure[Particle Filter]{\label{fig:comp4pfilter} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/4_pfilter_26_15_7}}
 \subfigure[SPM]{\label{fig:comp4spm} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/4_spm_26_15_7}}
-\caption[Time Series Comparison, Section 4]{Section 4, Estimated vs. Actual \ac{BOLD} response. $t$-Score: $0.50$, Mutual Information: $0.06$, Residual: $0.95$. }
+\caption[Time Series Comparison, Section 4]{Section 4, Estimated vs. Actual \ac{BOLD} response. $t$-Score: $0.50$, \ac{MI}: $0.06$, Residual: $0.95$. }
 \label{fig:comp4}
 \end{figure}
 
@@ -185,8 +185,8 @@ section yellow indicates a better fit.
 \centering
 \subfigure[Particle Filter]{\label{fig:comp5pfilter} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/5_pfilter_29_9_13}}\\
 \subfigure[SPM]{\label{fig:comp5spm} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/5_spm_29_9_13}}
-\caption[Time Series Comparison, Section 5]{Section 5, Estimated vs. Actual \ac{BOLD} Response. $t$-Score: $4.17$, Mutual Information: $0.02$, Residual: $1.14$.}
-%\caption{Section 5, Below threshold in both particle filter checks, but above threshold in SPM. Mutual Information of $0.0212822$, $t$-Value
+\caption[Time Series Comparison, Section 5]{Section 5, Estimated vs. Actual \ac{BOLD} Response. $t$-Score: $4.17$, \ac{MI}: $0.02$, Residual: $1.14$.}
+%\caption{Section 5, Below threshold in both particle filter checks, but above threshold in SPM. \ac{MI} of $0.0212822$, $t$-Value
 %of $4.17399$ and $MSE$ of $1.14171$.}
 \label{fig:comp5}
 \end{figure}
@@ -196,7 +196,7 @@ section yellow indicates a better fit.
 \centering
 \subfigure[Particle Filter]{\label{fig:comp6pfilter} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/6_pfilter_36_17_19}}
 \subfigure[SPM]{\label{fig:comp6spm} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/6_spm_36_17_19}}
-\caption[Time Series Comparison, Section 6]{Section 6, Estimated vs. Actual \ac{BOLD} Response. $t$-Score: $2.49$, Mutual Information: $.34$, Residual: $0.78$.}
+\caption[Time Series Comparison, Section 6]{Section 6, Estimated vs. Actual \ac{BOLD} Response. $t$-Score: $2.49$, \ac{MI}: $.34$, Residual: $0.78$.}
 %\caption{Section 6, MI of $0.335504$, T Value: $2.49154$, normalized error: $0.783348$ Not visible in SPM}
 \label{fig:comp6}
 \end{figure}
@@ -206,14 +206,14 @@ section yellow indicates a better fit.
 \centering
 \subfigure[Particle Filter]{\label{fig:comp7pfilter} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/7_pfilter_29_26_1}}
 %\subfigure[SPM]{\label{fig:comp7spm} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/5_spm_25_34_25}}
-\caption[Time Series Comparison, Section 7]{Section 7, Estimated vs. Actual \ac{BOLD} Response. $t$-Score: $1.32$, Mutual Information: $0.11$, Residual: $1.10$.}
+\caption[Time Series Comparison, Section 7]{Section 7, Estimated vs. Actual \ac{BOLD} Response. $t$-Score: $1.32$, \ac{MI}: $0.11$, Residual: $1.10$.}
 %\caption{Section 7, $.1052$ in MI, $1.31534$ in SPM (which left this flat) and $1.09992$ normalized $\sqrt{MSE}$. Only visible in MI map. }
 \label{fig:comp7}
 \end{figure}
 
 Several voxels were chosen for further investigation from \autoref{fig:hm_canon_pfilter} and \autoref{fig:hm_canon_spm}.
 
-Section 1 (\autoref{fig:comp1}) had a very high $t$-score, high mutual information and
+Section 1 (\autoref{fig:comp1}) had a very high $t$-score, high \ac{MI} and
 a low error. Visual inspection makes it obvious that this voxel fits the \ac{BOLD} model. A region
 such as this would be called strong activation by neurologists. The
 reason for the cleaner looking signal in \ac{SPM} is the additional Gaussian spatial smoothing
@@ -231,8 +231,8 @@ could be gated or driven through intermediate region.
 Section 3 and 4 are both examples of nearly pure-noise signals, at least from the standpoint
 of the given stimulus (\autoref{fig:comp3}, \autoref{fig:comp4}).
 These two voxels are false positives by the normalized residual.
-Note that in both cases the Mutual Information was extremely low, meaning that
-according to the M.I. these were not good fits. Both section 3 and 4 have
+Note that in both cases the \ac{MI} was extremely low, meaning that
+according to the \ac{MI} these were not good fits. Both section 3 and 4 have
 significant peaks, raising the question of whether they may be active,
 but not correlated directly with the input.
 
@@ -253,12 +253,12 @@ like noise. One possible reason for this is that the low peak signal ($<0.03$),
 made it more susceptible to being smoothed out.
 
 Section 7 is an ambiguous time series. While the thresholds applied here
-are empirical, this voxel is on the borderline for both mutual information
+are empirical, this voxel is on the borderline for both \ac{MI}
 and the normalized residual.
 This case is reminiscent of the pure-noise tests performed in the previous chapter,
 and is a perfect example of the false positive problem.
 The signal oscillates far faster than the \ac{BOLD} estimate, yet
-somehow the mutual information reaches $.1052$ and the normalized residual is just below $1.1$.
+somehow the \ac{MI} reaches $.1052$ and the normalized residual is just below $1.1$.
 
 \section{Parameter Estimates}
 \label{sec:Real Data Parameter Estimates}
@@ -268,7 +268,7 @@ information about the system. Additionally, as an aggregate they form a distribu
 the feasible parameters parameters for a particular patient. Therefore
 \autoref{fig:pmap0} through \autoref{fig:pmap6}
 contain the parameter maps for the system and \autoref{fig:realhist} is a histogram across all voxels
-for which the mutual information was greater than $0.15$. As before, the threshold is not
+for which the \ac{MI} was greater than $0.15$. As before, the threshold is not
 scientifically derived, yet in tests this threshold provided a decent balance to remove most
 of the questionably active voxels in the system.
 
@@ -330,14 +330,14 @@ of the questionably active voxels in the system.
 
 Regions with poor fit cannot have reliable parameter estimates because the input did not meaningfully
 correlate input with output, which is why a threshold was applied.
-Mutual information was chosen over the residual because the
+\ac{MI} was chosen over the residual because the
 maps had more coherency, and had less error in slice simulations (\autoref{fig:sim_hm2} vs.
 \autoref{fig:simslice_hm_res}).
 
 \begin{figure}
 \centering
 \includegraphics[clip=truew,trim=8cm 4cm 8cm 4cm,width=16cm]{images/realhist}
-\caption{Histogram of parameters in active regions ($M.I. > .15$).}
+\caption{Histogram of parameters in active regions (\acs{MI} $> .15$).}
 \label{fig:realhist}
 \end{figure}
 
@@ -350,8 +350,8 @@ measurements, and yet the final parameter estimates vary widely.
 The activation maps generated by the particle filter are very similar
 to those produced by \ac{SPM}. This indicates that the particle filter is
 successfully estimating the \ac{BOLD} output, in spite of the lack of spatial
-smoothing. Comparing the mutual information metric with the normalized residual,
-M.I. gives much better clusters, although that doesn't necessarily mean it
+smoothing. Comparing the \acl{MI} metric with the normalized residual,
+\ac{MI} gives much better clusters, although that doesn't necessarily mean it
 is better. Although many of the differences between \ac{SPM} and the particle filter
 were driven by differences in preprocessing, it is worth noting that
 the preprocessing applied by \ac{SPM} is necessary for \ac{SPM} to give decent results.

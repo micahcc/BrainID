@@ -213,19 +213,19 @@ There is potential to optimize the spline further using a canonical
 HRF to find resting points; however, the experiment would have
 to be designed with this in mind.
 
-Problematically, after removing the DC component of the signal,
+Problematically, after removing the \ac{DC} component of the signal,
 by definition the signal will have a median near zero.
 Unfortunately this is not the natural state of the \ac{BOLD} signal. More specifically,
 when the signal is inactive, the \ac{BOLD} response should be at 0\% change from
 the base level; activation may then increase, or for short periods decrease from this base.
 Because most of the \ac{BOLD} signal is above baseline, after removing the spline
 the resting state will be below 0\%.
-One method of accounting for this is to simply add a DC gain model parameter.
+One method of accounting for this is to simply add a \ac{DC} gain model parameter.
 Like all the other model parameters, with enough measurements, the particle filter
 would be able to settle on a good estimate. Yet adding another dimension increases the
 complexity of the model, for a parameter that is relatively easy to estimate
 by visual inspection.  In this work a simpler approach was used. To determine
-the DC gain a robust estimator of scale was used. The 
+the \ac{DC} gain a robust estimator of scale was used. The 
 \ac{MAD} proved to be accurate in determining how much to shift the signal up
 by. Both methods analysis were tested, and it was found that the increase
 in model complexity far outweighed the slight increase in flexibility. Other
@@ -243,7 +243,7 @@ Iglewicz's text on robust estimation \cite{iglewicz1983robust}.
 A serious concern when adding constant values to
 real data is whether this will create false positives. This is a legitimate
 concern; however, a boosted response does not affect how well the \ac{BOLD} model
-predicts the actual measurements; and as mentioned before, the DC signal 
+predicts the actual measurements; and as mentioned before, the \ac{DC} signal 
 of \ac{fMRI} is never used.
 
 \section{Particle Filter Settings}
