@@ -91,34 +91,28 @@ section yellow indicates a better fit.
 
 \begin{figure}[H]
 \centering
-\subfigure[]{\label{fig:hm_spm} \includegraphics[scale=.85]{images/spm_hm}}
-\subfigure[]{\label{fig:hm_canon_spm_x} \includegraphics[scale=3]{images/spm_hm_x}}
-\subfigure[]{\label{fig:hm_canon_spm_y} \includegraphics[scale=3]{images/spm_hm_y}}
-\subfigure[]{\label{fig:hm_canon_spm_z} \includegraphics[scale=3]{images/spm_hm_z}}
+\subfigure[Axial Slices]{\label{fig:hm_spm} \includegraphics[scale=.85]{images/spm_hm}}
+\subfigure[Sagittal Slice]{\label{fig:hm_canon_spm_x} \includegraphics[scale=3]{images/spm_hm_x}}
+\subfigure[Coronal Slice]{\label{fig:hm_canon_spm_y} \includegraphics[scale=3]{images/spm_hm_y}}
+\subfigure[Axial Slice]{\label{fig:hm_canon_spm_z} \includegraphics[scale=3]{images/spm_hm_z}}
 \subfigure{\label{fig:scale_spm} \includegraphics[scale=.5]{images/scale1}}
-\caption{\ac{SPM} results. Units of activation are in Student's $t$-scores; higher indicates higher
-        assurance that the signal cannot have occurred through noise alone.
-        Sagittal, coronal and axial slices  are
-        \autoref{fig:hm_canon_spm_x}, \autoref{fig:hm_canon_spm_y}, and
-         \autoref{fig:hm_canon_spm_z}, respectively. A series of axial slices are
-         shown in \autoref{fig:hm_spm}. }
+\caption[\ac{SPM} Results]{\ac{SPM} results. 
+        Units of activation are in Student's $t$-scores; higher indicates higher
+        assurance that the signal cannot have occurred through noise alone.}
 \label{fig:hm_canon_spm}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\subfigure[]{\label{fig:hm_pfilter} \includegraphics[scale=.85]{images/pfilter_hm}}
-\subfigure[]{\label{fig:hm_canon_pfilter_x} \includegraphics[scale=3]{images/pfilter_hm_x}}
-\subfigure[]{\label{fig:hm_canon_pfilter_y} \includegraphics[scale=3]{images/pfilter_hm_y}}
-\subfigure[]{\label{fig:hm_canon_pfilter_z} \includegraphics[scale=3]{images/pfilter_hm_z}}
+\subfigure[Axial Slices]{\label{fig:hm_pfilter} \includegraphics[scale=.85]{images/pfilter_hm}}
+\subfigure[Sagittal Slice]{\label{fig:hm_canon_pfilter_x} \includegraphics[scale=3]{images/pfilter_hm_x}}
+\subfigure[Coronal Slice]{\label{fig:hm_canon_pfilter_y} \includegraphics[scale=3]{images/pfilter_hm_y}}
+\subfigure[Axial Slice]{\label{fig:hm_canon_pfilter_z} \includegraphics[scale=3]{images/pfilter_hm_z}}
 \subfigure{\label{fig:scale_pfilter} \includegraphics[scale=.5]{images/scale2}}
-\caption{Particle Filter results measured in normalized error.
+\caption[Particle Filter Normalized Residual Results]{Particle Filter results measured in normalized error.
         Units of match is normalized residual where the lowest (best) levels shown are
         $0.7$ and the highest error shown (threshold) is $1$.
-        Sagittal, coronal and axial slices are shwon in \autoref{fig:hm_canon_pfilter_x},
-        \autoref{fig:hm_canon_pfilter_y}, and
-         \autoref{fig:hm_canon_pfilter_z}, respectively. A series of axial slices are shown in
-         \autoref{fig:hm_pfilter}.  }
+        Sagittal, coronal and axial slices are shwon in \autoref{fig:hm_canon_pfilter_x}.}
 \label{fig:hm_canon_pfilter}
 \end{figure}
 
@@ -138,62 +132,60 @@ section yellow indicates a better fit.
 
 \begin{figure}[H]
 \centering
-\subfigure[]{\label{fig:hm_mi} \includegraphics[scale=.85]{images/mi_hm}}
-\subfigure[]{\label{fig:hm_canon_mi_x} \includegraphics[scale=3]{images/mi_hm_x}}
-\subfigure[]{\label{fig:hm_canon_mi_y} \includegraphics[scale=3]{images/mi_hm_y}}
-\subfigure[]{\label{fig:hm_canon_mi_z} \includegraphics[scale=3]{images/mi_hm_z}}
+\subfigure[Axial Slices]{\label{fig:hm_mi} \includegraphics[scale=.85]{images/mi_hm}}
+\subfigure[Sagittal Slice]{\label{fig:hm_canon_mi_x} \includegraphics[scale=3]{images/mi_hm_x}}
+\subfigure[Coronal Slice]{\label{fig:hm_canon_mi_y} \includegraphics[scale=3]{images/mi_hm_y}}
+\subfigure[Axial Slice]{\label{fig:hm_canon_mi_z} \includegraphics[scale=3]{images/mi_hm_z}}
 \subfigure{\label{fig:scale_mi} \includegraphics[scale=.5]{images/scale4}}
-\caption{Particle Filter results measured in mutual information.
+\caption[Particle Filter Mutual Information Results]
+        {Particle Filter results measured in mutual information.
          Units of match is bits (standard for base-2 Mutual Information). The highest (best) levels are
-         $0.42$ and the worst shown (threshold) is $0.1$.
-        Sagittal, coronal and axial slices are shown in \autoref{fig:hm_canon_mi_x},
-        \autoref{fig:hm_canon_mi_y}, and \autoref{fig:hm_canon_mi_z}, respectively.
-        A series of axial slices are shown in \autoref{fig:hm_mi}.  }
+         $0.42$ and the worst shown (threshold) is $0.1$.}
 \label{fig:hm_canon_pfilter_mi}
 \end{figure}
 
 %37-14-7
 \begin{figure}
 \centering
-\subfigure[Particle Filter]{\label{fig:comp1pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/1_pfilter_37_14_7}}\\
-\subfigure[SPM]{\label{fig:comp1spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/1_spm_37_14_7}}
-\caption{Section 1, Estimated vs. Actual \ac{BOLD} response. $t$-Score: $10.71$, Mutual Information: $0.33$, Residual: $0.72$.}
+\subfigure[Particle Filter]{\label{fig:comp1pfilter} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/1_pfilter_37_14_7}}
+\subfigure[SPM]{\label{fig:comp1spm} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/1_spm_37_14_7}}
+\caption[Time Series Comparison, Section 1]{Section 1, Estimated vs. Actual \ac{BOLD} response. $t$-Score: $10.71$, Mutual Information: $0.33$, Residual: $0.72$.}
 \label{fig:comp1}
 \end{figure}
 
 %34-12-7
 \begin{figure}
 \centering
-\subfigure[Particle Filter]{\label{fig:comp2pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/2_pfilter_34_12_7}}\\
-\subfigure[SPM]{\label{fig:comp2spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14.5cm]{images/2_spm_34_12_7}}
-\caption{Section 2, Estimated vs. Actual \ac{BOLD} response. $t$-Score: $6.97$, Mutual Information: $0.04$, Residual: $1.02$.}
+\subfigure[Particle Filter]{\label{fig:comp2pfilter} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/2_pfilter_34_12_7}}
+\subfigure[SPM]{\label{fig:comp2spm} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/2_spm_34_12_7}}
+\caption[Time Series Comparison, Section 2]{Section 2, Estimated vs. Actual \ac{BOLD} response. $t$-Score: $6.97$, Mutual Information: $0.04$, Residual: $1.02$.}
 \label{fig:comp2}
 \end{figure}
 
 %23-21-7
 \begin{figure}
 \centering
-\subfigure[Particle Filter]{\label{fig:comp3pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/3_pfilter_23_21_7}}\\
-\subfigure[SPM]{\label{fig:comp3spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/3_spm_23_21_7}}
-\caption{Section 3, Estimated vs. Actual \ac{BOLD} response. $t$-Score: $2.85$, Mutual Information: $-0.03$, Residual: $0.81$.}
+\subfigure[Particle Filter]{\label{fig:comp3pfilter} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/3_pfilter_23_21_7}}
+\subfigure[SPM]{\label{fig:comp3spm} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/3_spm_23_21_7}}
+\caption[Time Series Comparison, Section 3]{Section 3, Estimated vs. Actual \ac{BOLD} response. $t$-Score: $2.85$, Mutual Information: $-0.03$, Residual: $0.81$.}
 \label{fig:comp3}
 \end{figure}
 
 %33-30-4
 \begin{figure}[H]
 \centering
-\subfigure[Particle Filter]{\label{fig:comp4pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/4_pfilter_26_15_7}}\\
-\subfigure[SPM]{\label{fig:comp4spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/4_spm_26_15_7}}
-\caption{Section 4, Estimated vs. Actual \ac{BOLD} response. $t$-Score: $0.50$, Mutual Information: $0.06$, Residual: $0.95$. }
+\subfigure[Particle Filter]{\label{fig:comp4pfilter} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/4_pfilter_26_15_7}}
+\subfigure[SPM]{\label{fig:comp4spm} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/4_spm_26_15_7}}
+\caption[Time Series Comparison, Section 4]{Section 4, Estimated vs. Actual \ac{BOLD} response. $t$-Score: $0.50$, Mutual Information: $0.06$, Residual: $0.95$. }
 \label{fig:comp4}
 \end{figure}
 
 % or in original coordinates 29-9-13
 \begin{figure}
 \centering
-\subfigure[Particle Filter]{\label{fig:comp5pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/5_pfilter_29_9_13}}\\
-\subfigure[SPM]{\label{fig:comp5spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/5_spm_29_9_13}}
-\caption{Section 5, Estimated vs. Actual \ac{BOLD} Response. $t$-Score: $4.17$, Mutual Information: $0.02$, Residual: $1.14$.}
+\subfigure[Particle Filter]{\label{fig:comp5pfilter} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/5_pfilter_29_9_13}}\\
+\subfigure[SPM]{\label{fig:comp5spm} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/5_spm_29_9_13}}
+\caption[Time Series Comparison, Section 5]{Section 5, Estimated vs. Actual \ac{BOLD} Response. $t$-Score: $4.17$, Mutual Information: $0.02$, Residual: $1.14$.}
 %\caption{Section 5, Below threshold in both particle filter checks, but above threshold in SPM. Mutual Information of $0.0212822$, $t$-Value
 %of $4.17399$ and $MSE$ of $1.14171$.}
 \label{fig:comp5}
@@ -202,9 +194,9 @@ section yellow indicates a better fit.
 %23-10-18 or in original coordinates 36-17-19
 \begin{figure}
 \centering
-\subfigure[Particle Filter]{\label{fig:comp6pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/6_pfilter_36_17_19}}\\
-\subfigure[SPM]{\label{fig:comp6spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/6_spm_36_17_19}}
-\caption{Section 6, Estimated vs. Actual \ac{BOLD} Response. $t$-Score: $2.49$, Mutual Information: $.34$, Residual: $0.78$.}
+\subfigure[Particle Filter]{\label{fig:comp6pfilter} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/6_pfilter_36_17_19}}
+\subfigure[SPM]{\label{fig:comp6spm} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/6_spm_36_17_19}}
+\caption[Time Series Comparison, Section 6]{Section 6, Estimated vs. Actual \ac{BOLD} Response. $t$-Score: $2.49$, Mutual Information: $.34$, Residual: $0.78$.}
 %\caption{Section 6, MI of $0.335504$, T Value: $2.49154$, normalized error: $0.783348$ Not visible in SPM}
 \label{fig:comp6}
 \end{figure}
@@ -212,9 +204,9 @@ section yellow indicates a better fit.
 %16-19-0 or in original coordinates 29-26-1
 \begin{figure}
 \centering
-\subfigure[Particle Filter]{\label{fig:comp7pfilter} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/7_pfilter_29_26_1}}\\
-%\subfigure[SPM]{\label{fig:comp7spm} \includegraphics[clip=true,trim=5cm 1cm 4cm 1cm,width=14cm]{images/5_spm_25_34_25}}
-\caption{Section 7, Estimated vs. Actual \ac{BOLD} Response. $t$-Score: $1.32$, Mutual Information: $0.11$, Residual: $1.10$.}
+\subfigure[Particle Filter]{\label{fig:comp7pfilter} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/7_pfilter_29_26_1}}
+%\subfigure[SPM]{\label{fig:comp7spm} \includegraphics[clip=true,trim=5cm 2.5cm 4cm 3cm,width=.93\textwidth]{images/5_spm_25_34_25}}
+\caption[Time Series Comparison, Section 7]{Section 7, Estimated vs. Actual \ac{BOLD} Response. $t$-Score: $1.32$, Mutual Information: $0.11$, Residual: $1.10$.}
 %\caption{Section 7, $.1052$ in MI, $1.31534$ in SPM (which left this flat) and $1.09992$ normalized $\sqrt{MSE}$. Only visible in MI map. }
 \label{fig:comp7}
 \end{figure}
@@ -284,7 +276,7 @@ of the questionably active voxels in the system.
 \centering
 \subfigure{\includegraphics[width=13cm]{images/pmap0}}
 \subfigure{\includegraphics[scale=.5]{images/pscale_00}}
-\caption{$\tau_0$ Estimates}
+\caption{Regional $\tau_0$ Estimates}
 \label{fig:pmap0}
 \end{figure}
 
@@ -292,7 +284,7 @@ of the questionably active voxels in the system.
 \centering
 \subfigure{\includegraphics[width=13cm]{images/pmap1}}
 \subfigure{\includegraphics[scale=.5]{images/pscale_01}}
-\caption{$\alpha$ Estimates}
+\caption{Regional $\alpha$ Estimates}
 \label{fig:pmap1}
 \end{figure}
 
@@ -300,7 +292,7 @@ of the questionably active voxels in the system.
 \centering
 \subfigure{\includegraphics[width=13cm]{images/pmap2}}
 \subfigure{\includegraphics[scale=.5]{images/pscale_02}}
-\caption{$E_0$ Estimates}
+\caption{Regional $E_0$ Estimates}
 \label{fig:pmap2}
 \end{figure}
 
@@ -308,7 +300,7 @@ of the questionably active voxels in the system.
 \centering
 \subfigure{\includegraphics[width=13cm]{images/pmap3}}
 \subfigure{\includegraphics[scale=.5]{images/pscale_03}}
-\caption{$V_0$ Estimates}
+\caption{Regional $V_0$ Estimates}
 \label{fig:pmap3}
 \end{figure}
 
@@ -316,7 +308,7 @@ of the questionably active voxels in the system.
 \centering
 \subfigure{\includegraphics[width=13cm]{images/pmap4}}
 \subfigure{\includegraphics[scale=.5]{images/pscale_04}}
-\caption{$\tau_f$ Estimates}
+\caption{Regional $\tau_f$ Estimates}
 \label{fig:pmap4}
 \end{figure}
 
@@ -324,7 +316,7 @@ of the questionably active voxels in the system.
 \centering
 \subfigure{\includegraphics[width=13cm]{images/pmap5}}
 \subfigure{\includegraphics[scale=.5]{images/pscale_05}}
-\caption{$\tau_s$ Estimates}
+\caption{Regional $\tau_s$ Estimates}
 \label{fig:pmap5}
 \end{figure}
 
@@ -332,7 +324,7 @@ of the questionably active voxels in the system.
 \centering
 \subfigure{\includegraphics[width=13cm]{images/pmap6}}
 \subfigure{\includegraphics[scale=.5]{images/pscale_06}}
-\caption{$\epsilon$ Estimates}
+\caption{Regional $\epsilon$ Estimates}
 \label{fig:pmap6}
 \end{figure}
 

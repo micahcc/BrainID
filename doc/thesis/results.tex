@@ -10,13 +10,13 @@ particle filter's resilience to noise and explores the variance of
 the model.
 
 The slice simulation was performed using
-Physics-Oriented Simulated Scanner for Understanding MRI (POSSUM) which
-models noise realistically. POSSUM demonstrates the
+\ac{POSSUM} which
+models noise realistically. \ac{POSSUM} demonstrates the
 particle filter modeling the \ac{BOLD} signal on a large scale.
-In the POSSUM simulation there were four
+In the \ac{POSSUM} simulation there were four
 discrete parameter sets driving the time series, although each voxel had a
 different tissue composition and a different
-noise realization. Therefore the POSSUM simulation was
+noise realization. Therefore the \ac{POSSUM} simulation was
 a good test of the applicability of particle filters for performing
 whole brain analysis.
 
@@ -64,7 +64,7 @@ necessary to investigate methods of identifying false positives.
 \includegraphics[clip=true,trim=1cm 0cm 0cm 0cm, width=17cm]{images/long_converge}
 \caption[\ac{BOLD} estimate converging for a very long \ac{fMRI} run.]{\ac{BOLD} estimate 
 converging for a 2400 second \ac{fMRI} run. Darker bars indicate
-bins with more particles with BOLD estimate in that range. ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
+bins with more particles with \ac{BOLD} estimate in that range. ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
 \label{fig:long_converge}
 \end{figure}
 
@@ -74,7 +74,7 @@ bins with more particles with BOLD estimate in that range. ($\sigma_x = 0.0005$,
 \caption[First 500 seconds of the \ac{BOLD} estimate converging for a very 
 long \ac{fMRI} run.]{First 500 seconds of \ac{BOLD} estimate 
 converging for a 2400 second \ac{fMRI} run. Darker bars indicate
-bins with more particles with BOLD estimate in that range. ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
+bins with more particles with \ac{BOLD} estimate in that range. ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
 \label{fig:long_converge_500}
 \end{figure}
 
@@ -487,8 +487,8 @@ and line fit for each run is shown in \autoref{fig:fits_noiseonly}.
 \begin{figure}[H]
 \centering
 \includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/fits_noiseonly}
-\caption[Results for non-active, low noise signal]  ($\sigma_x = 0.005$, $\sigma_y = 0.01$)
-{Comparison of the estimated BOLD signal for the low noise signal-free case.
+\caption[Results for non-active, low noise signal]  
+{Comparison of the estimated \ac{BOLD} signal for the low noise signal-free case.
  ($\sigma_x = 0.005$, $\sigma_y = 0.01$). Note the line thickness is caused
 by all the estimates overlapping.}
 \label{fig:fits_noiseonly}
@@ -523,7 +523,9 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 \begin{figure}[H]
 \centering
 \includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/justnoise_fit_0}
-\caption{Single Fit Results for non-active, low noise signal.}
+\caption[Single Fit Results for non-active, low noise signal.]
+{Single Fit Results for non-active, low noise signal
+ ($\sigma_x = 0.005$, $\sigma_y = 0.01$).}
 \label{fig:justnoise_fit_0}
 \end{figure} %uses allnoise/ALLNOISE-0-w0
 
@@ -601,7 +603,9 @@ Note the line thickness is caused by all the estimates overlapping.}
 \begin{figure}[H]
 \centering
 \includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/justbignoise_fit_0}
-\caption{Single Fit Results for non-active, high noise signal.}
+\caption[Single Fit Results for non-active, high noise signal.]
+{Single Fit Results for non-active, high noise signal
+ ($\sigma_x = 0.005$, $\sigma_y = 0.01$).}
 \label{fig:justbignoise_fit_0}
 \end{figure} %uses allnoise/ALLNOISE-0-w0
 
@@ -631,7 +635,7 @@ Therefore, a normalized version of the \ac{RMSR} was used. To normalize the
 residual, both the estimated and preprocessed \ac{BOLD} signals were divided by an estimator
 of scale and then the new \ac{RMSR} was calculated.
 Considering the tendency of \ac{fMRI} to have large unexplainable
-peaks and troughs, the Median-Absolute-Deviation (MAD) was used (\autoref{eq:mad}).
+peaks and troughs, the \ac{MAD} was used (\autoref{eq:mad}).
 This is an estimator of the standard
 deviation, and thus a good estimator of the scale of the input signal.
 The normalized \ac{RMSR} values are
@@ -735,28 +739,32 @@ Although not perfect, both methods do provide a decent metric.
 \begin{figure}
 \centering
 \subfigure[Region labels for simulated slice.]{
-\includegraphics[height=8cm]{images/simregions.png} \label{fig:simslice_mask} }
+\includegraphics[height=9cm]{images/simregions.png} \label{fig:simslice_mask} }
+\subfigure[\ac{SNR} Map of \ac{POSSUM} simulated data. Mean \ac{SNR} per region, 
+Region 1: $0.8$, Region 2: $0.97$, and
+Region 3: $0.39$.]{\includegraphics[height=9cm]{images/snr_hm.png}\label{fig:SimSNRhm}}
+
 \subfigure[Normalized \ac{RMSR} Map. Scale is Normalized \ac{RMSE}. Lower (yellow) is better.]
-{\label{fig:simslice_hm_res} \includegraphics[height=8cm]{images/sim_hm}}
-\subfigure[Mutual Information Map. Scale is bits. Higher (yellow) is better.]
-{\label{fig:sim_hm_mi} \includegraphics[height=8cm]{images/sim_hm_mi}}
-\subfigure[SNR Map of POSSUM simulated data. Mean SNR per region, Region 1: $0.8$, Region 2: $0.97$, and
-Region 3: $0.39$.]{\includegraphics[height=8cm]{images/snr_hm.png}\label{fig:SimSNRhm}}
-\caption{Comparison of activation with greymatter, parameter regions.}
+{\label{fig:simslice_hm_res} \includegraphics[height=8.5cm]{images/sim_hm}}
+\subfigure[Mutual Information Map. Scale is bits. Higher (yellow) indicates better fit.]
+{\label{fig:sim_hm_mi} \includegraphics[height=8.5cm]{images/sim_hm_mi}}
+
+\caption{Comparison of activation regions, a) grey matter and regions, b) \ac{SNR} of active
+regions, c) \acl{RMSR} Map, d) Mutual Information Map.}
 \label{fig:simslice_hm}
 \end{figure}
 
 To test the usefulness of the particle filter on a larger scale, a modified version
-of the FSL tool
-POSSUM was used to generate an entire \ac{fMRI} image from a parameter map. The parameter map was generated
+of the \ac{FSL} tool
+\ac{POSSUM} was used to generate an entire \ac{fMRI} image from a parameter map. The parameter map was generated
 by taking an existing activation map and assigning discrete parameter sets to each region.
 The result was a four dimensional (length x width
 x height x parameter) image with spatially varying parameters. Possum was then modified
 to take a parameter map and generate activation levels depending on the parameters at that
-point. The patch for POSSUM will be made available. Note that the noise
-level was set to an SNR of 20, but due to changes
+point. The patch for \ac{POSSUM} will be made available. Note that the noise
+level was set to an \ac{SNR} of 20, but due to changes
 in the program the true signal-to-noise ratio was much lower, as seen in the
-in \autoref{fig:SimSNRhm}. The mean SNR for each region was calculated only for the
+in \autoref{fig:SimSNRhm}. The mean \ac{SNR} for each region was calculated only for the
 voxels with a Signal-To-Noise ratio above $0.1$.
 
 For each time series in the simulated \ac{fMRI} image, the final parameters were saved
@@ -806,23 +814,26 @@ like when the threshold is raised from $0.1$ to $0.15$.
 
 \begin{figure} %bottom left
 \centering
-\includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=15cm]{images/slicesim_hist1}
-\caption{Histogram of estimated parameters in section 1 in voxels 
+\includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=\textwidth]{images/slicesim_hist1}
+\caption[Histogram of estimated parameters in section 1]{Histogram of estimated parameters in 
+section 1 in voxels 
 with mutual information greater than $0.15$} \label{fig:slicesim_hist1}
 \end{figure}
 
 \begin{figure} %top left
 \centering
-\includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=15cm]{images/slicesim_hist2}
-\caption{Histogram of estimated parameters in section 2 in voxels with mutual information greater
+\includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=\textwidth]{images/slicesim_hist2}
+\caption[Histogram of estimated parameters in section 2]
+{Histogram of estimated parameters in section 2 in voxels with mutual information greater
 than $0.15$}
 \label{fig:slicesim_hist2}
 \end{figure}
 
 \begin{figure} %top right
 \centering
-\includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=15cm]{images/slicesim_hist3}
-\caption{Histogram of estimated parameters in section 3 in voxels with mutual information greater
+\includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=\textwidth]{images/slicesim_hist3}
+\caption[Histogram of estimated parameters in section 3]
+{Histogram of estimated parameters in section 3 in voxels with mutual information greater
 than $0.15$}
 \label{fig:slicesim_hist3}
 \end{figure}
@@ -846,7 +857,7 @@ map are different from those in the \ac{RMSR} map. This furthers the argument
 for combining the two metrics to increase power. Although
 at first glance it would appear that there are false negatives in
 \autoref{fig:sim_hm_mi}; this is
-not actually the case. POSSUM simulates different tissues, and white matter
+not actually the case. \ac{POSSUM} simulates different tissues, and white matter
 does not typically  have a \ac{BOLD} response. This explains some of the 
 holes in regions
 2 and 3. These results certainly indicate that the particle filter is effective
