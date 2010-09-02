@@ -10,7 +10,8 @@ similar to Kalman Filters; however, unlike Kalman Filters,
 distributions are stored as an empircal distribution rather than 
 as the first two moments of a Gaussian. Thus, particle filters are 
 preferred when the model is nonlinear, and non-gaussian. This section
-is largely based on Arulampalam et al. and Thrun et al. \cite{Arulampalam2002a, Thrun2005}.
+is largely based on Arulampalam et al. and Thrun et al. \cite{Arulampalam2002a, 
+thrun2008probabilistic}.
 
 \section{Model}
 \label{sec:Particle Filter Model}
@@ -300,7 +301,7 @@ tails. In this case particle locations would match the true posterior and all we
 be equal.  The case where a large number of the weights have become extremely small
 is called particle degeneracy. In  Lui et al. 
 an ideal calculation of the effective number of particles is found based on the 
-particles' true weight \cite{Liu1998b}. However, given that only an approximation 
+particles' true weight \cite{Liu1998}. However, given that only an approximation 
 for the true weight 
 exists, they also provide a simple heuristic calculation of $N_{eff}$.
 \begin{equation}

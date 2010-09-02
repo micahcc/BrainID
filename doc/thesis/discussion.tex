@@ -1,61 +1,62 @@
 \chapter{Discussion and Conclusions}
 \label{sec:Discussion}
 \section{Overview of Results}
+\subsection{Parameter Estimation}
 % Overview of results
 %% Parameters under-constrained
 %% Output estimates good
 There are two possible causes for the large variance in
 parameter estimates. First, it could be that the particle filter is
 incapable of learning the model. However, given the high quality
-of BOLD estimates, this is almost certainly not the case. The other
+of \ac{BOLD} estimates, this is almost certainly not the case. The other
 possible explanation is that the given stimulus is not sufficiently
 varied to bring out all the properties of the system. While it is
 possible that this is the case, it is unlikely that any
 stimulus sequence could differentiate all the parameters.
-Its also extremely interesting that the histograms of parameters' mean
+It is also extremely interesting that the histograms of parameters' mean
 approach the width of the prior, even when the particle filter converges
-properly to far thinner distributions. Its possible the prior
+properly to far thinner distributions. It is possible the prior
 distribution is far wider than
 it needs to be. Finally, the fact that \autoref{sec:VeryLongSim}, which
 used randomly spaced impulses,
 still had a high correlation further indicates that the parameters
 are ill-defined.
 
-Thus there is little doubt that the parameters of the BOLD model are under
-constrained. While unsurprising given the sensitivity analysis by Deneux et al.,
-it is a notable conclusion \cite{Deneux2006}. Other methods
+Thus there is little doubt that the parameters of the \ac{BOLD} model are under-constrained. 
+While unsurprising given the sensitivity analysis by Deneux et al. \cite{Deneux2006},
+it is a notable conclusion. Other methods
 that calculate a point estimate of the parameters, such as least squares
 or Kalman filters (which uses the first two moments) are limited in their
 capacity to estimate such parameters. While estimates of
-the  BOLD signal may still be correct, the
+the  \ac{BOLD} signal may still be correct, the
 underlying parameters and state variables cannot be described without using
 a joint probability distribution function. In this sense, particle
-filters represent an important step forward in BOLD parameter
+filters represent an important step forward in \ac{BOLD} parameter
 estimation. Representing uncertainty with a mean
 and variance is insufficient; so using a particle filter
 or Bayesian estimate of the posterior is not simply an enhancement,
 but a necessary precaution.
 
 Because of the ill-defined nature of the parameters, the results
-of Friston et al. may have been wider than true parameter distribution
-\cite{Friston2002}. Future works that attempt to calculate parameters
-of the BOLD model should be run multiple times to ensure consistency,
+of Friston et al. \cite{Friston2002b} may have been wider than true parameter distribution
+. Future works that attempt to calculate parameters
+of the \ac{BOLD} model should be run multiple times to ensure consistency,
 which most likely cannot be attained. This result is particularly
 troublesome given the number of papers that use those parameters for
 a prior distribution.
 
 As the results in \autoref{sec:RealData} show, the heat maps, especially
-those of mutual information, closely resembled the results of SPM. While the activation
+those of mutual information, closely resembled the results of \ac{SPM}. While the activation
 tests were more sensitive, there were some additional false positives,
 though the problem is difficult to quantify. Regions with M.I. above
-$0.15$ consistently fit the FMRI data well, and simulations showed that
+$0.15$ consistently fit the \ac{fMRI} data well, and simulations showed that
 the particle filter performed extremely well in the face of significant
-noise. In sum, the estimated BOLD output remained consistent despite
+noise. In sum, the estimated \ac{BOLD} output remained consistent despite
 large swings in parameters.
 
 % Pros/Cons
 %% Cons
-%%% Computation longer than SPM
+%%% Computation longer than \ac{SPM}
 %%% Harder to interpret
 %% Pro
 %%% Non-parametric
@@ -65,7 +66,7 @@ large swings in parameters.
 \subsection{Particle Filter Review}
 The Particle Filter algorithm was originally designed for on-line parameter
 estimation. For this reason, there is no guarantee of optimality or even
-convergence for finite measurements. However, for the BOLD nonlinear ODE
+convergence for finite measurements. However, for the \ac{BOLD} nonlinear \ac{ODE}
 this is less of a concern than it might first appear to be. For this
 particular problem there can be no guarantee of a global minimum, and although
 other techniques guarantee a local minimum, tests show that the particle
@@ -81,7 +82,7 @@ measurements it is better to let the algorithm take longer to converge, because 
 convergence will be less prone to particle deprivation. The particle filter takes longer
 to run than Volterra approximation method from \autoref{sec:Background Linear Approximation};
 however, it is free from the uncertainty of whether a quadratic approximation is
-sufficient for the BOLD model.
+sufficient for the \ac{BOLD} model.
 
 The particle filter also has advantages over other estimation procedures
 discussed in \autoref{sec:Prior Works}. The most important advantage is that it provides
@@ -100,7 +101,7 @@ well and does not require burdensome amounts of memory (approximately 11 megabyt
 %how the particle filter works.  Additionally very few assumptions
 %are needed for the particle filter. Few assumptions  reduces the risk of those assumptions
 %being violated. Fewer and more realistic assumptions also make the particle
-%filter more robust to unforeseen difficulties in FMRI data.
+%filter more robust to unforeseen difficulties in \ac{fMRI} data.
 
 %\section{Particle Filter Options}
 %There are a large number of options available in the particle filter, that
@@ -115,7 +116,7 @@ well and does not require burdensome amounts of memory (approximately 11 megabyt
 %(dividing by 1020 rather than 1000 for instance) as long as the spline didn't have heavy swings.
 
 %Finally, rather than adding a constant to the detrended data before
-%applying the particle filter, a DC gain parameter could be added to the model. In
+%applying the particle filter, a \ac{DC} gain parameter could be added to the model. In
 %tests, this could work well, however, it often did not. The problem with this
 %could simply be the addition of another degree of freedom without any increase in
 %the number of particles. Increasing the number of particles further though
@@ -139,7 +140,7 @@ well and does not require burdensome amounts of memory (approximately 11 megabyt
 %(ex \autoref{fig:badfit_param1}). In
 %essence the particle filter tended to converge to a mean where the time constants
 %dominated the results by smoothing out all the peaks and troughs. The result is that
-%no other parameters alter the estimated BOLD signal.
+%no other parameters alter the estimated \ac{BOLD} signal.
 %\begin{figure}
 %\includegraphics[clip=true,trim=6cm 2cm 6cm 3.5cm,width=7cm]{images/badfit_param1}
 %\caption{Large variance in time constants over-smoothing.}
@@ -158,7 +159,81 @@ well and does not require burdensome amounts of memory (approximately 11 megabyt
 %Thus it does not necessarily improve the results. In tests, it did reduce the
 %final covariance but did not lead to better estimates.
 
-\subsection{Future Work}
+\section{Conclusions}
+\label{sec:Conclusion}
+This work has demonstrated the use of the particle filter to
+learn parameters of the \ac{BOLD} model. Since the inception of the
+\ac{BOLD} equations, many attempts have been made use \ac{fMRI} data to
+to learn the model parameters. These attempts have typically either been extremely
+slow or relied on extensive assumptions. While the particle filter method
+is not quick, 40 seconds to analyze each voxel is well within the capabilities
+of the typical research lab. Previous attempts have also treated
+the problem as if there were a single solution.
+
+One significant finding of this work, that would not be clear without
+calculating a full posterior distribution, is the interplay
+between the parameters. The results of simulations clearly demonstrate
+that identifying a single set of parameters is not possible with this
+model. Although sensitivity tests in Deneux et al. \cite{Deneux2006} certainly hinted
+at this, the current work clearly demonstrates this fact. Therefore,
+any single estimate of parameters is insufficient for analysis. As such,
+identification of the \ac{BOLD} model that does not treat the parameters as distributions
+will not be able to overcome the inherent ill-posed nature of the
+parameters. Besides the Unscented Kalman Filter, this is the only approach
+that accomplishes this task without repeatedly calculating the parameters
+to build a distribution. The Unscented Kalman Filter though, is restricted
+to the Gaussian distribution which limits its ability to estimate the posterior.
+
+The primary reason this method has not been used before is the high
+dimensionality of the system. In Murray, 2008 the idea of learning
+the parameters is floated as the best method, yet
+learning 7 parameters with a Monte Carlo method was deemed intractable
+\cite{Murray2008}. The
+concern was that seven parameters creates a prohibitively large
+search space, which would require too many particles to learn properly. To overcome
+this difficulty, instead of starting the algorithm with 1000 particles,
+the initial number of particles was set to 16,000. This meant that
+when the search space was the largest, the number of particles was
+sufficiently dense to represent the prior distribution. The result is
+a particle filter algorithm that spends computing resources only where
+it is really needed.
+
+The particle filter is a Bayesian non-parametric algorithm that, given
+enough measurements will approach the true probability distribution
+of the parameters. The conclusion that the parameters are not
+uniquely identifiable is disappointing in light of the plethora
+of research papers that have attempted to learn them. However, the fact
+that the parameters are not identifiable further demonstrates
+the need to estimate a probability distribution rather than a single
+parameter estimate. At the same time, the output of the particle filter
+is still able to give good estimates of the \ac{BOLD} output, and is not
+dependent on heavy Gaussian smoothing. Therefore, all the current
+experimental paradigms to determine regional activity are still viable.
+To borrow a computer term, the particle filter algorithm is backward
+compatible with the current methods. Indeed, the particle filter excelled
+at determining activation in very low \ac{SNR} simulations
+(\autoref{sec:Multi-voxel Simulation}). Not only that, but the particle
+filter algorithm identified areas of activation that were completely
+missed by \ac{SPM} (\autoref{fig:comp6}).
+
+The physiological plausibility is also of great value to future
+research. Unlike traditional methods, use of the \ac{BOLD} model allows
+the incorporation of outside, physiological knowledge in regression.
+If, for instance, it becomes possible to measure $v$ in vivo that data
+could instantly be added to the model to improve regression. Data can
+also be retrieved from the model. \ac{BOLD} parameter distributions could
+for the first time be used as diagnosis tools. In the past the fact
+that the BOLD model is ill-posed would have prevented such research. 
+However, now that a full
+distribution is available, comparing parameter estimates is actually
+feasible.
+
+Concluding, the particle filter provides comparable performance with
+conventional tests, but also provides a platform for a wide range of
+future uses beyond what was possible with the methods that have been
+used before.
+
+\section{Future Work}
 \label{sec:FutureWork}
 % Enhancements/Dehancements
 %% prior
@@ -167,7 +242,7 @@ well and does not require burdensome amounts of memory (approximately 11 megabyt
 %% Detrending
 %%% \% difference using spline?
 %%% "smart knots"
-%%% DC gain as a parameter
+%%% \ac{DC} gain as a parameter
 %%% linearizing
 %% Experimental Changes
 %%% Variations in stimuli
@@ -178,14 +253,14 @@ well and does not require burdensome amounts of memory (approximately 11 megabyt
 There are a few areas where future research may improve upon the current
 work. The first is modifying the prior
 distribution. The prior distribution used in this work is listed in \autoref{tab:Prior},
-and is based on the findings of Friston et al. \cite{Friston2000}. Unfortunately, that
+and is based on the findings of Friston et al. \cite{Friston2002b}. Unfortunately, that
 result depended on a quadratic approximation (Volterra Series) which has
 not been extensively tested (at least not in a published work).
 This is in addition to the fact that the parameters are ill-defined, and
-thus the parameters found in Friston et al. are most likely far too wide.
+thus the parameters found in Friston et al. \cite{Friston2002b} are most likely far too wide.
 The prior is also
-based completely on the BOLD output, which is why it is good at generating
-estimates of the BOLD signal, but weak at estimating parameters.
+based completely on the \ac{BOLD} output, which is why it is good at generating
+estimates of the \ac{BOLD} signal, but weak at estimating parameters.
 The best solution would be to have
 in-vivo estimates of the actual parameters, although this
 is unlikely to happen. Instead, better estimates could be found
@@ -195,24 +270,26 @@ would make it possible to decrease variance of certain
 parameters, reducing the mobility of the parameters.
 
 Another major area for improvement is removing drift.
-A large number of detrending methods were tested, but every method was in some way limited.
+Several variations of spline detrending were tested, but only
+the simple case spline described in \autoref{sec:Detrend}
+gave consistent results.
 One potentially viable method that could be utilized, given the right
 experimental design, is detrending based on intervals of low activity. This
 has the advantage that it wouldn't require an arbitrary
 constant to be added to the pre-processed signal for the
-BOLD model to fit properly. It would also minimize the actual
+\ac{BOLD} model to fit properly. It would also minimizes the actual
 removed. The disadvantage of this approach is
 that it could hide long fall times by normalizing them
 out. It also requires periodic breaks in the stimulus,
-which could reduce value of those samples for fitting purposes.
+which could limit persistent excitation.
 
 Linearizing is another possible method of dealing with drift.
-This would use the delta between measurements for fitting, rather than the
+This would use the slope between measurements for fitting, rather than the
 direct value. This has the advantage of not requiring detrending and thus
 gives nearly raw data to the particle filter for processing.
 The effectiveness of this method depends directly on the type of stimulus.
 In a test with rapid impulse stimuli, this could be extremely effective because
-the DC signal has minimal data; conversely prolonged flat levels make this less effective.
+the \ac{DC} signal carries less information; conversely prolonged flat levels make this less effective.
 In tests I found that large drift/low white noise
 type signals performed much better with a linearization approach.
 For the stimulus sequence used in \autoref{sec:RealData}, the results tended to be worse
@@ -223,46 +300,46 @@ function is difficult, and the optimal solution varies based on the input.
 Automatically estimating measurement error could improve
 the quality of the particle filter results. Although I made some attempts to do
 this, finding a generic, consistent solution is complex, and often depends on the
-experimental design. Part of the problem is that SNR varies greatly across
+experimental design. Part of the problem is that \ac{SNR} varies greatly across
 the brain, and there is no way to actively measure noise without also knowing
 the underlying signal. One possible solution is having the particle filter automatically
 set the weight based on the total particle weight, or on the prevalence of resampling.
 
-\section{Experimental Design Improvements}
+\subsection{Experimental Design Improvements}
 \label{sec:Sideways Measurements}
 One definite way of improving the results of the particle filter is through
-additional measurements. While increasing the sample rate of FMRI scanners may
+additional measurements. While increasing the sample rate of \ac{fMRI} scanners may
 not be possible, simultaneous measurements of volume and flow is
 possible, albeit at 9T in a cat \cite{Hu2009}. Just one of those measurements
-would be extremely powerful when incorporated into the BOLD
+would be extremely powerful when incorporated into the \ac{BOLD}
 model. By adding another measurement, the
 variance in the parameter estimates would significantly drop. The fact
 that such a measurement would be closer to the true stimulus would make it
 all the more useful.
 A more conventional method of adding measurements is to
-simply perform longer FMRI tests. Although this wouldn't be
-ground breaking, it would certainly increase the ability of the
+simply perform longer \ac{fMRI} tests. Although this wouldn't be
+groundbreaking, it would certainly increase the ability of the
 particle filter to develop the posterior distribution.
-It may also be possible to concatenate multiple FMRI tests together
-by using the parameter estimates from previous tests as the
-prior for later tests. 
+It may also be possible to link \ac{fMRI} tests together
+by using the parameter estimates from previously acquired
+data as the prior for later experiments. 
 
 Given the non-linearities in the system, differences in stimuli
 could make a large difference in the observability of parameters. The mentality
-for using a physiologically based nonlinear model for BOLD signal is to model
-those nonlinearities. Its logical then that certain nonlinear parameters may not
+for using a physiologically based nonlinear model for \ac{BOLD} signal is to model
+those nonlinearities. It is logical then that certain nonlinear parameters may not
 be identifiable when the input is primarily an impulse response. It
 has been reported that short responses are disproportionately large
-in FMRI data \cite{Miller2001, Deneux2006}. Therefore,
+in \ac{fMRI} data \cite{Miller2001, Deneux2006}. Therefore,
 a wide range of activation hold time may shed further light on
-the parameters' distribution as well as the validity of the BOLD model.
+the parameters' distribution as well as the validity of the \ac{BOLD} model.
 
 % Future works
 %% Using s as the input to other regions.
 %% Comparison of posterior of parameters
-\section{Future Applications}
+\subsection{Future Applications}
 There are a number of advantages to the particle filter approach presented
-here. In the past, FMRI data has been analyzed strictly for determining
+here. In the past, \ac{fMRI} data has been analyzed strictly for determining
 correlation between a stimulus and response. With this new method
 the correlation is simply a means to determining the joint posterior distribution
 of the parameters. While only regions that correlate with the input will
@@ -270,18 +347,18 @@ be calculable, this method exploits that correlation to constrain the
 prior distribution of the parameters. The resulting distribution, while difficult
 to visualize because of the high-dimensionality, could nevertheless be
 correlated with neural pathologies. In spite of the fact that the parameters
-are under-determined, the final distribution is still a reduction in the
+are under-determined, the final distribution still reduces the
 uncertainty of the parameters. The availability of a full posterior distribution
 opens up many avenues for further inquiry, for instance
 to compare normal vs. symptomatic
 populations. This would be especially useful in patients whose symptoms
-are caused by functional difference in the brain, rather than structural differences.
+are caused by functional differences in the brain, rather than structural differences.
 This would effectively be
 a way to differentiate the way the brains operate.
 
 Because of limitations present in every imaging modality,
-its becoming increasingly clear that combining data from multiple sources
-will be necessary to push Neurology forward. In order to do so however, the
+it is becoming increasingly clear that combining data from multiple sources
+will be necessary to push neurology forward. In order to do so however, the
 output of each source needs to fully represent what information that source
 can provide. Combining the sources using Bayesian statistics is promising
 yet often difficult because full probability distributions are hard to come by.
@@ -289,11 +366,12 @@ However, in this case, the particle filter provides a full posterior which
 is extremely versatile. Therefore, future works will easily be able to
 plug in data from multiple sources if they all output Bayesian posteriors.
 For instance, if two different modalities have calculated the probability
-distribution of neural efficiency, those two beliefs may be combined into
+distribution of neural efficiency, those two beliefs (distributions) may be 
+combined into
 one conditional belief for a new conditional probability of neural efficiency.
 
 An advantageous aspect of using a physiological model such as this, is that
-it permits estimates of otherwise hidden parameters. In particular the BOLD
+it permits estimates of otherwise hidden parameters. In particular the \ac{BOLD}
 model gives an estimate of the value of the flow inducing signal, $s$. Having
 this value available opens up new avenues for determining inter-regional
 dependencies. The values of $s$ could serve as a proxy for activation in
@@ -301,8 +379,8 @@ that region and thus could be used to drive other inputs regions' $u(t)$.
 Thus, the particle filter could be re-run
 with the time-series of a particular voxel's $s$ value as an additional stimulus.
 In this way, it could be possible to determine chains of events. This is just
-one possible benefit being able to determine the time course of the hidden
-state variables present in the BOLD equations; the potential benefits of being
+one possible benefit of being able to determine the time course of the hidden
+state variables present in the \ac{BOLD} equations; the potential benefits of being
 able to determine this information is limitless. Of course the quality of these
 estimates will continue to improve with the model priors.
 

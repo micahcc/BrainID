@@ -64,15 +64,17 @@ necessary to investigate methods of identifying false positives.
 \includegraphics[clip=true,trim=1cm 0cm 0cm 0cm, width=17cm]{images/long_converge}
 \caption[\ac{BOLD} estimate converging for a very long \ac{fMRI} run.]{\ac{BOLD} estimate 
 converging for a 2400 second \ac{fMRI} run. Darker bars indicate
-bins with more regions. }
+bins with more particles with BOLD estimate in that range. ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
 \label{fig:long_converge}
 \end{figure}
 
 \begin{figure}
 \centering
 \includegraphics[clip=true,trim=1cm 0cm 0cm 0cm, width=17cm]{images/long_converge_500}
-\caption{\ac{BOLD} estimate converging for a very long \ac{fMRI} run, first 500 seconds. Darker bars
-indicate bins with more particles.}
+\caption[First 500 seconds of the \ac{BOLD} estimate converging for a very 
+long \ac{fMRI} run.]{First 500 seconds of \ac{BOLD} estimate 
+converging for a 2400 second \ac{fMRI} run. Darker bars indicate
+bins with more particles with BOLD estimate in that range. ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
 \label{fig:long_converge_500}
 \end{figure}
 
@@ -153,22 +155,28 @@ of the \ac{BOLD} were actually very close to the true (noise-free) \ac{BOLD} sig
 \begin{figure}
 \centering
 \includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=15cm]{images/realization_lownoise}
-\caption{Test Signals with low noise compared to the clean signal.}
+\caption[Simulated Signal with Low Noise/Drift]
+{Simulated signals with different noise realizations compared to true
+signal. ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
 \label{fig:LowNoiseRealization}
 \end{figure}
 
 \begin{figure}
 \centering
 \includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=15cm]{images/preprocessed_lownoise}
-\caption{A comparison of the preprocessed signals for the low noise case. The
-noisy input to the actual particle filter algorithm.}
+\caption[Preprocessed Signal with Low Noise/Drift]
+{Results of preprocessing compared to the true signal. 
+ Knots of spline placed every 20 measurements.
+ ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
 \label{fig:PreprocessedLowNoise}
 \end{figure}
 
 \begin{figure}
 \centering
 \includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=15cm]{images/comparison_lownoise}
-\caption{A comparison of the fitted signals for the low noise case.}
+\caption[Results with Low Noise/Drift]
+{Results of the particles filter with preprocessed signals from \autoref{fig:PreprocessedLowNoise}
+as input.}
 \label{fig:FitComparisonLowNoise}
 \end{figure}
 
@@ -176,7 +184,7 @@ noisy input to the actual particle filter algorithm.}
 \centering
 \begin{tabular}{|c | c | c | c | c | c | c | c | c | c |}
 \hline
-$\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & $ \sum \tau $ & \ac{RMSR} & \ac{RMSE} \\
+$\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & $ \sum \tau $ & \acs{RMSR} & \acs{RMSE} \\
 \hline
 \rowcolor[gray]{.8}
 1.45 & 0.3 & 0.47 & 0.044 & 1.94 & 1.99 & 1.8  & 5.38 &  & \\
@@ -197,23 +205,28 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 1.2187 & 0.3359 & 0.3456 & 0.0800 & 1.599 & 2.2488 & 1.3876 & 5.0665 & 0.003066     & 0.00217\\
 \hline
 \end{tabular}
-\caption{Estimated Parameters on 11 different runs with low noise. First row is the true value, and last is the average.}
+\caption{Estimated Parameters on 11 different runs with low noise. First row is the true value, 
+last is the average. $\sum \tau$ is the sum of the estimated time constants.}
 \label{tab:LowNoiseResults}
 \end{table}
 
 \begin{figure}
-\subfigure[Converging histogram for $\tau_0$, $\alpha$, $E_0$, and $V_0$ of the first run, low noise simulation.]
-{\includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=16cm]{images/converge_lownoise1}}\\
-
-\subfigure[Converging histogram for $\tau_s$, $\tau_f$, $\epsilon$, and $v$ of the first run, low noise simulation.]
-{\includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=16cm]{images/converge_lownoise2}}\\
+\subfigure
+{\includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=\textwidth]{images/converge_lownoise1}}
+\subfigure
+{\includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=\textwidth]{images/converge_lownoise2}}
 \end{figure}
 
 \begin{figure}
-\subfigure[Converging histogram for $q$, $s$, $f$, and $BOLD$ of the first run, low noise simulation.]
-{\label{fig:LowNoiseHistc} \includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=16cm]{images/converge_lownoise3}}
-\caption{Convergence of the first run from \autoref{tab:LowNoiseResults}. The bars represent
-a histogram, where darker bars indicate more particles in that bin.}
+\subfigure
+{\label{fig:LowNoiseHistc} \includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=\textwidth]{images/converge_lownoise3}}
+\caption[Convergence of the parameters from the first run of \autoref{tab:LowNoiseResults}.]
+{Convergence of the parameters from the first run of \autoref{tab:LowNoiseResults}. 
+Order of estimates: $\tau_0, \alpha, E_0, V_0, \tau_s, \tau_f, \epsilon, v,
+q, s, f, BOLD$.  The bars represent
+a histogram, where darker bars indicate more particles with parameters in that bin. The red 
+line is the parameter used to generate the true signal, blue line is the final mean of the
+particles.}
 \label{fig:LowNoiseHist}
 \end{figure}
 
@@ -306,13 +319,17 @@ consistently performed well
 
 \begin{figure}
 \includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=15cm]{images/preprocessed_highnoise}
-\caption{A comparison of the preprocessed signals for the high noise case.}
+\caption[Preprocessed Signal with High Noise/Drift]
+{Results of preprocessing compared to the true signal.  
+ Knots of spline placed every 20 measurements. ($\sigma_x = 0.005$, $\sigma_y = 0.01$)}
 \label{fig:PreprocessedHighNoise}
 \end{figure}
 
 \begin{figure}
 \includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=15cm]{images/comparison_highnoise}
-\caption{A comparison of the fitted signals for the high noise case.}
+\caption[Results with High Noise/Drift]
+{Results of the particles filter with preprocessed signals from \autoref{fig:PreprocessedHighNoise}
+as input.}
 \label{fig:FitComparisonHighNoise}
 \end{figure}
 
@@ -342,7 +359,7 @@ were lost in the noise.
 \centering
 \begin{tabular}{|c | c | c | c | c | c | c | c | c | c |}
 \hline
-$\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & $ \sum \tau $ & \ac{RMSR} & \ac{RMSE} \\
+$\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & $ \sum \tau $ & \acs{RMSR} & \acs{RMSE} \\
 \hline
 \rowcolor[gray]{.8}
 1.45 & 0.3 & 0.47 & 0.044 & 1.94 & 1.99 & 1.8  & 5.38 &  & \\
@@ -365,7 +382,8 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 1.0954 & 0.2708 & 0.3615 & 0.1126 & 1.0510 & 2.7196 & 1.8428 & 4.8659 &0.01362 & 0.00721\\
 \hline
 \end{tabular}
-\caption{Estimated Parameters on 11 different runs with high noise. First row contains the true parameters,
+\caption[Estimated Parameters on 11 different runs with high noise.]
+{Estimated Parameters on 11 different runs with high noise. First row contains the true parameters,
 last row contains the mean.
 The red row is Run 1 and the blue row is Run 2 from  \autoref{fig:NoiseComparisonJustTwo}
 and \autoref{fig:FitComparisonHighNoiseJust2}, respectively.}
@@ -385,36 +403,42 @@ the \ac{RMSE} for all eleven runs, and highlights the two runs analyzed
 in \autoref{fig:ConvergenceRuns1} and \autoref{fig:ConvergenceRuns2}.
 
 \begin{figure}[H]
-\subfigure[$\tau_0$, $\alpha$, $E_0$, $V_0$, Run 1]
-{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run5_1}}\\
+\subfigure
+{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=\textwidth]{images/highnoise_run5_1}}
+\subfigure
+{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=\textwidth]{images/highnoise_run5_2}}
 \end{figure}
 
 \begin{figure}[H]
-\subfigure[$\tau_s$, $\tau_f$, $\epsilon$, $v$, Run 1]
-{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run5_2}}\\
-\end{figure}
-
-\begin{figure}[H]
-\subfigure[$q$, $s$, $f$, $BOLD$, Run 1 ]
-{\label{fig:ConvergenceRuns1c} \includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run5_3}}
-\caption{Converging histogram for parameters during run 1, as in \autoref{fig:NoiseComparisonJustTwo}.}
+\subfigure
+{\label{fig:ConvergenceRuns1c} \includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=\textwidth]{images/highnoise_run5_3}}
+\caption[Convergence of the parameters during run 1 of \autoref{fig:NoiseComparisonJustTwo}]
+{Convergence of the parameters during run 1 of \autoref{fig:NoiseComparisonJustTwo}.
+Order of estimates: $\tau_0, \alpha, E_0, V_0, \tau_s, \tau_f, \epsilon, v,
+q, s, f, BOLD$.  The bars represent
+a histogram, where darker bars indicate more particles with parameters in that bin. The red 
+line is the parameter used to generate the true signal, blue line is the final mean of the
+particles.}
 \label{fig:ConvergenceRuns1}
 \end{figure}
 
 \begin{figure}[H]
-\subfigure[$\tau_0$, $\alpha$, $E_0$, $V_0$, Run 2]
-{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run6_1}}\\
+\subfigure
+{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=\textwidth]{images/highnoise_run6_1}}
+\subfigure
+{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=\textwidth]{images/highnoise_run6_2}}
 \end{figure}
 
 \begin{figure}[H]
-\subfigure[$\tau_s$, $\tau_f$, $\epsilon$, $v$, Run 2]
-{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run6_2}}\\
-\end{figure}
-
-\begin{figure}[H]
-\subfigure[$q$, $s$, $f$, $BOLD$, Run 2 ]
-{\label{fig:ConvergenceRuns2c} \includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=14cm]{images/highnoise_run6_3}}
-\caption{Converging histogram for parameters during run 2, as in \autoref{fig:NoiseComparisonJustTwo}.}
+\subfigure
+{\label{fig:ConvergenceRuns2c} \includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, width=\textwidth]{images/highnoise_run6_3}}
+\caption[Convergence of the parameters during run 2 of \autoref{fig:NoiseComparisonJustTwo}]
+{Convergence of the parameters during run 2 of \autoref{fig:NoiseComparisonJustTwo}.
+Order of estimates: $\tau_0, \alpha, E_0, V_0, \tau_s, \tau_f, \epsilon, v,
+q, s, f, BOLD$.  The bars represent
+a histogram, where darker bars indicate more particles with parameters in that bin. The red 
+line is the parameter used to generate the true signal, blue line is the final mean of the
+particles.}
 \label{fig:ConvergenceRuns2}
 \end{figure}
 
@@ -454,16 +478,27 @@ and line fit for each run is shown in \autoref{fig:fits_noiseonly}.
 \begin{figure}[H]
 \centering
 \includegraphics[clip=true,trim=6cm 2cm 6cm 3.5cm,width=15cm]{images/preprocessed_noiseonly}
-\caption{Comparison of the preprocessed signals for the low noise signal-free case (
-$\sigma_y = 0.01, \sigma_x = 0.005$).}
+\caption[Preprocessed Signal for non-active, low noise signal]
+{Comparison of the preprocessed signals for the low noise signal-free case.
+ ($\sigma_x = 0.005$, $\sigma_y = 0.01$)}
 \label{fig:PreprocessedNoiseOnly}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/fits_noiseonly}
+\caption[Results for non-active, low noise signal]  ($\sigma_x = 0.005$, $\sigma_y = 0.01$)
+{Comparison of the estimated BOLD signal for the low noise signal-free case.
+ ($\sigma_x = 0.005$, $\sigma_y = 0.01$). Note the line thickness is caused
+by all the estimates overlapping.}
+\label{fig:fits_noiseonly}
 \end{figure}
 
 \begin{table}[t]
 \centering
 \begin{tabular}{|c | c | c | c | c | c | c | c | c |}
 \hline
-$\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & \ac{RMSR} \\
+$\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & \acs{RMSR} \\
 \hline
 1.0324 & 0.33211 & 0.34058 & 0.03012 & 1.40665 & 2.52079 & 0.5311 &   0.00167  \\
  0.98189 & 0.33047 & 0.3386 & 0.03014 & 1.45707 & 2.47232 & 0.45049 & 0.00159   \\
@@ -480,43 +515,38 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 1.03009 & 0.33228 & 0.33905 & 0.02902 & 1.44506 & 2.50031 & 0.46076 & 0.00165 \\
 \hline
 \end{tabular}
-\caption{Estimated Parameters on 11 different runs with low noise and no signal present.}
+\caption{Estimated Parameters on 11 different runs with low noise and no signal present.
+ ($\sigma_x = 0.005$, $\sigma_y = 0.01$)}
 \label{tab:NoiseOnlyResults}
 \end{table}
 
 \begin{figure}[H]
 \centering
-\includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/fits_noiseonly}
-\caption{Fits to the non-active, low noise signal. Note that the line is thick because all
-the estimates overlap. All 11 fitted lines.}
-\label{fig:fits_noiseonly}
-\end{figure}
-
-\begin{figure}[H]
-\centering
 \includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/justnoise_fit_0}
-\caption{Fit from a single particle filter run, with the noise input. }
+\caption{Single Fit Results for non-active, low noise signal.}
 \label{fig:justnoise_fit_0}
 \end{figure} %uses allnoise/ALLNOISE-0-w0
 
 \begin{figure}[H]
 \centering
-\subfigure[$\tau_0$, $\alpha$, $E_0$, $V_0$]
-{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, height=9cm]{images/justnoise_hist_1}}\\
+\subfigure
+{\includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=\textwidth]{images/justnoise_hist_1}}
+\subfigure
+{\includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=\textwidth]{images/justnoise_hist_2}}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\subfigure[$\tau_s$, $\tau_f$, $\epsilon$, $v$]
-{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, height=9cm]{images/justnoise_hist_2}}\\
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\subfigure[$q$, $s$, $f$, $BOLD$ ]
-{\includegraphics[clip=true,trim=6cm 2cm 6cm 3cm, height=9cm]{images/justnoise_hist_3}}
-\caption{Converging histogram for parameters when the signal consists purely of low level noise.
-Same run as \autoref{fig:justnoise_fit_0}}
+\subfigure
+{\includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=\textwidth]{images/justnoise_hist_3}}
+\caption[Convergence of the parameters during a noise-only run.]
+{Convergence of the parameters when the signal consisted purely of low level noise 
+($\sigma_x = 0.01$, $\sigma_y = 0.005$).
+Order of estimates: $\tau_0, \alpha, E_0, V_0, \tau_s, \tau_f, \epsilon, v,
+q, s, f, BOLD$.  The bars represent
+a histogram, where darker bars indicate more particles with parameters in that bin. The red 
+line is the parameter used to generate the true signal, blue line is the final mean of the
+particles. See \autoref{fig:justnoise_fit_0}}
 \label{fig:JustNoiseConvergence}
 \end{figure}
 
@@ -525,8 +555,8 @@ The data shows that the parameters did not converge
 The peaks never even reached 1\% difference
 (\autoref{fig:PreprocessedNoiseOnly}) so  the signal  stayed
 well within the range of $0.005$, the standard deviation of the weighting function.
-Note that the \acs{RMSR}
-were actually lower than the \acs{RMSR} in the low noise simulation 
+Note that the \acp{RMSR}
+were actually lower than the \acp{RMSR} in the low noise simulation 
 from \autoref{sec:SimLowNoise}
 and the parameter estimates were more consistent across 11 runs.
 The low \ac{RMSR} was caused by the overall
@@ -562,15 +592,16 @@ with the stimuli in any way (\autoref{fig:fits_noiseonly_high}).
 \begin{figure}[H]
 \centering
 \includegraphics[clip=true,trim=6cm 2cm 5cm 3cm,width=15cm]{images/fits_noiseonly_high}
-\caption{\ac{BOLD} estimates for the non-active, high noise signal. Note the line thickness is caused
-by all the estimates overlapping.}
+\caption[Results for non-active, high noise signal.]
+{\ac{BOLD} estimates for the non-active, high noise signal ($\sigma_x = 0.1$, $\sigma_y = 0.05$). 
+Note the line thickness is caused by all the estimates overlapping.}
 \label{fig:fits_noiseonly_high}
 \end{figure}
 
 \begin{figure}[H]
 \centering
 \includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/justbignoise_fit_0}
-\caption{Fit from a single particle filter run, with the noise input. }
+\caption{Single Fit Results for non-active, high noise signal.}
 \label{fig:justbignoise_fit_0}
 \end{figure} %uses allnoise/ALLNOISE-0-w0
 
@@ -591,7 +622,7 @@ by all the estimates overlapping.}
 %\label{fig:JustNoiseConvergenceLarge}
 %\end{figure}
 
-\subsection{Single Voxel Review}
+\subsection{Single Voxel Summary}
 \label{sec:SingleVoxelReview}
 Because of the variability in the signal levels, the
 raw \ac{RMSR} cannot be used to rate the fit. As demonstrated by \autoref{tab:NoiseOnlyResults},
@@ -665,8 +696,8 @@ min &  0.82382  &0.459   &  0.04341  &0.95165 & -0.01075  & 1.15441 & -0.02677 &
 max &  0.98892  &0.5458  & 0.18339   &1.18996 & 0.06326  &  1.43196 & 0.03163  &1.33667 \\
 \hline
 \end{tabular}
-\caption{Mutual Information and the normalized \ac{RMSE},
-    for signal/noise configurations.}
+\caption{Mutual Information and the normalized \ac{RMSE}, for each of the previous
+sections.}
 \label{tab:SingleVoxelActivationComparison}
 \end{table}
 
@@ -807,7 +838,7 @@ The histograms again demonstrate that a single point estimate of the parameters
 is elusive for this set of parameters. However the data clearly show the power
 of the particle filter at identifying regions of activation.
 The thresholds applied to this slice, both for mutual information and
-\acs{RMSR} are arbitrary. Applying a
+\acp{RMSR} are arbitrary. Applying a
 threshold is helpful for visualization but is rarely useful for further analysis.
 As noted in \autoref{sec:SingleVoxelReview},
 the false positives present in the Mutual Information
