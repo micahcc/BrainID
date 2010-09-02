@@ -103,14 +103,15 @@ given distribution, $\alpha(X)$, by:
 \end{equation}
 
 where $N_p$ is the number of particles or points used to describe the prior 
-using a Mixture PDF. 
+using a Mixture \ac{PDF}. 
 Note that any exponents will be explicitly labeled as such, to avoid confusion with
 the particle numbering scheme. 
 
 Therefore, after the particles have been generated they should approximate $\alpha(X)$:
 
 \begin{equation}
-\alpha(X) \approx P(x_0) = \sum_{i=0}^{N_p} w^i\delta(X - x^i_0 ) dx
+\alpha(X) \approx P(x_0) = \int_{-\infty}^{\infty}
+    \sum_{i=0}^{N_p} w^i\delta(X - x^i_0 ) dx
 \end{equation}
 where $\delta(x-x_0)$ is 1 if and only if $x = x_0$ 
 (the Kronecker delta function).
@@ -186,10 +187,10 @@ prior.
 q(x_k | x_{k-1}, y_{0:k}) =  P(x_k | x_{k-1})
 \label{eq:ImportanceDensity}
 \end{equation}
-The benefit of this choice for importance density is that an approximation for
-$P(x_k | x_{k-1})$ is freely available; its simply the set of particles propagated
+This choice for importance density is conventient since its simply 
+the set of particles propagated
 forward in time using the state equations. Additionally it makes
-updating weights simple, as seen in \autoref{eq:weightevolve}.
+updating weights simple, as seen later in \autoref{eq:weightevolve}.
 
 The $q(x^i_{0:k} | y_{0:k})$ may then be simplified:
 \begin{equation}
@@ -229,7 +230,7 @@ P(x_{0:k} | y_{0:k}) & = & \frac{P(y_{0:k}, x_{0:k})}{P(y_{0:k})} & \\
  \end{array}
  \label{eq:UpdateBayes}
 \end{equation}
-Plugging \autoref{eq:ImportanceDensity} and the result of \autoref{eq:UpdateBayes}
+Inserting \autoref{eq:ImportanceDensity} and the result of \autoref{eq:UpdateBayes}
 into \autoref{eq:weightfunc} leads to:
 \begin{eqnarray}
 w^i_k & \propto & \frac{P(y_k| x^i_k) \cancel{P(x^i_k | x^i_{k-1})} P(x^i_{0:k-1} | y_{0:k-1})}
@@ -274,12 +275,19 @@ algorithm \autoref{alg:BasicParticleFilter}.
 
 \section{Sequential Importance Resampling}
 \label{sec:Particle Filter Resampling}
-
 \begin{figure}
-\includegraphics[width=16cm]{images/particle_filter}
-\caption{Particle Filter progression, note that the initial support is flat; the particles
-are equally spaced between -10 and 10}
+\includegraphics[width=16cm]{images/particle_filter2}
+\caption[Example Particle Filter Progression]{a) Initial particle locations
+uniformly distributed in [-10, 10], with
+weights set to give the State Prediction (green). When a measurement is
+received it converted to a distribution approximating uncertainty. This
+distribution is then used to alter the weights of the existing particles.
+b) Another measurement is applied similar to a), c) Resampling draws
+new particles in locations according to the Mixture \ac{PDF} approximated 
+by the particle weights. d) Another measurement is applied as before,
+but now with non-uniform particle locations.}
 \end{figure}
+
 As a consequence 
 of the wide prior distribution (required for a proper discretization of a continuous
 distribution), a significant proportion of particles will quickly

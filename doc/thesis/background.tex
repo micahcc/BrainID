@@ -318,9 +318,16 @@ a posterior Gaussian. Hu et. al. used the \ac{UKF} to  perform a similar type of
 the one performed in this work \cite{Hu2009}. 
 
 \begin{figure}
-\includegraphics[width=16cm]{images/kalman}
-%\includegraphics[trim=6cm .75cm 6cm .75cm,width=16cm]{images/gauss_step_point1sec_3sigma.pdf}
-\caption{Example updates of a distribution using the Kalman Filter.}
+\includegraphics[width=16cm]{images/kalman2}
+\caption[Example Kalman Filter Progression]
+{a) Sigma Points are passed through the state/measurement equations
+to get a state prediction (green line). The first two moments of
+the state prediction are then used to estimate the distribution with
+a Gaussian (red line). The distribution centered at the new measurement,
+estimating measurement error (dark blue), is then combined with the existing
+state prediction (red line) to get the new estimated state (light blue).
+The same process is applied in b), and c) with different measurements and
+initial state estimates.}
 \label{fig:EKFWorking}
 \end{figure}
 
@@ -401,13 +408,15 @@ the first two moments, which is the basis for the \ac{UKF}, is not wise.
 \begin{figure}
 \centering
 \includegraphics[trim=6cm .75cm 6cm .75cm,width=16cm]{images/gauss_step_point1sec_3sigma.pdf}
-\caption{Distributions of state variables after simulating for $0.1$s}
+\caption[Q-Q Plot Of Standard Normal and Result of $0.1$s BOLD Simulation Output]
+{Q-Q Plot Of Standard Normal and Result of $0.1$ BOLD Simulation Output. A
+perfect Gaussian would fall on the green line}
 \label{fig:transp1s}
 \end{figure}
 
 \begin{figure}
 \includegraphics[trim=6cm .75cm 6cm .75cm,width=16cm]{images/gauss_step_1sec_3sigma.pdf}
-\caption{Distributions of state variables after simulating for $1$s}
+\caption{Q-Q Plot Of Standard Normal and Result of $1$s BOLD Simulation Output}
 \label{fig:trans1s}
 \end{figure}
 
