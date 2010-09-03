@@ -66,9 +66,9 @@ Label4DType::Pointer createRegions(double sigma, double threshp,
         out_size[2] = templ->GetRequestedRegion().GetSize()[2];
         out_size[3] = 1;
     } else {
-        out_size[0] = 100;
-        out_size[1] = 100;
-        out_size[2] = 100;
+        out_size[0] = 1;
+        out_size[1] = 1;
+        out_size[2] = 1;
         out_size[3] = 1; 
         
     }
@@ -209,7 +209,7 @@ int main( int argc, char **argv )
     vul_arg<string> a_imageOut(0 ,"Image Out");
     vul_arg<string> a_params(0 ,"File with parameters, 1 region per line, nonactive on first line"
                 "<TAU_0> <ALPHA> <E_0> <V_0> <TAU_S> <TAU_F> <EPSILON> <A_1> <A_2>");
-    vul_arg<string> a_templ("-t" ,"Template (takes orientation/spacing/brain)");
+    vul_arg<string> a_templ("-t" ,"Template (takes orientation/spacing/brain). If not provided image will be 1x1x1xPARAMS");
     vul_arg<double> a_thresh("-T" ,"Threshold for region gen.", .53);
     vul_arg<double> a_sigma("-s" ,"Sigma for gaussian filter, region gen", 4);
     vul_arg<string> a_mask("-m", "Instead of using a gaussian image to build regions"
@@ -221,7 +221,7 @@ int main( int argc, char **argv )
     /* Processing */
     vul_arg_parse(argc, argv);
     
-    Image4DType::Pointer templ;
+    Image4DType::Pointer templ = NULL;
     Label4DType::Pointer regions;
     
     /* Template Image */
@@ -232,7 +232,7 @@ int main( int argc, char **argv )
         reader->SetFileName( a_templ() );
         reader->Update();
         templ = reader->GetOutput();
-    }
+    } 
     
     if(a_mask().empty()) {
         fprintf(stderr, "Creating Regions\n");

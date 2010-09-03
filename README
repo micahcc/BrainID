@@ -1,0 +1,105 @@
+############################
+To generate a parameter map:
+############################
+
+#create a file like this:
+
+#Begin File "params" #
+#          Tau0          alpha             E0             V0           TauS           TauF        Epsilon 
+        1.48256       0.280681        0.35817      0.0262547        1.84741        3.18442       0.003857 3.4 1
+        1.20253       0.309557       0.326097       0.035857        2.16765        2.27181       0.085933 3.4 1
+       1.950512        0.31665       0.348487     0.02661222         1.6572        3.71875       0.756764 3.4 1
+       1.454322       0.321322       0.369314       0.035621        0.99371        2.77384        1.34784 3.4 1
+        1.15114       0.352777        0.38027      0.0262798        1.98008        2.33257        1.64476 3.4 1
+#End File "params"  #
+
+#then run:
+$ brainid/build/code/parammap_generate parammap.nii.gz  params -t template.nii.gz 
+
+#template.nii.gz can be any 4D image, whose size/shape/orientation you want to
+#copy. I am not sure it will run without one. -T and -s are used to generate 
+#regions of size/and roughness, you will have to play with them to get regions
+
+#If you have a mask image, and want to turn that into regions pass the mask instead 
+#use the follow. This is the preferred method. I used the mask image provided by
+#Possum "./fsl/data/possum/activation3D.nii.gz" 
+
+$ parammap_generate parammap.nii.gz  params -m mask.nii.gz
+
+#To used Possum the custom version in the repository will have to be used:
+#https://dmz-server/svn/POSSUM-mod/
+
+
+#email me about this if you want to use POSSUM because it is sort of tricky
+
+
+################################################################
+To generate active timeseries (without POSSUM or parameter maps)
+################################################################
+
+$ brainid/build/code/boldgen -bf bold.nii.gz -ot 2.1 -st .0005 -n 1 -sf truestate.nii.gz -randstim -rstimt .1 -rstimp .1 -snr .001 -drift .0005 -X0file params -rstimfile stim
+
+#this will generate a single voxel, 2.1 TR image with the parameters from params (note that it is slightly different from the above
+#if you give more than one section (-n 2) then it will read in the second row of the params file and so on....
+#Note that -snr isn't really the snr, it is just the standard deviation of the noise. -drift is the standard deviation
+#of the drift steps. If for some reason this doesn't complete you may need to decrease -st to .0001.
+
+#          Tau0          alpha             E0             V0           TauS           TauF        Epsilon V Q S F
+#Begin File "params" #
+        1.48256       0.280681        0.35817      0.0262547        1.84741        3.18442       0.003857 1 1 0 1 
+        1.20253       0.309557       0.326097       0.035857        2.16765        2.27181       0.085933 1 1 0 1 
+       1.950512        0.31665       0.348487     0.02661222         1.6572        3.71875       0.756764 1 1 0 1 
+       1.454322       0.321322       0.369314       0.035621        0.99371        2.77384        1.34784 1 1 0 1 
+        1.15114       0.352777        0.38027      0.0262798        1.98008        2.33257        1.64476 1 1 0 1 
+#End File "params" #
+
+#bold.nii.gz - the noise free BOLD signal
+#drift-bold.nii.gz - the BOLD signal with just drift
+#noise-bold.nii.gz - the BOLD signal with drift and white noise
+#carrier-bold      - the signal you want to input to calc_parammap
+#
+#truestate.nii.g   - the true state parameters changing in time
+#
+#stim              - contains the activation level time pairs
+
+################################################################
+To use calc_parammap for the above case
+################################################################
+$ mkdir output
+$ brainid/build/code/parammap_calc  carrier-bold.nii.gz  -l 0 -S 0 -t 2.1  -p 1000 -d 1500 -s stim -f 0 -w 0 -C .005   -o output/ -e 0 -D 0 
+
+#this will use 1000 particles (-p), euler integrate with step size of 0.00066666 (-d),
+#will not flatten the prior (-f), won't use delta (-l) or "smart knots" which don't work (-S). 
+#the stimulus file (-s) is from the output of boldgen, and should match whatever the input BOLD
+#sequence used. The weight function is open to change (-w), as is the weight scale (-C) 
+
+#histogram output will be put in output/ (-D 0)
+#and no time points were erased form the from (-e 0)
+
+###############################################################
+To analyze histogram output
+###############################################################
+
+$ cp stim output/
+$ brainid/scripts/makehist.py output/
+
+#give it a little time
+
+###############################################################
+To evaluate error etc
+###############################################################
+
+$ cp stim output/
+$ brainid/build/code/parammap_eval output/
+
+#if you want the true error, as opposed to the residual, you have to create a parammap for the 
+#parameters and then copy that (possible single voxel) image to output:
+
+$ brainid/build/code/parammap_generate parammap.nii.gz  params 
+$ cp parammap.nii.gz output/
+$ brainid/build/code/parammap_eval output/
+
+
+
+
+
