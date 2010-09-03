@@ -19,18 +19,6 @@ typedef itk::AddImageFilter< Image3DType > AddF3;
 typedef itk::SubtractImageFilter< Image3DType > SubF3;
 typedef itk::SquareImageFilter< Image3DType, Image3DType > SqrF3;
 
-//Image4DType::Pointer extract_timeseries(Image4DType::Pointer in, 
-//            const std::list< Image4DType::IndexType >& points)
-//{
-//    std::list< Image4DType::Index >::const_iterator it = points.begin();
-//    itk::ImageLinearIteratorWithIndex< Image4DType > imgit(in,
-//                in->GetRequestedRegion());
-//    while(it != points.end()) {
-//        it::*it 
-//        it++;
-//    }
-//}
-
 /* Calculates the percent difference between input1, and input2,
  * using input1 as the reference, using orientation
  */
@@ -120,6 +108,11 @@ Image4DType::Pointer pctDiffOrient(const Image4DType::Pointer input1,
     return out;
 }
 
+/* Calculates the mutual information for the two images input1/input2
+ * mutual informaiton is performed between samples in the time dimension
+ * bins1/2 - the number of bins to use when approximating the joint
+ *            distribution (usually 10)
+*/
 Image3DType::Pointer mutual_info(uint32_t bins1, uint32_t bins2,
             const Image4DType::Pointer input1, const Image4DType::Pointer input2)
 {
@@ -235,8 +228,9 @@ Image3DType::Pointer mutual_info(uint32_t bins1, uint32_t bins2,
     return out;
 }
     
-
-
+/* Takes the difference at each time point, squares it
+ * then calculates the mean of that, Mean-Squared-Error
+ */
 Image3DType::Pointer mse(const Image4DType::Pointer input1,
             const Image4DType::Pointer input2)
 {
@@ -280,6 +274,9 @@ Image3DType::Pointer mse(const Image4DType::Pointer input1,
     return out;
 }
 
+/* Reads a file with <time> <level> pairs, and puts the time and level
+ * into a struct which is then packed into a vector of these pairs
+ */
 std::vector<Activation> read_activations(std::string filename, std::string extra)
 {       
     filename.append(extra);
@@ -311,7 +308,7 @@ std::vector<Activation> read_activations(std::string filename, std::string extra
     return output;
 }
 
-
+/* Write a vector to std out, not no endline applied */
 void outputVector(std::ostream& out, indii::ml::aux::vector mat) 
 {
   unsigned int i;
@@ -320,6 +317,7 @@ void outputVector(std::ostream& out, indii::ml::aux::vector mat)
   }
 }
 
+/* Write a matrix to std out, no final endline applied */
 void outputMatrix(std::ostream& out, indii::ml::aux::matrix mat) 
 {
   unsigned int i, j;
@@ -331,6 +329,8 @@ void outputMatrix(std::ostream& out, indii::ml::aux::matrix mat)
   }
 }
 
+/* Takes an unsigned int and rounds up to the neared
+ * power of 2. Used for FFT */
 unsigned int round_power_2(unsigned int in) 
 {
     unsigned int count = 0;
@@ -343,6 +343,8 @@ unsigned int round_power_2(unsigned int in)
     return(1 << count);
 }
 
+/* Takes an index in a 4D image and puts all the time points in
+ * the same 3D voxel position in a 1D image, used for FFT */
 void copyTimeLine(Image4DType::Pointer src, 
             itk::Image<DataType,1>::Pointer dest,
             Image4DType::IndexType pos) 
@@ -361,6 +363,8 @@ void copyTimeLine(Image4DType::Pointer src,
     }
 }
 
+/* Takes an index in a 4D image and puts all the time points in
+ * a 1D image into the same 3D voxel position in a 3D image, opposite of above */
 void copyTimeLine(itk::Image<DataType, 1>::Pointer src, Image4DType::Pointer dest,
             Image4DType::IndexType pos) 
 {
@@ -378,6 +382,9 @@ void copyTimeLine(itk::Image<DataType, 1>::Pointer src, Image4DType::Pointer des
     }
 }
 
+/* Calculates a canonical HRF 1D image for the given parameters, 
+ * (stimulus, TR, start time, stop time)
+ */
 double hrfParam[] = {6, 16, 1, 1, 6, 0, 32};
 itk::Image<DataType, 1>::Pointer getCanonical(std::vector<Activation> stim, double TR,
             double start, double stop)
@@ -472,6 +479,10 @@ itk::Image<DataType, 1>::Pointer getCanonical(std::vector<Activation> stim, doub
     return resamp->GetOutput();
 }
 
+/* Takes the FFT of an input image (in the time dimension)
+ * and saves the result in the output. Note this is only a
+ * FFT over time, not over space
+ */
 Image4DType::Pointer fft_image(Image4DType::Pointer inimg)
 {
     typedef itk::Image< std::complex<DataType>, 1> ComplexT;
@@ -534,6 +545,10 @@ Image4DType::Pointer fft_image(Image4DType::Pointer inimg)
     return out;
 };
 
+/* 
+ * Calculates the Variance of the measurements over the time dimension 
+ * same as the fslmaths tool of the same name
+ */
 Image3DType::Pointer Tvar(const Image4DType::Pointer fmri_img)
 {
     Image3DType::Pointer mean = Tmean(fmri_img);
@@ -564,6 +579,10 @@ Image3DType::Pointer Tvar(const Image4DType::Pointer fmri_img)
     return out;
 }
 
+/* 
+ * Calculates the mean of the measurements over the time dimension 
+ * same as the fslmaths tool of the same name
+ */
 Image3DType::Pointer Tmean(const Image4DType::Pointer fmri_img)
 {
     itk::ImageLinearConstIteratorWithIndex<Image4DType> iter(
@@ -594,46 +613,7 @@ Image3DType::Pointer Tmean(const Image4DType::Pointer fmri_img)
     return out;
 }
 
-//Image3DType::Pointer Tvar(const Image4DType::Pointer fmri_img)
-//{
-//    Image3DType::Pointer average = Tmean(fmri_img);
-//
-//    /* Used to zero out the addfilter */
-//    Image3DType::Pointer zero = Image3DType::New();
-//    zero->SetRegions(average->GetRequestedRegion());
-//    zero->Allocate();
-//    zero->FillBuffer(0);
-//    
-//    /* Initialize the Addition */
-//    AddF3::Pointer add = AddF3::New();
-//    add->GraftOutput(zero);
-//    add->SetInput2(add->GetOutput());
-//    
-//    /* Initialize Subtraction */
-//    SubF3::Pointer sub = SubF3::New();   
-//    
-//    /* Initialize Subtraction */
-//    SqrF3::Pointer sqr = SqrF3::New();   
-//    
-//    /* Calculate Sum of Images */
-//    //SUM( (X_i - mu)^2 )
-//    for(size_t ii = 0 ; ii < fmri_img->GetRequestedRegion().GetSize()[3] ; ii++) {
-//        sub->SetInput1(extract(fmri_img, ii));
-//        sub->SetInput2(average);
-//        sqr->SetInput(sub->GetOutput());
-//        add->SetInput1(sqr->GetOutput());
-//        add->Update();
-//    }
-//
-//    /* Calculate Average of Images */
-//    ScaleF::Pointer scale = ScaleF::New();
-//    scale->SetInput(add->GetOutput());
-//    scale->SetConstant(1./fmri_img->GetRequestedRegion().GetSize()[3]);
-//    scale->Update();
-//    return scale->GetOutput();
-//}
-
-
+/* Takes a 3D image and copies every voxel for len elements in the 4th dimension */
 Image4DType::Pointer extrude(const Image3DType::Pointer input, unsigned int len)
 {
     itk::ImageLinearConstIteratorWithIndex<Image3DType> iter(
@@ -718,6 +698,7 @@ Image3DType::Pointer get_rms(Image4DType::Pointer in)
     return out;
 }
 
+/* Calculates the median absolute deviation in the 4th dimension, similar to Tvar above */
 Image3DType::Pointer median_absolute_deviation(const Image4DType::Pointer fmri_img)
 {
     Image4DType::SizeType size4 = fmri_img->GetRequestedRegion().GetSize();

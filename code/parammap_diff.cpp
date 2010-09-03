@@ -38,7 +38,9 @@ int main(int argc, char* argv[])
     
     vul_arg_parse(argc, argv);
     
-    vul_arg_display_usage("No Warning, just echoing");
+    vul_arg_display_usage("This Will calculate the %difference between two "
+                "parameter maps. This is different from the functional difference"
+                " which parammap_eval calculates. ");
 
     Image4DType::Pointer paramImage1;
     Image4DType::Pointer paramImage2;

@@ -38,14 +38,10 @@ ADD_LIBRARY(BoldModel BoldModel.cpp)
 ADD_LIBRARY(tools tools.cc)
 TARGET_LINK_LIBRARIES(tools ITKAlgorithms ITKBasicFilters ITKCommon tools gsl gslcblas )
 
-#TARGET_LINK_LIBRARIES(bold particle ITKAlgorithms ITKBasicFilters ITKCommon ITKIO)
-
 ADD_EXECUTABLE(unbias unbias.cpp)
-ADD_EXECUTABLE(brainid brainid.cpp)
 ADD_EXECUTABLE(parammap_calc calc_parammap.cpp)
 ADD_EXECUTABLE(printtags printtags.cpp)
 ADD_EXECUTABLE(setorientation setorientation.cpp)
-#ADD_EXECUTABLE(fmri_timeseries fmri_timeseries.cpp)
 ADD_EXECUTABLE(chop chop.cpp)
 ADD_EXECUTABLE(boldgen boldgen.cpp)
 ADD_EXECUTABLE(concatinate concat.cpp)
@@ -53,7 +49,6 @@ ADD_EXECUTABLE(prune prune.cpp)
 ADD_EXECUTABLE(readdicom readdicom.cpp)
 ADD_EXECUTABLE(applymask applymask.cpp)
 ADD_EXECUTABLE(reorientby reorientby.cpp)
-ADD_EXECUTABLE(makeest makeest.cpp)
 ADD_EXECUTABLE(fft fft.cpp)
 ADD_EXECUTABLE(parammap_preprocess preprocess.cpp)
 ADD_EXECUTABLE(parammap_generate make_param_image.cpp)
@@ -62,19 +57,12 @@ ADD_EXECUTABLE(parammap_eval parammap_eval.cpp)
 ADD_EXECUTABLE(mse mse.cpp)
 ADD_EXECUTABLE(extract_pos extract_pos.cc)
 
-TARGET_LINK_LIBRARIES(makeest modNiftiImageIO ITKIO)
 TARGET_LINK_LIBRARIES(prune modNiftiImageIO ITKIO)
 TARGET_LINK_LIBRARIES(chop ITKBasicFilters ITKIO vullib)
 TARGET_LINK_LIBRARIES(concatinate modNiftiImageIO ITKIO)
-#TARGET_LINK_LIBRARIES(fmri_timeseries modNiftiImageIO segment 
-#    ITKAlgorithms ITKBasicFilters ITKCommon ITKIO 
-#    vullib)
 TARGET_LINK_LIBRARIES(unbias ITKAlgorithms ITKBasicFilters ITKCommon ITKIO )
 TARGET_LINK_LIBRARIES(printtags modNiftiImageIO ITKIO)
 TARGET_LINK_LIBRARIES(setorientation modNiftiImageIO ITKIO)
-TARGET_LINK_LIBRARIES(brainid tools gfortran modNiftiImageIO blas lapack mpi 
-    boost_serialization boost_mpi BoldModel 
-    ITKIO mpi gsl gslcblas dysii vullib)
 TARGET_LINK_LIBRARIES(parammap_preprocess segment tools modNiftiImageIO 
     ITKAlgorithms ITKIO gsl gslcblas vullib )
 TARGET_LINK_LIBRARIES(parammap_calc segment tools gfortran modNiftiImageIO blas lapack mpi 

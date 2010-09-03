@@ -33,6 +33,15 @@
 
 namespace aux = indii::ml::aux;
 
+/* BoldPF Handles the creation of a particle filter using the BOLD 
+ * model. It can output data from various points in the algorithm
+ * by setting callpoints in the CallPoints struct. A copy of this
+ * struct and the function to call at all those points is taken
+ * for setCallBack. The callback function should take a BoldPF and
+ * a void*, the void* will have whatever pointer is passed to run
+ * passed to it, thus data can be pulled out by passing it in to 
+ * run then having the callback function change it.
+*/
 class BoldPF 
 {
 public:
@@ -176,6 +185,10 @@ int BoldPF::getStatus()
     return status;
 };
 
+/* Calculates the Covariance matrix based on a DiracMixturePdf,
+ * for some reason the version that is part of DiracMixturePdf has
+ * a bug, hence this function.
+ */
 aux::matrix calcCov(indii::ml::aux::DiracMixturePdf& p)
 {
     boost::mpi::communicator world;
@@ -203,6 +216,10 @@ aux::matrix calcCov(indii::ml::aux::DiracMixturePdf& p)
     return sum/p.getDistributedTotalWeight();
 }
 
+/* Calculates the Standard Deviation matrix based on a DiracMixturePdf,
+ * for some reason the version that is part of DiracMixturePdf has
+ * a bug, hence this function.
+ */
 aux::matrix calcStdDev(indii::ml::aux::DiracMixturePdf& p)
 {
     static int count = 0;
@@ -244,6 +261,10 @@ aux::matrix calcStdDev(indii::ml::aux::DiracMixturePdf& p)
     return cov;
 }
 
+/* 
+ * Resets the state of the BoldPF, time status etc. Should be
+ * called if something breaks and you want to try again
+ */
 int BoldPF::restart(bool resetstate)
 {
     filter->setTime(0);
@@ -278,8 +299,6 @@ int BoldPF::run(void* pass = NULL)
     }
 
     double ess = filter->getFilteredState().getSize();
-    double essprev = ess;
-
     *debug << "mu size: " << filter->getFilteredState().getDistributedExpectation().size()
                 << std::endl << "dimensions: " 
                 << filter->getFilteredState().getDimensions() << std::endl;
@@ -302,19 +321,16 @@ int BoldPF::run(void* pass = NULL)
      * Run the particle filter either until we reach a predetermined end
      * time, or until we are done processing measurements.
      */
-     matrix savedStd;
      bool resampled = false;
      status = RUNNING;
      while(status == RUNNING && disctime_s*dt_s < dt_l*measure.size()) {
         /* time */
         conttime = disctime_s*dt_s;
-//        *debug << "."; 
         
         /* Update Input if there is any*/
         while(stim_index < stim.size() && stim[stim_index].time <= conttime) {
             model->setinput(aux::vector(1, stim[stim_index].level));
             stim_index++;
- //           *debug << conttime;
         }
         
 
@@ -331,7 +347,6 @@ int BoldPF::run(void* pass = NULL)
             if(call_points.postMeas) 
                 callback(this, pass);
 
-            
             //check to see if resampling is necessary
             if(filter->getFilteredState().getDistributedTotalWeight() < .0001 ||
                         filter->getFilteredState().getDistributedTotalWeight() > 1000) {
@@ -340,7 +355,6 @@ int BoldPF::run(void* pass = NULL)
                             << "\n";
                 filter->getFilteredState().distributedNormalise();
             }
-            essprev = ess;
             ess = filter->getFilteredState().calculateDistributedEss();
             
             //check for errors, could be caused by total collapse of particles,
@@ -351,18 +365,10 @@ int BoldPF::run(void* pass = NULL)
                 status = ERROR;
                 break;
             } 
-            *debug << "Total Weight " << filter->getFilteredState().getDistributedTotalWeight() << "\n";
         
             aux::vector tmpmu = filter->getFilteredState().
                         getDistributedExpectation();
-//            *debug << "Mu: ";
-//            outputVector(*debug, tmpmu);
-//            *debug << "\n\n";
-            
-//            *debug << "Covariance:\n";
             aux::symmetric_matrix statecov = calcCov(filter->getFilteredState());
-//            outputMatrix(*debug, statecov);
-//            *debug << "\n\n";
 
             matrix stdDev;
             try{
@@ -383,25 +389,13 @@ int BoldPF::run(void* pass = NULL)
                 break;
             }
 
-            if(ess > ESS_THRESH) {
-                savedStd = stdDev;
-            }
-            
-            //time to resample
-            if((ess < ESS_THRESH && essprev < ESS_THRESH) || 
-                        (conttime > 20. && !resampled)) {
+            //time to resample, force at least one resampling after 20 seconds
+            if(ess < ESS_THRESH || (conttime > 20. && !resampled)) {
                 resampled = true;
-                if(ess < 10) {
-                    *debug << "Particle Collapse!" << std::endl;
-                    stdDev = savedStd;
-                }
-
                 *debug << " ESS: " << ess;
                 *debug << "\nStratified Resampling\n";
                 filter->resample(&resampler);
-                *debug << "\nRegularized Resampling\n\nStandard Deviation:\n";
-                outputMatrix(*debug, stdDev);
-                *debug << "\n";
+                *debug << "\nRegularized Resampling\n";
                 filter->setFilteredState( resampler_reg->resample(
                                 filter->getFilteredState(), stdDev) );
             } else {
@@ -440,6 +434,9 @@ bool isclose(double a, double b)
     return fabs(a*1000 - b*1000) < 1;
 }
 
+/* Used to linearize the BOLD process and regress the step sizes rather
+ * than the actual Bold measurements. part of the delta option.
+ */
 void BoldPF::latchBold()
 {
     for(unsigned int ii = 0 ; ii < filter->getFilteredState().getSize(); ii++) {
@@ -453,6 +450,11 @@ void BoldPF::latchBold()
     filter->getFilteredState().distributedNormalise();
 };
 
+/* Used to calculate the average measurement from a vector. Note
+ * that the input is a vector of aux::vectors, which allows 
+ * for a mean vector to be calculated. For one voxel, all the
+ * aux::vectors will be size 1
+ */
 aux::vector bold_mean(const std::vector<aux::vector>& in)
 {
     aux::vector sum(in.back().size(), 0);
@@ -461,6 +463,7 @@ aux::vector bold_mean(const std::vector<aux::vector>& in)
     return sum/in.size();
 }
 
+/* Used to calculate the average measurement from a vector (in) */
 aux::vector bold_stddev(const std::vector<aux::vector>& in, const aux::vector& mean)
 {
     aux::vector sum(in.back().size(), 0);

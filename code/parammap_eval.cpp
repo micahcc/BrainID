@@ -29,6 +29,7 @@ typedef itk::ImageLinearIteratorWithIndex<Image4DType> ImgIter;
 
 namespace aux = indii::ml::aux;
 
+/* Helper function to write an image "out" to prefix + filename */
 template <typename T>
 void writeImage(std::string base, std::string name, typename T::Pointer in)
 {
@@ -43,6 +44,7 @@ void writeImage(std::string base, std::string name, typename T::Pointer in)
     writer->Update();
 }
 
+/* Read an image from base+name and returns the T dimensional image */
 template <typename T>
 typename T::Pointer readImage(std::string base, std::string name)
 {
@@ -57,6 +59,7 @@ typename T::Pointer readImage(std::string base, std::string name)
     return reader->GetOutput();
 }
 
+/* Reads the output given a state and set of parameters, part of the Bold Model */
 double readout(State& state, const std::vector<double>& params)
 {
     return params[V_0]*(params[A_1]*(1-state.Q)-params[A_2]*(1-state.V));
@@ -71,6 +74,7 @@ union d2vector
   double f[2];
 };
 
+/* Integrates state over time of delta */
 int transition(State& state, const std::vector<double>& params, double delta, 
             double in)
 {
@@ -87,35 +91,6 @@ int transition(State& state, const std::vector<double>& params, double delta,
     state.V += change.V*delta;
     state.Q += change.Q*delta;
     return 0;
-}
-
-void filllist(std::list< double >& output, Image4DType* input,
-            Image4DType::IndexType pos)
-{       
-    ImgIter iter(input, input->GetRequestedRegion());
-    iter.SetDirection(3);
-    iter.SetIndex(pos);
-
-    while(!iter.IsAtEndOfLine()) {
-        output.push_back(iter.Get());
-        ++iter;
-    }
-}
-
-void fillvector(std::vector<double>& output, Image4DType* input,
-            Image4DType::IndexType pos)
-{       
-    ImgIter iter(input, input->GetRequestedRegion());
-    iter.SetDirection(3);
-    iter.SetIndex(pos);
-
-    output.resize(input->GetRequestedRegion().GetSize()[3]);
-    int i = 0;
-    while(!iter.IsAtEndOfLine()) {
-        output[i] = iter.Get();
-        ++iter;
-        i++;
-    }
 }
 
 void printError(int err, std::vector<double>& params, State& state, 
@@ -160,6 +135,13 @@ void printError(int err, std::vector<double>& params, State& state,
 
 }
 
+/* Simulates an FMRI image given a set of parameters from paramImg. Simulations
+ * only performed in locations where mask > 0. 
+ * input_vector - is the stimulus sequence
+ * dt_s         - short steps used in integration
+ * dt_l         - long steps used to decide how often to measure
+ * count        - the number of measurements in the output image (decides run time)
+*/
 Image4DType::Pointer simulate(Image4DType::Pointer paramImg, Label3DType::Pointer mask,
             const std::vector<Activation>& input_vector, double dt_s, double dt_l,
             uint32_t count)
@@ -242,205 +224,7 @@ Image4DType::Pointer simulate(Image4DType::Pointer paramImg, Label3DType::Pointe
     }
     return out;
 }
-                
-Image3DType::Pointer activation(Image4DType::Pointer paramImg, Label3DType::Pointer mask,
-            double dt_s)
-{
-    itk::ImageLinearIteratorWithIndex<Label3DType> itL(mask, mask->GetRequestedRegion());
-    Label3DType::IndexType index3 = {{0,0,0}};
-    Image4DType::IndexType index4;
 
-    std::vector<double> params(paramImg->GetRequestedRegion().GetSize()[3]);
-    
-    Image3DType::Pointer out = Image3DType::New();
-    Image3DType::SizeType size3 = mask->GetRequestedRegion().GetSize();
-    out->SetRegions(size3);
-    out->Allocate();
-    out->FillBuffer(0);
-    
-    //simulate all that match
-    while(!itL.IsAtEnd()) {
-        while(!itL.IsAtEndOfLine()) {
-            if(itL.Value() != SUCCESS) {
-                ++itL;
-                continue;
-            }
-
-            index3 = itL.GetIndex();
-            for(uint32_t ii = 0 ; ii < 3 ; ii++)
-                index4[ii] = index3[ii];
-            for(index4[3] = 0 ; index4[3] < (int)params.size() ; index4[3]++) {
-                params[index4[3]] = paramImg->GetPixel(index4);
-                std::cout << params[index4[3]] << " ";
-            }
-            std::cout << "\n";
-
-            //Set up simulation state, initialize
-            State state;
-            state.V = 1;
-            state.Q = 1;
-            state.F = 1;
-            state.S = 0;
-
-            //Counters/temps
-            double input = 1;
-            double rt = 0;
-            double prev_rt = 0;
-            double max = 0;
-
-            for(size_t ii = 0 ; rt < 10 ; ii++) {
-                prev_rt = rt;
-                rt = ii*dt_s; //"real" time
-
-                /*Update Input If there is a change for the current time*/
-                if(rt > .1) 
-                    input = 0;
-
-                /*Update state variables*/
-                int res = transition(state, params, rt-prev_rt, input);
-                printError(res, params, state, rt, prev_rt);
-
-                double tmp = readout(state, params);
-                max = tmp > max ? tmp : max;
-            }
-            out->SetPixel(index3, max);
-            ++itL;
-        }
-        itL.NextLine();
-    }
-    return out;
-}
-
-//void analyzeHist(std::string filename, std::string outputdir,
-//            Image4DType::Pointer trueParams,
-//            Image4DType::Pointer preproc, 
-//            Label4DType::Pointer mask,
-//            std::vector<Activation>& stim,
-//            double TR, double shortTR)
-//{
-//    /* Create Output Images */
-//    cout << "Reading Histogram" << endl;
-//    itk::ImageFileReader<itk::OrientedImage<float, 6> >::Pointer reader;
-//    reader = itk::ImageFileReader<itk::OrientedImage<float, 6> >::New();
-//    reader->SetFileName( filename );
-//    reader->Update();
-//    itk::OrientedImage<float,6>::Pointer hist = reader->GetOutput();
-//    
-//    uint32_t xlen = hist->GetRequestedRegion().GetSize()[0];
-//    uint32_t ylen = hist->GetRequestedRegion().GetSize()[1];
-//    uint32_t zlen = hist->GetRequestedRegion().GetSize()[2];
-//    uint32_t tlen = hist->GetRequestedRegion().GetSize()[3];
-//    uint32_t Plen = hist->GetRequestedRegion().GetSize()[4];
-//    uint32_t Hlen = hist->GetRequestedRegion().GetSize()[5];
-//
-//    for(uint32_t i = 0 ; i < 4 ; i++) {
-//        if(hist->GetRequestedRegion().GetSize()[i] != 
-//                    preproc->GetRequestedRegion().GetSize()[i])
-//            throw "SIZE MISMATCH!";
-//    }
-//    
-//    /* Calculated Paramater Map */
-//    Image4DType::SizeType size4 = {{xlen, ylen, zlen, 7}};
-//    Image4DType::Pointer trueParamR = Image4DType::New();
-//    trueParamR->SetRegions(size4);
-//    trueParamR->Allocate();
-//    trueParamR->FillBuffer(-1);
-//    
-//    /* Resampled Ground Pmap */
-//    Image4DType::Pointer gPmap;
-//    if(trueParams) {
-//        gPmap = Image4DType::New();
-//        gPmap->SetRegions(size4);
-//        gPmap->Allocate();
-//        gPmap->FillBuffer(-1);
-//    }
-//    
-//    /* MSE with actual data */
-//    Image3DType::SizeType size3 = {{xlen, ylen, zlen}};
-//    Image3DType::Pointer preprocMse = Image3DType::New();
-//    preprocMse->SetRegions(size3);
-//    preprocMse->Allocate();
-//    preprocMse->FillBuffer(-1);
-//    
-//    /* MSE with ground truth */
-//    Image3DType::Pointer trueMse = Image3DType::New();
-//    trueMse->SetRegions(size3);
-//    trueMse->Allocate();
-//    trueMse->FillBuffer(-1);
-//    
-//    /* Resampled Mask */
-//    Image3DType::Pointer maskR = Image3DType::New();
-//    maskR->SetRegions(size3);
-//    maskR->Allocate();
-//    maskR->FillBuffer(0);
-//
-//    for(uint32_t xx = 0 ; xx < xlen ; xx++) {
-//        for(uint32_t yy = 0 ; yy < ylen ; yy++) {
-//            for(uint32_t zz = 0 ; zz < zlen ; zz++) {
-//                //initialize some variables
-//                itk::OrientedImage<float, 6>::IndexType index6 = 
-//                            {{xx, yy, zz, tlen-1,0,Hlen-1}};
-//                Image4DType::IndexType index4 = {{xx, yy, zz, 0}};
-//                Image4DType::PointType point;
-//                Image3DType::IndexType index3 = {{xx, yy, zz}};
-//                
-//                preproc->TransformIndexToPhysicalPoint(index4, point);
-//                
-//                /* Check Mask, and add point to re-sampled Mask */
-//                if(mask) {
-//                    Image4DType::IndexType maskindex;
-//                    mask->TransformPhysicalPointToIndex(point, maskindex);
-//                    if(!mask->GetRequestedRegion().IsInside(maskindex)
-//                            || mask->GetPixel(maskindex) == 0)
-//                        continue;
-//                    maskR->SetPixel(index3, mask->GetPixel(maskindex));
-//                }
-//                
-//                /* Output the parameter map that the particle filter put out */
-//                for(uint32_t ii = 0 ; ii < size4[3] ; ii++) {
-//                    index4[3] = ii;
-//                    index6[4] = ii;
-//                    trueParamR->SetPixel(index4, hist->GetPixel(index6));
-//                }
-//                 
-//                /* Calculate MSE with Particle Filter Input Image */
-//                vector<double> params1(size4[3]);
-//                for(uint32_t ii = 0 ; ii < size4[3] ; ii++) {
-//                    index6[4] = ii;
-//                    params1[ii] = hist->GetPixel(index6);
-//                }
-//                list<double> sim1;
-//                simulate(sim1, params1, shortTR, TR,stim, tlen);
-//                
-//                list<double> actual;
-//                for(uint32_t ii = 0 ; ii < tlen ; ii++) {
-//                    index4[3] = ii;
-//                    actual.push_front(preproc->GetPixel(index4));
-//                }
-//                
-//                preprocMse->SetPixel(index3, mse(sim1, actual));
-//
-//                if(trueParams) {
-//                    Image4DType::IndexType realParamIndex;
-//                    trueParams->TransformPhysicalPointToIndex(point, realParamIndex);
-//                    if(!trueParams->GetRequestedRegion().IsInside(realParamIndex))
-//                        continue;
-//                    for(uint32_t ii = 0 ; ii < size4[3]; ii++) {
-//                        index4[3] = ii;
-//                        gPmap->SetPixel(index4, trueParams->GetPixel(realParamIndex));
-//                    }
-//                    vector<double> params2;
-//                    fillvector(params2, trueParams, index4);
-//                    list<double> sim2;
-//                    simulate(sim2, params2, shortTR, TR,stim, tlen);
-//                    trueMse->SetPixel(index3, mse(sim1, sim2));
-//                }
-//                
-//            }
-//        }
-//    }
-//}
-            
 /* Main Function */
 int main(int argc, char* argv[])
 {
@@ -510,10 +294,6 @@ int main(int argc, char* argv[])
     copyInformation<Image4DType, Image3DType>(realTSImg, estMI);
     writeImage<Image3DType>(a_dir(), "mi.nii.gz", estMI);
 
-//    Image3DType::Pointer estAct = activation(estParamImg, statusImg, 1/2048.);
-//    copyInformation<Image4DType, Image3DType>(realTSImg, estAct);
-//    writeImage<Image3DType>(a_dir(), "act.nii.gz", estAct);
-
     Image3DType::Pointer mad = median_absolute_deviation(realTSImg);
     copyInformation<Image4DType, Image3DType>(realTSImg, mad);
     writeImage<Image3DType>(a_dir(), "mad.nii.gz", mad);
@@ -547,10 +327,6 @@ int main(int argc, char* argv[])
         copyInformation<Image4DType, Image3DType>(realTSImg, trueMI);
         writeImage<Image3DType>(a_dir(), "mi_true.nii.gz", trueMI);
         
-//        Image3DType::Pointer trueAct = activation(trueParamImg2, statusImg, 1/2048.);
-//        copyInformation<Image4DType, Image3DType>(realTSImg, trueMse);
-//        writeImage<Image3DType>(a_dir(), "act_true.nii.gz", trueAct);
-
     }
 
     return 0;

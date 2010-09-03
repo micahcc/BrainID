@@ -18,7 +18,11 @@ static const char* stateString[] = {"TAU_0", "ALPHA", "E_0", "V_0", "TAU_S",
 
 const double PI = acos(-1);
 
-
+/* Constructor:
+ * stddev     - the standard deviation of the weighting function
+ * weightfunc - enum telling which weight function to use
+ * sections   - the number of measurements per measurement time, (1 for single voxel)
+ */
 BoldModel::BoldModel(aux::vector stddev, int weightfunc, size_t sections) : 
             weightf(weightfunc), sigma(stddev), SIMUL_STATES(sections),
             STATE_SIZE(GVAR_SIZE+LVAR_SIZE*sections + sections),
@@ -39,23 +43,6 @@ BoldModel::BoldModel(aux::vector stddev, int weightfunc, size_t sections) :
     std::cerr << "MEAS_SIZE    " << this->MEAS_SIZE    << std::endl;
     std::cerr << "INPUT_SIZE   " << this->INPUT_SIZE   << std::endl;
 
-//    for(unsigned int i = 0 ; i < 3 ; i++) {
-//        std::cerr << "TAU_0 -> "   << stateString[stateAt(indexof(TAU_0, i))]  << std::endl;
-//        std::cerr << "ALPHA -> "   << stateString[stateAt(indexof(ALPHA, i))]  << std::endl;
-//        std::cerr << "E_0   -> "   << stateString[stateAt(indexof(E_0  , i))]  << std::endl;
-//        std::cerr << "V_0   -> "   << stateString[stateAt(indexof(V_0  , i))]  << std::endl;
-//        std::cerr << "TAU_S -> "   << stateString[stateAt(indexof(TAU_S, i))]  << std::endl;
-//        std::cerr << "TAU_F -> "   << stateString[stateAt(indexof(TAU_F, i))]  << std::endl;
-//        std::cerr << "EPSILON -> " << stateString[stateAt(indexof(EPSILON, i))] << std::endl;
-//        std::cerr << "V_T  -> "    << stateString[stateAt(indexof(V_T  , i))] << std::endl;
-//        std::cerr << "Q_T  -> "    << stateString[stateAt(indexof(Q_T  , i))] << std::endl;
-//        std::cerr << "S_T  -> "    << stateString[stateAt(indexof(S_T  , i))] << std::endl;
-//        std::cerr << "F_T  -> "    << stateString[stateAt(indexof(F_T  , i))] << std::endl;
-//    }
-//    for(unsigned int i = 0 ; i < MEAS_SIZE; i++) {
-//        std::cerr << "Extra vars: " << i << " -> " << STATE_SIZE-MEAS_SIZE+i;
-//    }
-
     std::cerr << "Sigma:" << std::endl;
     for(unsigned int i = 0 ; i < this->sigma.size() ; i++)
         std::cerr << this->sigma(i) << std::endl;
@@ -66,6 +53,7 @@ BoldModel::~BoldModel()
 
 }
 
+/* Returns the Steady state measurement level for the given parameters */
 aux::vector BoldModel::steadyMeas(const aux::vector& dustin, const aux::vector u_t)
 {
     aux::vector out = dustin;
@@ -81,6 +69,7 @@ aux::vector BoldModel::steadyMeas(const aux::vector& dustin, const aux::vector u
     return measure(out);
 }
 
+/* Returns the Steady state "state variables" for the given parameters */
 aux::vector BoldModel::steadyState(const aux::vector& dustin, const aux::vector u_t)
 {
     aux::vector out = dustin;
@@ -96,13 +85,18 @@ aux::vector BoldModel::steadyState(const aux::vector& dustin, const aux::vector 
     return out;
 }
 
+/* Integrates the state space model (s) for delta seconds (usually very small),
+ * t isn't usually used because the function is time invariant
+ */
 int BoldModel::transition(aux::vector& s, const double t, const double delta) const
 {
     //use the default input
     return transition(s, t, delta, input);
 }
 
-//TODO make transition as FAST as possible
+/* Integrates the state space model (s) for delta seconds (usually very small),
+ * t isn't usually used because the function is time invariant
+ */
 int BoldModel::transition(aux::vector& dustin, const double time, 
             const double delta_t, const aux::vector& u_t) const
 {
@@ -157,6 +151,7 @@ int BoldModel::transition(aux::vector& dustin, const double time,
     return 0;
 }
 
+/* Given the particle, measure the output */
 aux::vector BoldModel::measure(const aux::vector& s) const
 {
     aux::vector y(MEAS_SIZE);
@@ -169,7 +164,10 @@ aux::vector BoldModel::measure(const aux::vector& s) const
     }
     return y;
 } 
-/* If s[STATE_SIZE-MEAS_SIZE+1] is negative, then this is working
+/* Calculate the weight at the current time, given a particle, s, 
+ * and a measurement, y
+ * 
+ * If s[STATE_SIZE-MEAS_SIZE+1] is negative, then this is working
  * with a "drift" variable, aka an arbitrary number is being ADDED
  * to the measurement to account for low frequency drift. In this case
  * y should be the RAW Bold signal
@@ -269,8 +267,9 @@ double BoldModel::generateComponent(gsl_rng* rng, aux::vector& fillme,
     
     return 1./weight;
 }
-    
-//TODO make some of these non-gaussian
+
+/* Helper functions to generate a prior */
+
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
             double sigma_scale, bool flat) const
 {
@@ -299,21 +298,15 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples, 
             const aux::vector mean, aux::vector width, bool flat) const
 {
-//    for(unsigned int i = 0 ; i < width.size() ; i++) 
-//        std::cout << width[i] << std::endl;
-//    std::cout << std::endl;
     std::vector<Dist> newdist = defdist(SIMUL_STATES, width, mean);
-//    for(unsigned int i = 0 ; i < width.size() ; i++) 
-//        std::cout << width[i] << std::endl;
-//    std::cout << std::endl;
-//    for(unsigned int i = 0 ; i < width.size() ; i++) {
-//        std::cout <<  newdist[i].type << " " <<  newdist[i].scale << std::endl;
-//    }
-//    std::cout << std::endl;
     generatePrior(x0, samples, newdist, flat);
 }
 
-//TODO make some of these non-gaussian
+/* Main Generate Prior Function,
+ * x0      - the mixture PDF that is being filled (added to)
+ * samples - the number of samples to add to x0
+ * dists   - the distributions for the different members of the particle
+ * flat    - flatten the prior by dividing by the density at the point*/
 void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
             std::vector<struct BoldModel::Dist>& dists, bool flat) const
 {
@@ -360,7 +353,11 @@ void BoldModel::generatePrior(aux::DiracMixturePdf& x0, int samples,
     gsl_rng_free(rng);
 }
 
-//return (weight modified)
+/* Takes a particle and determines if it is invalid, if so then it
+ * changes the weight (weightout) and then returns true because the
+ * particles' weight changed
+ * This would return true for instance if tau_0 was negative
+ */
 bool BoldModel::reweight(aux::vector& checkme, double& weightout) const
 {
     size_t count = 0;
@@ -377,6 +374,7 @@ bool BoldModel::reweight(aux::vector& checkme, double& weightout) const
     return false;
 }
 
+/* Default Location, used for all the prior distribution calculations */
 aux::vector BoldModel::defloc(unsigned int simul)
 {
     aux::vector ret(simul+simul*LVAR_SIZE+GVAR_SIZE);
@@ -400,6 +398,7 @@ aux::vector BoldModel::defloc(unsigned int simul)
     return ret;
 }
 
+/* Default Scale, used for all the prior distribution calculations */
 aux::vector BoldModel::defscale(unsigned int simul)
 {
     aux::vector ret(simul+simul*LVAR_SIZE+GVAR_SIZE, 0);
@@ -426,22 +425,6 @@ aux::vector BoldModel::defscale(unsigned int simul)
     return ret;
 }
 
-//void BoldModel::convert(aux::vector<BoldModel::Dist> dest, const aux::vector& loc, 
-//            const aux::vector& scale)
-//{
-//    for(unsigned int i = 0 ; i < dest.size(); i++) {
-//        if(dest[i].type == NORMAL) {
-//            dest[i].A.mean = loc[i];
-//            dest[i].B.stddev = scale[i];
-//        } else if(dest[i].type == GAMMA_MODE) {
-//            dest[i].A.K = (-loc[i] + sqrt(loc[i]*loc[i]+4*scale[i]*scale[i]))/2;
-//            dest[i].B.theta  = loc[i]/dest[i].A.theta + 1;
-//        } else {
-//            throw BOLD_UNCATCHABLE_EXCEPTION();
-//        }
-//    }
-//}
-    
 std::vector<BoldModel::Dist> BoldModel::defdist(unsigned int simul)
 {
     return defdist(simul, defscale(simul), defloc(simul));
@@ -453,6 +436,7 @@ std::vector<BoldModel::Dist> BoldModel::defdist(unsigned int simul,
     return defdist(simul, scale, defloc(simul));
 }
 
+/* Generates the default distribution structure */
 std::vector<BoldModel::Dist> BoldModel::defdist(unsigned int simul, 
             const aux::vector& scale, const aux::vector& loc)
 {

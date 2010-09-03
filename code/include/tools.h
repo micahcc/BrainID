@@ -105,7 +105,8 @@ void get_rms(Image4DType::Pointer in, size_t dir1, size_t dir2,
 };
 
 
-//write a vector to a dimension of an image
+//write a vector to a dimension of an image, starting at start, and going 
+// until the end of out
 template <class T, class Vector>
 int writeVector(typename itk::OrientedImage< T, 4 >::Pointer out, int dir, 
             const Vector& input, 
@@ -124,6 +125,8 @@ int writeVector(typename itk::OrientedImage< T, 4 >::Pointer out, int dir,
     return i;
 };
 
+//Writes a matrix to an image, using the two directions as the
+// directions to go in the image
 //dir1 should be the first matrix dimension, dir2 the second
 template <class T>
 void writeMatrix(typename itk::OrientedImage< T, 4 >::Pointer out, int dir1, 
@@ -146,7 +149,7 @@ void writeMatrix(typename itk::OrientedImage< T, 4 >::Pointer out, int dir1,
 };
 
 
-//read dimension of image into a vector
+//read dimension of image into a vector, starting at start
 template <class T, class Vector>
 int readVector(const typename itk::OrientedImage< T, 4 >::Pointer in, int dir, 
             Vector& input, 
@@ -177,10 +180,12 @@ int readVector(const typename itk::OrientedImage< T, 4 >::Pointer in, int dir,
     }
 };
 
+// Takes a vector of 4D Images, and creates a single 4D Image with voxels in the
+// order of the images. The Direction to concatenate is given by dir 
 template <class T>
 typename itk::OrientedImage< T, 4 >::Pointer concat(
             std::vector< typename itk::OrientedImage< T, 4 >::Pointer >& in,
-            int dir )
+            int dir = 3)
 {
     typedef itk::OrientedImage< T, 4>  ImageType;
     int outsize = 0;
@@ -243,7 +248,8 @@ typename itk::OrientedImage< T, 4 >::Pointer concat(
     return newout;
 };
 
-/* Removes all but the indices between start and stop, inclusive */
+/* Removes all but voxels at indices between start and stop, inclusive,
+ * maintains proper orientation and origin */
 template <class T>
 typename itk::OrientedImage< T, 4 >::Pointer prune(
             const typename itk::OrientedImage< T, 4 >::Pointer in,
@@ -299,6 +305,8 @@ typename itk::OrientedImage< T, 4 >::Pointer prune(
     return newout;
 };
 
+/* Mask out points in input according to the mask, can mask 
+ * image with a mask of lower dimension than the input */
 template<class T, unsigned int SIZE1, class U, unsigned int SIZE2>
 typename itk::OrientedImage<T, SIZE1>::Pointer applymask(
             typename itk::OrientedImage<T, SIZE1>::Pointer input, 
@@ -347,6 +355,11 @@ typename itk::OrientedImage<T, SIZE1>::Pointer applymask(
     return recast;
 }
 
+/* Copies spacing/orientation/origin between two different images 
+ * if the origin image is lower dimension, default values are used
+ * in the output. If the origin image is higher, then orientation
+ * information for the last dimensions will be dropped 
+ */
 template <class SrcType, class DstType >
 void copyInformation(typename SrcType::Pointer src, typename DstType::Pointer dst)
 {

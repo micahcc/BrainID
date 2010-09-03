@@ -42,6 +42,10 @@ typedef itk::SubtractImageFilter< Image4DType > SubF4;
 namespace aux = indii::ml::aux;
 typedef indii::ml::filter::ParticleFilter<double> Filter;
 
+/* 
+ * checks to see if "point" in mask is greater than 0 in "maskimg"
+ * returns true of the given point is something greater than 0
+ */
 bool checkmask(Label4DType::Pointer maskimg, Image4DType::PointType point)
 {
     if(!maskimg) return true;
@@ -56,6 +60,7 @@ bool checkmask(Label4DType::Pointer maskimg, Image4DType::PointType point)
     return false;
 }
 
+/* Helper function to write an image "out" to prefix + filename */
 template <typename ImgType>
 void writeImage(typename ImgType::Pointer out, std::string prefix, 
             std::string filename)
@@ -68,37 +73,13 @@ void writeImage(typename ImgType::Pointer out, std::string prefix,
     cout << "Writing: " << prefix<< endl;
     writer->Update();
 }
- 
-aux::vector ssMu(BoldPF* bold)
-{
-    boost::mpi::communicator world;
-    aux::DiracMixturePdf& dist = bold->getDistribution();
-    aux::vector ssmu =  aux::vector(bold->getModel().getMeasurementSize(),0);
-    for(unsigned int jj = 0 ; jj < dist.getSize() ; jj++) {
-        if(dist.getWeight(jj) > 0)
-            ssmu += dist.getWeight(jj)*bold->getModel().steadyMeas(dist.get(jj));
-    }
-    ssmu = boost::mpi::all_reduce(world, ssmu, std::plus<aux::vector>())/
-                dist.getDistributedTotalWeight();
-    return ssmu;
-}
- 
-aux::vector ssVar(BoldPF* bold, const aux::vector& ssmu)
-{
-    boost::mpi::communicator world;
-    aux::DiracMixturePdf& dist = bold->getDistribution();
-    aux::vector ssvar =  aux::vector(bold->getModel().getMeasurementSize(),0);
-    for(unsigned int jj = 0 ; jj < dist.getSize() ; jj++) {
-        if(dist.getWeight(jj) > 0) {
-            ssvar += scalar_pow(dist.getWeight(jj)*bold->getModel().
-                        steadyMeas(dist.get(jj)) - ssmu,2);
-        }
-    }
-    ssvar = boost::mpi::all_reduce(world, ssvar , std::plus<aux::vector>())/
-                dist.getDistributedTotalWeight();
-    return ssvar;
-}
 
+/* 
+ * output - a std::vector of aux::vector measurements to be filled
+ * input  - an image with measurements to pull from starting at pos
+ * pos    - the first index to read measurements from, will read the whole line
+ * delta  - calculate the delta between the measurements, and save that instead
+ */
 void fillvector(std::vector< aux::vector >& output, Image4DType* input,
             Image4DType::IndexType pos, bool delta)
 {       
@@ -128,15 +109,21 @@ void fillvector(std::vector< aux::vector >& output, Image4DType* input,
     }
 }
 
+/* Helper function to calculate the preprocessed input 
+ * input      - FMRI image with raw measurements
+ * stim       - stimulus sequenced used by some paths to optimized the spline
+ * sampletime - the TR of the FMRI run
+ * erase      - the number of initial voxels to remove
+ * nospline   - don't calculate a spline, just do %difference
+ * smart      - try to optimized knots (not very good)
+ * base       - base filename to write output to
+*/
 Image4DType::Pointer preprocess_help(Image4DType::Pointer input, 
             std::vector<Activation>& stim, double sampletime, unsigned int erase,
             bool nospline, bool smart, std::string base = "")
 {
     boost::mpi::communicator world;
-//    const unsigned int rank = world.rank();
     /* Set up measurements image */
-    //*output << "Conditioning FMRI Image" << endl;
-    //remove first 2 time step, since they are typically polluted
     input = pruneFMRI(input, stim, sampletime, erase);
 
     //calculate %difference, which is used normally for the bold signal
@@ -166,6 +153,9 @@ Image4DType::Pointer preprocess_help(Image4DType::Pointer input,
     return input;
 }
 
+/* Count the number of valid voxels according to the mask
+ * to get an idea of how long the run time will be
+ */
 int countValid(Image4DType::Pointer fmriimg, Label4DType::Pointer mask)
 {
     int count = 0;
@@ -203,7 +193,6 @@ int main(int argc, char* argv[])
 
     vul_arg<string> a_input(0, "4D timeseries file");
     
-//    vul_arg<int> a_particle("-a", "save all particles?", false);
     vul_arg<string> a_mask("-m", "3D mask file");
     vul_arg<int> a_dc("-c", "Calculate DC gain as a state variable", false);
     vul_arg<int> a_delta("-l", "Use deltas between measurements, this precludes"
@@ -224,7 +213,10 @@ int main(int argc, char* argv[])
     vul_arg<unsigned int> a_erase("-e", "Number of times to erase at the front", 2);
     vul_arg<int> a_nospline("-N", "No spline?", 0);
     vul_arg< vcl_vector<int> > a_locat("-L", "Perform at a single location, ex -L 3,12,9");
-    vul_arg<int> a_callbacktype("-D", "Data to record, 0 - histogram, 1 - mean/variance", 1);
+    vul_arg<int> a_callbacktype("-D", "Data to record, 0 - histogram,"
+                " 1 - mean/variance of measurements/parameters,"
+                " 2 - measurement mean/variance,"
+                " 3 - dump all particles, each location will get a different image (untested)", 1);
     
     vul_arg_parse(argc, argv);
     
@@ -393,6 +385,16 @@ int main(int argc, char* argv[])
             cb_meas_init(cbd, &callpoints, inImage->GetRequestedRegion().GetSize());
             cbdata = (void*)cbd;
             cbfunc = cb_meas_call;
+        } break;
+        case 3: {
+            std::string outname = a_output();
+            outname.append("particle_");
+            *output << "Setting up mean/var images of meas" << std::endl;
+            cb_part_data* cbd = new cb_part_data;
+            cb_part_init(cbd, &callpoints, FILTER_PARAMS, a_num_particles(), 
+                        inImage->GetRequestedRegion().GetSize()[3], outname);
+            cbdata = (void*)cbd;
+            cbfunc = cb_part_call;
         } break;
     }
     
