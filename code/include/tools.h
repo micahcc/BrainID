@@ -387,14 +387,9 @@ void copyInformation(typename SrcType::Pointer src, typename DstType::Pointer ds
     for(unsigned int ii = mindim ; ii < maxdim ; ii++) 
         dstSpace[ii] = 1;
     
-    for(unsigned int ii = 0 ; ii < maxdim ; ii++) {
-        for(unsigned int jj = 0 ; jj < maxdim ; jj++) {
-            if(ii < mindim && jj < mindim) 
-                dstDir(ii,jj) = srcDir(ii,jj);
-            else if(ii == jj)
-                dstDir(ii,jj) = 1;
-            else 
-                dstDir(ii,jj) = 0;
+    for(unsigned int ii = 0 ; ii < mindim ; ii++) {
+        for(unsigned int jj = 0 ; jj < mindim ; jj++) {
+            dstDir(ii,jj) = srcDir(ii,jj);
         }
     }
 
