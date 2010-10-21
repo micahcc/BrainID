@@ -1,0 +1,450 @@
+% Template for ISBI-2011 paper; to be used with:
+%          spconf.sty  - ICASSP/ICIP LaTeX style file, and
+%          IEEEbib.bst - IEEE bibliography style file.
+% --------------------------------------------------------------------------
+\documentclass{article}
+\usepackage{spconf,amsmath,graphicx}
+\usepackage[printonlyused,nolist]{acronym}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black]{hyperref}
+
+% Example definitions.
+% --------------------
+\def\x{{\mathbf x}}
+\def\L{{\cal L}}
+
+% Title.
+% ------
+\title{An Analysis of Blood-Oxygen-Level-Dependent Signal Parameter Estimation Using Particle Filters}
+%
+% Single address.
+% ---------------
+\name{Chambers, Micah C}
+\address{Virginia Tech\\
+    Bradley Department of Electrical and Computer Engineering\\
+    302 Whittemore Hall\\
+    Blacksburg, VA 24061-0111}
+%
+% For example:
+% ------------
+%\address{School\\
+%	Department\\
+%	Address}
+%
+% Two addresses (uncomment and modify for two-address case).
+% ----------------------------------------------------------
+%\twoauthors
+%  {A. Author-one, B. Author-two\sthanks{Thanks to XYZ agency for funding.}}
+%	{School A-B\\
+%	Department A-B\\
+%	Address A-B}
+%  {C. Author-three, D. Author-four\sthanks{The fourth author performed the work
+%	while at ...}}
+%	{School C-D\\
+%	Department C-D\\
+%	Address C-D}
+%
+% More than two addresses
+% -----------------------
+% \name{Author Name$^{\star \dagger}$ \qquad Author Name$^{\star}$ \qquad Author Name$^{\dagger}$}
+%
+% \address{$^{\star}$ Affiliation Number One \\
+%     $^{\dagger}$}Affiliation Number Two
+%
+
+
+\begin{document}
+%\ninept
+%
+\maketitle
+%
+\begin{abstract}
+The Blood-Oxygen-Level-Dependent (BOLD) Signal that is measured by functional 
+magnetic resonance imaging (fMRI)
+has been the subject of extensive research since the first development 
+of the balloon model. While there would be definite benefits to 
+moving from the General Linear Model to a physiologically inspired
+BOLD model, significant barriers remain. Optimizing even the simplest
+balloon model requires searching in 7 dimensions, and even more flexible
+models are available. Whereas traditional methods of analyzing fMRI asks
+where activation occurs, BOLD models would ask what the activation 
+looks like. Unfortunately, the nonlinear nature of the Balloon Model
+makes it difficult to analyze, therefore this work demonstrates the 
+use of a particle filter to regresses the simplest form of the BOLD 
+model. The results show that the system of equations are not observable,
+leading to a large range of valid model parameters. 
+\end{abstract}
+%
+\begin{keywords}
+BOLD Response, FMRI, Nonlinear Systems, Particle Filter, Bayesian Statistics, System Identification
+\end{keywords}
+%
+
+\begin{acronym}[CMRO2]
+\acro{BOLD}{Blood-Oxygen-Level-Dependent}
+\acro{CBF}{Cerebral Blood Flow}
+\acro{CBV}{Cerebral Blood Volume}
+\acro{CMRO2}{Cerebral Metabolic Rate of Oxygen}
+\acro{DC}{Direct Current}
+\acro{dHb}{Deoxygenated Hemoglobin}
+\acro{EM}{Expectation-Maximization}
+\acro{EPI}{Echo Planar Imaging}
+\acro{fMRI}{Functional Magnetic Resonance Imaging}
+\acro{FMRIB}{Oxford Centre for Functional MRI of the Brain}
+\acro{FSL}{FMRIB Software Library}
+\acro{FWHM}{Full-Width Half-Maximum}
+\acro{GA}{Genetic Algorithms}
+\acro{GLM}{General Linear Model}
+\acro{HRF}{Hemodynamic Response Function}
+\acro{Hb}{Hemoglobin}
+\acro{MAD}{Median Absolute Deviation}
+\acro{MI}{Mutual Information}
+\acro{MR}{Magnetic Resonance}
+\acro{MRI}{Magnetic Resonance Imaging}
+\acro{MSE}{Mean Squared Error}
+\acro{O2Hb}{Oxygenated Hemoglobin}
+\acro{ODE}{Ordinary Differential Equation}
+\acro{PDF}{Probability Density Function}
+\acro{POSSUM}{Physics-Oriented Simulated Scanner for Understanding MRI}
+\acro{RF}{Radio Frequency}
+\acro{RMSE}{Root Mean Squared Error}
+\acro{RMSR}{Root Mean Squared Residual}
+\acro{SA}{Simulated Annealing}
+\acro{SNR}{Signal-to-Noise Ratio}
+\acro{SPM}{Statistical Parametric Mapping}
+\acro{T1}{Longitudinal}
+\acro{T2}{Spin-Spin}
+\acro{TR}{Repetition Time}
+\acro{UKF}{Unscented Kalman Filter}
+\end{acronym}
+\section{Introduction}
+\label{sec:intro}
+Traditional methods of analyzing timeseries images produced by 
+\ac{fMRI} perform regression using the linear combination of explanatory variables. 
+Though moving to a state space model with more more degrees of freedom 
+requires additional computation, in this paper Particle Filters will
+be used to estimate the governing parameters of the \ac{BOLD} model 
+at a computation cost 
+that would still allow real time calculations for multiple voxels.
+In practical terms, this algorithm could be used as an alternative to \ac{SPM}
+for activation detection. Though more computationally intense,
+this method is capable of modeling nonlinear effects
+and provides more detailed output. 
+
+In particular this work focuses
+on the observability of the \ac{BOLD} state equations from Friston et al.
+\cite{Friston2000}. Because of the nonlinearities in the state equations,
+no analytical method exists to determine observability, however little
+movement in parameters was necessary to achieve high predictive quality from a
+set parameters. High correlation as calculated from the joint \ac{PDF}
+also indicates a lack of observability.  Future works will benefit from
+restricting parameters and thus reducing the dimensionality of the system.
+While this could reduce the plausibility of parameter estimates, it would
+allow for better differentiation of parameters for analyzing pathologies
+and reduce reduce computation time from the 40 seconds of analysis
+per 5 minute timeseries (on a Core 2 Duo Q6600).
+
+\subsection{BOLD Model}
+It is well known that the two types of \ac{Hb} act as contrast agents in 
+\ac{EPI} imaging \cite{Buxton1998, WEISSKOFF1994, Ogawa}, however the connection
+between \ac{dHb}/\ac{O2Hb} and neural activity is non-trivial. 
+Intuitively, increased 
+metabolism will increase \ac{dHb}, however blood vessels are quick
+to compensate by increasing local blood flow. Increased inflow, accomplished by loosening 
+capillary beds, precedes increased outflow, driving increased 
+blood storage.
+Since the local \ac{MR} signal depends on the ratio of \ac{dHb} to \ac{O2Hb},
+increased blood volume affects this ratio if 
+metabolism doesn't exactly match the increased inflow of oxygenated blood.
+This was the impetus
+for the ground breaking balloon model \cite{Buxton1998} and windkessel
+model \cite{Mandeville1999}. These works derive, from first principals,
+the changes in \ac{dHb} ratio and volume of capillaries given an inflow waveform.
+These were the first two attempts to quantitatively account for the shape of the 
+\ac{BOLD} signal as a consequence of the lag between the \ac{CBV}
+and the inward \ac{CBF}. 
+
+Although Buxton et al. demonstrated that a well chosen flow waveform could 
+explain most features of the \ac{BOLD} signal, it stopped short of proposing a
+realistic waveform for the \ac{CBF} and \ac{CMRO2} \cite{Buxton1998}. Friston et al. 
+gave a reasonable and simple
+expression for \ac{CBF} input based on a flow inducing signal
+and in the same work proposed a simple method
+of estimating metabolic rate: as a direct function of the inward blood flow \cite{Friston2000}.
+By combining these equations with the balloon model from Buxton et al.,
+it is possible to predict the \ac{BOLD} signal directly from a stimulus time course:
+\begin{eqnarray}
+\dot{s} &=& \epsilon u(t) - \frac{s}{\tau_s} - \frac{f - 1}{\tau_f} \\
+\dot{f} &=& s\\
+\dot{v} &=& \frac{1}{\tau_0}(f - v^\alpha)\\
+\dot{q} &=& \frac{1}{\tau_0}(\frac{f(1-(1-E_0)^f)}{E_0} - \frac{q}{v^{1-1/\alpha}})
+\label{eq:bold}
+\end{eqnarray}
+where $s$ is a flow inducing signal, $f$ is the input \ac{CBF},
+$v$ is normalized \ac{CBV}, and $q$ is the normalized
+local \ac{dHb} content. The 
+parameters controlling blood flow are $\epsilon$, which is a neuronal 
+efficiency term, $u(t)$ which is the stimulus, and $\tau_f$, $\tau_s$ 
+which are time constants. The parameters for the evolution of blood 
+volume are $E_0$ which the resting metabolic
+rate and $\alpha$ which is Grubb's parameter controlling the balloon model. 
+$\tau_0$ is a single time constant controlling the speed of $v$ and $q$.
+
+Obata refined the readout equation 
+of the \ac{BOLD} signal based on the
+\ac{dHb} content (q) and local blood volume (v), resulting in the
+final \ac{BOLD} measurement \autoref{eq:boldout} \cite{Obata2004}.
+\begin{eqnarray}
+\label{eq:boldout}
+y   &=& V_0((k_1 + k_2)(1-q) - (k_2 + k_3)(1-v))\\
+k_1 &=& 4.3 \times \nu_0 \times E_0 \times TE = 2.8 \nonumber\\
+K_2 &=& \epsilon_0 \times r_0 \times E_0 \times TE = .57 \nonumber \\
+k_3 &=& \epsilon_0 - 1 = .43 \nonumber
+\end{eqnarray}
+Where $\nu_0 = 40.3 s^{-1}$  is the frequency offset in Hz for fully
+de-oxygenated blood (at 1.5T), $r_0 = 25 s^{-1}$  is the slope relating
+change in relaxation rate with change in blood oxygenation, $TE$ is the
+echo time used by the \ac{EPI} sequence and $\epsilon_0 = 1.43$ is the 
+ratio of signal \ac{MR} from intravascular to extravascular regions at rest. 
+
+While this model is more accurate than the static hemodynamic model used in \ac{SPM},
+there have been significant additions which add more degrees of freedom \cite{Deneux2006}. 
+In Deneux et al. it was found that the parameters are far from perpendicular,
+and that very different parameters could give nearly identical \ac{BOLD} output;
+this work builds on that by calculating a joint distribution for the
+model parameters of this basic version of the model\cite{Deneux2006}. 
+
+There have been many previous attempts to learn the parameters of the
+Balloon model, although none have been extremely successful. 
+Friston et al. proposed a novel combination of 
+linear and nonlinear modeling to generate parameter estimates
+\cite{Friston2002b}.  Thus Friston et al. approximated the Jacobian, 
+$\frac{\partial Y}{\partial \theta}$, by approximating the response
+using a low-order Volterra Kernel \cite{Friston2002b}. 
+Unfortunately, estimating a Volterra kernel
+takes longer than simply integrating the state variables. Thus,
+this method simplified to a generic nonlinear-least squares algorithm.
+
+In Johnston et al. \cite{Johnston2007}, a hybrid particle filter/gradient
+descent algorithm was used to simultaneously derive the static and dynamic 
+parameters, (classically known as parameters and state variables, respectively)
+A particle filter was used to calculate the state variables at each
+time; then the estimated distribution of the particles was used to find
+the most likely set of parameters that would give that distribution of state variables.
+This process was repeated until the parameters converged. This
+method is significantly more complicated than simply using the particle
+filter to calculate the parameters; and certainly takes longer to run.
+
+Hu et al. used an Unscented Kalman Filter to simultaneously calculate
+the model parameters and state variables \cite{Hu2009}.
+However, because the Kalman Filter assumes a multivariate 
+Gaussian for the state variables, $X(t-1)$, the posterior 
+distribution is limited. Additionally, a nonlinear transformation
+of a Gaussian can be significantly non-Gaussian. 
+
+In Vakorin et al., a combination of Genetic Algorithms and 
+Simulated Annealing was used to estimate not only the parameters, but the true 
+stimuli driving the \ac{BOLD} signal  \cite{Vakorin2007}. 
+This addresses the inherent uncertainty of exactly where and when 
+stimuli actually get applied. Unfortunately this algorithm took
+in more than 16 hours per voxel.
+
+In his PhD thesis, Murray \cite{Murray2008} used a particle filter based 
+approach to integrate
+the \ac{BOLD} equations. The method used in that work focused primarily on estimating
+the \ac{BOLD} output and state equations as a nonlinear stochastic differential 
+equation. The primary difference between that work and this is that
+Murray \cite{Murray2008} took the parameters as a given. Thus, differences in the \ac{BOLD} output
+were taken to be primarily driven by stochastic changes in the underlying state
+equations. Because the parameters were not allowed to change, the estimate of 
+the \ac{BOLD} signal was not very good. The filtering framework created
+in Murray \cite{Murray2008}, dysii, forms the basis for the particle 
+filter used in this work, 
+and was well designed. The work also clearly presents the particle filter;
+both its derivation and use. 
+
+\section{Methods}
+\label{sec:Methods}
+\subsection{Particle Filter}
+\label{sec:ParticleFilter}
+Particle filters, a type of Sequential Monte Carlo (SMC) method,
+are a powerful method for on line estimation of the posterior probability 
+distribution of parameters given a timeseries and a model. The concept of 
+particle filters is similar to Kalman Filters; however,
+distributions are stored as an empirical distribution rather than 
+as the first two moments of a Gaussian. Thus, particle filters are 
+preferred when the model is nonlinear, and by implication non-Gaussian. 
+The particle filters are a well established technique and are 
+described in great detail in Arulampalam et al. and Thrun et al. 
+\cite{Arulampalam2002a, thrun2008probabilistic}.
+
+The particle filter was set with each particle having one possible 
+system realization: $\{\tau_0, \alpha, E_0, V_0, \tau_s, \tau_f,
+\epsilon, s, f, v, q\}$. Initially 16,000 particles were drawn
+from the prior, with parameters independently gamma distributed:
+$\tau_0 \sim \Gamma(.98, .25)$, 
+$\alpha \sim \Gamma(.33, .045)$, $E_0    \sim \Gamma(.34, .03)$,
+$V_0    \sim \Gamma(.04, .03)$, $\tau_s \sim \Gamma(1.54, .25)$,
+$\tau_f \sim \Gamma(2.46, .25)$, $\epsilon \sim \Gamma(.7, .6)$.
+To reduce the size of the search space from 11 to 7, $\{s, f, v, q\}$
+were assumed to be at resting state ($\{0, 1, 1, 1\}$). Although
+it is common to add noise to the state during integration (to 
+emulate noise in the state updates), this was not performed because 
+the cloud of particles is able to account for this to some degree.
+
+\subsection{Configuration}
+The original assumption regarding particle filter models (\autoref{sec:Particle Filter Model})
+included noise in the update of $x$, however that is not included here.
+The reason for the difference is that the cloud of particles is, to some extent,
+able to account for that noise. It is common, however, to model that noise
+in particle filters by adding a random value to each updated state variable.
+Because the purpose of this particle filter is to learn the underlying distribution
+of the static parameters, rather than precisely modeling the time course of the
+in the dynamic state variables $\{s,f,v,q\}$ this noise is left out. It also helps
+that detrending is applied before the particle filter and that the
+\ac{BOLD} model is dissipative. When no stimuli are applied, all the particles
+decay to $\{0,1,1,1\}$. Typical particle filters
+also use this state noise as an exploratory measure; however, this method is
+less necessary when good priors are available, and when regularized particle filtering
+is being used.
+
+For all the analysis  in this work, $1400$ integration points
+per second were used.  Typically a step size of $0.001$ was sufficient,
+however, from time to time $0.001$ can still result in problems for the
+\ac{BOLD} model.
+
+\subsection{Preprocessing}
+\label{sec:Methods Preprocessing}
+The normal pipeline for analyzing
+\ac{fMRI} involves a several preprocessing steps to condition the signal.
+The first and most important
+task is motion correction. To do this, a single volume in time is chosen, and
+volumes at every other time point are realigned to best match the target volume. This corrects
+for motion by the patient as well as small changes in the magnetic
+fields that cause the image to shift.
+In conventional statistical parametric mapping, a Gaussian smoothing
+filter is applied across the image as discussed in \autoref{sec:RFT}.
+After this, detrending is performed, which is discussed in \autoref{sec:Detrend}.
+Recall that \ac{fMRI} signal levels are unit-less and though detrending is not
+always necessary, the data must always be converted
+into \% difference from baseline.
+The generally accepted method is to use a high pass filter, although the
+cutoff frequency is application dependent and often applied haphazardly.
+Before going into the detrending used in this work, it is necessary to
+discuss the type of noise present in \ac{fMRI}.
+
+The non-stationary
+aspect of a Wiener process, presumably the result of integrating some
+$\nu_x$, is difficult to compensate for, and so many methods
+have been developed to compensate for it. Tanabe et al. \cite{Tanabe2002}
+and Smith et al. \cite{Smith1999}
+demonstrated that this component is prevalent, and may in fact be an inherent  characteristic
+of \ac{fMRI}. It has been reported that in some studies as
+many as half the voxels
+benefited from detrending \cite{Smith2007}. In comparison of high pass 
+filters, 
+Tanabe et al. \cite{Tanabe2002} showed that in most cases subtracting off
+a spline worked the best.
+Unfortunately no method will
+perfectly remove noise, and no method will leave the signal untouched.
+
+The method used to calculate the spline was one knot for every 20
+measurements in an image. Thus a 10 minute session at a repetition time of
+2.1 seconds would have 19 knots. The first and last knots were each
+given half the number of samples as the rest of the knots; which were all
+located at the center of their sample group. The median of each sample group
+was then taken and used as the magnitude for the group. Taking the median
+versus the mean seemed to work better, given the presence of outliers.
+There is potential to optimize the spline further using a canonical
+HRF to find resting points; however, the experiment would have
+to be designed with this in mind.
+
+Problematically, after removing the \ac{DC} component of the signal,
+by definition the signal will have a median near zero.
+Unfortunately this is not the natural state of the \ac{BOLD} signal. More specifically,
+when the signal is inactive, the \ac{BOLD} response should be at 0\% change from
+the base level; activation may then increase, or for short periods decrease from this base.
+Because most of the \ac{BOLD} signal is above baseline, after removing the spline
+the resting state will be below 0\%.
+One method of accounting for this is to simply add a \ac{DC} gain model parameter.
+Like all the other model parameters, with enough measurements, the particle filter
+would be able to settle on a good estimate. Yet adding another dimension increases the
+complexity of the model, for a parameter that is relatively easy to estimate
+by visual inspection.  In this work a simpler approach was used. To determine
+the \ac{DC} gain a robust estimator of scale was used. The 
+\ac{MAD} proved to be accurate in determining how much to shift the signal up
+by. Both methods analysis were tested, and it was found that the increase
+in model complexity far outweighed the slight increase in flexibility. Other
+methods may work better, however the \ac{MAD} worked well,
+as \autoref{fig:PreprocessedLowNoise} and 
+\autoref{fig:PreprocessedHighNoise} show. The \ac{DC} gain was then set to:
+
+\begin{equation}
+y_{\text{gain}, 0:K} = 1.4826\underset{i=0:K}{\text{median}}(y_i - \text{median}(y_{0:K}))
+\label{eq:mad}
+\end{equation}
+
+For more information on the \ac{MAD}, it is discussed in great detail in
+Iglewicz's text on robust estimation \cite{iglewicz1983robust}.
+A serious concern when adding constant values to
+real data is whether this will create false positives. This is a legitimate
+concern; however, a boosted response does not affect how well the \ac{BOLD} model
+predicts the actual measurements; and as mentioned before, the \ac{DC} signal 
+of \ac{fMRI} is never used.
+
+
+\section{Results}
+\label{sec:Results}
+
+\section{Conclusion}
+\label{sec:Conclusion}
+
+% Below is an example of how to insert images. Delete the ``\vspace'' line,
+% uncomment the preceding line ``\centerline...'' and replace ``imageX.ps''
+% with a suitable PostScript file name.
+% -------------------------------------------------------------------------
+\begin{figure}[htb]
+
+\begin{minipage}[b]{1.0\linewidth}
+  \centering
+%  \centerline{\includegraphics[width=8.5cm]{image1}}
+%  \vspace{2.0cm}
+  \centerline{(a) Result 1}\medskip
+\end{minipage}
+%
+\begin{minipage}[b]{.48\linewidth}
+  \centering
+%  \centerline{\includegraphics[width=4.0cm]{image3}}
+%  \vspace{1.5cm}
+  \centerline{(b) Results 3}\medskip
+\end{minipage}
+\hfill
+\begin{minipage}[b]{0.48\linewidth}
+  \centering
+%  \centerline{\includegraphics[width=4.0cm]{image4}}
+%  \vspace{1.5cm}
+  \centerline{(c) Result 4}\medskip
+\end{minipage}
+%
+\caption{Example of placing a figure with experimental results.}
+\label{fig:res}
+%
+\end{figure}
+
+% To start a new column (but not a new page) and help balance the last-page
+% column length use \vfill\pagebreak.
+% -------------------------------------------------------------------------
+%\vfill
+%\pagebreak
+
+
+\section{References}
+\label{sec:ref}
+
+% References should be produced using the bibtex program from suitable
+% BiBTeX files (here: strings, refs, manuals). The IEEEbib.bst bibliography
+% style file from IEEE produces unsorted bibliography list.
+% -------------------------------------------------------------------------
+\bibliographystyle{IEEEbib}
+\bibliography{/home/micahc/library}
+
+\end{document}
