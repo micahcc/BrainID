@@ -4,8 +4,10 @@
 % --------------------------------------------------------------------------
 \documentclass{article}
 \usepackage{spconf,amsmath,graphicx}
+\graphicspath{{pdf/}{png/}}
 \usepackage[printonlyused,nolist]{acronym}
 \usepackage[colorlinks=true,linkcolor=black,citecolor=black]{hyperref}
+\usepackage{colortbl}
 
 % Example definitions.
 % --------------------
@@ -173,11 +175,14 @@ of estimating metabolic rate: as a direct function of the inward blood flow \cit
 By combining these equations with the balloon model from Buxton et al.,
 it is possible to predict the \ac{BOLD} signal directly from a stimulus time course:
 \begin{eqnarray}
+\label{eq:bold1}
 \dot{s} &=& \epsilon u(t) - \frac{s}{\tau_s} - \frac{f - 1}{\tau_f} \\
+\label{eq:bold2}
 \dot{f} &=& s\\
+\label{eq:bold3}
 \dot{v} &=& \frac{1}{\tau_0}(f - v^\alpha)\\
+\label{eq:bold4}
 \dot{q} &=& \frac{1}{\tau_0}(\frac{f(1-(1-E_0)^f)}{E_0} - \frac{q}{v^{1-1/\alpha}})
-\label{eq:bold}
 \end{eqnarray}
 where $s$ is a flow inducing signal, $f$ is the input \ac{CBF},
 $v$ is normalized \ac{CBV}, and $q$ is the normalized
@@ -286,164 +291,106 @@ $\alpha \sim \Gamma(.33, .045)$, $E_0    \sim \Gamma(.34, .03)$,
 $V_0    \sim \Gamma(.04, .03)$, $\tau_s \sim \Gamma(1.54, .25)$,
 $\tau_f \sim \Gamma(2.46, .25)$, $\epsilon \sim \Gamma(.7, .6)$.
 To reduce the size of the search space from 11 to 7, $\{s, f, v, q\}$
-were assumed to be at resting state ($\{0, 1, 1, 1\}$). Although
+were assumed to be at resting state, $\{0, 1, 1, 1\}$. Although
 it is common to add noise to the state during integration (to 
 emulate noise in the state updates), this was not performed because 
 the cloud of particles is able to account for this to some degree.
-
-\subsection{Configuration}
-The original assumption regarding particle filter models (\autoref{sec:Particle Filter Model})
-included noise in the update of $x$, however that is not included here.
-The reason for the difference is that the cloud of particles is, to some extent,
-able to account for that noise. It is common, however, to model that noise
-in particle filters by adding a random value to each updated state variable.
-Because the purpose of this particle filter is to learn the underlying distribution
-of the static parameters, rather than precisely modeling the time course of the
-in the dynamic state variables $\{s,f,v,q\}$ this noise is left out. It also helps
-that detrending is applied before the particle filter and that the
-\ac{BOLD} model is dissipative. When no stimuli are applied, all the particles
-decay to $\{0,1,1,1\}$. Typical particle filters
-also use this state noise as an exploratory measure; however, this method is
-less necessary when good priors are available, and when regularized particle filtering
-is being used.
-
-For all the analysis  in this work, $1400$ integration points
-per second were used.  Typically a step size of $0.001$ was sufficient,
-however, from time to time $0.001$ can still result in problems for the
-\ac{BOLD} model.
-
-\subsection{Preprocessing}
-\label{sec:Methods Preprocessing}
-The normal pipeline for analyzing
-\ac{fMRI} involves a several preprocessing steps to condition the signal.
-The first and most important
-task is motion correction. To do this, a single volume in time is chosen, and
-volumes at every other time point are realigned to best match the target volume. This corrects
-for motion by the patient as well as small changes in the magnetic
-fields that cause the image to shift.
-In conventional statistical parametric mapping, a Gaussian smoothing
-filter is applied across the image as discussed in \autoref{sec:RFT}.
-After this, detrending is performed, which is discussed in \autoref{sec:Detrend}.
-Recall that \ac{fMRI} signal levels are unit-less and though detrending is not
-always necessary, the data must always be converted
-into \% difference from baseline.
-The generally accepted method is to use a high pass filter, although the
-cutoff frequency is application dependent and often applied haphazardly.
-Before going into the detrending used in this work, it is necessary to
-discuss the type of noise present in \ac{fMRI}.
-
-The non-stationary
-aspect of a Wiener process, presumably the result of integrating some
-$\nu_x$, is difficult to compensate for, and so many methods
-have been developed to compensate for it. Tanabe et al. \cite{Tanabe2002}
-and Smith et al. \cite{Smith1999}
-demonstrated that this component is prevalent, and may in fact be an inherent  characteristic
-of \ac{fMRI}. It has been reported that in some studies as
-many as half the voxels
-benefited from detrending \cite{Smith2007}. In comparison of high pass 
-filters, 
-Tanabe et al. \cite{Tanabe2002} showed that in most cases subtracting off
-a spline worked the best.
-Unfortunately no method will
-perfectly remove noise, and no method will leave the signal untouched.
-
-The method used to calculate the spline was one knot for every 20
-measurements in an image. Thus a 10 minute session at a repetition time of
-2.1 seconds would have 19 knots. The first and last knots were each
-given half the number of samples as the rest of the knots; which were all
-located at the center of their sample group. The median of each sample group
-was then taken and used as the magnitude for the group. Taking the median
-versus the mean seemed to work better, given the presence of outliers.
-There is potential to optimize the spline further using a canonical
-HRF to find resting points; however, the experiment would have
-to be designed with this in mind.
-
-Problematically, after removing the \ac{DC} component of the signal,
-by definition the signal will have a median near zero.
-Unfortunately this is not the natural state of the \ac{BOLD} signal. More specifically,
-when the signal is inactive, the \ac{BOLD} response should be at 0\% change from
-the base level; activation may then increase, or for short periods decrease from this base.
-Because most of the \ac{BOLD} signal is above baseline, after removing the spline
-the resting state will be below 0\%.
-One method of accounting for this is to simply add a \ac{DC} gain model parameter.
-Like all the other model parameters, with enough measurements, the particle filter
-would be able to settle on a good estimate. Yet adding another dimension increases the
-complexity of the model, for a parameter that is relatively easy to estimate
-by visual inspection.  In this work a simpler approach was used. To determine
-the \ac{DC} gain a robust estimator of scale was used. The 
-\ac{MAD} proved to be accurate in determining how much to shift the signal up
-by. Both methods analysis were tested, and it was found that the increase
-in model complexity far outweighed the slight increase in flexibility. Other
-methods may work better, however the \ac{MAD} worked well,
-as \autoref{fig:PreprocessedLowNoise} and 
-\autoref{fig:PreprocessedHighNoise} show. The \ac{DC} gain was then set to:
-
+Initially each particle is weighted equally, however
+as new measurements arrive, this effects the probability of particles.
+New measurements
+are incorporated into the weights by \autoref{eq:weightevolve}:
 \begin{equation}
-y_{\text{gain}, 0:K} = 1.4826\underset{i=0:K}{\text{median}}(y_i - \text{median}(y_{0:K}))
-\label{eq:mad}
+w^i_k & \propto & w^i_{k-1}P(y_k| x^i_k) 
+\label{eq:weightevolve}
 \end{equation}
+where $i$ is the particle index, and $k$ is the time index. $P(y_k | x^i_k)$
+is the probability of the observed measurement coming from the $i^{th}$ 
+particle and depends on the observation function, \autoref{eq:boldout}.
+$x^i_k$ is calculated from $x^i_{k-1}$ using the balloon model, 
+\autoref{eq:bold1} through \autoref{eq:bold4}.
+For all the analysis  in this work, $1400$ Euler integration points
+per TR ($2.1$ s) were used. 
 
-For more information on the \ac{MAD}, it is discussed in great detail in
-Iglewicz's text on robust estimation \cite{iglewicz1983robust}.
-A serious concern when adding constant values to
-real data is whether this will create false positives. This is a legitimate
-concern; however, a boosted response does not affect how well the \ac{BOLD} model
-predicts the actual measurements; and as mentioned before, the \ac{DC} signal 
-of \ac{fMRI} is never used.
+Because fMRI drift can add structure to the noise, and removing
+drift could adversely affect regression, a spline with 1 knot every
+20 measurements was fitted to and then subtracted from the timeseries
+\autoref{Smith1999, Tanabe2002}. The level was then converted
+to \% difference from the original mean. Since the BOLD signal is 
+predominantly positive, a constant (the Gaussian normed \acl{MAD} 
+of the \% difference signal) was added to each point. 
 
+Given the state-space equations for the \ac{BOLD} signal, simulating a single time
+series is straightforward. After generating a true signal,
+identically and independently distributed (I.I.D.) Gaussian noise and a Wiener
+process with Gaussian I.I.D. steps were added to the true signal. Finally a
+carrier level was added, since \ac{BOLD} is typically
+measured as a \% difference from the baseline. The particle filter
+algorithm immediately removes this by calculating the \% difference,
+but adding a carrier level meant that the exact same algorithm used
+for simulated data could be used for the real data. For single voxel
+analysis the noise was kept relatively low ($\sigma = 0.001$  for
+I.I.D. Gaussian Noise, and $\sigma = .0005$ for Wiener Steps) to
+explore the properties of the model. These noise magnitudes were added
+the the BOLD signal which is typically around $0.01-0.03$ (1-3\%). 
+To simulate a slice with POSSUM, the code was modified to
+output activation levels based on sets of parameters rather than
+activation levels. The only noise added was the noise normally
+added by POSSUM which does not include drift. 
+For the POSSUM simulated data, SNR was significantly lower ($<6dB$).
 
 \section{Results}
 \label{sec:Results}
+A primary advantage of the particle filter is the that calculates
+a complete joint distribution of the parameters and states. This 
+allows for advanced analyses not available to many other methods.
+Thus, the correlation matrix of parameters from a single 40 minute
+simulated fMRI regression are shown in. %\autoref{
+\begin{table}[t]
+\ninept
+  \centering
+\begin{tabular}{|c | c  c  c  c  c  c  |}
+\hline
+  & $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$  \\
+\hline
+$\alpha$                      & 0.880& & & & & \\
+\rowcolor[gray]{.8} $E_0$     & -0.766& -0.523& & & & \\
+$V_0$                         & 0.624& 0.424& -0.796& & & \\
+\rowcolor[gray]{.8} $\tau_s$  & 0.620& 0.295& -0.748& 0.344& & \\
+$\tau_f$                      & 0.000& -0.397& -0.431& 0.196& 0.699& \\
+\rowcolor[gray]{.8} $\epsilon$& 0.616& 0.656& -0.641& 0.285& 0.446& -0.097\\
+\hline
+\end{tabular}
+  \caption{Correlation Matrix of Posterior Distribution for 40 minute simulated BOLD signal.}
+\label{tab:long_corr}
+\end{table}[htb]
+\normalsize
 
-\section{Conclusion}
-\label{sec:Conclusion}
+For POSSUM simulations, \autoref{fig:PossumResult} shows the
+the mutual information between the estimated timeseries and the 
+preprocessed signal. The estimate was generated from the 
+mean of the particles' parameters at the end of the run. 
 
-% Below is an example of how to insert images. Delete the ``\vspace'' line,
-% uncomment the preceding line ``\centerline...'' and replace ``imageX.ps''
-% with a suitable PostScript file name.
-% -------------------------------------------------------------------------
 \begin{figure}[htb]
-
-\begin{minipage}[b]{1.0\linewidth}
+\begin{minipage}[b]{.5\linewidth}
   \centering
-%  \centerline{\includegraphics[width=8.5cm]{image1}}
-%  \vspace{2.0cm}
-  \centerline{(a) Result 1}\medskip
-\end{minipage}
-%
-\begin{minipage}[b]{.48\linewidth}
-  \centering
-%  \centerline{\includegraphics[width=4.0cm]{image3}}
-%  \vspace{1.5cm}
-  \centerline{(b) Results 3}\medskip
+  \centerline{\includegraphics[width=\textwidth]{snr_hm.png}}
+  \centerline{(a) SNR}\medskip
 \end{minipage}
 \hfill
-\begin{minipage}[b]{0.48\linewidth}
+\begin{minipage}[b]{.49\linewidth}
   \centering
-%  \centerline{\includegraphics[width=4.0cm]{image4}}
-%  \vspace{1.5cm}
-  \centerline{(c) Result 4}\medskip
+  \centerline{\includegraphics[width=\textwidth]{sim_hm_mi.png}}
+  \centerline{(b) Mutual Information}\medskip
 \end{minipage}
-%
-\caption{Example of placing a figure with experimental results.}
-\label{fig:res}
-%
+\caption{Results of POSSUM simulated data. $a)$ 
+SNR of POSSUM additive noise. $b)$ Mutual Information between
+the signal predicted by the particle filter and the actual signal.}
+\label{fig:PossumResult}
 \end{figure}
 
-% To start a new column (but not a new page) and help balance the last-page
-% column length use \vfill\pagebreak.
-% -------------------------------------------------------------------------
-%\vfill
-%\pagebreak
+\section{Discussion}
+\label{sec:Conclusion}
 
-
-\section{References}
-\label{sec:ref}
-
-% References should be produced using the bibtex program from suitable
-% BiBTeX files (here: strings, refs, manuals). The IEEEbib.bst bibliography
-% style file from IEEE produces unsorted bibliography list.
-% -------------------------------------------------------------------------
 \bibliographystyle{IEEEbib}
 \bibliography{/home/micahc/library}
 
