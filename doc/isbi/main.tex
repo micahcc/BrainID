@@ -363,7 +363,31 @@ $\tau_f$                      & 0.000& -0.397& -0.431& 0.196& 0.699& \\
   \caption{Correlation Matrix of Posterior Distribution for 40 minute simulated BOLD signal.}
 \label{tab:long_corr}
 \end{table}[htb]
-\normalsize
+
+\begin{table}[t]
+\ninept
+  \centering
+\begin{tabular}{| c | c | c | c | c | c |}
+\hline
+& Sim Value & \multicolumn{2}{|c|}{Prior} &\multicolumn{2}{|c|}{Posterior} \\
+\hline
+        &       &$\mu$  & $\sigma$& $\mu$& $\sigma$\\
+\hline
+$\tau_0  $& 1.45  & .98   & .25     & 1.07319 & 0.297749  \\
+\rowcolor[gray]{.8} 
+$\alpha  $&0.3    & .33   & .045    & 0.317955& 0.07311  \\
+$E_0     $& 0.47  & .34   & .03     & 0.364195& 0.0457019  \\
+\rowcolor[gray]{.8} 
+$V_0     $& 0.044 & .04   & .03     & 0.110542& 0.0500039  \\
+$\tau_s  $& 1.94  & 1.54  & .25     & 1.86785 & 0.390455  \\
+\rowcolor[gray]{.8} 
+$\tau_f  $& 1.99  & 2.46  & .25     & 2.50166 & 0.348326  \\
+$\epsilon$& 1.8   & .7    & .6      & 1.58716 & 1.14536  \\
+\hline
+\end{tabular}
+  \caption{.}
+\label{tab:long_corr}
+\end{table}[htb]
 
 For POSSUM simulations, \autoref{fig:PossumResult} shows the
 the mutual information between the estimated timeseries and the 
