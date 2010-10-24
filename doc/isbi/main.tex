@@ -340,11 +340,12 @@ For the POSSUM simulated data, SNR was significantly lower ($<6dB$).
 
 \section{Results}
 \label{sec:Results}
-A primary advantage of the particle filter is the that calculates
+A primary advantage of the particle filter is that it estimates
 a complete joint distribution of the parameters and states. This 
-allows for advanced analyses not available to many other methods.
-Thus, the correlation matrix of parameters from a single 40 minute
-simulated fMRI regression are shown in. %\autoref{
+allows for more detailed analyses not available to many other methods.
+In particular it is possible to calculate the correlation of the
+parameters in the posterior distribution. The correlation matrix
+for the single 40 minute simulation is shown in \autoref{tab:long_corr}.
 \begin{table}[t]
 \ninept
   \centering
@@ -363,6 +364,32 @@ $\tau_f$                      & 0.000& -0.397& -0.431& 0.196& 0.699& \\
   \caption{Correlation Matrix of Posterior Distribution for 40 minute simulated BOLD signal.}
 \label{tab:long_corr}
 \end{table}[htb]
+
+For POSSUM simulations, \autoref{fig:PossumResult} shows the
+the mutual information between the estimated timeseries and the 
+preprocessed signal. Each estimate was generated from the 
+mean of the particles' parameters at the end of the run. 
+Additionally the mean and variance of the parameter estimates
+(mean) across the spatial regions of \autoref{fig:PossumResult} are
+given in \autoref{tab:beforeafter}.
+
+\begin{figure}[htb]
+\begin{minipage}[b]{.5\linewidth}
+  \centering
+  \centerline{\includegraphics[width=\textwidth]{snr_hm.png}}
+  \centerline{(a) SNR}\medskip
+\end{minipage}
+\hfill
+\begin{minipage}[b]{.49\linewidth}
+  \centering
+  \centerline{\includegraphics[width=\textwidth]{sim_hm_mi.png}}
+  \centerline{(b) Mutual Information}\medskip
+\end{minipage}
+\caption{Results of POSSUM simulated data. $a)$ 
+SNR of POSSUM additive noise. $b)$ Mutual Information between
+the signal predicted by the particle filter and the actual signal.}
+\label{fig:PossumResult}
+\end{figure}
 
 \begin{table}[t]
 \ninept
@@ -385,36 +412,50 @@ $\tau_f  $& 1.99  & 2.46  & .25     & 2.50166 & 0.348326  \\
 $\epsilon$& 1.8   & .7    & .6      & 1.58716 & 1.14536  \\
 \hline
 \end{tabular}
-  \caption{.}
-\label{tab:long_corr}
+\caption{Comparison of the true value (left), the prior distribution
+used to generate the initial particles (center two columns) and the 
+average/variance of the estimates across simulated voxels. Note that
+each voxel used the same underlying parameters (with differences only
+in absolute value and noise realization), and all particle filters
+were initialized with the same prior.}
+\label{tab:beforeafter}
 \end{table}[htb]
-
-For POSSUM simulations, \autoref{fig:PossumResult} shows the
-the mutual information between the estimated timeseries and the 
-preprocessed signal. The estimate was generated from the 
-mean of the particles' parameters at the end of the run. 
-
-\begin{figure}[htb]
-\begin{minipage}[b]{.5\linewidth}
-  \centering
-  \centerline{\includegraphics[width=\textwidth]{snr_hm.png}}
-  \centerline{(a) SNR}\medskip
-\end{minipage}
-\hfill
-\begin{minipage}[b]{.49\linewidth}
-  \centering
-  \centerline{\includegraphics[width=\textwidth]{sim_hm_mi.png}}
-  \centerline{(b) Mutual Information}\medskip
-\end{minipage}
-\caption{Results of POSSUM simulated data. $a)$ 
-SNR of POSSUM additive noise. $b)$ Mutual Information between
-the signal predicted by the particle filter and the actual signal.}
-\label{fig:PossumResult}
-\end{figure}
 
 \section{Discussion}
 \label{sec:Conclusion}
+The data shows substantial correlation present in the parameter 
+estimates for the 40 minute simulated data. Correlation of 
+constants is a definite sign of the model being under-determined
+and thus not observable. This is in spite of low noise, and the 
+particle filter's solution converging to a Root-Mean-Squared error
+of less than $0.002$. 
 
+On a larger scale, the particle filter also performed well, clearly
+locating regions of activation in spite of Signal-to-Noise Ratio 
+well below 6dB. In spite of this, the final parameter estimates 
+varied more than the initial (prior) distribution (\autoref{tab:beforeafter}).
+This effect is slightly deceiving because the distributions
+were far from Gaussian, and many were bi-modal. It is 
+interesting, however, that such a wide range of solutions
+could give good estimates for essentially one BOLD signal. 
+
+From the results, it is clear that the BOLD model as presented
+by Friston et al. is not observable, and thus parameter estimates
+suffer from very large variance \cite{Friston2000}. As a result, parameter estimates
+in that work are likely the result in the under-determination of
+the model rather than underlying differences in parameters. 
+There are two possible ways to deal with this problem. First, as
+specified in Deneux et al., certain parameters could be locked into
+place \cite{Deneux2006}. This solution is relatively easy, and would
+also reduce computation time. True in-vivo parameter estimation
+would help to determine proper values for parameters that are to be
+kept constant, although it is a difficult proposition. The other
+possible method is adding another measurement point. Technology exists
+to simultaneously measure fMRI and \ac{CBF}. This additional
+measurement, which is slightly closer to original stimulus, could
+make the Balloon Model observable.
+
+\small
 \bibliographystyle{IEEEbib}
 \bibliography{/home/micahc/library}
 
