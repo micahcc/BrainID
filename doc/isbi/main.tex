@@ -127,17 +127,19 @@ requires additional computation, in this paper Particle Filters will
 be used to estimate the governing parameters of the \ac{BOLD} model 
 at a computation cost 
 that would still allow real time calculations for multiple voxels.
-In practical terms, this algorithm could be used as an alternative to \ac{SPM}
-for activation detection. Though more computationally intense,
+The parameters guiding the BOLD model could provide insight into 
+functional differences between patients and brain regions.
+More practically, this algorithm is an alternative to the General
+Linear Model for activation detection. Though more computationally intense,
 this method is capable of modeling nonlinear effects
 and provides more detailed output. 
 
-In particular this work focuses
+This work focuses
 on the observability of the \ac{BOLD} state equations from Friston et al.
 \cite{Friston2000}. Because of the nonlinearities in the state equations,
 no analytical method exists to determine observability, however little
 movement in parameters was necessary to achieve high predictive quality from a
-set parameters. High correlation as calculated from the joint \ac{PDF}
+set of parameters. High correlation as calculated from the joint \ac{PDF}
 also indicates a lack of observability.  Future works will benefit from
 restricting parameters and thus reducing the dimensionality of the system.
 While this could reduce the plausibility of parameter estimates, it would
@@ -285,7 +287,8 @@ described in great detail in Arulampalam et al. and Thrun et al.
 The particle filter was set with each particle having one possible 
 system realization: $\{\tau_0, \alpha, E_0, V_0, \tau_s, \tau_f,
 \epsilon, s, f, v, q\}$. Initially 16,000 particles were drawn
-from the prior, with parameters independently gamma distributed:
+from the prior, however after resampling the number was dropped
+to 1000. The parameters were drawn independently from the gamma distribution:
 $\tau_0 \sim \Gamma(.98, .25)$, 
 $\alpha \sim \Gamma(.33, .045)$, $E_0    \sim \Gamma(.34, .03)$,
 $V_0    \sim \Gamma(.04, .03)$, $\tau_s \sim \Gamma(1.54, .25)$,
@@ -444,16 +447,31 @@ by Friston et al. is not observable, and thus parameter estimates
 suffer from very large variance \cite{Friston2000}. As a result, parameter estimates
 in that work are likely the result in the under-determination of
 the model rather than underlying differences in parameters. 
-There are two possible ways to deal with this problem. First, as
+There are two ways to deal with this problem. First, as
 specified in Deneux et al., certain parameters could be locked into
 place \cite{Deneux2006}. This solution is relatively easy, and would
 also reduce computation time. True in-vivo parameter estimation
 would help to determine proper values for parameters that are to be
-kept constant, although it is a difficult proposition. The other
-possible method is adding another measurement point. Technology exists
-to simultaneously measure fMRI and \ac{CBF}. This additional
-measurement, which is slightly closer to original stimulus, could
-make the Balloon Model observable.
+kept constant, although such estimation is not currently possible. 
+A better way of dealing with this problem is adding measurement
+points. Methods of simultaneously measuring fMRI and \ac{CBF}. 
+This additional measurement, which is slightly closer to 
+original stimulus, could make the Balloon Model observable.
+
+Despite the lack of observability, the BOLD estimates generated 
+by the particle filter stayed near the noise level. 
+Thus, for the purpose of estimating BOLD levels between measurements
+the particle filter is sufficient. The on-line nature of the
+particle filter could be utilized, along with BOLD estimates,
+for adaptive control. Thus the stimulus could be
+adapted during the fMRI scan based on BOLD estimates within a small neural
+region. The particle filter also has the distinct benefit of 
+estimating a full posterior distribution. A joint distribution of 
+parameters allows for more advanced analysis; such as calculating
+non-parametric hypothesis testing.  
+While the particle filter took a day to calculate for full brain calculations, its speed
+was sufficient on a quad core machine to perform real time calculations of small regions
+(approximate run time .27 seconds per voxel-measurement). 
 
 \small
 \bibliographystyle{IEEEbib}
