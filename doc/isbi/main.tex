@@ -60,24 +60,24 @@
 \maketitle
 %
 \begin{abstract}
-The Blood-Oxygen-Level-Dependent (BOLD) Signal that is measured by functional 
+The Blood-Oxygen-Level-Dependent (BOLD) signal that is measured by functional 
 magnetic resonance imaging (fMRI)
 has been the subject of extensive research since the first development 
-of the balloon model. While there would be definite benefits to 
-moving from the General Linear Model to a physiologically inspired
+of the balloon model. While there are definite benefits to 
+moving from the Canonical Hemodynamic Response function to a physiologically inspired
 BOLD model, significant barriers remain. Optimizing even the simplest
-balloon model requires searching in 7 dimensions, and even more flexible
-models are available. Whereas traditional methods of analyzing fMRI asks
-where activation occurs, BOLD models would ask what the activation 
-looks like. Unfortunately, the nonlinear nature of the Balloon Model
+balloon model requires searching within 7 dimensions, and even more complex
+models exist. Whereas traditional methods of analyzing fMRI aims
+to determine where activation occurs, BOLD models seek a parametric representation
+of the signal. Unfortunately, the nonlinear nature of these models
 makes it difficult to analyze, therefore this work demonstrates the 
 use of a particle filter to regresses the simplest form of the BOLD 
 model. The results show that the system of equations are not observable,
-leading to a large range of valid model parameters. 
+leading to a large range of parameters that are consistent with the measurements. 
 \end{abstract}
 %
 \begin{keywords}
-BOLD Response, FMRI, Nonlinear Systems, Particle Filter, Bayesian Statistics, System Identification
+BOLD Response, Functional MRI, Nonlinear Systems, Particle Filter, Bayesian Statistics, System Identification
 \end{keywords}
 %
 
@@ -120,8 +120,8 @@ BOLD Response, FMRI, Nonlinear Systems, Particle Filter, Bayesian Statistics, Sy
 \end{acronym}
 \section{Introduction}
 \label{sec:intro}
-Traditional methods of analyzing timeseries images produced by 
-\ac{fMRI} perform regression using the linear combination of explanatory variables. 
+Traditional methods of analyzing 
+\ac{fMRI} images perform regression using the linear combination of explanatory variables. 
 Though moving to a state space model with more more degrees of freedom 
 requires additional computation, in this paper Particle Filters will
 be used to estimate the governing parameters of the \ac{BOLD} model 
@@ -130,52 +130,46 @@ that would still allow real time calculations for multiple voxels.
 The parameters guiding the BOLD model could provide insight into 
 functional differences between patients and brain regions.
 More practically, this algorithm is an alternative to the General
-Linear Model for activation detection. Though more computationally intense,
+Linear Model for activation detection. Though computation intensive,
 this method is capable of modeling nonlinear effects
 and provides more detailed output. 
 
 This work focuses
 on the observability of the \ac{BOLD} state equations from Friston et al.
-\cite{Friston2000}. Because of the nonlinearities in the state equations,
-no analytical method exists to determine observability, however little
-movement in parameters was necessary to achieve high predictive quality from a
-set of parameters. High correlation as calculated from the joint \ac{PDF}
-also indicates a lack of observability.  Future works will benefit from
-restricting parameters and thus reducing the dimensionality of the system.
-While this could reduce the plausibility of parameter estimates, it would
-allow for better differentiation of parameters for analyzing pathologies
-and reduce reduce computation time from the 40 seconds of analysis
-per 5 minute timeseries (on a Core 2 Duo Q6600).
+\cite{Friston2000}. 
+Because of the nonlinearities in the state equations,
+no analytical method exists to determine observability. Therefore
+Particle Filters are used to build a joint mixture \ac{PDF} of the model parameters. 
+This work will show that this method is sufficient for predicting
+the BOLD signal, without requiring excessive computation. 
+Because particle filters estimate a full posterior distribution, 
+it was possible to calculate correlation of model parameters, an
+indicator of observability. 
 
 \subsection{BOLD Model}
 It is well known that the two types of \ac{Hb} act as contrast agents in 
-\ac{EPI} imaging \cite{Buxton1998, WEISSKOFF1994, Ogawa}, however the connection
+\ac{EPI} imaging \cite{Buxton1998, WEISSKOFF1994, Ogawa}. Despite this, the connection
 between \ac{dHb}/\ac{O2Hb} and neural activity is non-trivial. 
 Intuitively, increased 
 metabolism will increase \ac{dHb}, however blood vessels are quick
-to compensate by increasing local blood flow. Increased inflow, accomplished by loosening 
-capillary beds, precedes increased outflow, driving increased 
-blood storage.
+to compensate by permitting increased local blood flow. Increased inflow, accomplished by loosening 
+capillary beds, precedes a matching outflow, driving increased 
+blood volume.
 Since the local \ac{MR} signal depends on the ratio of \ac{dHb} to \ac{O2Hb},
-increased blood volume affects this ratio if 
-metabolism doesn't exactly match the increased inflow of oxygenated blood.
+increased blood volume also affects this ratio. 
 This was the impetus
 for the ground breaking balloon model \cite{Buxton1998} and windkessel
-model \cite{Mandeville1999}. These works derive, from first principals,
-the changes in \ac{dHb} ratio and volume of capillaries given an inflow waveform.
-These were the first two attempts to quantitatively account for the shape of the 
-\ac{BOLD} signal as a consequence of the lag between the \ac{CBV}
-and the inward \ac{CBF}. 
+model \cite{Mandeville1999}. These works derive 
+the changes in \ac{dHb} ratio and volume of capillaries given \ac{CBF}
+and \ac{CMRO2} waveforms.
 
 Although Buxton et al. demonstrated that a well chosen flow waveform could 
 explain most features of the \ac{BOLD} signal, it stopped short of proposing a
-realistic waveform for the \ac{CBF} and \ac{CMRO2} \cite{Buxton1998}. Friston et al. 
-gave a reasonable and simple
-expression for \ac{CBF} input based on a flow inducing signal
-and in the same work proposed a simple method
-of estimating metabolic rate: as a direct function of the inward blood flow \cite{Friston2000}.
+deterministic waveform for the \ac{CBF} and \ac{CMRO2} \cite{Buxton1998}. Friston et al. 
+gave a simple expression for \ac{CBF} input based on a flow inducing signal,
+and proposed that metabolic rate should be a linear function of the \ac{CBF} \cite{Friston2000}.
 By combining these equations with the balloon model from Buxton et al.,
-it is possible to predict the \ac{BOLD} signal directly from a stimulus time course:
+it is possible to predict the \ac{BOLD} signal from a stimulus function:
 \begin{eqnarray}
 \label{eq:bold1}
 \dot{s} &=& \epsilon u(t) - \frac{s}{\tau_s} - \frac{f - 1}{\tau_f} \\
@@ -192,7 +186,7 @@ local \ac{dHb} content. The
 parameters controlling blood flow are $\epsilon$, which is a neuronal 
 efficiency term, $u(t)$ which is the stimulus, and $\tau_f$, $\tau_s$ 
 which are time constants. The parameters for the evolution of blood 
-volume are $E_0$ which the resting metabolic
+volume are $E_0$ which is the resting metabolic
 rate and $\alpha$ which is Grubb's parameter controlling the balloon model. 
 $\tau_0$ is a single time constant controlling the speed of $v$ and $q$.
 
@@ -204,7 +198,7 @@ final \ac{BOLD} measurement \autoref{eq:boldout} \cite{Obata2004}.
 \label{eq:boldout}
 y   &=& V_0((k_1 + k_2)(1-q) - (k_2 + k_3)(1-v))\\
 k_1 &=& 4.3 \times \nu_0 \times E_0 \times TE = 2.8 \nonumber\\
-K_2 &=& \epsilon_0 \times r_0 \times E_0 \times TE = .57 \nonumber \\
+k_2 &=& \epsilon_0 \times r_0 \times E_0 \times TE = .57 \nonumber \\
 k_3 &=& \epsilon_0 - 1 = .43 \nonumber
 \end{eqnarray}
 Where $\nu_0 = 40.3 s^{-1}$  is the frequency offset in Hz for fully
@@ -212,16 +206,13 @@ de-oxygenated blood (at 1.5T), $r_0 = 25 s^{-1}$  is the slope relating
 change in relaxation rate with change in blood oxygenation, $TE$ is the
 echo time used by the \ac{EPI} sequence and $\epsilon_0 = 1.43$ is the 
 ratio of signal \ac{MR} from intravascular to extravascular regions at rest. 
-
-While this model is more accurate than the static hemodynamic model used in \ac{SPM},
-there have been significant additions which add more degrees of freedom \cite{Deneux2006}. 
-In Deneux et al. it was found that the parameters are far from perpendicular,
+In Deneux et al. \cite{Deneux2006} it was found that the parameters are far from perpendicular,
 and that very different parameters could give nearly identical \ac{BOLD} output;
 this work builds on that by calculating a joint distribution for the
-model parameters of this basic version of the model\cite{Deneux2006}. 
+model parameters of this version of the model. 
 
 There have been many previous attempts to learn the parameters of the
-Balloon model, although none have been extremely successful. 
+balloon model, although none enjoy the ubiquity of the \ac{GLM}. 
 Friston et al. proposed a novel combination of 
 linear and nonlinear modeling to generate parameter estimates
 \cite{Friston2002b}.  Thus Friston et al. approximated the Jacobian, 
@@ -229,31 +220,34 @@ $\frac{\partial Y}{\partial \theta}$, by approximating the response
 using a low-order Volterra Kernel \cite{Friston2002b}. 
 Unfortunately, estimating a Volterra kernel
 takes longer than simply integrating the state variables. Thus,
-this method simplified to a generic nonlinear-least squares algorithm.
+this method was simplified to a generic nonlinear-least squares algorithm.
 
 In Johnston et al. \cite{Johnston2007}, a hybrid particle filter/gradient
 descent algorithm was used to simultaneously derive the static and dynamic 
-parameters, (classically known as parameters and state variables, respectively)
-A particle filter was used to calculate the state variables at each
-time; then the estimated distribution of the particles was used to find
-the most likely set of parameters that would give that distribution of state variables.
+parameters, (more generally known as parameters and state variables, respectively).
+A particle filter was used to calculate the time course of the state variables.
+The estimated distribution of the state variables was then used in
+a Maximum Likelihood fashion to find the most likely set of parameters. 
 This process was repeated until the parameters converged. This
-method is significantly more complicated than simply using the particle
-filter to calculate the parameters; and certainly takes longer to run.
+method is  more complex than using the particle
+filter to calculate the parameters, takes longer to run and
+does not account for uncertainty in parameters.
 
 Hu et al. used an Unscented Kalman Filter to simultaneously calculate
 the model parameters and state variables \cite{Hu2009}.
 However, because the Kalman Filter assumes a multivariate 
 Gaussian for the state variables, $X(t-1)$, the posterior 
-distribution is limited. Additionally, a nonlinear transformation
-of a Gaussian can be significantly non-Gaussian. 
+distribution is limited. Additionally, a nonlinear transformation of 
+a Gaussian, 
+such as the state transition function of the Balloon Model,
+can be significantly non-Gaussian. 
 
 In Vakorin et al., a combination of Genetic Algorithms and 
 Simulated Annealing was used to estimate not only the parameters, but the true 
 stimuli driving the \ac{BOLD} signal  \cite{Vakorin2007}. 
-This addresses the inherent uncertainty of exactly where and when 
-stimuli actually get applied. Unfortunately this algorithm took
-in more than 16 hours per voxel.
+This addresses the inherent uncertainty of exactly when 
+stimuli get applied. Unfortunately this algorithm took
+more than 16 hours per voxel to run.
 
 In his PhD thesis, Murray \cite{Murray2008} used a particle filter based 
 approach to integrate
@@ -261,13 +255,12 @@ the \ac{BOLD} equations. The method used in that work focused primarily on estim
 the \ac{BOLD} output and state equations as a nonlinear stochastic differential 
 equation. The primary difference between that work and this is that
 Murray \cite{Murray2008} took the parameters as a given. Thus, differences in the \ac{BOLD} output
-were taken to be primarily driven by stochastic changes in the underlying state
-equations. Because the parameters were not allowed to change, the estimate of 
-the \ac{BOLD} signal was not very good. The filtering framework created
+were assumed to be driven by noise in the underlying state
+equations. Because the parameters were held constant, the 
+\ac{BOLD} estimate was poor. However, the primary purpose of that work
+was to advance understanding of filtering techniques; and the filtering framework created
 in Murray \cite{Murray2008}, dysii, forms the basis for the particle 
-filter used in this work, 
-and was well designed. The work also clearly presents the particle filter;
-both its derivation and use. 
+filter used in this work.
 
 \section{Methods}
 \label{sec:Methods}
@@ -276,79 +269,13 @@ both its derivation and use.
 Particle filters, a type of Sequential Monte Carlo (SMC) method,
 are a powerful method for on line estimation of the posterior probability 
 distribution of parameters given a timeseries and a model. The concept of 
-particle filters is similar to Kalman Filters; however,
+particle filters is similar to that of the Unscented Kalman Filter; however,
 distributions are stored as an empirical distribution rather than 
 as the first two moments of a Gaussian. Thus, particle filters are 
-preferred when the model is nonlinear, and by implication non-Gaussian. 
+preferred when the model is nonlinear, and non-Gaussian. 
 The particle filters are a well established technique and are 
-described in great detail in Arulampalam et al. and Thrun et al. 
-\cite{Arulampalam2002a, thrun2008probabilistic}.
-
-The particle filter was set with each particle having one possible 
-system realization: $\{\tau_0, \alpha, E_0, V_0, \tau_s, \tau_f,
-\epsilon, s, f, v, q\}$. Initially 16,000 particles were drawn
-from the prior, however after resampling the number was dropped
-to 1000. The parameters were drawn independently from the gamma distribution:
-$\tau_0 \sim \Gamma(.98, .25)$, 
-$\alpha \sim \Gamma(.33, .045)$, $E_0    \sim \Gamma(.34, .03)$,
-$V_0    \sim \Gamma(.04, .03)$, $\tau_s \sim \Gamma(1.54, .25)$,
-$\tau_f \sim \Gamma(2.46, .25)$, $\epsilon \sim \Gamma(.7, .6)$.
-To reduce the size of the search space from 11 to 7, $\{s, f, v, q\}$
-were assumed to be at resting state, $\{0, 1, 1, 1\}$. Although
-it is common to add noise to the state during integration (to 
-emulate noise in the state updates), this was not performed because 
-the cloud of particles is able to account for this to some degree.
-Initially each particle is weighted equally, however
-as new measurements arrive, this effects the probability of particles.
-New measurements
-are incorporated into the weights by \autoref{eq:weightevolve}:
-\begin{equation}
-w^i_k & \propto & w^i_{k-1}P(y_k| x^i_k) 
-\label{eq:weightevolve}
-\end{equation}
-where $i$ is the particle index, and $k$ is the time index. $P(y_k | x^i_k)$
-is the probability of the observed measurement coming from the $i^{th}$ 
-particle and depends on the observation function, \autoref{eq:boldout}.
-$x^i_k$ is calculated from $x^i_{k-1}$ using the balloon model, 
-\autoref{eq:bold1} through \autoref{eq:bold4}.
-For all the analysis  in this work, $1400$ Euler integration points
-per TR ($2.1$ s) were used. 
-
-Because fMRI drift can add structure to the noise, and removing
-drift could adversely affect regression, a spline with 1 knot every
-20 measurements was fitted to and then subtracted from the timeseries
-\autoref{Smith1999, Tanabe2002}. The level was then converted
-to \% difference from the original mean. Since the BOLD signal is 
-predominantly positive, a constant (the Gaussian normed \acl{MAD} 
-of the \% difference signal) was added to each point. 
-
-Given the state-space equations for the \ac{BOLD} signal, simulating a single time
-series is straightforward. After generating a true signal,
-identically and independently distributed (I.I.D.) Gaussian noise and a Wiener
-process with Gaussian I.I.D. steps were added to the true signal. Finally a
-carrier level was added, since \ac{BOLD} is typically
-measured as a \% difference from the baseline. The particle filter
-algorithm immediately removes this by calculating the \% difference,
-but adding a carrier level meant that the exact same algorithm used
-for simulated data could be used for the real data. For single voxel
-analysis the noise was kept relatively low ($\sigma = 0.001$  for
-I.I.D. Gaussian Noise, and $\sigma = .0005$ for Wiener Steps) to
-explore the properties of the model. These noise magnitudes were added
-the the BOLD signal which is typically around $0.01-0.03$ (1-3\%). 
-To simulate a slice with POSSUM, the code was modified to
-output activation levels based on sets of parameters rather than
-activation levels. The only noise added was the noise normally
-added by POSSUM which does not include drift. 
-For the POSSUM simulated data, SNR was significantly lower ($<6dB$).
-
-\section{Results}
-\label{sec:Results}
-A primary advantage of the particle filter is that it estimates
-a complete joint distribution of the parameters and states. This 
-allows for more detailed analyses not available to many other methods.
-In particular it is possible to calculate the correlation of the
-parameters in the posterior distribution. The correlation matrix
-for the single 40 minute simulation is shown in \autoref{tab:long_corr}.
+described in great detail in Arulampalam et al., Thrun et al. 
+and Murray \cite{Arulampalam2002a, thrun2008probabilistic, Murray2008}.
 \begin{table}[t]
 \ninept
   \centering
@@ -366,17 +293,78 @@ $\tau_f$                      & 0.000& -0.397& -0.431& 0.196& 0.699& \\
 \end{tabular}
   \caption{Correlation Matrix of Posterior Distribution for 40 minute simulated BOLD signal.}
 \label{tab:long_corr}
-\end{table}[htb]
+\end{table}
+The particle filter was set with each particle representing one possible 
+system realization: $\{\tau_0, \alpha, E_0, V_0, \tau_s, \tau_f,
+\epsilon, s, f, v, q\}$. Initially 16,000 particles were drawn
+from the prior, however after resampling the number was dropped
+to 1000. This gave the prior sufficient density to
+cover parameter space, but saved computation time once the solution space
+became more compact. 
+The parameters were drawn independently from the gamma distribution:
+$\tau_0 \sim \Gamma(.98, .25)$, 
+$\alpha \sim \Gamma(.33, .045)$, $E_0    \sim \Gamma(.34, .03)$,
+$V_0    \sim \Gamma(.04, .03)$, $\tau_s \sim \Gamma(1.54, .25)$,
+$\tau_f \sim \Gamma(2.46, .25)$, $\epsilon \sim \Gamma(.7, .6)$.
+To reduce the size of the search space from 11 to 7, $\{s, f, v, q\}$
+were assumed to start at resting state, $\{0, 1, 1, 1\}$. Although
+it is common to add noise to the state during integration (to 
+emulate noise in the state updates), this was not performed because 
+regularization during resampling tended to expand the distribution.
+Additionally the cloud of particles is able to account for some amount
+of stationary randomness.
+Initially each particle is weighted equally, however
+as new measurements arrive, they alter the probability
+of particles being a solution.
+New measurements
+are incorporated into the weights by \autoref{eq:weightevolve}:
+\begin{equation}
+w^i_k & \propto & w^i_{k-1}P(y_k| x^i_k) 
+\label{eq:weightevolve}
+\end{equation}
+where $i$ is the particle index, and $k$ is the time index. $P(y_k | x^i_k)$
+is the probability of the observed measurement coming from the $i^{th}$ 
+particle and depends on the measurement noise and the observation function, 
+\autoref{eq:boldout}.
+$x^i_k$ is calculated from $x^i_{k-1}$ using the balloon model, 
+\autoref{eq:bold1} through \autoref{eq:bold4}.
+For all the analysis  in this work, $1400$ Euler integration points
+per TR ($2.1$ s) were used. When the number of particles with significant
+(non-zero) weights dropped below 50, regularized resampling was 
+applied. Thus, a new set of particles was drawn from the smoothed
+version of the mixture \ac{PDF}.
 
-For POSSUM simulations, \autoref{fig:PossumResult} shows the
-the mutual information between the estimated timeseries and the 
-preprocessed signal. Each estimate was generated from the 
-mean of the particles' parameters at the end of the run. 
-Additionally the mean and variance of the parameter estimates
-(mean) across the spatial regions of \autoref{fig:PossumResult} are
-given in \autoref{tab:beforeafter}.
+Because fMRI drift can add structure to the noise, a spline with 1 knot every
+20 measurements was fitted to and then subtracted from the timeseries
+\cite{Smith1999, Tanabe2002}. The level was then converted
+to \% difference from the original mean. Since the BOLD signal is 
+predominantly positive, a constant (the Gaussian normed \acl{MAD} 
+of the \% difference signal) was added to each point. 
 
-\begin{figure}[htb]
+Given the state-space equations for the \ac{BOLD} signal, simulating a single time
+series is straightforward. After generating a true signal,
+identically and independently distributed (I.I.D.) Gaussian noise and a Wiener
+process with Gaussian I.I.D. steps were added to the true signal. Finally a
+carrier level was added, since \ac{BOLD} is 
+measured as a \% difference from the baseline. For single voxel
+analysis, the noise was kept relatively low ($\sigma = 0.001$  for
+I.I.D. Gaussian Noise, and $\sigma = .0005$ for Wiener Steps) to
+explore the properties of the model. This noise was added
+to the the BOLD signal typically peaks at $0.01-0.03$ (1-3\%). 
+To simulate a slice with \ac{POSSUM} \cite{Drobnjak}, it's code was modified to
+output activation levels based on sets of parameters rather than
+activation levels. For the POSSUM simulated data, SNR was significantly 
+lower although the noise did not include drift ($<6dB$).
+
+\section{Results}
+\label{sec:Results}
+A primary advantage of the particle filter is that it estimates
+a complete joint distribution of the parameters and states. This 
+allows for more detailed analyses not available to many other methods.
+In particular it is possible to calculate the correlation of the
+parameters in the posterior distribution. The correlation matrix
+for the single 40 minute simulation is shown in \autoref{tab:long_corr}.
+\begin{figure}
 \begin{minipage}[b]{.5\linewidth}
   \centering
   \centerline{\includegraphics[width=\textwidth]{snr_hm.png}}
@@ -393,7 +381,6 @@ SNR of POSSUM additive noise. $b)$ Mutual Information between
 the signal predicted by the particle filter and the actual signal.}
 \label{fig:PossumResult}
 \end{figure}
-
 \begin{table}[t]
 \ninept
   \centering
@@ -415,14 +402,21 @@ $\tau_f  $& 1.99  & 2.46  & .25     & 2.50166 & 0.348326  \\
 $\epsilon$& 1.8   & .7    & .6      & 1.58716 & 1.14536  \\
 \hline
 \end{tabular}
-\caption{Comparison of the true value (left), the prior distribution
-used to generate the initial particles (center two columns) and the 
-average/variance of the estimates across simulated voxels. Note that
-each voxel used the same underlying parameters (with differences only
-in absolute value and noise realization), and all particle filters
-were initialized with the same prior.}
+\caption{Comparison of the true value (left), the initial (prior) distribution
+(center two columns) and the 
+mean/variance of the estimates across simulated voxels (Right two Columns).} 
 \label{tab:beforeafter}
-\end{table}[htb]
+\end{table}
+For POSSUM simulations, \autoref{fig:PossumResult} shows the
+the mutual information between the estimated timeseries and the 
+preprocessed signal. Note that in order to remove all false
+positives a threshold of $0.15$ bits was applied, 
+the regions of significant SNR are visible despite this.
+Each estimate was generated from the 
+mean of the particles' parameters at the end of the run. 
+Additionally the mean and variance of the parameter estimates
+(mean) across the spatial regions of \autoref{fig:PossumResult} are
+given in \autoref{tab:beforeafter}.
 
 \section{Discussion}
 \label{sec:Conclusion}
@@ -435,46 +429,43 @@ of less than $0.002$.
 
 On a larger scale, the particle filter also performed well, clearly
 locating regions of activation in spite of Signal-to-Noise Ratio 
-well below 6dB. In spite of this, the final parameter estimates 
+well below 6dB. However, the final parameter estimates 
 varied more than the initial (prior) distribution (\autoref{tab:beforeafter}).
 This effect is slightly deceiving because the distributions
-were far from Gaussian, and many were bi-modal. It is 
-interesting, however, that such a wide range of solutions
-could give good estimates for essentially one BOLD signal. 
+were far from Gaussian, and many were bimodal. It is 
+significant, however, that such a wide range of solutions
+could give good estimates for the true BOLD signal. 
 
 From the results, it is clear that the BOLD model as presented
 by Friston et al. is not observable, and thus parameter estimates
-suffer from very large variance \cite{Friston2000}. As a result, parameter estimates
-in that work are likely the result in the under-determination of
-the model rather than underlying differences in parameters. 
+suffer from very large variance \cite{Friston2000}. Therefore
+any work attempting to estimate these parameters from the BOLD
+signal alone is likely measuring the variance due the model
+rather than the variance due to try physiological differences. 
 There are two ways to deal with this problem. First, as
-specified in Deneux et al., certain parameters could be locked into
-place \cite{Deneux2006}. This solution is relatively easy, and would
-also reduce computation time. True in-vivo parameter estimation
-would help to determine proper values for parameters that are to be
-kept constant, although such estimation is not currently possible. 
-A better way of dealing with this problem is adding measurement
-points. Methods of simultaneously measuring fMRI and \ac{CBF}. 
-This additional measurement, which is slightly closer to 
+specified in Deneux et al., certain parameters could be held constant
+\cite{Deneux2006}. This solution is relatively easy, and would
+also reduce computation time. A better way of dealing with this 
+problem is simultaneously measuring fMRI and \ac{CBF}.  
+This additional measurement, which is closer to 
 original stimulus, could make the Balloon Model observable.
 
 Despite the lack of observability, the BOLD estimates generated 
 by the particle filter stayed near the noise level. 
-Thus, for the purpose of estimating BOLD levels between measurements
+Thus, for the purpose of estimating BOLD levels between measurements,
 the particle filter is sufficient. The on-line nature of the
-particle filter could be utilized, along with BOLD estimates,
+particle filter could also be utilized, along with BOLD estimates,
 for adaptive control. Thus the stimulus could be
 adapted during the fMRI scan based on BOLD estimates within a small neural
 region. The particle filter also has the distinct benefit of 
 estimating a full posterior distribution. A joint distribution of 
-parameters allows for more advanced analysis; such as calculating
+parameters allows for more advanced analysis; such as 
 non-parametric hypothesis testing.  
-While the particle filter took a day to calculate for full brain calculations, its speed
+While the particle filter took a day of processing for full brain calculations, its speed
 was sufficient on a quad core machine to perform real time calculations of small regions
 (approximate run time .27 seconds per voxel-measurement). 
 
-\small
 \bibliographystyle{IEEEbib}
-\bibliography{/home/micahc/library}
+\bibliography{library}
 
 \end{document}
