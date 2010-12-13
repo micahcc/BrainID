@@ -28,7 +28,7 @@ P.plot([-val for val in xvals], statest)
 combined_mean = (statemu + measmean)/2.
 combined_var = sum([var[0]*(var[1] - combined_mean)**2 for var in zip(statest, xvals)])
 combined_var = combined_var/sum(statest) + sum([var[0]*(var[1] - combined_mean)**2 for var in zip(meas, xvals)])/sum(meas)
-print combined_var/2, sqrt(combined_var/2)
+#print combined_var/2, sqrt(combined_var/2)
 state = [norm.pdf(i, combined_mean, sqrt(combined_var/2)) for i in xvals]
 P.plot([-val for val in xvals], state)
 P.legend(["Measurement", "State Predict", "State Precit (Norm)", "Updated State"])
@@ -53,7 +53,7 @@ P.plot([10-val for val in xvals], statest)
 combined_mean = (statemu + measmean)/2.
 combined_var = sum([var[0]*(var[1] - combined_mean)**2 for var in zip(statest, xvals)])
 combined_var = combined_var/sum(statest) + sum([var[0]*(var[1] - combined_mean)**2 for var in zip(meas, xvals)])/sum(meas)
-print combined_var/2, sqrt(combined_var/2)
+#print combined_var/2, sqrt(combined_var/2)
 state = [norm.pdf(i, combined_mean, sqrt(combined_var/2)) for i in xvals]
 P.plot([10-val for val in xvals], state)
 P.legend(["Measurement", "State Predict", "State Precit (Norm)", "Updated State"])
@@ -78,7 +78,7 @@ P.plot([-3 - val for val in xvals], statest)
 combined_mean = (statemu + measmean)/2.
 combined_var = sum([var[0]*(var[1] - combined_mean)**2 for var in zip(statest, xvals)])
 combined_var = combined_var/sum(statest) + sum([var[0]*(var[1] - combined_mean)**2 for var in zip(meas, xvals)])/sum(meas)
-print combined_var/2, sqrt(combined_var/2)
+#print combined_var/2, sqrt(combined_var/2)
 state = [norm.pdf(i, combined_mean, sqrt(combined_var/2)) for i in xvals]
 P.plot([-3 - val for val in xvals], state)
 P.legend(["Measurement", "State Predict", "State Precit (Norm)", "Updated State"])

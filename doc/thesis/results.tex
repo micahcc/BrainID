@@ -62,7 +62,8 @@ necessary to investigate methods of identifying false positives.
 \begin{figure}
 \centering
 \includegraphics[clip=true,trim=1cm 0cm 0cm 0cm, width=17cm]{images/long_converge}
-\caption[\acs{BOLD} estimate converging for a very long \acs{fMRI} run.]{\acs{BOLD} estimate 
+\caption[\acs{BOLD} estimate 
+converging for a 2400 second \acs{fMRI} run.]{\acs{BOLD} estimate 
 converging for a 2400 second \acs{fMRI} run. Darker bars indicate
 bins with more particles with \acs{BOLD} estimate in that range. ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
 \label{fig:long_converge}
@@ -71,8 +72,8 @@ bins with more particles with \acs{BOLD} estimate in that range. ($\sigma_x = 0.
 \begin{figure}
 \centering
 \includegraphics[clip=true,trim=1cm 0cm 0cm 0cm, width=17cm]{images/long_converge_500}
-\caption[First 500 seconds of the \acs{BOLD} estimate converging for a very 
-long \acs{fMRI} run.]{First 500 seconds of \acs{BOLD} estimate 
+\caption[First 500 seconds of \acs{BOLD} estimate 
+converging for a 2400 second \acs{fMRI} run.]{First 500 seconds of \acs{BOLD} estimate 
 converging for a 2400 second \acs{fMRI} run. Darker bars indicate
 bins with more particles with \acs{BOLD} estimate in that range. ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
 \label{fig:long_converge_500}
@@ -155,8 +156,8 @@ of the \ac{BOLD} were actually very close to the true (noise-free) \ac{BOLD} sig
 \begin{figure}
 \centering
 \includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=15cm]{images/realization_lownoise}
-\caption[Simulated Signal with Low Noise/Drift]
-{Simulated signals with different noise realizations compared to true
+\caption[Simulated signals with different noise realizations compared to true
+signal.] {Simulated signals with different noise realizations compared to true
 signal. ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
 \label{fig:LowNoiseRealization}
 \end{figure}
@@ -164,7 +165,7 @@ signal. ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
 \begin{figure}
 \centering
 \includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=15cm]{images/preprocessed_lownoise}
-\caption[Preprocessed Signal with Low Noise/Drift]
+\caption[Results of preprocessing compared to the true signal.]
 {Results of preprocessing compared to the true signal. 
  Knots of spline placed every 20 measurements.
  ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
@@ -174,8 +175,7 @@ signal. ($\sigma_x = 0.0005$, $\sigma_y = 0.001$)}
 \begin{figure}
 \centering
 \includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=15cm]{images/comparison_lownoise}
-\caption[Results with Low Noise/Drift]
-{Results of the particles filter with preprocessed signals from \autoref{fig:PreprocessedLowNoise}
+\caption{Results of the particles filter with preprocessed signals from \autoref{fig:PreprocessedLowNoise}
 as input.}
 \label{fig:FitComparisonLowNoise}
 \end{figure}
@@ -205,8 +205,7 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 1.2187 & 0.3359 & 0.3456 & 0.0800 & 1.599 & 2.2488 & 1.3876 & 5.0665 & 0.003066     & 0.00217\\
 \hline
 \end{tabular}
-\caption[Estimated Parameters with low noise.]
-{Estimated Parameters on 11 different runs with low noise. First row is the true value, 
+\caption{Estimated Parameters on 11 different runs with low noise. First row is the true value, 
 last is the average. $\sum \tau$ is the sum of the estimated time constants.}
 \label{tab:LowNoiseResults}
 \end{table}
@@ -320,7 +319,7 @@ consistently performed well
 
 \begin{figure}
 \includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=15cm]{images/preprocessed_highnoise}
-\caption[Preprocessed Signal with High Noise/Drift]
+\caption[Results of preprocessing compared to the true signal.]
 {Results of preprocessing compared to the true signal.  
  Knots of spline placed every 20 measurements. ($\sigma_x = 0.005$, $\sigma_y = 0.01$)}
 \label{fig:PreprocessedHighNoise}
@@ -328,8 +327,7 @@ consistently performed well
 
 \begin{figure}
 \includegraphics[clip=true,trim=6cm 2cm 5cm 3.5cm,width=15cm]{images/comparison_highnoise}
-\caption[Results with High Noise/Drift]
-{Results of the particles filter with preprocessed signals from \autoref{fig:PreprocessedHighNoise}
+\caption{Results of the particles filter with preprocessed signals from \autoref{fig:PreprocessedHighNoise}
 as input.}
 \label{fig:FitComparisonHighNoise}
 \end{figure}
@@ -383,7 +381,8 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 1.0954 & 0.2708 & 0.3615 & 0.1126 & 1.0510 & 2.7196 & 1.8428 & 4.8659 &0.01362 & 0.00721\\
 \hline
 \end{tabular}
-\caption[Estimated Parameters on 11 different runs with high noise.]
+\caption[Estimated Parameters on 11 different runs with high noise. First row contains the true parameters,
+last row contains the mean.]
 {Estimated Parameters on 11 different runs with high noise. First row contains the true parameters,
 last row contains the mean.
 The red row is Run 1 and the blue row is Run 2 from  \autoref{fig:NoiseComparisonJustTwo}
@@ -479,7 +478,8 @@ and line fit for each run is shown in \autoref{fig:fits_noiseonly}.
 \begin{figure}[H]
 \centering
 \includegraphics[clip=true,trim=6cm 2cm 6cm 3.5cm,width=15cm]{images/preprocessed_noiseonly}
-\caption[Preprocessed Signal for non-active, low noise signal]
+\caption[Comparison of the preprocessed signals for the low noise signal-free case.
+($\sigma_x = 0.005$, $\sigma_y = 0.01$)]
 {Comparison of the preprocessed signals for the low noise signal-free case.
  ($\sigma_x = 0.005$, $\sigma_y = 0.01$)}
 \label{fig:PreprocessedNoiseOnly}
@@ -488,7 +488,8 @@ and line fit for each run is shown in \autoref{fig:fits_noiseonly}.
 \begin{figure}[H]
 \centering
 \includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/fits_noiseonly}
-\caption[Results for non-active, low noise signal]  
+\caption[Comparison of the estimated \ac{BOLD} signal for the low noise signal-free case.
+($\sigma_x = 0.005$, $\sigma_y = 0.01$)]  
 {Comparison of the estimated \ac{BOLD} signal for the low noise signal-free case.
  ($\sigma_x = 0.005$, $\sigma_y = 0.01$). Note the line thickness is caused
 by all the estimates overlapping.}
@@ -516,8 +517,7 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 1.03009 & 0.33228 & 0.33905 & 0.02902 & 1.44506 & 2.50031 & 0.46076 & 0.00165 \\
 \hline
 \end{tabular}
-\caption[Estimated Parameters with low noies, and no signal.]
-{Estimated Parameters on 11 different runs with low noise and no signal present.
+\caption{Estimated Parameters on 11 different runs with low noise and no signal present.
  ($\sigma_x = 0.005$, $\sigma_y = 0.01$)}
 \label{tab:NoiseOnlyResults}
 \end{table}
@@ -525,9 +525,7 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 \begin{figure}[H]
 \centering
 \includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/justnoise_fit_0}
-\caption[Single Fit Results for non-active, low noise signal.]
-{Single Fit Results for non-active, low noise signal
- ($\sigma_x = 0.005$, $\sigma_y = 0.01$).}
+\caption {Single Fit Results for non-active, low noise signal ($\sigma_x = 0.005$, $\sigma_y = 0.01$).}
 \label{fig:justnoise_fit_0}
 \end{figure} %uses allnoise/ALLNOISE-0-w0
 
@@ -543,7 +541,8 @@ $\tau_0$ & $\alpha$ & $E_0$    & $V_0$    & $\tau_s$ & $\tau_f$ & $\epsilon$  & 
 \centering
 \subfigure
 {\includegraphics[clip=true,trim=7cm 3cm 6cm 3cm, width=\textwidth]{images/justnoise_hist_3}}
-\caption[Convergence of the parameters during a noise-only run.]
+\caption[Convergence of the parameters when the signal consisted purely of low level noise 
+($\sigma_x = 0.01$, $\sigma_y = 0.005$).]
 {Convergence of the parameters when the signal consisted purely of low level noise 
 ($\sigma_x = 0.01$, $\sigma_y = 0.005$).
 Order of estimates: $\tau_0, \alpha, E_0, V_0, \tau_s, \tau_f, \epsilon, v,
@@ -596,7 +595,7 @@ with the stimuli in any way (\autoref{fig:fits_noiseonly_high}).
 \begin{figure}[H]
 \centering
 \includegraphics[clip=true,trim=6cm 2cm 5cm 3cm,width=15cm]{images/fits_noiseonly_high}
-\caption[Results for non-active, high noise signal.]
+\caption[\ac{BOLD} estimates for the non-active, high noise signal ($\sigma_x = 0.1$, $\sigma_y = 0.05$).]
 {\ac{BOLD} estimates for the non-active, high noise signal ($\sigma_x = 0.1$, $\sigma_y = 0.05$). 
 Note the line thickness is caused by all the estimates overlapping.}
 \label{fig:fits_noiseonly_high}
@@ -605,8 +604,7 @@ Note the line thickness is caused by all the estimates overlapping.}
 \begin{figure}[H]
 \centering
 \includegraphics[clip=true,trim=6cm 3cm 6cm 3cm,height=9cm]{images/justbignoise_fit_0}
-\caption[Single Fit Results for non-active, high noise signal.]
-{Single Fit Results for non-active, high noise signal
+\caption{Single Fit Results for non-active, high noise signal
  ($\sigma_x = 0.005$, $\sigma_y = 0.01$).}
 \label{fig:justbignoise_fit_0}
 \end{figure} %uses allnoise/ALLNOISE-0-w0
@@ -751,7 +749,7 @@ Region 3: $0.39$.]{\includegraphics[height=9cm]{images/snr_hm.png}\label{fig:Sim
 {\label{fig:sim_hm_mi} \includegraphics[height=8.5cm]{images/sim_hm_mi}}
 
 \caption[Comparison of activation regions.]
-{Comparison of activation regions, a) grey matter and regions, b) \acs{SNR} of active
+{Comparison of activation regions. a) grey matter and regions, b) \acs{SNR} of active
 regions, c) \acs{RMSR} Map, d) \acs{MI} Map.}
 \label{fig:simslice_hm}
 \end{figure}
@@ -817,15 +815,14 @@ like when the threshold is raised from $0.1$ to $0.15$.
 \begin{figure} %bottom left
 \centering
 \includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=\textwidth]{images/slicesim_hist1}
-\caption[Histogram of estimated parameters in section 1]{Histogram of estimated parameters in 
-section 1 in voxels 
+\caption{Histogram of estimated parameters in section 1 in voxels 
 with \acs{MI} greater than $0.15$} \label{fig:slicesim_hist1}
 \end{figure}
 
 \begin{figure} %top left
 \centering
 \includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=\textwidth]{images/slicesim_hist2}
-\caption[Histogram of estimated parameters in section 2]
+\caption
 {Histogram of estimated parameters in section 2 in voxels with \acs{MI} greater
 than $0.15$}
 \label{fig:slicesim_hist2}
@@ -834,7 +831,7 @@ than $0.15$}
 \begin{figure} %top right
 \centering
 \includegraphics[clip=true,trim=2.5cm 2cm 2cm 1cm,width=\textwidth]{images/slicesim_hist3}
-\caption[Histogram of estimated parameters in section 3]
+\caption
 {Histogram of estimated parameters in section 3 in voxels with \acs{MI} greater
 than $0.15$}
 \label{fig:slicesim_hist3}
